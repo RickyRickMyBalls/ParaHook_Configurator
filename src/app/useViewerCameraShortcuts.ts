@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useConsoleStore } from './console/useConsoleStore'
-import { routeKeyboardInput } from './inputRouting'
+import { dispatchEditHistoryShortcut, routeKeyboardInput } from './inputRouting'
 import { useAppStore } from './store/useAppStore'
+import { editHistoryStore } from './store/editHistoryStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import type { WorkspaceViewportId } from './workspace/workspaceShellTypes'
@@ -29,6 +30,8 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
 
       const routing = routeKeyboardInput({
         event,
+        editHistoryCanUndo: editHistoryStore.canUndo(),
+        editHistoryCanRedo: editHistoryStore.canRedo(),
         viewerFlyActive: getViewer(viewportId)?.isFlyModeActive?.() === true,
         viewerCameraShortcutsEnabled: viewerSurfaceOwnsShortcuts,
         sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
@@ -40,6 +43,10 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
           appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
           appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true,
       })
+
+      if (dispatchEditHistoryShortcut(routing, event, editHistoryStore)) {
+        return
+      }
 
       if (routing.owner !== 'viewer-camera-shortcuts' || routing.decision !== 'handle') {
         return

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { getFeatureDiagnostics, type FeatureDiagnostic } from '../features/diagnostics'
 import type { FeatureDependencyRow } from '../features/featureDependencies'
@@ -13,7 +13,7 @@ import {
 } from '../features/featureVirtualPorts'
 import type { ExtrudeFeature } from '../features/featureTypes'
 import { isFeatureEnabled } from '../features/featureTypes'
-import type { SpaghettiNode } from '../schema/spaghettiTypes'
+import type { SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { SP_INTERACTIVE_PROPS } from '../spInteractive'
 import { ExtrudeFeatureView } from './features/ExtrudeFeatureView'
@@ -124,6 +124,21 @@ const extrudeSummary = (
   return `Profile Target: ${shortId(profileRef.sourceFeatureId)}/${selectedProfile.label}, Depth: ${depth}`
 }
 
+type FeatureParameterInteractionDraft = {
+  featureId: string
+  parameterId: string
+  targetLabel: string
+  beforeGraph: SpaghettiGraph
+}
+
+type SketchFeatureInteractionDraft = {
+  featureId: string
+  label: string
+  targetId: string
+  targetLabel: string
+  beforeGraph: SpaghettiGraph
+}
+
 export function FeatureStackView({
   node,
   mode = 'full',
@@ -140,12 +155,20 @@ export function FeatureStackView({
   const moveFeatureUp = useSpaghettiStore((state) => state.moveFeatureUp)
   const moveFeatureDown = useSpaghettiStore((state) => state.moveFeatureDown)
   const setFeatureEnabled = useSpaghettiStore((state) => state.setFeatureEnabled)
+  const commitPartFeatureParameterWithHistory = useSpaghettiStore(
+    (state) => state.commitPartFeatureParameterWithHistory,
+  )
+  const commitPartSketchFeatureWithHistory = useSpaghettiStore(
+    (state) => state.commitPartSketchFeatureWithHistory,
+  )
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const featureStackIr = useSpaghettiStore((state) => state.getPartFeatureStackIrForNode(node.nodeId))
   const beginInteraction = useAppStore((state) => state.beginInteraction)
   const endInteraction = useAppStore((state) => state.endInteraction)
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
+  const featureParameterInteractionRef = useRef<FeatureParameterInteractionDraft | null>(null)
+  const sketchFeatureInteractionRef = useRef<SketchFeatureInteractionDraft | null>(null)
 
   const beginGraphParameterInteraction = () => {
     if (activeGraphDocumentId === null) {
@@ -161,6 +184,62 @@ export function FeatureStackView({
     }
     endInteraction()
     endBrowserBuildInteraction(activeGraphDocumentId)
+  }
+
+  const beginFeatureParameterInteraction = (options: {
+    featureId: string
+    parameterId: string
+    targetLabel: string
+  }) => {
+    featureParameterInteractionRef.current = {
+      ...options,
+      beforeGraph: useSpaghettiStore.getState().graph,
+    }
+    beginGraphParameterInteraction()
+  }
+
+  const endFeatureParameterInteraction = () => {
+    const draft = featureParameterInteractionRef.current
+    featureParameterInteractionRef.current = null
+    if (draft !== null) {
+      commitPartFeatureParameterWithHistory({
+        nodeId: node.nodeId,
+        featureId: draft.featureId,
+        beforeGraph: draft.beforeGraph,
+        targetId: `${node.nodeId}:${draft.featureId}:${draft.parameterId}`,
+        targetLabel: draft.targetLabel,
+      })
+    }
+    endGraphParameterInteraction()
+  }
+
+  const beginSketchFeatureInteraction = (options: {
+    featureId: string
+    label: string
+    targetId: string
+    targetLabel: string
+  }) => {
+    sketchFeatureInteractionRef.current = {
+      ...options,
+      beforeGraph: useSpaghettiStore.getState().graph,
+    }
+    beginGraphParameterInteraction()
+  }
+
+  const endSketchFeatureInteraction = () => {
+    const draft = sketchFeatureInteractionRef.current
+    sketchFeatureInteractionRef.current = null
+    if (draft !== null) {
+      commitPartSketchFeatureWithHistory({
+        nodeId: node.nodeId,
+        featureId: draft.featureId,
+        beforeGraph: draft.beforeGraph,
+        label: draft.label,
+        targetId: draft.targetId,
+        targetLabel: draft.targetLabel,
+      })
+    }
+    endGraphParameterInteraction()
   }
 
   const stack = useMemo(() => readFeatureStack(node.params.featureStack), [node.params.featureStack])
@@ -364,8 +443,8 @@ export function FeatureStackView({
                     previewProfiles={sketchProfilesByFeatureId.get(feature.featureId) ?? []}
                     highlightedProfileIds={highlightedProfilesBySketchFeatureId.get(feature.featureId) ?? emptyProfileSet}
                     irAvailable={featureStackIr !== null}
-                    onBeginInteraction={beginGraphParameterInteraction}
-                    onEndInteraction={endGraphParameterInteraction}
+                    onBeginSketchInteraction={beginSketchFeatureInteraction}
+                    onEndSketchInteraction={endSketchFeatureInteraction}
                     widthVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildSketchRectWidthVirtualInputPortId(feature.featureId)]
                     }
@@ -381,8 +460,8 @@ export function FeatureStackView({
                     feature={feature}
                     stack={stack}
                     featureIndex={index}
-                    onBeginInteraction={beginGraphParameterInteraction}
-                    onEndInteraction={endGraphParameterInteraction}
+                    onBeginParameterInteraction={beginFeatureParameterInteraction}
+                    onEndParameterInteraction={endFeatureParameterInteraction}
                     previewProfilesBySketchId={sketchProfilesByFeatureId}
                     closeProfileResolvedByFeatureId={closeProfileResolvedByFeatureId}
                     depthVirtualInputState={

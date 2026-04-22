@@ -84,6 +84,7 @@ import {
   useWorkspaceStore,
   type WorkspaceStoreState,
 } from '../workspace/useWorkspaceStore'
+import { editHistoryStore } from './editHistoryStore'
 import type { WorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
 import type { ImportedReferenceStructureInspectionSummary } from '../../viewer/referenceStructureInspection'
 
@@ -256,6 +257,19 @@ export type ViewerTransformTarget =
       kind: 'environment-light'
       lightId: string
     }
+
+type ViewerTransformHistoryTarget = Extract<
+  ViewerTransformTarget,
+  { kind: 'reference' } | { kind: 'content-object' }
+>
+
+type ViewerTransformHistorySnapshot = {
+  target: ViewerTransformHistoryTarget
+  hasTransformOverride: boolean
+  transformOverride: ReferenceTransformOverride | null
+  hasHistoryEntries: boolean
+  historyEntries: ReferenceTransformHistoryEntry[]
+}
 
 export type ActiveViewerTransformSession = {
   targetKind: ViewerTransformTarget['kind']
@@ -443,6 +457,38 @@ export type ProjectContentState = {
   componentsById: Record<string, ProjectComponentRecord>
   objectsById: Record<string, ProjectObjectRecord>
 }
+
+export type ProjectContentOrganizationHistorySnapshot = {
+  projectContent: ProjectContentState
+  contentOrderByParentKey: ReferenceWorkspaceState['contentOrderByParentKey']
+  runtimeContentPlacementByRowId: Record<string, RuntimeContentPlacementRecord>
+}
+
+export type AcceptedImportHistorySnapshot = {
+  projectContent: ProjectContentState
+  importedReferenceIds: string[]
+  importedReferenceOrder: ReferenceWorkspaceState['importedReferenceOrder']
+  contentOrderRowIds: string[]
+  contentOrderKeys: string[]
+  visibilityById: Partial<ReferenceWorkspaceState['visibilityById']>
+  loadStateById: Partial<ReferenceWorkspaceState['loadStateById']>
+  errorById: Partial<ReferenceWorkspaceState['errorById']>
+  transformOverrideById: Partial<ReferenceWorkspaceState['transformOverrideById']>
+  channelClampRangeByReferenceId: Partial<
+    ReferenceWorkspaceState['channelClampRangeByReferenceId']
+  >
+  timelineModeByReferenceId: Partial<ReferenceWorkspaceState['timelineModeByReferenceId']>
+  timelineConfigByReferenceId: Partial<ReferenceWorkspaceState['timelineConfigByReferenceId']>
+  transformSnapByReferenceId: Partial<ReferenceWorkspaceState['transformSnapByReferenceId']>
+  importedReferencesById: Partial<ReferenceWorkspaceState['importedReferencesById']>
+  partRowsByReferenceId: Partial<ReferenceWorkspaceState['partRowsByReferenceId']>
+  contentOrderByParentKey: Partial<ReferenceWorkspaceState['contentOrderByParentKey']>
+}
+
+export type CatalogAddToProjectHistorySnapshot = Omit<
+  AcceptedImportHistorySnapshot,
+  'projectContent'
+>
 
 export type RuntimeContentPlacementRecord = {
   parentAssemblyId: string | null
@@ -1166,6 +1212,7 @@ export type AppState = {
   setStagedImportFileScaleMultiplier: (stagedFileId: string, scaleMultiplier: number) => void
   setStagedImportPutAcceptedInNewAssembly: (enabled: boolean) => void
   commitStagedImportDraft: () => StagedImportCommitResult | null
+  commitStagedImportDraftWithHistory: () => StagedImportCommitResult | null
   beginStagedImportFileStructureInspection: (stagedFileId: string) => void
   resolveStagedImportFileStructureInspection: (
     stagedFileId: string,
@@ -1174,6 +1221,16 @@ export type AppState = {
   failStagedImportFileStructureInspection: (stagedFileId: string, errorMessage: string) => void
   closeStagedImportDraft: () => void
   addImportedReference: (reference: {
+    catalogItemId?: string | null
+    catalogFamilyKey?: string | null
+    fileName: string
+    fileType: ReferenceFileType
+    objectUrl: string
+    sourceAttribution?: ImportedReferenceSourceAttribution | null
+    parentAssemblyId?: string | null
+    parentComponentId?: string | null
+  }) => string
+  addImportedReferenceWithHistory: (reference: {
     catalogItemId?: string | null
     catalogFamilyKey?: string | null
     fileName: string
@@ -1197,7 +1254,9 @@ export type AppState = {
   removeImportedReference: (referenceId: string) => void
   explodeImportedReference: (referenceId: string) => boolean
   createProjectAssembly: () => string
+  createProjectAssemblyWithHistory: () => string
   createProjectComponent: (parentAssemblyId: string) => string | null
+  createProjectComponentWithHistory: (parentAssemblyId: string) => string | null
   moveProjectContentOwner: (
     draggedTarget: ProjectContentOwnerTarget,
     dropTarget: ProjectContentOwnerDropTarget,
@@ -1206,13 +1265,27 @@ export type AppState = {
     draggedTargets: ProjectContentOwnerTarget[],
     dropTarget: ProjectContentOwnerDropTarget,
   ) => boolean
+  captureProjectContentOrganizationHistorySnapshot: () => ProjectContentOrganizationHistorySnapshot
+  commitProjectContentOrganizationMoveHistory: (
+    beforeSnapshot: ProjectContentOrganizationHistorySnapshot,
+    options: {
+      targetId?: string
+      targetLabel?: string
+    },
+  ) => boolean
   renameProjectContentOwner: (
     target:
       | { kind: 'assembly'; assemblyId: string }
       | { kind: 'component'; componentId: string },
     label: string,
   ) => boolean
+  renameProjectContentOwnerWithHistory: (target: ProjectContentOwnerTarget, label: string) => boolean
   deleteProjectContentOwner: (
+    target:
+      | { kind: 'assembly'; assemblyId: string }
+      | { kind: 'component'; componentId: string },
+  ) => boolean
+  deleteProjectContentOwnerWithHistory: (
     target:
       | { kind: 'assembly'; assemblyId: string }
       | { kind: 'component'; componentId: string },
@@ -3741,6 +3814,181 @@ const areReferenceTransformVectorsEqual = (
   right: ReferenceTransformHistoryVector,
 ): boolean => left.x === right.x && left.y === right.y && left.z === right.z
 
+const cloneViewerTransformHistoryTarget = (
+  target: ViewerTransformHistoryTarget,
+): ViewerTransformHistoryTarget =>
+  target.kind === 'reference'
+    ? { kind: 'reference', referenceId: target.referenceId }
+    : { kind: 'content-object', objectId: target.objectId }
+
+const areReferenceTransformHistoryEntriesEqual = (
+  left: ReferenceTransformHistoryEntry,
+  right: ReferenceTransformHistoryEntry,
+): boolean =>
+  left.entryId === right.entryId &&
+  left.sessionId === right.sessionId &&
+  left.sessionOrdinal === right.sessionOrdinal &&
+  left.kind === right.kind &&
+  left.locked === right.locked &&
+  areReferenceTransformVectorsEqual(left.delta, right.delta) &&
+  areReferenceTransformVectorsEqual(left.after, right.after) &&
+  areReferenceTransformOverridesEqual(left.transformAfter, right.transformAfter)
+
+const areReferenceTransformHistoryEntryArraysEqual = (
+  left: readonly ReferenceTransformHistoryEntry[],
+  right: readonly ReferenceTransformHistoryEntry[],
+): boolean =>
+  left.length === right.length &&
+  left.every((entry, index) => {
+    const other = right[index]
+    return other !== undefined && areReferenceTransformHistoryEntriesEqual(entry, other)
+  })
+
+const captureViewerTransformHistorySnapshot = (
+  referenceWorkspace: ReferenceWorkspaceState,
+  target: ViewerTransformHistoryTarget,
+): ViewerTransformHistorySnapshot => {
+  if (target.kind === 'reference') {
+    const hasTransformOverride = Object.prototype.hasOwnProperty.call(
+      referenceWorkspace.transformOverrideById,
+      target.referenceId,
+    )
+    const hasHistoryEntries = Object.prototype.hasOwnProperty.call(
+      referenceWorkspace.transformHistoryByReferenceId,
+      target.referenceId,
+    )
+    return {
+      target: cloneViewerTransformHistoryTarget(target),
+      hasTransformOverride,
+      transformOverride:
+        cloneReferenceTransformOverride(referenceWorkspace.transformOverrideById[target.referenceId] ?? null),
+      hasHistoryEntries,
+      historyEntries: (referenceWorkspace.transformHistoryByReferenceId[target.referenceId] ?? []).map(
+        cloneReferenceTransformHistoryEntry,
+      ),
+    }
+  }
+  const hasTransformOverride = Object.prototype.hasOwnProperty.call(
+    referenceWorkspace.contentObjectTransformOverrideById,
+    target.objectId,
+  )
+  const hasHistoryEntries = Object.prototype.hasOwnProperty.call(
+    referenceWorkspace.transformHistoryByObjectId,
+    target.objectId,
+  )
+  return {
+    target: cloneViewerTransformHistoryTarget(target),
+    hasTransformOverride,
+    transformOverride:
+      cloneReferenceTransformOverride(referenceWorkspace.contentObjectTransformOverrideById[target.objectId] ?? null),
+    hasHistoryEntries,
+    historyEntries: (referenceWorkspace.transformHistoryByObjectId[target.objectId] ?? []).map(
+      cloneReferenceTransformHistoryEntry,
+    ),
+  }
+}
+
+const areViewerTransformHistorySnapshotsEqual = (
+  left: ViewerTransformHistorySnapshot,
+  right: ViewerTransformHistorySnapshot,
+): boolean => {
+  if (
+    left.target.kind !== right.target.kind ||
+    (left.target.kind === 'reference' && right.target.kind === 'reference'
+      ? left.target.referenceId !== right.target.referenceId
+      : left.target.kind === 'content-object' && right.target.kind === 'content-object'
+        ? left.target.objectId !== right.target.objectId
+        : true)
+  ) {
+    return false
+  }
+  const leftTransform = left.transformOverride ?? buildDefaultReferenceTransformOverride()
+  const rightTransform = right.transformOverride ?? buildDefaultReferenceTransformOverride()
+  return (
+    areReferenceTransformOverridesEqual(leftTransform, rightTransform) &&
+    areReferenceTransformHistoryEntryArraysEqual(left.historyEntries, right.historyEntries)
+  )
+}
+
+const restoreViewerTransformHistorySnapshot = (
+  snapshot: ViewerTransformHistorySnapshot,
+): void => {
+  useAppStore.setState((state) => {
+    if (snapshot.target.kind === 'reference') {
+      const referenceId = snapshot.target.referenceId
+      const transformOverrideById = { ...state.referenceWorkspace.transformOverrideById }
+      const transformHistoryByReferenceId = {
+        ...state.referenceWorkspace.transformHistoryByReferenceId,
+      }
+      const previousTransformOverride = state.referenceWorkspace.transformOverrideById[referenceId] ?? null
+      const nextTransformOverride = snapshot.hasTransformOverride
+        ? cloneReferenceTransformOverride(snapshot.transformOverride)
+        : null
+
+      if (snapshot.hasTransformOverride) {
+        transformOverrideById[referenceId] = nextTransformOverride
+      } else {
+        delete transformOverrideById[referenceId]
+      }
+
+      if (snapshot.hasHistoryEntries) {
+        transformHistoryByReferenceId[referenceId] = snapshot.historyEntries.map(
+          cloneReferenceTransformHistoryEntry,
+        )
+      } else {
+        delete transformHistoryByReferenceId[referenceId]
+      }
+
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformOverrideById,
+          transformHistoryByReferenceId,
+          timelineConfigByReferenceId: applyReferenceTransformTimelineDeltas(
+            state.referenceWorkspace,
+            referenceId,
+            previousTransformOverride,
+            nextTransformOverride,
+          ),
+        },
+      }
+    }
+
+    const objectId = snapshot.target.objectId
+    const contentObjectTransformOverrideById = {
+      ...state.referenceWorkspace.contentObjectTransformOverrideById,
+    }
+    const transformHistoryByObjectId = {
+      ...state.referenceWorkspace.transformHistoryByObjectId,
+    }
+    const nextTransformOverride = snapshot.hasTransformOverride
+      ? cloneReferenceTransformOverride(snapshot.transformOverride)
+      : null
+
+    if (snapshot.hasTransformOverride) {
+      contentObjectTransformOverrideById[objectId] = nextTransformOverride
+    } else {
+      delete contentObjectTransformOverrideById[objectId]
+    }
+
+    if (snapshot.hasHistoryEntries) {
+      transformHistoryByObjectId[objectId] = snapshot.historyEntries.map(
+        cloneReferenceTransformHistoryEntry,
+      )
+    } else {
+      delete transformHistoryByObjectId[objectId]
+    }
+
+    return {
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        contentObjectTransformOverrideById,
+        transformHistoryByObjectId,
+      },
+    }
+  })
+}
+
 const getReferenceTransformHistoryEntryAfterValue = (
   transformOverride: ReferenceTransformOverride | null,
   kind: ReferenceTransformHistoryEntryKind,
@@ -4283,6 +4531,522 @@ const buildProjectReceiveObjectId = (
 ): string => `project-object:${projectFileId}:receive:${ownerGraphDocumentId}:${receiveId}`
 
 const normalizeProjectContentLabel = (label: string): string => label.trim().replace(/\s+/g, ' ')
+
+type ProjectContentRenameTarget = Extract<
+  ProjectContentOwnerTarget,
+  { kind: 'assembly' } | { kind: 'component' }
+>
+
+const browserRenameHistorySource = {
+  surface: 'browser',
+  sourceId: 'browser-project-organization',
+  sourceLabel: 'Browser Project Organization',
+}
+
+const browserAcceptedImportHistorySource = {
+  surface: 'browser',
+  sourceId: 'browser-accepted-import',
+  sourceLabel: 'Browser Accepted Import',
+}
+
+const catalogAddToProjectHistorySource = {
+  surface: 'catalog',
+  sourceId: 'catalog-add-to-project',
+  sourceLabel: 'Catalog Add To Project',
+}
+
+const viewerTransformHistorySource = {
+  surface: 'viewer-transform',
+  sourceId: 'viewer-transform',
+  sourceLabel: 'Viewer Transform',
+}
+
+let browserRenameHistoryEntryCounter = 0
+let browserMoveHistoryEntryCounter = 0
+let browserCreateHistoryEntryCounter = 0
+let browserDeleteHistoryEntryCounter = 0
+let browserAcceptedImportHistoryEntryCounter = 0
+let catalogAddToProjectHistoryEntryCounter = 0
+let viewerTransformHistoryEntryCounter = 0
+
+const nextBrowserRenameHistoryEntryId = (target: ProjectContentRenameTarget): string => {
+  browserRenameHistoryEntryCounter += 1
+  const targetId = target.kind === 'assembly' ? target.assemblyId : target.componentId
+  return `browser-rename:${target.kind}:${targetId}:${browserRenameHistoryEntryCounter}`
+}
+
+const nextBrowserMoveHistoryEntryId = (): string => {
+  browserMoveHistoryEntryCounter += 1
+  return `browser-move:${browserMoveHistoryEntryCounter}`
+}
+
+const nextBrowserCreateHistoryEntryId = (target: ProjectContentRenameTarget): string => {
+  browserCreateHistoryEntryCounter += 1
+  const targetId = target.kind === 'assembly' ? target.assemblyId : target.componentId
+  return `browser-create:${target.kind}:${targetId}:${browserCreateHistoryEntryCounter}`
+}
+
+const nextBrowserDeleteHistoryEntryId = (target: ProjectContentRenameTarget): string => {
+  browserDeleteHistoryEntryCounter += 1
+  const targetId = target.kind === 'assembly' ? target.assemblyId : target.componentId
+  return `browser-delete:${target.kind}:${targetId}:${browserDeleteHistoryEntryCounter}`
+}
+
+const nextBrowserAcceptedImportHistoryEntryId = (): string => {
+  browserAcceptedImportHistoryEntryCounter += 1
+  return `browser-accepted-import:${browserAcceptedImportHistoryEntryCounter}`
+}
+
+const nextCatalogAddToProjectHistoryEntryId = (referenceId: string): string => {
+  catalogAddToProjectHistoryEntryCounter += 1
+  return `catalog-add-to-project:${referenceId}:${catalogAddToProjectHistoryEntryCounter}`
+}
+
+const nextViewerTransformHistoryEntryId = (target: ViewerTransformHistoryTarget): string => {
+  viewerTransformHistoryEntryCounter += 1
+  const targetId = target.kind === 'reference' ? target.referenceId : target.objectId
+  return `viewer-transform:${target.kind}:${targetId}:${viewerTransformHistoryEntryCounter}`
+}
+
+const resolveProjectContentRenameLabel = (
+  state: Pick<AppState, 'projectContent'>,
+  target: ProjectContentOwnerTarget,
+): string | null => {
+  if (target.kind === 'assembly') {
+    return state.projectContent.assembliesById[target.assemblyId]?.label ?? null
+  }
+  if (target.kind === 'component') {
+    const component = state.projectContent.componentsById[target.componentId]
+    return component !== undefined && component.componentSourceKind === 'authored'
+      ? component.label
+      : null
+  }
+  return null
+}
+
+const restoreProjectContentRenameLabel = (
+  target: ProjectContentRenameTarget,
+  label: string,
+): void => {
+  useAppStore.setState((state) => {
+    if (target.kind === 'assembly') {
+      const assembly = state.projectContent.assembliesById[target.assemblyId]
+      if (assembly === undefined) {
+        return state
+      }
+      return {
+        projectContent: {
+          ...state.projectContent,
+          assembliesById: {
+            ...state.projectContent.assembliesById,
+            [target.assemblyId]: {
+              ...assembly,
+              label,
+            },
+          },
+        },
+      }
+    }
+
+    const component = state.projectContent.componentsById[target.componentId]
+    if (component === undefined) {
+      return state
+    }
+    return {
+      projectContent: {
+        ...state.projectContent,
+        componentsById: {
+          ...state.projectContent.componentsById,
+          [target.componentId]: {
+            ...component,
+            label,
+          },
+        },
+      },
+    }
+  })
+}
+
+const restoreProjectContentOrganizationHistorySnapshot = (
+  snapshot: ProjectContentOrganizationHistorySnapshot,
+): void => {
+  useAppStore.setState((state) => ({
+    projectContent: snapshot.projectContent,
+    runtimeContentPlacementByRowId: snapshot.runtimeContentPlacementByRowId,
+    referenceWorkspace: {
+      ...state.referenceWorkspace,
+      contentOrderByParentKey: snapshot.contentOrderByParentKey,
+    },
+  }))
+}
+
+const pickRecordKeys = <T>(
+  record: Record<string, T>,
+  keys: readonly string[],
+): Partial<Record<string, T>> => {
+  const picked: Partial<Record<string, T>> = {}
+  keys.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(record, key)) {
+      picked[key] = record[key]
+    }
+  })
+  return picked
+}
+
+const restoreRecordKeys = <T>(
+  current: Record<string, T>,
+  keys: readonly string[],
+  snapshot: Partial<Record<string, T>>,
+): Record<string, T> => {
+  const next = { ...current }
+  keys.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(snapshot, key)) {
+      next[key] = snapshot[key] as T
+    } else {
+      delete next[key]
+    }
+  })
+  return next
+}
+
+const mergeHistoryOrder = (
+  currentOrder: readonly string[],
+  snapshotOrder: readonly string[],
+  touchedIds: readonly string[],
+): string[] => {
+  const touchedIdSet = new Set(touchedIds)
+  const remainingCurrentIds = currentOrder.filter((id) => !touchedIdSet.has(id))
+  const mergedIds: string[] = []
+  snapshotOrder.forEach((id) => {
+    if (touchedIdSet.has(id)) {
+      mergedIds.push(id)
+      return
+    }
+    const currentIndex = remainingCurrentIds.indexOf(id)
+    if (currentIndex >= 0) {
+      mergedIds.push(id)
+      remainingCurrentIds.splice(currentIndex, 1)
+    }
+  })
+  return dedupeOrderedRowIds([...mergedIds, ...remainingCurrentIds])
+}
+
+const restoreAcceptedImportContentOrder = (
+  current: ReferenceWorkspaceState['contentOrderByParentKey'],
+  snapshot: Pick<
+    AcceptedImportHistorySnapshot,
+    'contentOrderKeys' | 'contentOrderByParentKey' | 'contentOrderRowIds'
+  >,
+): ReferenceWorkspaceState['contentOrderByParentKey'] => {
+  const next = { ...current }
+  snapshot.contentOrderKeys.forEach((key) => {
+    const mergedOrder = mergeHistoryOrder(
+      next[key] ?? [],
+      snapshot.contentOrderByParentKey[key] ?? [],
+      snapshot.contentOrderRowIds,
+    )
+    if (mergedOrder.length > 0) {
+      next[key] = mergedOrder
+    } else {
+      delete next[key]
+    }
+  })
+  return next
+}
+
+const restoreAcceptedImportHistorySnapshot = (snapshot: AcceptedImportHistorySnapshot): void => {
+  useAppStore.setState((state) => ({
+    projectContent: snapshot.projectContent,
+    referenceWorkspace: {
+      ...state.referenceWorkspace,
+      visibilityById: restoreRecordKeys(
+        state.referenceWorkspace.visibilityById,
+        snapshot.importedReferenceIds,
+        snapshot.visibilityById,
+      ),
+      loadStateById: restoreRecordKeys(
+        state.referenceWorkspace.loadStateById,
+        snapshot.importedReferenceIds,
+        snapshot.loadStateById,
+      ),
+      errorById: restoreRecordKeys(
+        state.referenceWorkspace.errorById,
+        snapshot.importedReferenceIds,
+        snapshot.errorById,
+      ),
+      transformOverrideById: restoreRecordKeys(
+        state.referenceWorkspace.transformOverrideById,
+        snapshot.importedReferenceIds,
+        snapshot.transformOverrideById,
+      ),
+      channelClampRangeByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.channelClampRangeByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.channelClampRangeByReferenceId,
+      ),
+      timelineModeByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.timelineModeByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.timelineModeByReferenceId,
+      ),
+      timelineConfigByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.timelineConfigByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.timelineConfigByReferenceId,
+      ),
+      transformSnapByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.transformSnapByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.transformSnapByReferenceId,
+      ),
+      importedReferencesById: restoreRecordKeys(
+        state.referenceWorkspace.importedReferencesById,
+        snapshot.importedReferenceIds,
+        snapshot.importedReferencesById,
+      ),
+      importedReferenceOrder: mergeHistoryOrder(
+        state.referenceWorkspace.importedReferenceOrder,
+        snapshot.importedReferenceOrder,
+        snapshot.importedReferenceIds,
+      ),
+      partRowsByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.partRowsByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.partRowsByReferenceId,
+      ),
+      contentOrderByParentKey: restoreAcceptedImportContentOrder(
+        state.referenceWorkspace.contentOrderByParentKey,
+        snapshot,
+      ),
+    },
+  }))
+}
+
+const restoreCatalogAddToProjectHistorySnapshot = (
+  snapshot: CatalogAddToProjectHistorySnapshot,
+): void => {
+  useAppStore.setState((state) => ({
+    referenceWorkspace: {
+      ...state.referenceWorkspace,
+      visibilityById: restoreRecordKeys(
+        state.referenceWorkspace.visibilityById,
+        snapshot.importedReferenceIds,
+        snapshot.visibilityById,
+      ),
+      loadStateById: restoreRecordKeys(
+        state.referenceWorkspace.loadStateById,
+        snapshot.importedReferenceIds,
+        snapshot.loadStateById,
+      ),
+      errorById: restoreRecordKeys(
+        state.referenceWorkspace.errorById,
+        snapshot.importedReferenceIds,
+        snapshot.errorById,
+      ),
+      transformOverrideById: restoreRecordKeys(
+        state.referenceWorkspace.transformOverrideById,
+        snapshot.importedReferenceIds,
+        snapshot.transformOverrideById,
+      ),
+      channelClampRangeByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.channelClampRangeByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.channelClampRangeByReferenceId,
+      ),
+      timelineModeByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.timelineModeByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.timelineModeByReferenceId,
+      ),
+      timelineConfigByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.timelineConfigByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.timelineConfigByReferenceId,
+      ),
+      transformSnapByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.transformSnapByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.transformSnapByReferenceId,
+      ),
+      importedReferencesById: restoreRecordKeys(
+        state.referenceWorkspace.importedReferencesById,
+        snapshot.importedReferenceIds,
+        snapshot.importedReferencesById,
+      ),
+      importedReferenceOrder: mergeHistoryOrder(
+        state.referenceWorkspace.importedReferenceOrder,
+        snapshot.importedReferenceOrder,
+        snapshot.importedReferenceIds,
+      ),
+      partRowsByReferenceId: restoreRecordKeys(
+        state.referenceWorkspace.partRowsByReferenceId,
+        snapshot.importedReferenceIds,
+        snapshot.partRowsByReferenceId,
+      ),
+      contentOrderByParentKey: restoreAcceptedImportContentOrder(
+        state.referenceWorkspace.contentOrderByParentKey,
+        snapshot,
+      ),
+    },
+  }))
+}
+
+const captureAcceptedImportHistorySnapshot = (
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+  options: {
+    importedReferenceIds: string[]
+    contentOrderRowIds: string[]
+    contentOrderKeys: string[]
+  },
+): AcceptedImportHistorySnapshot => ({
+  projectContent: state.projectContent,
+  importedReferenceIds: options.importedReferenceIds,
+  importedReferenceOrder: state.referenceWorkspace.importedReferenceOrder,
+  contentOrderRowIds: options.contentOrderRowIds,
+  contentOrderKeys: options.contentOrderKeys,
+  visibilityById: pickRecordKeys(
+    state.referenceWorkspace.visibilityById,
+    options.importedReferenceIds,
+  ),
+  loadStateById: pickRecordKeys(
+    state.referenceWorkspace.loadStateById,
+    options.importedReferenceIds,
+  ),
+  errorById: pickRecordKeys(state.referenceWorkspace.errorById, options.importedReferenceIds),
+  transformOverrideById: pickRecordKeys(
+    state.referenceWorkspace.transformOverrideById,
+    options.importedReferenceIds,
+  ),
+  channelClampRangeByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.channelClampRangeByReferenceId,
+    options.importedReferenceIds,
+  ),
+  timelineModeByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.timelineModeByReferenceId,
+    options.importedReferenceIds,
+  ),
+  timelineConfigByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.timelineConfigByReferenceId,
+    options.importedReferenceIds,
+  ),
+  transformSnapByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.transformSnapByReferenceId,
+    options.importedReferenceIds,
+  ),
+  importedReferencesById: pickRecordKeys(
+    state.referenceWorkspace.importedReferencesById,
+    options.importedReferenceIds,
+  ),
+  partRowsByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.partRowsByReferenceId,
+    options.importedReferenceIds,
+  ),
+  contentOrderByParentKey: pickRecordKeys(
+    state.referenceWorkspace.contentOrderByParentKey,
+    options.contentOrderKeys,
+  ),
+})
+
+const captureCatalogAddToProjectHistorySnapshot = (
+  state: Pick<AppState, 'referenceWorkspace'>,
+  options: {
+    importedReferenceIds: string[]
+    contentOrderRowIds: string[]
+    contentOrderKeys: string[]
+  },
+): CatalogAddToProjectHistorySnapshot => ({
+  importedReferenceIds: options.importedReferenceIds,
+  importedReferenceOrder: state.referenceWorkspace.importedReferenceOrder,
+  contentOrderRowIds: options.contentOrderRowIds,
+  contentOrderKeys: options.contentOrderKeys,
+  visibilityById: pickRecordKeys(
+    state.referenceWorkspace.visibilityById,
+    options.importedReferenceIds,
+  ),
+  loadStateById: pickRecordKeys(
+    state.referenceWorkspace.loadStateById,
+    options.importedReferenceIds,
+  ),
+  errorById: pickRecordKeys(state.referenceWorkspace.errorById, options.importedReferenceIds),
+  transformOverrideById: pickRecordKeys(
+    state.referenceWorkspace.transformOverrideById,
+    options.importedReferenceIds,
+  ),
+  channelClampRangeByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.channelClampRangeByReferenceId,
+    options.importedReferenceIds,
+  ),
+  timelineModeByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.timelineModeByReferenceId,
+    options.importedReferenceIds,
+  ),
+  timelineConfigByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.timelineConfigByReferenceId,
+    options.importedReferenceIds,
+  ),
+  transformSnapByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.transformSnapByReferenceId,
+    options.importedReferenceIds,
+  ),
+  importedReferencesById: pickRecordKeys(
+    state.referenceWorkspace.importedReferencesById,
+    options.importedReferenceIds,
+  ),
+  partRowsByReferenceId: pickRecordKeys(
+    state.referenceWorkspace.partRowsByReferenceId,
+    options.importedReferenceIds,
+  ),
+  contentOrderByParentKey: pickRecordKeys(
+    state.referenceWorkspace.contentOrderByParentKey,
+    options.contentOrderKeys,
+  ),
+})
+
+const resolveAcceptedImportReferenceIds = (
+  before: Pick<AppState, 'referenceWorkspace'>,
+  after: Pick<AppState, 'referenceWorkspace'>,
+): string[] =>
+  after.referenceWorkspace.importedReferenceOrder.filter(
+    (referenceId) =>
+      before.referenceWorkspace.importedReferencesById[referenceId] === undefined &&
+      after.referenceWorkspace.importedReferencesById[referenceId] !== undefined,
+  )
+
+const resolveAcceptedImportContentOrderRowIds = (
+  before: Pick<AppState, 'projectContent'>,
+  after: Pick<AppState, 'projectContent'>,
+  importedReferenceIds: readonly string[],
+): string[] => {
+  const rowIds = [
+    ...Object.keys(after.projectContent.assembliesById).filter(
+      (assemblyId) => before.projectContent.assembliesById[assemblyId] === undefined,
+    ),
+    ...Object.keys(after.projectContent.componentsById).filter(
+      (componentId) => before.projectContent.componentsById[componentId] === undefined,
+    ),
+    ...importedReferenceIds.map((referenceId) => buildImportedReferenceRowId(referenceId)),
+  ]
+  return dedupeOrderedRowIds(rowIds)
+}
+
+const resolveAcceptedImportContentOrderKeys = (
+  before: Pick<AppState, 'referenceWorkspace'>,
+  after: Pick<AppState, 'referenceWorkspace'>,
+  contentOrderRowIds: readonly string[],
+): string[] => {
+  const contentOrderRowIdSet = new Set(contentOrderRowIds)
+  const keys = new Set<string>()
+  const scanRecord = (record: ReferenceWorkspaceState['contentOrderByParentKey']) => {
+    Object.entries(record).forEach(([key, orderedRowIds]) => {
+      if (orderedRowIds.some((rowId) => contentOrderRowIdSet.has(rowId))) {
+        keys.add(key)
+      }
+    })
+  }
+  scanRecord(before.referenceWorkspace.contentOrderByParentKey)
+  scanRecord(after.referenceWorkspace.contentOrderByParentKey)
+  return [...keys].sort()
+}
 
 const isRuntimeBackedComponentRecord = (component: ProjectComponentRecord): boolean =>
   component.ownerGraphDocumentId !== null && component.componentSourceKind !== 'authored'
@@ -5062,6 +5826,104 @@ const areProjectContentStatesEqual = (
   areProjectAssembliesEqual(left.assembliesById, right.assembliesById) &&
   areProjectComponentsEqual(left.componentsById, right.componentsById) &&
   areProjectObjectsEqual(left.objectsById, right.objectsById)
+
+const areStringArrayRecordsEqual = (
+  left: Record<string, string[]>,
+  right: Record<string, string[]>,
+): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    areOrderedStringArraysEqual(leftKeys, rightKeys) &&
+    leftKeys.every((key) => {
+      const other = right[key]
+      return other !== undefined && areOrderedStringArraysEqual(left[key], other)
+    })
+  )
+}
+
+const areHistoryJsonRecordsEqual = (left: unknown, right: unknown): boolean =>
+  JSON.stringify(left) === JSON.stringify(right)
+
+const areRuntimeContentPlacementRecordsEqual = (
+  left: RuntimeContentPlacementRecord,
+  right: RuntimeContentPlacementRecord,
+): boolean =>
+  left.parentAssemblyId === right.parentAssemblyId &&
+  left.parentComponentId === right.parentComponentId
+
+const areRuntimeContentPlacementMapsEqual = (
+  left: Record<string, RuntimeContentPlacementRecord>,
+  right: Record<string, RuntimeContentPlacementRecord>,
+): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    areOrderedStringArraysEqual(leftKeys, rightKeys) &&
+    leftKeys.every((rowId) => {
+      const other = right[rowId]
+      return other !== undefined && areRuntimeContentPlacementRecordsEqual(left[rowId], other)
+    })
+  )
+}
+
+const areProjectContentOrganizationHistorySnapshotsEqual = (
+  left: ProjectContentOrganizationHistorySnapshot,
+  right: ProjectContentOrganizationHistorySnapshot,
+): boolean =>
+  areProjectContentStatesEqual(left.projectContent, right.projectContent) &&
+  areStringArrayRecordsEqual(left.contentOrderByParentKey, right.contentOrderByParentKey) &&
+  areRuntimeContentPlacementMapsEqual(
+    left.runtimeContentPlacementByRowId,
+    right.runtimeContentPlacementByRowId,
+  )
+
+const areAcceptedImportHistorySnapshotsEqual = (
+  left: AcceptedImportHistorySnapshot,
+  right: AcceptedImportHistorySnapshot,
+): boolean =>
+  areProjectContentStatesEqual(left.projectContent, right.projectContent) &&
+  areOrderedStringArraysEqual(left.importedReferenceIds, right.importedReferenceIds) &&
+  areOrderedStringArraysEqual(left.importedReferenceOrder, right.importedReferenceOrder) &&
+  areOrderedStringArraysEqual(left.contentOrderRowIds, right.contentOrderRowIds) &&
+  areOrderedStringArraysEqual(left.contentOrderKeys, right.contentOrderKeys) &&
+  areHistoryJsonRecordsEqual(left.visibilityById, right.visibilityById) &&
+  areHistoryJsonRecordsEqual(left.loadStateById, right.loadStateById) &&
+  areHistoryJsonRecordsEqual(left.errorById, right.errorById) &&
+  areHistoryJsonRecordsEqual(left.transformOverrideById, right.transformOverrideById) &&
+  areHistoryJsonRecordsEqual(
+    left.channelClampRangeByReferenceId,
+    right.channelClampRangeByReferenceId,
+  ) &&
+  areHistoryJsonRecordsEqual(left.timelineModeByReferenceId, right.timelineModeByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.timelineConfigByReferenceId, right.timelineConfigByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.transformSnapByReferenceId, right.transformSnapByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.importedReferencesById, right.importedReferencesById) &&
+  areHistoryJsonRecordsEqual(left.partRowsByReferenceId, right.partRowsByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.contentOrderByParentKey, right.contentOrderByParentKey)
+
+const areCatalogAddToProjectHistorySnapshotsEqual = (
+  left: CatalogAddToProjectHistorySnapshot,
+  right: CatalogAddToProjectHistorySnapshot,
+): boolean =>
+  areOrderedStringArraysEqual(left.importedReferenceIds, right.importedReferenceIds) &&
+  areOrderedStringArraysEqual(left.importedReferenceOrder, right.importedReferenceOrder) &&
+  areOrderedStringArraysEqual(left.contentOrderRowIds, right.contentOrderRowIds) &&
+  areOrderedStringArraysEqual(left.contentOrderKeys, right.contentOrderKeys) &&
+  areHistoryJsonRecordsEqual(left.visibilityById, right.visibilityById) &&
+  areHistoryJsonRecordsEqual(left.loadStateById, right.loadStateById) &&
+  areHistoryJsonRecordsEqual(left.errorById, right.errorById) &&
+  areHistoryJsonRecordsEqual(left.transformOverrideById, right.transformOverrideById) &&
+  areHistoryJsonRecordsEqual(
+    left.channelClampRangeByReferenceId,
+    right.channelClampRangeByReferenceId,
+  ) &&
+  areHistoryJsonRecordsEqual(left.timelineModeByReferenceId, right.timelineModeByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.timelineConfigByReferenceId, right.timelineConfigByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.transformSnapByReferenceId, right.transformSnapByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.importedReferencesById, right.importedReferencesById) &&
+  areHistoryJsonRecordsEqual(left.partRowsByReferenceId, right.partRowsByReferenceId) &&
+  areHistoryJsonRecordsEqual(left.contentOrderByParentKey, right.contentOrderByParentKey)
 
 export const selectChangedGeomParamIds = (state: Pick<AppState, 'geomDirty' | 'geomBuilt'>): string[] => {
   const changed: string[] = []
@@ -7450,6 +8312,53 @@ export const useAppStore = create<AppState>((set, get) => ({
       fileResults,
     }
   },
+  commitStagedImportDraftWithHistory: () => {
+    const beforeState = get()
+    const commitResult = get().commitStagedImportDraft()
+    if (commitResult === null || commitResult.committedReferenceCount <= 0) {
+      return commitResult
+    }
+
+    const afterState = get()
+    const importedReferenceIds = resolveAcceptedImportReferenceIds(beforeState, afterState)
+    if (importedReferenceIds.length === 0) {
+      return commitResult
+    }
+    const contentOrderRowIds = resolveAcceptedImportContentOrderRowIds(
+      beforeState,
+      afterState,
+      importedReferenceIds,
+    )
+    const contentOrderKeys = resolveAcceptedImportContentOrderKeys(
+      beforeState,
+      afterState,
+      contentOrderRowIds,
+    )
+    const snapshotOptions = {
+      importedReferenceIds,
+      contentOrderRowIds,
+      contentOrderKeys,
+    }
+    const beforeSnapshot = captureAcceptedImportHistorySnapshot(beforeState, snapshotOptions)
+    const afterSnapshot = captureAcceptedImportHistorySnapshot(afterState, snapshotOptions)
+    if (areAcceptedImportHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return commitResult
+    }
+
+    editHistoryStore.commitEntry({
+      entryId: nextBrowserAcceptedImportHistoryEntryId(),
+      label: 'Accept Import',
+      source: browserAcceptedImportHistorySource,
+      targetId: commitResult.anchorRowId ?? undefined,
+      targetLabel:
+        commitResult.committedReferenceCount === 1
+          ? '1 staged import'
+          : `${commitResult.committedReferenceCount} staged imports`,
+      undo: () => restoreAcceptedImportHistorySnapshot(beforeSnapshot),
+      redo: () => restoreAcceptedImportHistorySnapshot(afterSnapshot),
+    })
+    return commitResult
+  },
   beginStagedImportFileStructureInspection: (stagedFileId) => {
     set((state) => {
       const currentDraft = state.referenceWorkspace.stagedImportDraft
@@ -7692,6 +8601,41 @@ export const useAppStore = create<AppState>((set, get) => ({
       text: `Imported ${fileName} (${fileType})`,
       source: referenceId,
       severity: 'info',
+    })
+    return referenceId
+  },
+  addImportedReferenceWithHistory: (reference) => {
+    const beforeState = get()
+    const referenceId = get().addImportedReference(reference)
+    const afterState = get()
+    const importedReferenceIds = [referenceId]
+    const contentOrderRowIds = [buildImportedReferenceRowId(referenceId)]
+    const contentOrderKeys = resolveAcceptedImportContentOrderKeys(
+      beforeState,
+      afterState,
+      contentOrderRowIds,
+    )
+    const snapshotOptions = {
+      importedReferenceIds,
+      contentOrderRowIds,
+      contentOrderKeys,
+    }
+    const beforeSnapshot = captureCatalogAddToProjectHistorySnapshot(beforeState, snapshotOptions)
+    const afterSnapshot = captureCatalogAddToProjectHistorySnapshot(afterState, snapshotOptions)
+    if (areCatalogAddToProjectHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return referenceId
+    }
+
+    editHistoryStore.commitEntry({
+      entryId: nextCatalogAddToProjectHistoryEntryId(referenceId),
+      label: 'Add Catalog item to project',
+      source: catalogAddToProjectHistorySource,
+      targetId: referenceId,
+      targetLabel:
+        afterState.referenceWorkspace.importedReferencesById[referenceId]?.label ??
+        reference.fileName,
+      undo: () => restoreCatalogAddToProjectHistorySnapshot(beforeSnapshot),
+      redo: () => restoreCatalogAddToProjectHistorySnapshot(afterSnapshot),
     })
     return referenceId
   },
@@ -8210,6 +9154,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
     return assemblyId
   },
+  createProjectAssemblyWithHistory: () => {
+    const beforeSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    const assemblyId = get().createProjectAssembly()
+    const afterSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    if (areProjectContentOrganizationHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return assemblyId
+    }
+    const target = { kind: 'assembly' as const, assemblyId }
+    editHistoryStore.commitEntry({
+      entryId: nextBrowserCreateHistoryEntryId(target),
+      label: 'Create Browser item',
+      source: browserRenameHistorySource,
+      targetId: assemblyId,
+      targetLabel: resolveProjectContentRenameLabel(get(), target) ?? assemblyId,
+      undo: () => restoreProjectContentOrganizationHistorySnapshot(beforeSnapshot),
+      redo: () => restoreProjectContentOrganizationHistorySnapshot(afterSnapshot),
+    })
+    return assemblyId
+  },
   createProjectComponent: (parentAssemblyId) => {
     const state = get()
     if (state.projectContent.assembliesById[parentAssemblyId] === undefined) {
@@ -8263,6 +9226,28 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         activeSurface: 'viewer',
       }
+    })
+    return componentId
+  },
+  createProjectComponentWithHistory: (parentAssemblyId) => {
+    const beforeSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    const componentId = get().createProjectComponent(parentAssemblyId)
+    if (componentId === null) {
+      return null
+    }
+    const afterSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    if (areProjectContentOrganizationHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return componentId
+    }
+    const target = { kind: 'component' as const, componentId }
+    editHistoryStore.commitEntry({
+      entryId: nextBrowserCreateHistoryEntryId(target),
+      label: 'Create Browser item',
+      source: browserRenameHistorySource,
+      targetId: componentId,
+      targetLabel: resolveProjectContentRenameLabel(get(), target) ?? componentId,
+      undo: () => restoreProjectContentOrganizationHistorySnapshot(beforeSnapshot),
+      redo: () => restoreProjectContentOrganizationHistorySnapshot(afterSnapshot),
     })
     return componentId
   },
@@ -8661,6 +9646,30 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     return true
   },
+  captureProjectContentOrganizationHistorySnapshot: () => {
+    const state = get()
+    return {
+      projectContent: state.projectContent,
+      contentOrderByParentKey: state.referenceWorkspace.contentOrderByParentKey,
+      runtimeContentPlacementByRowId: state.runtimeContentPlacementByRowId,
+    }
+  },
+  commitProjectContentOrganizationMoveHistory: (beforeSnapshot, options) => {
+    const afterSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    if (areProjectContentOrganizationHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return false
+    }
+
+    return editHistoryStore.commitEntry({
+      entryId: nextBrowserMoveHistoryEntryId(),
+      label: 'Move Browser item',
+      source: browserRenameHistorySource,
+      targetId: options.targetId,
+      targetLabel: options.targetLabel,
+      undo: () => restoreProjectContentOrganizationHistorySnapshot(beforeSnapshot),
+      redo: () => restoreProjectContentOrganizationHistorySnapshot(afterSnapshot),
+    })
+  },
   renameProjectContentOwner: (target, label) => {
     const nextLabel = normalizeProjectContentLabel(label)
     if (nextLabel.length === 0) {
@@ -8705,6 +9714,38 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+    return renamed
+  },
+  renameProjectContentOwnerWithHistory: (target, label) => {
+    if (target.kind !== 'assembly' && target.kind !== 'component') {
+      return false
+    }
+    const beforeLabel = resolveProjectContentRenameLabel(get(), target)
+    if (beforeLabel === null) {
+      return false
+    }
+
+    const renamed = get().renameProjectContentOwner(target, label)
+    if (!renamed) {
+      return false
+    }
+
+    const afterLabel = resolveProjectContentRenameLabel(get(), target)
+    if (afterLabel === null || afterLabel === beforeLabel) {
+      return renamed
+    }
+
+    const targetId = target.kind === 'assembly' ? target.assemblyId : target.componentId
+    editHistoryStore.commitEntry({
+      entryId: nextBrowserRenameHistoryEntryId(target),
+      label: 'Rename Browser item',
+      source: browserRenameHistorySource,
+      targetId,
+      targetLabel: afterLabel,
+      undo: () => restoreProjectContentRenameLabel(target, beforeLabel),
+      redo: () => restoreProjectContentRenameLabel(target, afterLabel),
+    })
+
     return renamed
   },
   deleteProjectContentOwner: (target) => {
@@ -8879,6 +9920,32 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+    return deleted
+  },
+  deleteProjectContentOwnerWithHistory: (target) => {
+    const beforeLabel = resolveProjectContentRenameLabel(get(), target)
+    const beforeSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    const deleted = get().deleteProjectContentOwner(target)
+    if (!deleted) {
+      return false
+    }
+
+    const afterSnapshot = get().captureProjectContentOrganizationHistorySnapshot()
+    if (areProjectContentOrganizationHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return deleted
+    }
+
+    const targetId = target.kind === 'assembly' ? target.assemblyId : target.componentId
+    editHistoryStore.commitEntry({
+      entryId: nextBrowserDeleteHistoryEntryId(target),
+      label: 'Delete Browser item',
+      source: browserRenameHistorySource,
+      targetId,
+      targetLabel: beforeLabel ?? targetId,
+      undo: () => restoreProjectContentOrganizationHistorySnapshot(beforeSnapshot),
+      redo: () => restoreProjectContentOrganizationHistorySnapshot(afterSnapshot),
+    })
+
     return deleted
   },
   setReferenceItemLoadState: (referenceId, loadState, errorMessage = null) => {
@@ -10266,14 +11333,57 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (activeTarget.kind === 'reference') {
+      const beforeSnapshot = captureViewerTransformHistorySnapshot(
+        state.referenceWorkspace,
+        activeTarget,
+      )
       state.commitActiveReferenceTransformEntry()
+      const afterState = get()
+      const afterSnapshot = captureViewerTransformHistorySnapshot(
+        afterState.referenceWorkspace,
+        activeTarget,
+      )
+      if (areViewerTransformHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+        return
+      }
+      editHistoryStore.commitEntry({
+        entryId: nextViewerTransformHistoryEntryId(activeTarget),
+        label: 'Change Viewer transform',
+        source: viewerTransformHistorySource,
+        targetId: activeTarget.referenceId,
+        targetLabel:
+          afterState.referenceWorkspace.importedReferencesById[activeTarget.referenceId]?.label ??
+          activeTarget.referenceId,
+        undo: () => restoreViewerTransformHistorySnapshot(beforeSnapshot),
+        redo: () => restoreViewerTransformHistorySnapshot(afterSnapshot),
+      })
       return
     }
     if (activeTarget.kind === 'environment-light') {
       state.commitActiveEnvironmentLightTransformEntry()
       return
     }
+    const beforeSnapshot = captureViewerTransformHistorySnapshot(
+      state.referenceWorkspace,
+      activeTarget,
+    )
     state.commitActiveContentObjectTransformEntry()
+    const afterSnapshot = captureViewerTransformHistorySnapshot(
+      get().referenceWorkspace,
+      activeTarget,
+    )
+    if (areViewerTransformHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+      return
+    }
+    editHistoryStore.commitEntry({
+      entryId: nextViewerTransformHistoryEntryId(activeTarget),
+      label: 'Change Viewer transform',
+      source: viewerTransformHistorySource,
+      targetId: activeTarget.objectId,
+      targetLabel: activeTarget.objectId,
+      undo: () => restoreViewerTransformHistorySnapshot(beforeSnapshot),
+      redo: () => restoreViewerTransformHistorySnapshot(afterSnapshot),
+    })
   },
   setActiveViewerTransformMode: (mode) => {
     const state = get()

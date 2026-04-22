@@ -75,4 +75,36 @@ describe('workspaceSurfaceCatalog', () => {
       'home-page-workspace-slot-primary',
     )
   })
+
+  it('registers edit history as an optional persisted workspace surface', () => {
+    expect(parseWorkspaceSurfaceKind('editHistory')).toBe('editHistory')
+    expect(isWorkspaceSurfaceOptional('editHistory')).toBe(true)
+    expect(workspaceSurfaceSupportsSplit('editHistory')).toBe(true)
+    expect(workspaceSurfaceParticipatesInPersistence('editHistory')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('editHistory', 'floating')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('editHistory', 'popout')).toBe(true)
+    expect(workspacePrimarySlotSupportsSurfaceKind('editHistory')).toBe(true)
+    expect(getWorkspaceSurfaceCatalogEntry('editHistory')).toEqual(
+      expect.objectContaining({
+        kind: 'editHistory',
+        defaultLabel: 'Edit History',
+        renderFamily: 'editHistory',
+        scope: 'optional',
+        participatesInPersistence: true,
+        coordination: 'plain',
+        supports: expect.objectContaining({
+          slotted: true,
+          floating: true,
+          popout: true,
+          split: true,
+        }),
+      }),
+    )
+  })
+
+  it('creates explicit slot instance ids for edit history instead of falling through to spaghetti ids', () => {
+    expect(createWorkspaceSurfaceInstanceIdForSlot('editHistory', 'workspace-slot-history')).toBe(
+      'edit-history-workspace-slot-history',
+    )
+  })
 })

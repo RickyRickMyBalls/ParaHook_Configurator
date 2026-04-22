@@ -14,8 +14,13 @@ type SketchFeatureViewProps = {
   previewProfiles: PreviewProfileWithLabel[]
   highlightedProfileIds: ReadonlySet<string>
   irAvailable: boolean
-  onBeginInteraction?: () => void
-  onEndInteraction?: () => void
+  onBeginSketchInteraction?: (options: {
+    featureId: string
+    label: string
+    targetId: string
+    targetLabel: string
+  }) => void
+  onEndSketchInteraction?: () => void
   widthVirtualInputState?: {
     driven: boolean
     connectionCount: number
@@ -68,8 +73,8 @@ export function SketchFeatureView({
   previewProfiles,
   highlightedProfileIds,
   irAvailable,
-  onBeginInteraction,
-  onEndInteraction,
+  onBeginSketchInteraction,
+  onEndSketchInteraction,
   widthVirtualInputState,
   lengthVirtualInputState,
 }: SketchFeatureViewProps) {
@@ -126,8 +131,15 @@ const renderPointEditor = (
               max={2000}
               step={0.1}
               compact
-              onInteractionStart={onBeginInteraction}
-              onInteractionEnd={onEndInteraction}
+              onInteractionStart={() =>
+                onBeginSketchInteraction?.({
+                  featureId: feature.featureId,
+                  label: 'Change sketch component',
+                  targetId: `${nodeId}:${feature.featureId}:${component.rowId}:${pointKey}:x`,
+                  targetLabel: 'Sketch point X',
+                })
+              }
+              onInteractionEnd={onEndSketchInteraction}
               onChange={(nextX) =>
                 updateSketchComponentPoint(nodeId, feature.featureId, component.rowId, pointKey, {
                   kind: 'lit',
@@ -145,8 +157,15 @@ const renderPointEditor = (
               max={2000}
               step={0.1}
               compact
-              onInteractionStart={onBeginInteraction}
-              onInteractionEnd={onEndInteraction}
+              onInteractionStart={() =>
+                onBeginSketchInteraction?.({
+                  featureId: feature.featureId,
+                  label: 'Change sketch component',
+                  targetId: `${nodeId}:${feature.featureId}:${component.rowId}:${pointKey}:y`,
+                  targetLabel: 'Sketch point Y',
+                })
+              }
+              onInteractionEnd={onEndSketchInteraction}
               onChange={(nextY) =>
                 updateSketchComponentPoint(nodeId, feature.featureId, component.rowId, pointKey, {
                   kind: 'lit',
@@ -199,8 +218,15 @@ const renderPointEditor = (
             max={500}
             step={0.1}
             disabled={widthDriven}
-            onInteractionStart={onBeginInteraction}
-            onInteractionEnd={onEndInteraction}
+            onInteractionStart={() =>
+              onBeginSketchInteraction?.({
+                featureId: feature.featureId,
+                label: 'Change sketch dimensions',
+                targetId: `${nodeId}:${feature.featureId}:width`,
+                targetLabel: 'Sketch width',
+              })
+            }
+            onInteractionEnd={onEndSketchInteraction}
             onChange={(nextWidth) =>
               setSketchRectangleDimensions(nodeId, feature.featureId, {
                 width: nextWidth,
@@ -218,8 +244,15 @@ const renderPointEditor = (
             max={500}
             step={0.1}
             disabled={lengthDriven}
-            onInteractionStart={onBeginInteraction}
-            onInteractionEnd={onEndInteraction}
+            onInteractionStart={() =>
+              onBeginSketchInteraction?.({
+                featureId: feature.featureId,
+                label: 'Change sketch dimensions',
+                targetId: `${nodeId}:${feature.featureId}:length`,
+                targetLabel: 'Sketch length',
+              })
+            }
+            onInteractionEnd={onEndSketchInteraction}
             onChange={(nextLength) =>
               setSketchRectangleDimensions(nodeId, feature.featureId, {
                 length: nextLength,

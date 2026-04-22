@@ -21,6 +21,7 @@ import {
 } from '../workspace/workspaceSurfaceActions'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
+import { cycleBrowserPresentationModeWithHistory } from '../store/workspaceLayoutEditHistory'
 import {
   defaultBrowserHostRouteId,
   defaultBrowserPopoutState,
@@ -148,7 +149,6 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const releaseHostRoute = useWorkspaceStore((state) => state.releaseHostRoute)
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const isBrowserCollapsed = useWorkspaceStore((state) => state.browserShell.isCollapsed)
-  const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
   const browserFloatingPos = useWorkspaceStore((state) => state.browserShell.position)
   const setBrowserFloatingPos = useWorkspaceStore((state) => state.setBrowserFloatingPosition)
   const browserFloatingSize = useWorkspaceStore((state) => state.browserShell.size)
@@ -559,14 +559,8 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   ])
 
   const handleCycleBrowserPresentationMode = useCallback(() => {
-    setBrowserPresentationMode(
-      browserPresentationMode === 'expanded'
-        ? 'essentials'
-        : browserPresentationMode === 'essentials'
-          ? 'collapsed'
-          : 'expanded',
-    )
-  }, [browserPresentationMode, setBrowserPresentationMode])
+    cycleBrowserPresentationModeWithHistory(browserPresentationMode)
+  }, [browserPresentationMode])
 
   const handleOpenBrowserPopout = useCallback(() => {
     setActiveLeftDockPreviewPanelId(null)

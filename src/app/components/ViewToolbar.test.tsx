@@ -171,11 +171,13 @@ describe('ViewToolbar', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    editHistoryStore.clear()
     useAppStore.setState({ selectedPartKey: 'part:object-1' })
     useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
     useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
@@ -2195,6 +2197,7 @@ describe('ViewToolbar', () => {
   it('renders para-style core environment controls and keeps preset plus add-light type ownership intact', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { getEnvironmentPresetDefinition } = await import('../../shared/viewSettingsTypes')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
 
     container = document.createElement('div')
@@ -2275,6 +2278,17 @@ describe('ViewToolbar', () => {
     expect(environmentSection?.textContent).toContain(
       'Studio is selected and still matches the live scene.',
     )
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Change environment look',
+        source: {
+          surface: 'viewer-environment',
+          sourceId: 'environment-look',
+          sourceLabel: 'Environment Look',
+        },
+        targetId: 'environment-preset',
+      },
+    ])
 
     await act(async () => {
       exposureIncreaseButton?.click()
@@ -2288,6 +2302,15 @@ describe('ViewToolbar', () => {
     expect(environmentSection?.textContent).toContain(
       'Studio is selected, but the live scene has diverged from it.',
     )
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change environment look',
+      source: {
+        surface: 'viewer-environment',
+      },
+      targetId: 'environment-grade:exposure',
+      targetLabel: 'Exposure',
+    })
 
     await act(async () => {
       reapplyPresetButton?.click()
@@ -2311,6 +2334,13 @@ describe('ViewToolbar', () => {
     expect(
       useUiPrefsStore.getState().view.lighting.lights.at(-1)?.type,
     ).toBe('spot')
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change environment look',
+      source: {
+        surface: 'viewer-environment',
+      },
+      targetId: 'environment-light',
+    })
   })
 
   it('captures, recalls, and quick-compares a remembered environment look from the toolbar', async () => {
@@ -2581,6 +2611,7 @@ describe('ViewToolbar', () => {
   it('renders para-style selected-light core tuning controls and preserves type-gated light branches', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
 
     container = document.createElement('div')
     container.className = 'ViewportFrameBody'
@@ -2635,6 +2666,15 @@ describe('ViewToolbar', () => {
       intensity: 1.9,
       type: 'directional',
     })
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change environment look',
+      source: {
+        surface: 'viewer-environment',
+      },
+      targetId: 'environment-light:key:intensity',
+      targetLabel: 'Environment light intensity',
+    })
 
     await act(async () => {
       const currentTypeSelect = getEditorPanel()?.querySelector(
@@ -2654,6 +2694,10 @@ describe('ViewToolbar', () => {
       castShadow: true,
       shadowBias: -0.0002,
       shadowMapSize: 1024,
+    })
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      targetId: 'environment-light:key:type',
+      targetLabel: 'Environment light type',
     })
     expect(getSelectedLight()?.target).toBeUndefined()
     expect(getEditorPanel()?.querySelector('button[aria-label="Increase Distance"]')).not.toBeNull()
@@ -2675,6 +2719,12 @@ describe('ViewToolbar', () => {
       distance: 0.1,
       decay: 2.1,
     })
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.targetId)).toEqual([
+      'environment-light:key:intensity',
+      'environment-light:key:type',
+      'environment-light:key:distance',
+      'environment-light:key:decay',
+    ])
 
     await act(async () => {
       const currentTypeSelect = getEditorPanel()?.querySelector(
@@ -2697,6 +2747,10 @@ describe('ViewToolbar', () => {
       shadowBias: -0.0003,
       shadowMapSize: 1024,
     })
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      targetId: 'environment-light:key:type',
+      targetLabel: 'Environment light type',
+    })
     expect(getEditorPanel()?.querySelector('button[aria-label="Increase Distance"]')).not.toBeNull()
     expect(getEditorPanel()?.querySelector('button[aria-label="Increase Decay"]')).not.toBeNull()
     expect(getEditorPanel()?.querySelector('button[aria-label="Increase Angle (deg)"]')).not.toBeNull()
@@ -2716,6 +2770,10 @@ describe('ViewToolbar', () => {
       angleDeg: 36,
       penumbra: 0.25,
     })
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.targetId).slice(-2)).toEqual([
+      'environment-light:key:angleDeg',
+      'environment-light:key:penumbra',
+    ])
 
     await act(async () => {
       const currentTypeSelect = getEditorPanel()?.querySelector(
@@ -2731,6 +2789,10 @@ describe('ViewToolbar', () => {
       id: 'key',
       type: 'ambient',
     })
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      targetId: 'environment-light:key:type',
+      targetLabel: 'Environment light type',
+    })
     expect(getSelectedLight()?.position).toBeUndefined()
     expect(getSelectedLight()?.target).toBeUndefined()
     expect(getSelectedLight()?.distance).toBeUndefined()
@@ -2744,9 +2806,149 @@ describe('ViewToolbar', () => {
     expect(getEditorPanel()?.querySelector('button[aria-label="Increase Penumbra"]')).toBeNull()
   })
 
+  it('commits selected-light name edits once per focus session', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const getSelectedLight = () => {
+      const { selectedLightId, lights } = useUiPrefsStore.getState().view.lighting
+      return lights.find((light) => light.id === selectedLightId) ?? null
+    }
+    const getNameInput = () =>
+      container?.querySelector(
+        '.EditorPanel input[type="text"]:not([placeholder="Light name"])',
+      ) as HTMLInputElement | null
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      const nameInput = getNameInput()
+      nameInput?.focus()
+      if (nameInput !== null) {
+        setInputValue(nameInput, 'Key Light')
+      }
+    })
+
+    expect(getSelectedLight()?.name).toBe('Key Light')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+
+    await act(async () => {
+      getNameInput()?.blur()
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change environment look',
+      source: {
+        surface: 'viewer-environment',
+      },
+      targetId: 'environment-light:key:name',
+      targetLabel: 'Environment light name',
+    })
+
+    await act(async () => {
+      const nameInput = getNameInput()
+      nameInput?.focus()
+      if (nameInput !== null) {
+        setInputValue(nameInput, 'Key Final')
+        nameInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Enter',
+          }),
+        )
+      }
+    })
+
+    expect(getSelectedLight()?.name).toBe('Key Final')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      targetId: 'environment-light:key:name',
+      targetLabel: 'Environment light name',
+    })
+  })
+
+  it('does not strand selected-light name edits outside history on Escape', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const getSelectedLight = () => {
+      const { selectedLightId, lights } = useUiPrefsStore.getState().view.lighting
+      return lights.find((light) => light.id === selectedLightId) ?? null
+    }
+    const getNameInput = () =>
+      container?.querySelector(
+        '.EditorPanel input[type="text"]:not([placeholder="Light name"])',
+      ) as HTMLInputElement | null
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      const nameInput = getNameInput()
+      nameInput?.focus()
+      if (nameInput !== null) {
+        setInputValue(nameInput, 'Escape Name')
+        nameInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Escape',
+          }),
+        )
+      }
+    })
+
+    expect(getSelectedLight()?.name).toBe('Escape Name')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+
+    await act(async () => {
+      getNameInput()?.blur()
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      targetId: 'environment-light:key:name',
+      targetLabel: 'Environment light name',
+    })
+  })
+
   it('renders selected-light tail parity controls, adopts ParaVec3Field for vectors, and keeps vector plus shadow branches intact', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
 
     container = document.createElement('div')
     container.className = 'ViewportFrameBody'
@@ -2900,6 +3102,20 @@ describe('ViewToolbar', () => {
       position: { x: 12, y: 13, z: 8 },
       target: { x: 0, y: 1.5, z: 0 },
     })
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.targetId)).toEqual([
+      'environment-light:key:position:x',
+      'environment-light:key:target:y',
+      'environment-light:key:castShadow',
+      'environment-light:key:shadowBias',
+      'environment-light:key:shadowMapSize',
+    ])
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change environment look',
+      source: {
+        surface: 'viewer-environment',
+      },
+      targetLabel: 'Environment light shadow map',
+    })
 
     await act(async () => {
       const currentTypeSelect = getEditorPanel()?.querySelector(
@@ -2940,6 +3156,7 @@ describe('ViewToolbar', () => {
   it('renders a dedicated ground section and routes its controls into the shared ground view seam', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
 
     container = document.createElement('div')
     container.className = 'ViewportFrameBody'
@@ -2991,6 +3208,885 @@ describe('ViewToolbar', () => {
       height: 0.5,
       materialPresetId: 'glossy_studio',
     })
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Change ground setting',
+        source: {
+          surface: 'viewer-ground',
+          sourceId: 'ground',
+          sourceLabel: 'Ground',
+        },
+        targetId: 'ground:enabled',
+        targetLabel: 'Ground visibility',
+      },
+      {
+        label: 'Change ground setting',
+        source: {
+          surface: 'viewer-ground',
+          sourceId: 'ground',
+          sourceLabel: 'Ground',
+        },
+        targetId: 'ground:height',
+        targetLabel: 'Ground height',
+      },
+      {
+        label: 'Change ground setting',
+        source: {
+          surface: 'viewer-ground',
+          sourceId: 'ground',
+          sourceLabel: 'Ground',
+        },
+        targetId: 'ground:material',
+        targetLabel: 'Ground material',
+      },
+    ])
+
+    let undoneTargetId: string | undefined
+    await act(async () => {
+      undoneTargetId = editHistoryStore.undo()?.targetId
+    })
+    expect(undoneTargetId).toBe('ground:material')
+    expect(useUiPrefsStore.getState().view.ground).toEqual({
+      enabled: true,
+      height: 0.5,
+      materialPresetId: 'matte_mid',
+    })
+
+    let redoneTargetId: string | undefined
+    await act(async () => {
+      redoneTargetId = editHistoryStore.redo()?.targetId
+    })
+    expect(redoneTargetId).toBe('ground:material')
+    expect(useUiPrefsStore.getState().view.ground).toEqual({
+      enabled: true,
+      height: 0.5,
+      materialPresetId: 'glossy_studio',
+    })
+  })
+
+  it('routes discrete material controls through canonical material history', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const addPresetButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Add Preset',
+    ) as HTMLButtonElement | undefined
+    expect(addPresetButton).toBeTruthy()
+
+    await act(async () => {
+      addPresetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('mat_1700000000000')
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Change material',
+        source: {
+          surface: 'viewer-material',
+        },
+        targetId: 'material-preset:add',
+        targetLabel: 'Material preset',
+      },
+    ])
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.materials.presets.some((preset) => preset.id === 'mat_1700000000000'),
+    ).toBe(false)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('mat_1700000000000')
+
+    const transparentInput = Array.from(container.querySelectorAll('input[type="checkbox"]')).find(
+      (input) => input.closest('label')?.textContent?.includes('Transparent'),
+    ) as HTMLInputElement | undefined
+    expect(transparentInput).toBeTruthy()
+
+    await act(async () => {
+      if (transparentInput !== undefined) {
+        transparentInput.click()
+      }
+    })
+
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change material',
+      source: {
+        surface: 'viewer-material',
+      },
+      targetId: 'material-preset:mat_1700000000000:transparent',
+      targetLabel: 'Material preset transparency',
+    })
+  })
+
+  it('commits material name edits once per focus session', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getNameInput = () =>
+      materialSection?.querySelector('.EditorPanel input[type="text"]') as HTMLInputElement | null
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      const nameInput = getNameInput()
+      nameInput?.focus()
+      if (nameInput !== null) {
+        setInputValue(nameInput, 'Studio Clay')
+      }
+    })
+
+    expect(getSelectedPreset()?.name).toBe('Studio Clay')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+
+    await act(async () => {
+      getNameInput()?.blur()
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change material',
+      source: {
+        surface: 'viewer-material',
+        sourceId: 'materials',
+        sourceLabel: 'Materials',
+      },
+      targetId: 'material-preset:default_matte:name',
+      targetLabel: 'Material preset name',
+    })
+
+    await act(async () => {
+      const nameInput = getNameInput()
+      nameInput?.focus()
+      if (nameInput !== null) {
+        setInputValue(nameInput, 'Studio Clay Final')
+        nameInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Enter',
+          }),
+        )
+      }
+    })
+
+    expect(getSelectedPreset()?.name).toBe('Studio Clay Final')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      targetId: 'material-preset:default_matte:name',
+      targetLabel: 'Material preset name',
+    })
+  })
+
+  it('cancels material name edits on Escape without invalidating redo', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+    const { setMaterialPresetTransparentWithHistory } = await import('../store/materialEditHistory')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getNameInput = () =>
+      materialSection?.querySelector('.EditorPanel input[type="text"]') as HTMLInputElement | null
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    expect(getSelectedPreset()?.name).toBe('Default Matte')
+
+    await act(async () => {
+      setMaterialPresetTransparentWithHistory('default_matte', true)
+      editHistoryStore.undo()
+    })
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    await act(async () => {
+      const nameInput = getNameInput()
+      nameInput?.focus()
+      if (nameInput !== null) {
+        setInputValue(nameInput, 'Escaped Material')
+        nameInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Escape',
+          }),
+        )
+      }
+    })
+
+    expect(getSelectedPreset()?.name).toBe('Default Matte')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    await act(async () => {
+      getNameInput()?.blur()
+    })
+
+    expect(getSelectedPreset()?.name).toBe('Default Matte')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+  })
+
+  it('commits material numeric edits once per focus session', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getNumberInput = (label: string) =>
+      Array.from(materialSection?.querySelectorAll('.EditorPanel input[type="number"]') ?? []).find(
+        (input) => input.closest('label')?.textContent?.includes(label),
+      ) as HTMLInputElement | undefined
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      const emissiveIntensityInput = getNumberInput('Emissive Intensity')
+      emissiveIntensityInput?.focus()
+      if (emissiveIntensityInput !== undefined) {
+        setInputValue(emissiveIntensityInput, '1.25')
+      }
+    })
+
+    expect(getSelectedPreset()?.emissiveIntensity).toBe(1.25)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+
+    await act(async () => {
+      getNumberInput('Emissive Intensity')?.blur()
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change material',
+      source: {
+        surface: 'viewer-material',
+        sourceId: 'materials',
+        sourceLabel: 'Materials',
+      },
+      targetId: 'material-preset:default_matte:emissiveIntensity',
+      targetLabel: 'Material emissive intensity',
+    })
+
+    await act(async () => {
+      const opacityInput = getNumberInput('Opacity')
+      opacityInput?.focus()
+      if (opacityInput !== undefined) {
+        setInputValue(opacityInput, '0.45')
+        opacityInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Enter',
+          }),
+        )
+      }
+    })
+
+    expect(getSelectedPreset()?.opacity).toBe(0.45)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      targetId: 'material-preset:default_matte:opacity',
+      targetLabel: 'Material opacity',
+    })
+
+    await act(async () => {
+      getNumberInput('Opacity')?.blur()
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+  })
+
+  it('cancels material numeric edits on Escape and ignores invalid numeric input', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+    const { setMaterialPresetTransparentWithHistory } = await import('../store/materialEditHistory')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getNumberInput = (label: string) =>
+      Array.from(materialSection?.querySelectorAll('.EditorPanel input[type="number"]') ?? []).find(
+        (input) => input.closest('label')?.textContent?.includes(label),
+      ) as HTMLInputElement | undefined
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      setMaterialPresetTransparentWithHistory('default_matte', true)
+      editHistoryStore.undo()
+    })
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    await act(async () => {
+      const opacityInput = getNumberInput('Opacity')
+      opacityInput?.focus()
+      if (opacityInput !== undefined) {
+        setInputValue(opacityInput, '0.35')
+        opacityInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Escape',
+          }),
+        )
+      }
+    })
+
+    expect(getSelectedPreset()?.opacity).toBe(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    await act(async () => {
+      getNumberInput('Opacity')?.blur()
+    })
+
+    expect(getSelectedPreset()?.opacity).toBe(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    await act(async () => {
+      const emissiveIntensityInput = getNumberInput('Emissive Intensity')
+      emissiveIntensityInput?.focus()
+      if (emissiveIntensityInput !== undefined) {
+        setInputValue(emissiveIntensityInput, '')
+      }
+    })
+
+    expect(getSelectedPreset()?.emissiveIntensity).toBe(0)
+
+    await act(async () => {
+      getNumberInput('Emissive Intensity')?.blur()
+    })
+
+    expect(getSelectedPreset()?.emissiveIntensity).toBe(0)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+  })
+
+  it('keeps native presentation color inputs raw and owner-separated before color wrappers exist', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+    const {
+      areMaterialHistorySnapshotsEqual,
+      captureMaterialHistorySnapshot,
+      setMaterialPresetTransparentWithHistory,
+    } = await import('../store/materialEditHistory')
+    const { captureEnvironmentLookHistorySnapshot } = await import(
+      '../store/environmentLookEditHistory'
+    )
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const environmentSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Environment'),
+    ) as HTMLDetailsElement | undefined
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(environmentSection).toBeTruthy()
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getSelectedLight = () => {
+      const { selectedLightId, lights } = useUiPrefsStore.getState().view.lighting
+      return lights.find((light) => light.id === selectedLightId) ?? null
+    }
+    const getMaterialColorInput = (label: string) =>
+      Array.from(materialSection?.querySelectorAll('.EditorPanel input[type="color"]') ?? []).find(
+        (input) => input.closest('label')?.textContent?.includes(label),
+      ) as HTMLInputElement | undefined
+    const setInputValue = (input: HTMLInputElement, value: string) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      setMaterialPresetTransparentWithHistory('default_matte', true)
+      editHistoryStore.undo()
+    })
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    const beforeMaterialBase = captureMaterialHistorySnapshot()
+    const beforeMaterialBaseEnvironment = captureEnvironmentLookHistorySnapshot()
+    await act(async () => {
+      const baseColorInput = getMaterialColorInput('Color')
+      expect(baseColorInput).toBeTruthy()
+      if (baseColorInput !== undefined) {
+        setInputValue(baseColorInput, '#123456')
+      }
+    })
+
+    expect(getSelectedPreset()?.color).toBe('#123456')
+    expect(areMaterialHistorySnapshotsEqual(beforeMaterialBase, captureMaterialHistorySnapshot())).toBe(
+      false,
+    )
+    expect(captureEnvironmentLookHistorySnapshot()).toEqual(beforeMaterialBaseEnvironment)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    const beforeMaterialEmissive = captureMaterialHistorySnapshot()
+    const beforeMaterialEmissiveEnvironment = captureEnvironmentLookHistorySnapshot()
+    await act(async () => {
+      const emissiveColorInput = getMaterialColorInput('Emissive')
+      expect(emissiveColorInput).toBeTruthy()
+      if (emissiveColorInput !== undefined) {
+        setInputValue(emissiveColorInput, '#334455')
+      }
+    })
+
+    expect(getSelectedPreset()?.emissive).toBe('#334455')
+    expect(
+      areMaterialHistorySnapshotsEqual(beforeMaterialEmissive, captureMaterialHistorySnapshot()),
+    ).toBe(false)
+    expect(captureEnvironmentLookHistorySnapshot()).toEqual(beforeMaterialEmissiveEnvironment)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    const beforeLightColorEnvironment = captureEnvironmentLookHistorySnapshot()
+    const beforeLightColorMaterial = captureMaterialHistorySnapshot()
+    await act(async () => {
+      const selectedLightColorInput = environmentSection?.querySelector(
+        '.EditorPanel input[type="color"]',
+      ) as HTMLInputElement | null
+      expect(selectedLightColorInput).not.toBeNull()
+      if (selectedLightColorInput !== null) {
+        setInputValue(selectedLightColorInput, '#fedcba')
+      }
+    })
+
+    expect(getSelectedLight()?.color).toBe('#fedcba')
+    expect(captureEnvironmentLookHistorySnapshot()).not.toEqual(beforeLightColorEnvironment)
+    expect(
+      areMaterialHistorySnapshotsEqual(beforeLightColorMaterial, captureMaterialHistorySnapshot()),
+    ).toBe(true)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+  })
+
+  it('commits material range edits once per completed ParaSlider interaction', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+    const { captureMaterialHistorySnapshot } = await import('../store/materialEditHistory')
+    const { captureEnvironmentLookHistorySnapshot } = await import(
+      '../store/environmentLookEditHistory'
+    )
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getMaterialRangeTrack = (label: string) =>
+      materialSection?.querySelector(`.ParaSliderTrack[aria-label="${label}"]`) as
+        | HTMLDivElement
+        | null
+    const setTrackRect = (track: HTMLDivElement | null) => {
+      expect(track).not.toBeNull()
+      if (track === null) {
+        return
+      }
+      Object.defineProperty(track, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          left: 0,
+          top: 0,
+          width: 100,
+          height: 30,
+          right: 100,
+          bottom: 30,
+          x: 0,
+          y: 0,
+          toJSON: () => '',
+        }),
+      })
+    }
+    const pointerDownAt = (track: HTMLDivElement, clientX: number) => {
+      track.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX,
+        }),
+      )
+    }
+
+    const beforeEnvironment = captureEnvironmentLookHistorySnapshot()
+    const beforeMaterial = captureMaterialHistorySnapshot()
+    const metalnessTrack = getMaterialRangeTrack('Metalness')
+    setTrackRect(metalnessTrack)
+
+    await act(async () => {
+      if (metalnessTrack !== null) {
+        pointerDownAt(metalnessTrack, 62)
+      }
+    })
+
+    expect(getSelectedPreset()?.metalness).toBe(0.62)
+    expect(captureMaterialHistorySnapshot()).not.toEqual(beforeMaterial)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+
+    await act(async () => {
+      window.dispatchEvent(new PointerEvent('pointerup', {}))
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change material',
+      source: {
+        surface: 'viewer-material',
+        sourceId: 'materials',
+        sourceLabel: 'Materials',
+      },
+      targetId: 'material-preset:default_matte:metalness',
+      targetLabel: 'Material metalness',
+    })
+
+    const roughnessTrack = getMaterialRangeTrack('Roughness')
+    setTrackRect(roughnessTrack)
+    await act(async () => {
+      if (roughnessTrack !== null) {
+        pointerDownAt(roughnessTrack, 21)
+        window.dispatchEvent(new PointerEvent('pointerup', {}))
+      }
+    })
+
+    expect(getSelectedPreset()?.roughness).toBe(0.21)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      targetId: 'material-preset:default_matte:roughness',
+      targetLabel: 'Material roughness',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(getSelectedPreset()?.roughness).not.toBe(0.21)
+    expect(getSelectedPreset()?.metalness).toBe(0.62)
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(getSelectedPreset()?.metalness).not.toBe(0.62)
+    expect(captureEnvironmentLookHistorySnapshot()).toEqual(beforeEnvironment)
+
+    await act(async () => {
+      editHistoryStore.redo()
+      editHistoryStore.redo()
+    })
+    expect(getSelectedPreset()?.metalness).toBe(0.62)
+    expect(getSelectedPreset()?.roughness).toBe(0.21)
+    expect(captureEnvironmentLookHistorySnapshot()).toEqual(beforeEnvironment)
+
+    const currentMetalnessTrack = getMaterialRangeTrack('Metalness')
+    await act(async () => {
+      currentMetalnessTrack?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'End', bubbles: true }),
+      )
+    })
+
+    expect(getSelectedPreset()?.metalness).toBe(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(3)
+    expect(editHistoryStore.getUndoEntries()[2]).toMatchObject({
+      targetId: 'material-preset:default_matte:metalness',
+      targetLabel: 'Material metalness',
+    })
+    expect(captureEnvironmentLookHistorySnapshot()).toEqual(beforeEnvironment)
+  })
+
+  it('keeps no-op material range completions out of history and preserves redo', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
+    const {
+      setMaterialPresetTransparentWithHistory,
+    } = await import('../store/materialEditHistory')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const materialSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find(
+      (section) => section.querySelector('summary')?.textContent?.includes('Materials'),
+    ) as HTMLDetailsElement | undefined
+    const materialSummary = materialSection?.querySelector('summary') as HTMLElement | null
+    expect(materialSection).toBeTruthy()
+    expect(materialSummary).not.toBeNull()
+
+    await act(async () => {
+      materialSection?.setAttribute('open', '')
+      materialSummary?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const getSelectedPreset = () => {
+      const materials = useUiPrefsStore.getState().view.materials
+      return (
+        materials.presets.find((preset) => preset.id === materials.selectedPresetId) ?? null
+      )
+    }
+    const getMaterialRangeTrack = (label: string) =>
+      materialSection?.querySelector(`.ParaSliderTrack[aria-label="${label}"]`) as
+        | HTMLDivElement
+        | null
+    const setTrackRect = (track: HTMLDivElement | null) => {
+      expect(track).not.toBeNull()
+      if (track === null) {
+        return
+      }
+      Object.defineProperty(track, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          left: 0,
+          top: 0,
+          width: 100,
+          height: 30,
+          right: 100,
+          bottom: 30,
+          x: 0,
+          y: 0,
+          toJSON: () => '',
+        }),
+      })
+    }
+    const pointerDownAt = (track: HTMLDivElement, clientX: number) => {
+      track.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX,
+        }),
+      )
+    }
+
+    await act(async () => {
+      setMaterialPresetTransparentWithHistory('default_matte', true)
+      editHistoryStore.undo()
+    })
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
+
+    const metalnessTrack = getMaterialRangeTrack('Metalness')
+    setTrackRect(metalnessTrack)
+    const currentMetalnessClientX = (getSelectedPreset()?.metalness ?? 0) * 100
+    await act(async () => {
+      if (metalnessTrack !== null) {
+        pointerDownAt(metalnessTrack, currentMetalnessClientX)
+        window.dispatchEvent(new PointerEvent('pointerup', {}))
+      }
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.canRedo()).toBe(true)
   })
 
   it('publishes gizmo style controls into the shared axis-overlay style seam', async () => {

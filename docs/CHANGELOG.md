@@ -6,108 +6,8 @@ Numbering rule for major entries:
 - Increment by 1 for every new Codex-added section.
 
 ### Doc History
-109. 2026-04-21 12:59:40: Recorded the Catalog item-page preview width cleanup after item-page preview surfaces stopped using the square aspect-ratio and capped-width layout, now filling the item-page content width while preserving responsive preview height and existing preview/load behavior.
-108. 2026-04-21 12:54:25: Recorded the AppShell console-row layout cleanup after the root shell switched to a main-workspace plus bottom-console-row grid, the docked Console command bar moved into `AppShellConsoleRow`, expanded Console panels continued to overlay upward, the primary-only model viewport bottom reservation was retired from AppShell, focused shell/viewport tests passed, and production build passed.
-107. 2026-04-21 12:12:03: Recorded the `Catalog-Gen2-5 / Phase 3.1 - Verified Full Assembly Add To Project Activation` implementation after the verified ADV and XR full assembly planned source entries gained available source-reference `Add To Project` behavior, planned source commit resolution, seed/UI copy updates, focused Catalog action/source/commit/surface tests passed, and heavy preview, Import-5 STEP fidelity, and builder load-as-starting-configuration runtime stayed deferred.
-106. 2026-04-21 11:36:42: Recorded the `Catalog-Gen2-14 / Phase 4 - Bug 22 Closeout And Gen2 Ownership Audit` closeout after Bug 22 was marked fixed at the store-to-current-viewer remount seam, Catalog Gen2 HLG/CLG tracking was closed, focused ViewerHost remount proofs passed, and build passed while full UI click-through and direct split/exploded hardening remained optional future surfaces.
-105. 2026-04-21 11:31:50: Recorded the `Catalog-Gen2-14 / Phase 3 - Split And Close Regression Coverage` implementation after focused `ViewerHost` seam tests proved PubParts ZIP-attributed accepted imports and normal `.obj` imports rehydrate from canonical loaded state into newly mounted viewer runtimes while preserving imported-reference ids and keeping already-owned runtime references from duplicate-loading.
-104. 2026-04-21 11:26:21: Recorded the `Catalog-Gen2-14 / Phase 2 - ViewerHost Rehydration For Loaded-But-Missing References` implementation after ordinary `ViewerHost` visible-reference sync began rehydrating visible globally loaded references that are missing from the mounted viewer runtime while skipping already-owned runtime references, preserving canonical imported-reference ids, and keeping the existing success/error visibility paths.
-103. 2026-04-21 11:20:02: Recorded the `Catalog-Gen2-14 / Phase 1 - Runtime Ownership Contract And Viewer Possession Query` implementation after the viewer gained a read-only current-runtime reference possession query and the `ViewerHost` test mock gained matching readiness for later loaded-but-missing rehydration coverage.
-102. 2026-04-21 10:44:38: Recorded the `Catalog-Gen2-13 / Phase 4 - Add-To-Project Import Review And Viewport Handoff Audit` implementation after the PubParts ZIP source-options final action and busy/status copy were clarified as staging to Import review while preserving the existing `openStagedImportDraft({})` plus `appendStagedImportDraftFiles(files)` handoff and avoiding direct Catalog project acceptance.
-101. 2026-04-21 10:34:03: Recorded the `Catalog-Gen2-13 / Phase 3 - Preview Affordance For Previewable Supported Files` implementation closeout after staged ZIP entry rows gained an honest preview field for Import-review-after-staging availability on supported current reference types and not-available reads for unsupported/blocked/unselectable rows while preserving the existing staging and Import ownership path.
-100. 2026-04-21 10:25:54: Recorded the `Catalog-Gen2-13 / Phase 2 - ZIP Entry Staged Importer List` implementation closeout after ZIP archive candidates began rendering as staged ZIP entry rows with archive path, file name, type, formatted size, support state, blocked reason, selected state, and stable test selectors while preserving source metadata, selection controls, and existing Import review staging behavior.
-99. 2026-04-21 10:19:01: Recorded the `Catalog-Gen2-13 / Phase 1 - Download And Upload Source Actions` implementation closeout after PubParts ZIP source options began reading as a staged importer shell with PubParts source metadata, browser-honest `Download ZIP` guidance, Dropbox `dl=1` link normalization where available, explicit `Upload ZIP` local file grant wording, focused Catalog surface/shell tests, and `npm.cmd run build` passing while preview, staged-list redesign, native downloads, folder ownership, Import accept changes, and project asset changes stayed deferred.
-98. 2026-04-21 01:19:48: Recorded the `Catalog-Gen2-12 / Phase 5.1 - Local ZIP Fallback For Browser-Blocked PubParts Archives` implementation after PubParts source options gained a `Choose Local ZIP` fallback for browser-blocked Dropbox ZIP fetches, local ZIP blobs list through the existing archive helper, selected supported entries stage into Import review with PubParts attribution, and the focused Catalog surface fallback test passed while eager downloads, native disk writing, remote-byte proxies, persistent ZIP bytes, `.stp` support, STEP fidelity, builder behavior, and compatibility verdicts stayed deferred.
-97. 2026-04-21 00:50:16: Recorded the `Catalog-Gen2-12 / Phase 4 - Archive Manifest Cache` implementation closeout after PubParts ZIP source options gained a metadata-only archive manifest cache, cache hits skip repeat listing fetches, selected extraction still revalidates against real ZIP bytes, focused cache/resolver/surface/ZIP tests passed, and `npm.cmd run build` passed while ZIP byte caching, extracted file caching, local library behavior, native downloads, Import accept/project asset behavior, shared-folder listing, `.stp` support, STEP loader work, builder behavior, and compatibility verdicts stayed deferred.
-96. 2026-04-21 00:38:11: Recorded the `Catalog-Gen2-12 / Phase 3 - Selected ZIP Entry Extraction To Import Review` implementation closeout after selected supported ZIP entries gained guarded extraction, Import review staging with PubParts attribution, focused ZIP/resolver/surface/shell tests passed, and `npm.cmd run build` passed while manifest caching, persistent ZIP byte storage, extract-all behavior, shared-folder listing, `.stp` support, STEP loader work, builder behavior, compatibility verdicts, and pre-Import project asset creation stayed deferred.
-95. 2026-04-21 00:25:32: Recorded the `Catalog-Gen2-12 / Phase 2 - Source Options Real ZIP Listing` implementation closeout after PubParts source options began inspecting one user-triggered Dropbox ZIP through the async shared-link helper, real ZIP metadata replaced the Gripples hard-coded production manifest proof, focused ZIP/resolver/surface/shell tests passed, and `npm.cmd run build` passed while archive extraction, Import draft staging from archive entries, object URLs, manifest caching, eager ZIP fetch, shared-folder listing, `.stp` support, STEP loader work, builder behavior, and compatibility verdicts stayed deferred.
-94. 2026-04-21 00:15:14: Recorded the `Catalog-Gen2-12 / Phase 1 - Browser ZIP Reader And Entry Manifest Contract` implementation closeout after `@zip.js/zip.js` was installed, the pure PubParts ZIP archive helper and fixture tests landed, supported/unsupported/unsafe/directory/blocked entry classification was proven, focused ZIP/resolver tests passed, and `npm.cmd run build` passed while source-options wiring, extraction, Import staging, object URLs, Dropbox fetch, project assets, and manifest caching stayed deferred.
-93. 2026-04-20 23:47:52: Recorded the `Catalog-Gen2-11 / Phase 2 - ZIP And Archive Candidate Inspection` implementation closeout after known manifest-backed PubParts archive URLs began showing deterministic archive-entry candidates in the source-options dialog, with the real `3d Printed Gripples` ZIP seeded as the first metadata-only proof while real ZIP parsing, extraction, Import byte staging, shared-folder listing, `.stp` support, STEP fidelity, builder behavior, and compatibility verdicts stayed deferred.
-92. 2026-04-20 23:35:27: Recorded the `Catalog-Gen2-11 / Phase 1 - Dropbox Shared Direct File Resolver` implementation closeout after PubParts `Add To Project` moved from user-owned Dropbox Chooser setup to a Catalog source-options dialog, direct supported shared links gained resolver/fetch staging into Import review with PubParts attribution, ZIP/archive links stayed inspection-needed and disabled, focused Catalog/source tests passed, and `npm.cmd run build` passed.
-91. 2026-04-20 23:17:05: Recorded the Dropbox Chooser startup diagnostic repair after the Catalog bridge began preloading Chooser when configured, short-circuiting missing app-key clicks with an explicit `Dropbox Setup Needed` status, and adding focused setup/preload tests before rerunning the focused Catalog surface proof.
-90. 2026-04-20 23:01:58: Recorded the `Catalog-Gen2-10 - Dropbox Chooser Add-To-Project Bridge` implementation closeout after external PubParts item pages gained a primary Dropbox Chooser-backed `Add To Project` action, direct-link file fetch into Import-owned staged review, visible bridge statuses, local fallback controls, focused tests, and build verification while keeping shared-link folder inspection, archive extraction, native direct download, `.stp` import support, STEP fidelity, builder behavior, and compatibility verdicts deferred.
-89. 2026-04-20 21:52:10: Recorded the `Catalog-Gen2-9 - Local PubParts Library Folder And Auto-Discovery Handoff` implementation closeout after PubParts local-library metadata, per-item folder/manifest records, Home Page PubParts Library toggle/status, Catalog `Local Downloads`, one advancing item-page local-library action, Import-owned local file picker handoff, focused tests, and build verification landed without silent disk scanning, automatic folder creation, remote byte fetching, archive extraction, native direct download, STEP fidelity, builder behavior, or compatibility verdicts.
-88. 2026-04-20 20:41:48: Recorded the `Catalog-Gen2-5 / Phase 2.3 - Catalog Surface Cleanup And Scroll Containment` implementation closeout after the Catalog surface gained scoped dark scrollbars, contained browse-rail/staged-source overflow, compact typography, safe long-text wrapping, square item-page previews, focused tests, and build verification without changing source contracts or Catalog behavior.
-87. 2026-04-20 20:03:53: Recorded the `Catalog-Gen2-8 / Phase 8 - Remote Source Download And Import Owner Bridge` implementation closeout after external PubParts item pages gained browser source-download/open handoff, `Import Downloaded Files` local staged Import dialog bridging, and PubParts source attribution preservation through staged import files and accepted imported reference records while remote byte fetching, archive extraction, `.stp` support, STEP loader fidelity, builder behavior, compatibility verdicts, and direct Catalog project commits stayed deferred.
-86. 2026-04-20 18:53:03: Recorded the `Catalog-Gen2-8 / Phase 7 - Selected File Import Handoff` scoped implementation after selected supported PubParts direct file candidates gained source-attributed Import-family handoff/status reads while remote URL bytes, project imports, repo-local asset paths, object URLs, action-kind widening, archive extraction, builder behavior, compatibility verdicts, and STEP loader behavior stayed deferred.
-85. 2026-04-20 18:40:07: Recorded the `Catalog-Gen2-8 / Phase 6 - Supported File Classification And Chooser` implementation closeout after staged PubParts source metadata gained supported direct file candidate selection, item-page chooser/no-selectable states, focused tests, and `npm.cmd run build` passed without binary download, archive listing, extraction, selected-file import handoff, project commit, action-kind, builder, compatibility, or STEP loader behavior.
-84. 2026-04-20 18:30:32: Recorded the `Catalog-Gen2-8 / Phase 5 - User-Triggered Source And Archive Inspection` implementation closeout after staged PubParts source metadata records gained user-triggered metadata inspection results, direct supported file URL classification including `.stp`, archive/shared-source needs-inspection states, item-page inspection status, and focused tests plus `npm.cmd run build` passed.
-83. 2026-04-20 18:20:27: Recorded the `Catalog-Gen2-8 / Phase 4 - Staged Downloads List And Clear Controls` implementation closeout after Catalog gained a staged PubParts source metadata list plus per-record and clear-all controls that mutate only the PubParts downloads bucket.
-82. 2026-04-20 18:14:03: Recorded the `Catalog-Gen2-8 / Phase 3 - User-Triggered Source Download Or Staging` implementation closeout after external PubParts item pages gained explicit metadata-only `Stage Source Link` behavior backed by `parahook:catalog:pubparts-downloads`, with staged/not-imported status and no binary download, inspection, chooser, import, or project commit behavior.
-81. 2026-04-20 18:04:30: Recorded the `Catalog-Gen2-8 / Phase 2 - External Source Action Boundary` implementation closeout after external PubParts item pages gained a disabled planned source-action boundary from linked archive metadata while keeping action kinds, preview-only action plans, source-page/linked-archive/eager-image behavior, and no download/staging/import behavior unchanged.
-80. 2026-04-20 17:45:48: Recorded the PubParts downloads storage groundwork after Home Page Storage Management gained a dedicated `Catalog/PubParts/Downloads` local storage bucket row backed by `pubPartsDownloadsStorage.ts`, with focused Home Page tests and `npm.cmd run build` passing.
-79. 2026-04-20 17:18:15: Recorded the `Catalog-Gen2-7 / Phase 3 - Eager PubParts Preview Images` implementation closeout after PubParts preview image URLs gained PubParts-origin normalization and external PubParts image previews began rendering eagerly in grid cards and item pages without archive/model/STEP/add-to-project/builder/compatibility widening.
-78. 2026-04-20 17:11:42: Recorded the `Catalog-Gen2-7 / Phase 2 - All Cached PubParts Parts In Catalog` implementation closeout after live Catalog began composing the full 319-record cached PubParts part set, external items began contributing to section options, and focused PubParts/source/shared/surface tests plus `npm.cmd run build` passed without eager image rendering, archive/import behavior, local asset conversion, or builder/compatibility widening.
-77. 2026-04-20 17:02:49: Recorded the `Catalog-Gen2-7 / Phase 1 - Full PubParts Cache Coverage` implementation closeout after Catalog gained a deterministic PubParts cache refresh script, a full 319-record `parts.json` source-data module, full part dedupe helpers, and image array normalization without live browser fetch, resource mixing, Catalog surface widening, or eager image UI behavior.
-76. 2026-04-20 16:02:39: Recorded the `Catalog-Gen2-4.5 / Phase 2 - XR PubWheel 1 Asset Set Migration` implementation closeout after the live XR planned seed gained a versioned `sourceAssetSet` for `pubwheel_1` / `v1` while preserving bridge fields, one-card identity, disabled planned behavior, and ADV bridge-only source truth.
-75. 2026-04-20 15:55:39: Recorded the `Catalog-Gen2-4.5 / Phase 1 - Versioned Multi-File Asset Set Contract` implementation closeout after Catalog gained planned-source asset-set contract types and metadata-only source-detail rows for versioned multi-file source candidates without migrating live seeds, enabling preview, or changing action behavior.
-74. 2026-04-20 15:40:36: Recorded the `Catalog-Gen2-5 / Phase 2.2 - XR PubWheel Planned Starting Assembly Source` implementation closeout after the supplied XR PubWheel STEP/GLB full-assembly files were copied into `public/Catalog/assemblies/xr/`, Catalog gained a second disabled planned starting assembly card, and focused tests plus build passed without enabling heavy preview, Import-5 loader behavior, or builder load behavior.
-73. 2026-04-20 15:35:34: Recorded the `Catalog-Gen2-5 / Phase 2.1 - Planned Starting Assembly Entry Contract For Heavy STEP Starts` implementation closeout after Catalog gained a planned source kind, plannedItems snapshot lane, one disabled ADV planned starting assembly card, and planned preview action read without exposing the heavy STEP source through repo preview behavior.
-72. 2026-04-20 15:16:50: Recorded the `Catalog-Gen2-5 / Phase 1 - Starting Assembly Contract And Boundary` implementation closeout after Catalog gained the optional `itemRole: 'starting-assembly'` contract/read seam, planned starting-assembly metadata, source pass-through readiness, helper/item-page read copy, focused tests, and no new action kind or live curated assembly entries.
-71. 2026-04-20 14:51:41: Recorded the `Catalog-Gen2-4 / Phase 1 - External Type System Mapping Baseline` implementation closeout after external PubParts `typeOfPart` source labels began mapping into existing ParaHook `systemKey`, `partType`, and safe `partGroups` fields while preserving raw source metadata.
-70. 2026-04-20 14:40:00: Recorded the `Catalog-Gen2-3 / Phase 2 - Sub-Platform Tags And Narrow Fitment Notes` implementation closeout after external PubParts `GT/GT-S`, `GT-S`, and `GTS` source labels began producing a metadata-only source fitment note while broad canonical `GT` compatibility stayed unchanged.
-69. 2026-04-20 14:34:12: Recorded the `Catalog-Gen2-3 / Phase 1 - Canonical External Platform Mapping` implementation closeout after external PubParts platform labels began normalizing into canonical ParaHook `platformCompatibility` values while keeping raw source labels visible and leaving sub-platform, system mapping, archive/import, and compatibility-verdict behavior untouched.
-68. 2026-04-20 14:25: Recorded the `Catalog-7 / Phase 4 - Wheel-Specific Motor And Tire Fitment Fields` implementation closeout after the local wheel-fitment contract, source pass-through readiness, item-page detail helper, focused tests, and `npm.cmd run build` passed without fabricated motor/tire records or Gen2 mapping behavior.
-67. 2026-04-20 14:13:26: Recorded the `Catalog-Gen2-2 / Phase 3 - Supported Versus Unsupported Archive Classification` implementation closeout after linked archive metadata gained staged supported/unsupported/container/unknown classification, focused tests passed, and `npm.cmd run build` passed.
-66. 2026-04-20 14:06: Recorded the `Catalog-Gen2-2 / Phase 2 - Linked Archive Metadata And Handoff States` implementation closeout after external item pages gained inspect-only linked archive source handoff state, focused tests passed, and `npm.cmd run build` passed.
-65. 2026-04-20 13:59:57: Recorded the `Catalog-Gen2-2 / Phase 1 - External Source Page Action Support` implementation closeout after external Catalog item pages gained a source-details source-page link affordance without changing Catalog action kinds or starting archive/import behavior.
-64. 2026-04-20 13:51:16: Recorded the `Catalog-Gen2-1 / Phase 4 - External Attribution And Linked Source Surfacing` implementation closeout after live `CatalogSurface` intentionally composed cached PubParts external items with source-aware labels/details, focused tests passed, and `npm.cmd run build` passed.
-63. 2026-04-20 13:44:35: Recorded the `Catalog-Gen2-1 / Phase 3 - External Items In Catalog Source Snapshot` implementation closeout after the Catalog source snapshot gained an explicit default-empty external lane and optional PubParts source-item mapping without live UI wiring, focused tests passed, and `npm.cmd run build` passed.
-62. 2026-04-20 13:37:13: Recorded the `Catalog-Gen2-1 / Phase 2 - Cached Source Exactness Repair` after the tiny PubParts cached source records and tests were updated to the manager-verified live URL, image, archive, and description values, focused cached-intake tests passed, and `npm.cmd run build` passed.
-61. 2026-04-20 13:34:37: Recorded the `Catalog-Gen2-1 / Phase 2 - Cached Source Truthfulness Repair` after invented cached PubParts source examples were replaced with tiny real sampled records from `parts.json`, `parts/gt.json`, and `resources.json`, focused cached-intake tests passed, and `npm.cmd run build` passed.
-60. 2026-04-20 13:31:46: Recorded the `Catalog-Gen2-1 / Phase 2 - Cached PubParts Source Intake Path` implementation closeout after tiny repo-owned PubParts source slices for all-parts, filtered GT parts, and resources started normalizing through the Phase 1 source helpers without browser fetch, live sync, Catalog item creation, snapshot merging, UI behavior, archive import, or fitment work.
-59. 2026-04-20 13:26:29: Recorded the `Catalog-Gen2-1 / Phase 1 - PubParts Array Metadata Repair` after live PubParts samples showed part and resource category fields can be arrays, the PubParts source helpers preserved scalar strings and string arrays in stable normalized metadata, focused tests passed, and `npm.cmd run build` passed.
-58. 2026-04-20 13:20:09: Recorded the `Catalog-Gen2-1 / Phase 1 - External Source Contract And PubParts Type Groundwork` implementation closeout after Catalog gained the generic external source branch, reusable provider/source metadata, PubParts raw and normalized source item type groundwork, focused contract/helper proof, and a passing `npm.cmd run build`.
-57. 2026-04-20 13:12:44: Recorded the `Catalog-Gen2-0 / Phase 3 - Intake Readiness And Source Handoff Closeout` docs-system closeout after the Gen2 readiness lane documented PubParts endpoint/CORS/source-intake decisions, audited live Catalog seams, created the `Catalog-Gen2-1` external source intake family phase doc, and left runtime implementation for later approved phases.
-56. 2026-04-20 01:01: Recorded the `Home-Page-6 / Phase 4 - Left Rail Help And Debug Affordance Closeout` implementation closeout after the Home Page left rail gained compact help shortcuts and a non-owning advanced status affordance while preserving startup, catalog launch, orientation, Storage Management, persistence toggles, and wipe behavior.
-55. 2026-04-20 00:53: Recorded the `Home-Page-6 / Phase 3 - Storage Management Rename And Detail Affordance` implementation closeout after the storage area became Storage Management while preserving bucket inventory, owner seams, toggles, selected-key wipe behavior, size readouts, and internal row scrolling.
-54. 2026-04-20 00:45: Recorded the `Home-Page-6 / Phase 2 - Compact Orientation Quick-Start Card` implementation closeout after the orientation area became a compact quick-start/status card with the existing GitHub, Docs, version, and what's-new read preserved.
-53. 2026-04-20 00:36: Recorded the `Home-Page-6 / Phase 1 - Control Deck Shell And Catalog-Grounded Launch Rail` implementation closeout after Home Page gained a left-rail/main-region control deck while preserving startup, catalog launch, storage, and monitor-height behavior.
-52. 2026-04-19 21:09: Recorded the Console Workspace Modes primary-slot execution repair after Home Page startup sessions could switch the primary Home Page viewport to another supported workspace surface through Console.
-51. 2026-04-19 21:01: Recorded the Console Workspace Modes catalog alignment repair after the console stopped filtering Home Page out of the viewport picker and generated viewport-type choices from the canonical workspace surface catalog.
-50. 2026-04-19 20:52:25: Recorded the Home Page catalog-driven viewport launch list after launch buttons started rendering from the canonical workspace surface catalog and routing through one generic surface opener.
-49. 2026-04-19 20:46:30: Recorded the Home Page launch-action copy polish after the startup launch section gained an `Open viewport` title and its buttons dropped repeated `Open` prefixes.
-48. 2026-04-19 20:22:02: Recorded the Home Page startup-surface control polish after the Home Page / Model Viewport radio pair became one persisted left-to-right switch.
-47. 2026-04-19 20:18:05: Recorded the Home Page startup-panel launch action polish after the launch buttons moved into the startup column, gained dark-mode app styling, and the storage row-list scrollbar matched the existing dark scrollbar theme.
-46. 2026-04-19 20:09:04: Recorded the Home Page storage transparency scroll-boundary polish after the scrollbar moved from the full storage panel to the bucket-row list only.
-45. 2026-04-19 20:07:08: Recorded the Home Page UI preferences toggle alignment polish after the stacked View settings and Environment controls were right-aligned within the storage-row toggle column.
-44. 2026-04-19 19:51:19: Recorded the Home Page storage row alignment polish after file-size readouts gained a stable width and the UI preferences row toggles stacked vertically.
-43. 2026-04-19 19:48:11: Recorded the Home Page storage wipe button label polish after the row action changed from visible `Wipe` text to a compact `X` button with an accessible storage-specific label.
-42. 2026-04-19 19:47:01: Recorded the Home Page storage wipe-column implementation after each storage transparency row gained a wipe action that removes the backing localStorage entry and refreshes the displayed size to zero.
-41. 2026-04-19 19:44:24: Recorded the Home Page storage-row column order polish after row toggles moved into the middle column and file-size readouts moved to the far-right column.
-40. 2026-04-19 19:33:49: Recorded the Home Page storage-row persistence control repair after persistence toggles moved into their matching storage transparency rows, with UI preferences carrying both view settings and environment controls.
-39. 2026-04-19 19:15:58: Recorded the Home Page persistence-policy toggle-row polish after each persistence item became one left-label/right-switch row while keeping the existing persistence wiring.
-38. 2026-04-19 19:12:46: Recorded the Home Page top-row layout repair after startup surface, persistence policy, and orientation were moved into one responsive three-column row.
-37. 2026-04-19 19:09:59: Recorded the Home Page storage transparency height repair after the storage inventory gained an internal scrollbar so the Home Page stays usable on shorter monitors.
-36. 2026-04-19 19:03:13: Recorded the Home Page startup-surface restore repair after the workspace restore bridge started applying the startup preference to the primary slot even when a saved layout exists, focused startup proof passed, and the AppShell graph-storage mock drift was repaired.
-35. 2026-04-19 18:48:35: Recorded the `Home-Page-5 / Phase 2 - Home Page Recent-Items Inventory And Toggle Wiring` implementation closeout after Home Page gained recent-items browser-storage visibility, a remember/forget control wired through the recent-items owner seam, focused proof, and a passing `npm run build`.
-34. 2026-04-19 18:34:08: Recorded the `Home-Page-5 / Phase 1 - Create Recent-Items Owner Seam Before Home Page Toggle Wiring` implementation closeout after recent-items gained a dedicated reference-only working-set owner seam, focused owner-seam proof, and a passing `npm run build`.
-33. 2026-04-19 18:21:08: Recorded the `Home-Page-4 / Phase 1 - Introduce Dedicated Graph Browser-Storage Owner Seam And Snapshot` implementation closeout after graph browser-storage gained a dedicated working-set owner module, Home Page remember/forget visibility, focused persistence/Home Page proof, and a passing `npm run build`.
-32. 2026-04-19 16:44:29: Recorded the `Home-Page-3 / Phase 1 - Compact Orientation Strip And Brief What's New` implementation closeout after the compact GitHub/docs/version/what's-new strip landed on Home Page, the orientation block stayed visually lighter than storage, focused Home Page coverage passed, and `npm run build` passed.
-31. 2026-04-19 16:28:32: Recorded the `Home-Page-2 / Phase 3 - Extend Transparency To Remaining Owned Buckets And Deferred Owners` implementation closeout after dashboard and notepad persistence toggles landed through the existing UI prefs and AppShell persistence seams, graph browser-storage and recent-items stayed honestly deferred because no live owner seam exists yet, focused Home Page, UI prefs, and AppShell tests passed, and `npm run build` passed.
-30. 2026-04-19 16:16:54: Recorded the `Home-Page-2 / Phase 2 - Split Visible Persistence Policy For Workspace Restore, View Settings, And Environment` implementation closeout after explicit Home Page policy toggles for workspace restore, view settings, and environment landed through the existing workspace and UI prefs persistence seams, the read-only storage transparency surface stayed intact, focused bridge/store/Home Page tests passed, and `npm run build` passed.
-29. 2026-04-19 16:09:22: Recorded the `Home-Page-2 / Phase 1` storage transparency visual polish after the new read-only storage panel and rows were tightened to the repo's 8px card-radius rule.
-28. 2026-04-19 15:59:14: Recorded the `Home-Page-2 / Phase 1 - Read Existing Persistence Buckets And Show Read-Only Storage Transparency` implementation closeout after the Home Page read-only storage transparency block landed with live persistence bucket rows, origin estimate handling, focused storage tests, and `npm run build`.
-27. 2026-04-19 15:43:11: Recorded the `Home-Page-1 / Phase 4 - First Launch Actions And Closeout` implementation closeout after adding launch actions on `Home Page` for `Model Viewport`, `Browser`, `Catalog`, and `Console`, wiring them through the existing shell owner seams, and passing the focused Home Page/AppShell tests plus `npm run build`.
-26. 2026-04-19 15:26:27: Recorded the Home Page startup-surface closeout after the visible startup toggle shipped, the AppShell startup baseline was repaired, and the earlier Home Page surface, zero-viewer return, and startup preference slices were validated through focused tests and `npm run build`.
-25. 2026-04-19 10:32:03: Recorded the `Catalog-7 / Phase 3 - Predictable Filter Semantics` implementation closeout after grouped local taxonomy filters landed with OR inside selected groups, AND across selected groups, separate search narrowing, focused Catalog tests, and `npm run build`
-24. 2026-04-19 10:08:46: Repaired the Catalog-7 Phase 2 closeout for entry 1537 by moving browse sections onto `partGroups` in Part read and `platformCompatibility` in Platform read so the browse rail and visible results are no longer cosmetic, then reran the focused shell and surface tests plus `npm run build`
-23. 2026-04-19 09:48:34: Recorded the `Catalog-7 / Phase 1 - Local Taxonomy Contract And Seed Metadata` implementation closeout after the local taxonomy contract and seed metadata landed for repo-backed part families, focused contract/source tests passed, and `npm run build` passed while later browse, filter, and wheel-fitment phases remained open
-22. 2026-04-19 09:28:30: Recorded the Catalog-2.14 implementation closeout after committed shoe families started routing into the Shoes Browser branch only, later shoes reused the same parent, and user-import flattening stayed on the generic import path
-21. 2026-04-19 09:21:18: Recorded the Catalog-1.13 implementation closeout after adding the grid batch action that loads every currently displayed preview-capable Catalog card into the existing temporary preview session, routing the target set through the filtered visible card list in `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/CatalogShellGridMode.tsx`, and `src/app/catalog/catalogPreviewSession.ts`, and proving that hidden filtered-out cards, commit-only entries, and apply-environment cards stay out of the batch path with focused CatalogShell and preview-session tests plus `npm run build` verification
-20. 2026-04-19 00:14:32: Recorded the `Environment-2 / Phase 4 - Add Recall And Quick A/B Compare Helpers` implementation closeout after remembered-look capture, recall, and compare helpers landed and the Environment-2 family lane closed
-19. 2026-04-19 00:14:32: Recorded the `Environment-2 / Phase 3 - Add Persistence For Environment Look Workflows` implementation closeout after active environment look persistence landed through the existing UI/workspace seam with legacy normalization proof
-18. 2026-04-19 00:14:32: Recorded the `Environment-2 / Phase 2 - Land Photoshop-Like Grade Sliders` implementation closeout after the visible grade slider family landed on the nested environment-grade seam
-17. 2026-04-18 23:48:50: Recorded the `Environment-2 / Phase 1 - Add The Post-Look Grading Seam And Split The Owners` implementation closeout after adding explicit nested post-look grade state downstream from the existing scene and HDRI ownership seams, preserving the locked startup baseline, hiding the full Environment grade slider surface for now, and adding focused proof for default grade state, scene-versus-grade separation, and legacy normalization
-16. 2026-04-18 23:31:45: Recorded the `Environment-1` Phase 11 closeout proof and family completion after adding the final focused toolbar proof test, marking the Environment-1 lane closed without widening into Environment-2 behavior
-15. 2026-04-18 23:28:26: Recorded the `Environment-1` build-gate fixture repair after the full production build exposed two strict test typing gaps in the latest active-environment test fixtures
-14. 2026-04-18 23:24:11: Recorded the `Environment-1 / Phase 10` implementation closeout after active HDRI orientation and Browser source-row background visibility cleanup landed under Environment-owned source state
-13. 2026-04-18 23:14:35: Recorded the `Environment-1 / Phase 9` implementation closeout after active HDRI lighting intensity split from background intensity and visible active-environment tune controls landed in the Environment toolbar
-12. 2026-04-18 23:06:29: Recorded the `Environment-1 / Phase 8` implementation closeout after the active HDRI source became one Environment-owned Browser content row and the viewer gained an explicit environment-light contribution runtime seam separate from background treatment
-11. 2026-04-18 23:00:11: Recorded the `Environment-1 / Phase 7` implementation closeout after selected environment lights became the View toolbar editing source, the toolbar-local light list was retired, and Browser row eye visibility became the light on/off control
-10. 2026-04-18 23:24:00: Recorded the Dispatch-1 agent-rule update that made changelog and doc-log closeout tracking explicit for manager and worker loops
-9. 2026-04-18 23:12:00: Recorded the `Catalog-6` implementation closeout after the Catalog HDRI lane gained repo HDRI/EXR entries, local browse/apply, viewer-owned HDRI runtime state, applied controls, thumbnails, and lightweight environment preview boxes
-8. 2026-04-18 20:00:00: Recorded the `Environment-1 / Phase 6.1` implementation cut after selected environment-light deletes were routed through the shared selection path and selected environment objects started reading in Console with honest breadcrumbs and object-style actions, while leaving the later toolbar-population pass for `Phase 7`
+9. 2026-04-22 10:30:12: Cleaned this changelog's Doc History so it only tracks changelog document structure, rule, and cleanup changes instead of duplicating permanent shipped-work body entries.
+8. 2026-04-22 10:21:56: Cleaned up the in-progress `Edit-History-Gen3-1 / Phase 2` changelog repair by removing the duplicate replayed Gen 1 through Gen 2 body entries that were accidentally inserted during the Phase 2 repair and renumbering the current Phase 2 repair body entry from `[1717]` to the next sequential `[1691]`.
 7. 2026-03-08 10:23: Removed planning-only entries `[132]` through `[139]` from the live changelog after moving that batch tracking back into the active `N_CodexChat.md` planning surface
 6. 2026-03-07 14:41: Updated the forward changelog title-format rule so normalized entries should use the dashed date/time layout with the canonical phase title in one backticked block
 5. 2026-03-07 14:24: Added normalized `HUMAN SUMMARY:` lines across all numbered changelog entries and reconstructed marker blocks using entry-body context so folded scanning is readable throughout the file
@@ -142,6 +42,7 @@ Do not use it for:
   - example:
     - `### [131] - YYYY-MM-DD HH:MM - `OO - Phase 13 - Entry Title``
 - existing older entries do not need to be mass-rewritten just to match this title punctuation style
+- `### Doc History` is only for changelog document structure, rule, format, and cleanup changes; shipped implementation/proof/repair work belongs in permanent `## Doc Body` entries instead of Doc History.
 - the same HTML divider comment appears again directly under the main entry heading
 - directly under the entry wrapper, include one headerless summary line in this shape:
   - `HUMAN SUMMARY: 1-3 sentences about what this changelog entry did`
@@ -166,6 +67,1824 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 1698 -->
+
+### [1698] - 2026-04-22 18:29 - `Edit-History-Gen5-1 / Phase 1-5 - Durable CAD Local History Batches`
+
+<!-- ENTRY 1698 -->
+HUMAN SUMMARY: `Sketch Draw now keeps accepted local command history batches across close and reopen, and canonical Sketch Draw commits restore those nested batches with the authored sketch state. Same-tool rectangle batches can be undone and redone as geometry steps after reopening instead of losing the local stack at final commit.`
+
+#### Scope / Constraints Honored
+
+- Kept `editHistoryStore` as the only app-wide undo/redo owner.
+- Kept Sketch Draw local commands nested under the accepted Sketch Draw commit boundary instead of creating one canonical entry per local command.
+- Preserved native text undo, command recall exclusion, draft/runtime/cache exclusions, redo invalidation, and stable canonical Sketch Draw reader labels.
+- Left checkpoints, branching, collaboration, Build Path comparison, persisted history storage, command transcript history, and broad CAD command-bus extraction out of scope.
+
+#### Summary of Implementation
+
+- Added target-scoped Sketch Draw local history batches keyed by graph document and sketch node.
+- Hydrated reopened Sketch Draw sessions from accepted local batches so prior accepted geometry commands can be walked locally.
+- Extended the canonical Sketch Draw commit snapshot to restore both sketch params and the before/after local history batch.
+- Cleared local redo at the close boundary so only the accepted Sketch Draw cursor survives after commit.
+- Tightened local undo/redo command choice so same-tool completed geometry, such as five rectangles, walks as five geometry undo/redo steps before tool-selection commands consume extra presses.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen5-Index.md`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen5-1 - Durable CAD Local History Batches.md`
+- `docs/Agents/Dispatch-4-simple/Dispatch-4-Simple-Run-State.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- After drawing five rectangles, closing Sketch Draw, and reopening the same Sketch Draw target, local undo can remove the accepted rectangles and local redo can restore them without creating canonical app-history entries.
+- Canonical undo for the accepted Sketch Draw commit removes the accepted sketch delta and restores the pre-session local batch; canonical redo restores the accepted sketch delta and accepted local batch.
+- Closing Sketch Draw after local undos accepts the current local cursor and clears local redo for that committed boundary.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `npm.cmd test -- src/app/store/viewerTransformEditHistoryStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1697 -->
+
+### [1697] - 2026-04-22 16:28 - `Edit-History-Gen4-3 / Phase 1-3 - Console-Focused Sketch Draw Undo Ownership`
+
+<!-- ENTRY 1697 -->
+HUMAN SUMMARY: `Focused Console undo/redo now routes to the active Sketch Draw command session after submitted commands, preserves native text undo for meaningful unsent drafts, and gives submitted tool-selection commands local session undo/redo before final sketch commit.`
+
+#### Scope / Constraints Honored
+
+- Kept the implementation Sketch Draw-focused while shaping the route as an active command-session policy.
+- Preserved native text undo/redo for ordinary editable fields and meaningful unsent Console drafts.
+- Kept uncommitted Sketch Draw command-session steps out of canonical app history; the accepted staged sketch delta still commits as one final canonical entry.
+- Left command transcript, command recall, Reference Transform, Build Path, checkpoints, branching, collaboration, persistence, runtime cache, provider status, and preview/build output history out of scope.
+
+#### Summary of Implementation
+
+- Added focused Console input routing that lets active Sketch Draw claim `Ctrl+Z` / `Ctrl+Y` from the Console input only when the Console has no meaningful unsent manual draft.
+- Tagged Console inputs with a routing marker and wired Console global key handling to dispatch focused-console Sketch Draw undo/redo.
+- Extended Sketch Draw session history so completed staged geometry and submitted tool-selection commands share a local undo/redo order inside the active draw session.
+- Added focused route, Console integration, and store coverage for submitted rectangle and rectangle-tool undo/redo behavior.
+
+#### Files Changed
+
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Vision.md`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen4-Index.md`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-3 - Console-Focused Sketch Draw Undo Ownership.md`
+- `docs/Agents/Dispatch-4-simple/Dispatch-4-Simple-Run-State.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- With Sketch Draw active, focused-console `Ctrl+Z` after a completed console-driven rectangle removes that staged rectangle; focused-console `Ctrl+Y` restores it.
+- With Sketch Draw active, focused-console `Ctrl+Z` after a submitted tool command such as `rec` returns the session to idle; focused-console `Ctrl+Y` reapplies the tool selection.
+- Focused-console `Ctrl+Z` remains native text undo when the user has a meaningful unsent manual Console draft.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `npm.cmd test -- src/app/inputRouting.test.ts src/app/console/ConsoleDock.test.tsx -t "focused-console|focused console"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1696 -->
+
+### [1696] - 2026-04-22 12:42 - `Edit-History-Gen4-2 / Phase 1-3 - Sketch Draw Staged Command Buffer`
+
+<!-- ENTRY 1696 -->
+HUMAN SUMMARY: `Sketch Draw now stages completed draw and delete commands inside the active draw session, routes active Ctrl+Z/Ctrl+Y to that staged stack, and commits one canonical app-history entry only when the accepted staged sketch is closed.`
+
+#### Scope / Constraints Honored
+
+- Kept the canonical `editHistoryStore` as the app-wide owner and avoided a broad CAD command bus.
+- Kept hover, snap preview, selection-only state, prompt text, camera/view state, draft-point undo, no-op delete, and draft cancel outside canonical app history.
+- Preserved textual Sketch Draw `undo` as draft-point undo.
+
+#### Summary of Implementation
+
+- Added a pre-session Geometry/Sketch baseline plus staged undo/redo command snapshots to `geometrySketchSession`.
+- Routed completed Sketch Draw line, rectangle, circle, polyline, and delete-selected mutations into staged in-session commands while keeping the visible sketch synchronized.
+- Routed active Sketch Draw `Ctrl+Z`/`Ctrl+Y` to staged undo/redo before canonical edit history or viewer shortcut ownership.
+- Made `closeGeometrySketchSession()` the current final accept seam that creates one `Commit sketch draw changes` canonical entry when the accepted staged delta differs from the pre-session sketch.
+- Made idle `cancelGeometrySketchDrawDraft()` restore the pre-session sketch and close the session without a canonical entry when staged commands exist.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen4-Index.md`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-2 - Sketch Draw Staged Command Buffer.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Completed Sketch Draw commands no longer create one canonical app-history entry per command while the draw session is active.
+- Users can undo/redo staged completed commands before closing Sketch Draw; drawing a new completed command after staged undo clears staged redo.
+- Closing Sketch Draw accepts the staged result as one canonical history entry; canceling an idle staged draw session restores the pre-session sketch without a canonical entry.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts src/app/inputRouting.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1695 -->
+
+### [1695] - 2026-04-22 11:55 - `Edit-History-Gen4-1 / Phase 3.1 - Viewport Ctrl+Z Shortcut Ownership`
+
+<!-- ENTRY 1695 -->
+HUMAN SUMMARY: `The active viewer shortcut hook now routes available Ctrl+Z/Ctrl+Y through canonical edit history before camera shortcuts, so pressing undo after clicking the viewport consumes the latest authored history entry instead of falling through to viewport zoom behavior.`
+
+#### Scope / Constraints Honored
+
+- Reused the existing `routeKeyboardInput(...)` and `dispatchEditHistoryShortcut(...)` seams.
+- Kept camera shortcut bindings unchanged.
+- Preserved native editable-target undo/redo deferral through the shared router.
+
+#### Summary of Implementation
+
+- Passed live `editHistoryStore` undo/redo availability into `useViewerCameraShortcuts`.
+- Dispatched edit-history shortcuts from the viewer shortcut hook before resolving viewer camera commands.
+- Added regression coverage for `Ctrl+Z` while the active viewer surface owns shortcuts.
+
+#### Files Changed
+
+- `src/app/useViewerCameraShortcuts.ts`
+- `src/app/useViewerCameraShortcuts.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- With an available canonical undo entry, `Ctrl+Z` after clicking the viewport now performs edit-history undo and prevents downstream viewport handling.
+- `Shift+Z` remains the viewer Zoom Object shortcut.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/useViewerCameraShortcuts.test.tsx src/app/inputRouting.test.ts`
+- `npm.cmd test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts`
+
+<!-- ENTRY 1694 -->
+
+### [1694] - 2026-04-22 11:37 - `Edit-History-Gen4-1 / Phase 1-3 - Sketch Draw Authored Command Undo`
+
+<!-- ENTRY 1694 -->
+HUMAN SUMMARY: `Completed Sketch Draw line, rectangle, circle, polyline, and delete-selected commands now create canonical edit-history entries so users can undo and redo authored draw commands individually while local draft/session actions stay history-free.`
+
+#### Scope / Constraints Honored
+
+- Reused the existing canonical `editHistoryStore` owner and graph snapshot restoration helpers.
+- Kept in-progress draft points, hover/snap preview, selection-only state, cancel/back/Escape, and textual Sketch Draw `undo` outside canonical history.
+- Avoided broad CAD command architecture, persistence, checkpoints, branching, collaboration, and input-routing redesign.
+
+#### Summary of Implementation
+
+- Added Sketch Draw history metadata and a Geometry/Sketch node snapshot commit helper in `useSpaghettiStore`.
+- Routed completed Sketch Draw line, rectangle, circle by point, circle by radius, polyline, and delete-selected mutations into canonical undo/redo entries only after durable sketch geometry changes.
+- Preserved one entry per authored command, including one entry for a whole polyline and one entry for multi-component delete.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen4-Index.md`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-1 - Sketch Draw Authored Command Undo.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Completed Sketch Draw create/delete commands are now undoable and redoable through canonical edit history.
+- `runGeometrySketchDrawCommand('undo')` remains local draft-point undo and does not consume canonical entries.
+- No-op delete attempts and local draft/session operations remain history-free.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1693 -->
+
+### [1693] - 2026-04-22 10:37 - `Edit-History-Gen3-2 / Phase 1 - Checkpoint Ownership And Restore Boundary Proof`
+
+<!-- ENTRY 1693 -->
+HUMAN SUMMARY: `Checkpoint ownership is now proven as a typed readiness inventory over current authored durable candidates, exclusions, and unresolved restore semantics without adding checkpoint runtime behavior.`
+
+- Added focused checkpoint ownership readiness proof covering graph/CAD, Browser/project/import, Viewer Transform, presentation, productivity, workspace layout/preference, sampler/import, and canonical edit-history entry boundaries.
+- Classified candidates as checkpoint-eligible authored/durable state or excluded runtime/staged/in-memory owners.
+- Kept private `undo`/`redo` callbacks, adapter restore payloads, checkpoint storage schema, branch graphs, and restore commands out of scope.
+- Recorded restore semantics as unresolved Manager decisions: restore as canonical entry, restore as separate command, or defer until storage/persistence design.
+- Verification passed: focused checkpoint ownership readiness tests and production build with known Vite warnings.
+
+<!-- ENTRY 1692 -->
+
+### [1692] - 2026-04-22 10:29 - `Edit-History-Gen3-1 / Phase 2.1 - Reader Grouping And Filtering Polish`
+
+<!-- ENTRY 1692 -->
+HUMAN SUMMARY: `The Edit History reader now has local source-surface filtering over public canonical entry metadata without saved reader state or new history ownership.`
+
+- Added an unsaved local source filter to `EditHistoryReaderSurface`, derived from the active Undo/Redo stack's public `sourceSurface` and `sourceLabel` metadata.
+- Kept filtering read-only: switching filters and inspecting entries does not create canonical entries, mutate the stacks, or invalidate redo.
+- Expanded focused reader coverage for source filtering, stack preservation, and public metadata inspection.
+- Deferred grouped headings because source filtering closes the tiny polish slice without nested list/layout churn.
+- Verification passed: focused `EditHistoryReaderSurface` tests and production build with known Vite warnings.
+
+<!-- ENTRY 1691 -->
+
+### [1691] - 2026-04-22 10:18 - `Edit-History-Gen3-1 / Phase 2 - Read-Only History Reader UI Repair`
+
+<!-- ENTRY 1691 -->
+HUMAN SUMMARY: `The Edit History workspace surface is now reachable from the default viewport type picker, reader CSS letter spacing is normalized to zero, and ignored-noop transactions notify subscribers after clearing active drafts.`
+
+- Added `editHistory` to the default `ViewportFrame` viewport type choices and focused picker coverage.
+- Set the new `EditHistoryReaderSurface` letter-spacing declarations to `0`.
+- Notified edit-history subscribers when a changed transaction builds an explicit no-op entry and clears the active transaction, while plain `commitEntry(...)` no-op calls remain silent.
+- Verification passed: focused edit-history store, ViewportFrame, reader surface tests, and production build with known Vite warnings.
+
+<!-- ENTRY 1690 -->
+
+### [1690] - 2026-04-22 10:13 - `Edit-History-Gen3-1 / Phase 2 - Read-Only History Reader UI`
+
+<!-- ENTRY 1690 -->
+HUMAN SUMMARY: `A dedicated optional Edit History workspace surface now reads canonical undo/redo stacks through public metadata and live store snapshots without becoming a new undo owner.`
+
+FILES CHANGED:
+- `src/app/store/editHistoryStore.ts`
+- `src/app/store/editHistoryReaderViewModel.ts`
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen3-1 - History Reader UX And Labels.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+DETAILS:
+- Added cached `editHistoryStore.getSnapshot()` and `subscribe(...)` APIs so React readers can update from the canonical owner without owning or persisting a second stack.
+- Added a public-metadata reader view model and optional `Edit History` workspace surface with Undo/Redo stack tabs, canonical undo/redo buttons, empty states, and one-entry metadata inspection that excludes private undo/redo payloads.
+- Registered the `editHistory` workspace surface through the existing catalog/viewport registry path and exposed it through existing launch/type-picker surfaces without adding reader-state persistence.
+- Verified focused reader UI, central store subscription, reader-contract, workspace surface registration, registry/Home Page behavior, and production build; build passed with existing Vite warnings.
+
+<!-- ENTRY 1689 -->
+
+### [1689] - 2026-04-22 10:00 - `Edit-History-Gen3-1 / Phase 1 - Reader Contract And UX Shape Proof`
+
+<!-- ENTRY 1689 -->
+HUMAN SUMMARY: `Canonical edit-history entries now expose public timestamps and reader-contract proof covers Gen 1 and Gen 2 listing, grouping, filtering, and inspection metadata.`
+
+FILES CHANGED:
+- `src/app/store/editHistoryStore.ts`
+- `src/app/store/editHistoryReaderContract.test.ts`
+- `src/app/store/editHistoryStore.test.ts`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen3-1 - History Reader UX And Labels.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+DETAILS:
+- Added central commit-time `timestamp` metadata to canonical edit-history entries without changing surface adapters or adding a history reader UI.
+- Extended reader-contract coverage to prove public `label`, `source`, `target`, `timestamp`, `transactionId`, and `coalesceKey` metadata can support future list/group/filter/inspect UX without reading private undo/redo payloads.
+- Added representative Gen 2 metadata proof for environment, material, ground, productivity, Dashboard board, Home Page preference, and workspace layout entries while preserving existing Gen 1 reader-contract proof.
+- Verified `editHistoryReaderContract.test.ts`, `editHistoryStore.test.ts`, and production build; build passed with existing Vite warnings.
+
+<!-- ENTRY 1688 -->
+
+### [1688] - 2026-04-22 09:47 - `Edit-History-Gen2-4 / Phase 1 - Committed Setting Boundary Proof`
+
+<!-- ENTRY 1688 -->
+HUMAN SUMMARY: `Sampler/import settings are proven raw/no-entry or Gen 1 accepted-output owned, so Gen2-4 has no current runtime setting entries.`
+
+- Added focused sampler/import setting readiness proof for representative raw `useAudioSamplerStore` sampler/radio actions and raw `useAppStore` staged import draft actions.
+- Proved those raw settings mutate their runtime/session owners, create no canonical edit-history entries, and preserve seeded redo.
+- Proved accepted staged import up-axis/scale settings become durable authored reference transform output through the existing Gen 1 `Accept Import` entry instead of individual Gen2 setting entries.
+- Kept raw sampler settings, radio transport/playhead/waveform/source state, staged import preview/draft/session state, source object URLs, failed/no-output imports, and accepted Import/Catalog content outside new Gen2-4 runtime undo.
+- Verified with `npm.cmd test -- --run src/app/store/samplerImportSettingEditHistoryReadiness.test.ts`, `npm.cmd test -- --run src/app/store/audioSamplerStore.test.ts`, `npm.cmd test -- --run src/app/store/importCatalogEditHistoryStore.test.ts`, `npm.cmd test -- --run src/app/references/stagedImportTransforms.test.ts`, and `npm.cmd run build`.
+
+<!-- ENTRY 1687 -->
+
+### [1687] - 2026-04-22 09:38 - `Edit-History-Gen2-3 / Phase 1.2b - Remaining Workspace Layout Shell Closeout Proof`
+
+<!-- ENTRY 1687 -->
+HUMAN SUMMARY: `Remaining workspace shell layout seams are proven raw/no-entry or deferred while current Gen2-3 runtime undo stays limited to accepted preference and shell wrappers.`
+
+- Extended workspace layout/preference readiness proof to cover remaining raw shell seams including left-dock width/split fields, Browser floating/split/geometry/popout fields, viewport slot/tree changes, detached Browser surface state, and viewport-local chrome/result/local-view state.
+- Proved those raw seams mutate durable workspace state or remain session-only as expected, serialize through `workspacePersistence.ts` where owned, create no canonical edit-history entries, and preserve seeded redo.
+- Documented the live left-dock `Split Viewport` / `Unsplit Viewport` menu seam as a composite slot/tree command that remains deferred instead of a simple runtime field entry.
+- Confirmed accepted Gen2-3 runtime entries remain limited to startup/persistence preferences, Browser presentation cycling, and left-dock default-width reset.
+- Verified with `npm.cmd test -- --run src/app/store/workspaceLayoutPreferenceEditHistoryReadiness.test.ts`, `npm.cmd test -- --run src/app/store/workspaceLayoutEditHistoryStore.test.ts`, `npm.cmd test -- --run src/app/workspace/useWorkspaceStore.test.ts`, and `npm.cmd run build`.
+
+<!-- ENTRY 1686 -->
+
+### [1686] - 2026-04-22 09:27 - `Edit-History-Gen2-3 / Phase 1.2a - Browser Presentation And Left Dock Reset Entries`
+
+<!-- ENTRY 1686 -->
+HUMAN SUMMARY: `Browser presentation cycling and the left-dock default-width reset now create targeted canonical workspace layout undo entries.`
+
+- Added a targeted workspace layout edit-history helper for Browser presentation mode changes and left-dock default-width reset.
+- Routed Browser presentation cycling through the viewport registry, viewport-tree AppShell callback, and Browser dock host paths while keeping raw `setBrowserPresentationMode(...)` history-free.
+- Routed only the left-dock resize-menu `Default Width` command through the reset-width wrapper while keeping pointer-drag resize and raw `setLeftDockWidth(...)` history-free.
+- Scoped undo/redo restoration to Browser presentation-owned state or `leftDockWidth`, preserving unrelated Browser geometry, viewport maps, split state, active UI/session state, and later unrelated shell changes.
+- Focused helper, readiness, Browser presentation, left-dock reset, raw-store, and AppShell routing verification passed; production build passed with known Vite warnings.
+
+<!-- ENTRY 1685 -->
+
+### [1685] - 2026-04-22 09:06 - `Edit-History-Gen2-3 / Phase 1.1 - Startup And Persistence Preference Entries`
+
+<!-- ENTRY 1685 -->
+HUMAN SUMMARY: `Home Page startup and storage persistence policy toggles now create targeted canonical undo entries without making raw UI preference setters historyful.`
+
+- Added field-targeted UI preference history wrappers for `workspaceStartupSurface`, `workspaceRestorePersistence`, `viewSettingsPersistence`, `environmentPersistence`, `dashboardPersistence`, and `notepadPersistence`.
+- Routed only the Home Page Startup surface switch and the approved Storage Management Workspace restore, View settings, Environment, Dashboard, and Notepad toggles through those wrappers.
+- Kept raw `useUiPrefsStore` setters, persistence bridge hydration/writes, graph working-set controls, recent-items controls, PubParts Local Library controls, and storage wipe buttons outside canonical history.
+- Proved no-op wrapper calls preserve redo, raw setters remain no-entry, and undo/redo restores only the target preference field while preserving later unrelated preference and `view` changes.
+- Added focused helper and Home Page wiring tests, reran adjacent readiness/UI preference regressions, and passed production build verification with known Vite warnings.
+
+<!-- ENTRY 1684 -->
+
+### [1684] - 2026-04-22 08:56 - `Edit-History-Gen2-3 / Phase 1 - Workspace Layout And Preference Ownership Proof`
+
+<!-- ENTRY 1684 -->
+HUMAN SUMMARY: `Workspace layout and UI preference ownership is now proven as durable raw state that stays outside canonical edit history until explicit runtime wrappers are designed.`
+
+- Added focused workspace layout and preference readiness proof for raw `useWorkspaceStore` layout/shell/chrome writes and raw `useUiPrefsStore` preference policy writes.
+- Proved representative raw workspace layout and UI preference mutations update their durable store and serialized payloads while creating no canonical entries and preserving redo.
+- Proved workspace serialization covers intended shell/layout/chrome state while excluding transient left-dock preview, resize menu, and split menu helper fields.
+- Proved UI preference serialization covers startup/persistence policy state and excludes remembered-look comparison helper state.
+- Kept runtime workspace/preference undo wrappers, broad workspace snapshots, child-window lifecycle policy, keyboard dispatch, Gen2-1 presentation undo ownership, Browser/project, Viewer Transform, Build Path, Catalog/Pubwheel, checkpoints, and collaboration out of scope.
+- Focused readiness, workspace store/bridge, UI preference store/bridge, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1683 -->
+
+### [1683] - 2026-04-22 08:46 - `Edit-History-Gen2-2 / Phase 1.3f - Dashboard Cleanup Exclusion Proof`
+
+<!-- ENTRY 1683 -->
+HUMAN SUMMARY: `Dashboard cleanup and reconciliation seams are now proven as durable raw cleanup that stays outside canonical edit history.`
+
+- Added focused productivity readiness proof for raw `reconcileStickyNoteLayouts(...)` and `removeStickyNoteLayout(...)` cleanup paths.
+- Proved raw cleanup can add, keep, prune, and normalize sticky-note layouts while creating no canonical entries and preserving redo.
+- Proved raw layout removal relies on normalization to detach invalid child parent links while keeping persistence scoped to Dashboard lanes and sticky-note layouts.
+- Kept runtime cleanup history wrappers, DashboardSurface effect routing changes, lane-width runtime undo, and accepted Notepad/Dashboard wrapper changes out of scope.
+- Focused productivity readiness, raw Dashboard store regression, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1682 -->
+
+### [1682] - 2026-04-22 08:38 - `Edit-History-Gen2-2 / Phase 1.3e - Dashboard Board Command Routing`
+
+<!-- ENTRY 1682 -->
+HUMAN SUMMARY: `Dashboard Align and Arrange Grid board commands now create grouped canonical entries while restoring only command-owned x/y placement fields.`
+
+- Added canonical Dashboard board command history for explicit Align vertical, Align horizontal, and Arrange Grid actions.
+- Routed DashboardSurface Align and Arrange Grid button handlers through one grouped command helper call per changed button action, including the prior non-smart align path that looped raw writes.
+- Scoped undo/redo restoration to affected notes' `x`/`y` fields only, preserving current lane, parent, frame size, unrelated layouts, lane widths, and later unrelated layout changes.
+- Kept fit/camera, smart-align toggle state, cleanup/reconcile/remove paths, lane-width runtime undo, and raw Dashboard layout methods outside canonical history.
+- Focused Dashboard board helper, DashboardSurface command routing, productivity readiness, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1681 -->
+
+### [1681] - 2026-04-22 08:26 - `Edit-History-Gen2-2 / Phase 1.3d - Dashboard Lane Width Commit Boundary Proof`
+
+<!-- ENTRY 1681 -->
+HUMAN SUMMARY: `Dashboard lane-width resize remains proof-only until a safe completed-change boundary exists; raw lane-width writes are now covered as durable, no-entry, and redo-preserving.`
+
+- Added focused proof that raw `setAdjacentLaneWidths(...)` updates only adjacent lane width fields, persists through Dashboard lane records, creates no canonical entries, and preserves redo.
+- Added raw store proof for missing lane ids, non-adjacent lane ids, unchanged normalized widths, and non-finite/too-small width normalization behavior.
+- Kept runtime lane-width history wrappers and DashboardSurface pointer routing deferred because lane-width pointermove currently writes durable state directly and pointer-up only clears local state.
+- Focused productivity readiness, raw Dashboard store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1680 -->
+
+### [1680] - 2026-04-22 08:17 - `Edit-History-Gen2-2 / Phase 1.3c - Sticky Note Resize Entries`
+
+<!-- ENTRY 1680 -->
+HUMAN SUMMARY: `Completed Dashboard sticky-note resize pointer-up now creates canonical frame-resize entries while live resize preview remains history-free.`
+
+- Added canonical `Resize sticky note` history routing for completed Dashboard sticky-note frame resize commits.
+- Kept live resize pointermove previews and raw Dashboard frame/layout store methods history-free.
+- Scoped undo/redo restoration to affected frame fields only: `x`, `y`, `width`, and `height`, while preserving current lane, parent, unrelated layouts, lane widths, and later unrelated layout changes.
+- Focused Dashboard board, productivity readiness, raw-store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1679 -->
+
+### [1679] - 2026-04-22 07:39 - `Edit-History-Gen2-2 / Phase 1.3b - Sticky Note Placement Gesture Entries`
+
+<!-- ENTRY 1679 -->
+HUMAN SUMMARY: `Completed Dashboard sticky-note drag/drop pointer-up now creates canonical move entries while live placement preview remains history-free.`
+
+- Added canonical `Move sticky note` / `Move sticky notes` history routing for completed Dashboard sticky-note drag/drop placement commits.
+- Kept live pointermove previews and raw Dashboard layout store methods history-free.
+- Scoped undo/redo restoration to affected note lane, x/y, and same-drop parent fields while preserving unrelated lanes/layouts and later frame changes.
+- Focused Dashboard board, productivity readiness, raw-store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1678 -->
+
+### [1678] - 2026-04-22 07:26 - `Edit-History-Gen2-2 / Phase 1.3a - Dashboard Lane Discrete Entries`
+
+<!-- ENTRY 1678 -->
+HUMAN SUMMARY: `Dashboard lane create, rename, and delete commands now route through canonical history wrappers without widening into board gesture history.`
+
+- Added canonical Dashboard lane history wrappers for create, rename, and delete actions.
+- Routed DashboardSurface lane callbacks through the wrappers while preserving raw Dashboard lane methods as history-free base operations.
+- Made lane create/delete undo-redo restore only the owned lane/order/layout slice so later unrelated lanes and sticky-note layouts survive.
+- Focused lane helper, UI, productivity readiness, raw-store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1677 -->
+
+### [1677] - 2026-04-22 07:10 - `Edit-History-Gen2-2 / Phase 1.2b - Dashboard Sticky Note Text Commit Entries`
+
+<!-- ENTRY 1677 -->
+HUMAN SUMMARY: `Dashboard sticky-note title and body blur commits now create field-targeted canonical text history entries.`
+
+- Routed Dashboard sticky-note title/body completed blur callbacks through canonical `Change note text` entries.
+- Preserved DashboardStickyNoteCard local draft editing and Escape cancel behavior.
+- Kept raw Dashboard text callbacks history-free outside the completed commit boundary.
+- Focused DashboardSurface title/body/Escape/no-op verification, Notepad helper regression coverage, productivity readiness, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1676 -->
+
+### [1676] - 2026-04-22 07:03 - `Edit-History-Gen2-2 / Phase 1.2a - Notepad Text Focus Session Entries`
+
+<!-- ENTRY 1676 -->
+HUMAN SUMMARY: `Notepad title and body focus sessions now collapse typing into one canonical field-targeted text history entry on blur.`
+
+- Routed NotepadSurface title/body focus sessions through one-entry `Change note text` commits on blur.
+- Kept raw live `renameNote(...)` and `updateNoteBody(...)` typing history-free per keystroke.
+- Preserved Escape restore behavior without creating canonical entries.
+- Focused Notepad text helper, UI, productivity readiness, raw-store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1675 -->
+
+### [1675] - 2026-04-22 06:55 - `Edit-History-Gen2-2 / Phase 1.1 - Notepad Discrete Note Commit Entries Repair`
+
+<!-- ENTRY 1675 -->
+HUMAN SUMMARY: `Notepad create/delete history restore now merges target order with later unrelated raw-created notes instead of dropping them.`
+
+- Repaired Notepad create/delete undo/redo restoration so notes created after a canonical entry remain in `noteOrder` and `notesById`.
+- Preserved the Phase 1.1 discrete create/delete/pin/color history wrappers while narrowing order restoration.
+- Focused Notepad edit-history, productivity readiness, raw-store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1674 -->
+
+### [1674] - 2026-04-22 06:53 - `Edit-History-Gen2-2 / Phase 1.1 - Notepad Discrete Note Commit Entries`
+
+<!-- ENTRY 1674 -->
+HUMAN SUMMARY: `Notepad create, delete, pin, and color actions now create canonical discrete history entries while text editing remains deferred.`
+
+- Added canonical history wrappers for Notepad create, delete, pin, and color commits.
+- Routed NotepadSurface create/delete/pin actions through the wrappers while keeping title/body text inputs raw and history-free.
+- Preserved later title/body edits during targeted pin/color metadata restore.
+- Focused Notepad edit-history, productivity readiness, raw-store verification, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1673 -->
+
+### [1673] - 2026-04-22 06:45 - `Edit-History-Gen2-2 / Phase 1 - Ownership And Coalescing Proof`
+
+<!-- ENTRY 1673 -->
+HUMAN SUMMARY: `Productivity content ownership and raw no-entry behavior are now proven before Notepad and Dashboard runtime undo wrappers are introduced.`
+
+- Added focused readiness proof for raw Notepad create, rename, body, delete, pin, and color mutations.
+- Added focused readiness proof for raw Dashboard lane, layout, frame, and attachment cleanup mutations.
+- Proved those raw operations create no canonical history entries and preserve redo before wrappers exist.
+- Confirmed persistence payloads stay scoped to Notepad notes/order and Dashboard lanes/layouts, with production build verification passing with known Vite warnings.
+
+<!-- ENTRY 1672 -->
+
+### [1672] - 2026-04-22 06:37 - `Edit-History-Gen2-1 / Phase 2.6 - Display Projection Workspace Preference Routing`
+
+<!-- ENTRY 1672 -->
+HUMAN SUMMARY: `Display projection and workspace preference ownership are now proven without adding runtime undo entries for mixed global/local state.`
+
+- Added focused scene presentation readiness proof that raw global display preference writes mutate `view` while creating no canonical entries and preserving redo.
+- Proved projection mode and axis overlay ownership split between global view settings and viewport-local workspace state.
+- Kept environment-look ownership separate and left runtime display/projection undo entries deferred.
+- Production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1671 -->
+
+### [1671] - 2026-04-22 06:27 - `Edit-History-Gen2-1 / Phase 2.5e - Material Range ParaSlider Commit Entries`
+
+<!-- ENTRY 1671 -->
+HUMAN SUMMARY: `Material Metalness and Roughness now use ParaSlider completion boundaries to create one canonical material history entry per finished interaction.`
+
+- Migrated Material Metalness and Roughness controls from native range inputs to `ParaSlider`.
+- Kept raw live material range updates history-free on `onChange`.
+- Routed completed `onChangeEnd` interactions through canonical material-only `Change material` entries.
+- Focused ViewToolbar material range/material verification, material and environment history regressions, and production build verification passed with known Vite warnings.
+
+<!-- ENTRY 1670 -->
+
+### [1670] - 2026-04-22 06:17 - `Edit-History-Gen2-1 / Phase 2.5d - Material Native Range Commit Boundary Proof`
+
+<!-- ENTRY 1670 -->
+HUMAN SUMMARY: `Native material range inputs were proven history-free and left deferred because no reliable completed-change boundary exists there.`
+
+- Added focused ViewToolbar range coverage for raw Material Metalness and Roughness native range updates.
+- Proved those native range updates mutate `view.materials`, create no canonical entries, preserve redo, and stay material-only.
+- Confirmed native range changes do not alter `EnvironmentLookSnapshot`.
+- Material and environment history regressions plus production build verification passed; runtime native range undo remained deferred.
+
+<!-- ENTRY 1669 -->
+
+### [1669] - 2026-04-22 06:08 - `Edit-History-Gen2-1 / Phase 2.5c - Native Presentation Color Boundary Proof`
+
+<!-- ENTRY 1669 -->
+HUMAN SUMMARY: `Native material and selected-light color inputs were proven history-free until a reliable completed-color boundary exists.`
+
+- Added focused ViewToolbar color coverage for Material Base Color, Material Emissive Color, and selected-light Color inputs.
+- Proved raw native color inputs update only their owning state while creating no canonical entries and preserving redo.
+- Proved owner separation between material-only snapshots and environment-look snapshots.
+- Material and environment history regressions plus production build verification passed; runtime native color undo remained deferred.
+
+<!-- ENTRY 1668 -->
+
+### [1668] - 2026-04-22 06:01 - `Edit-History-Gen2-1 / Phase 2.5b - Material Typed Numeric Commit Entries`
+
+<!-- ENTRY 1668 -->
+HUMAN SUMMARY: `Material Emissive Intensity and Opacity edits now commit one canonical material history entry per focus session.`
+
+- Routed Material Emissive Intensity and Opacity completed edits through canonical `Change material` entries.
+- Kept raw finite live numeric updates history-free and guarded invalid numeric input at the ViewToolbar boundary.
+- Preserved Escape restore behavior without invalidating redo.
+- Focused ViewToolbar material numeric/material verification, material history regression, and production build verification passed while Metalness/Roughness stayed deferred.
+
+<!-- ENTRY 1667 -->
+
+### [1667] - 2026-04-22 05:50 - `Edit-History-Gen2-1 / Phase 2.5a - Material Name Focus Session Commit Entries`
+
+<!-- ENTRY 1667 -->
+HUMAN SUMMARY: `Material preset Name edits now collapse raw typing into one canonical material history entry on focus-session commit.`
+
+- Routed Material preset Name completed edits through canonical `Change material` entries.
+- Kept raw live typing history-free.
+- Preserved Escape restore behavior without invalidating redo.
+- Focused ViewToolbar material-name/material verification, material history regression, and production build verification passed.
+
+<!-- ENTRY 1666 -->
+
+### [1666] - 2026-04-22 05:38 - `Edit-History-Gen2-1 / Phase 2.4 - Ground Setting Commit Entries`
+
+<!-- ENTRY 1666 -->
+HUMAN SUMMARY: `Ground enabled, material, and height controls now create canonical ground history entries that restore only view.ground.`
+
+- Added a store-adjacent ground edit-history helper that snapshots, compares, and restores only `view.ground`.
+- Added canonical `Change ground setting` entries for Ground enabled/off, built-in Ground material preset selection, and Ground Height.
+- Routed ViewToolbar Ground enabled/off, Material, and Height completion through history-aware wrappers while keeping live Ground Height `onChange` raw for preview.
+- Preserved raw `useUiPrefsStore.setView(...)` / `setViewKey(...)` behavior as history-free and kept full `ViewSettings`, environment look, material snapshots, display/workspace preference state, runtime/cache/provider, Browser/project content, and command transcript/recall out of the restore payload.
+
+<!-- ENTRY 1665 -->
+
+### [1665] - 2026-04-22 05:27 - `Edit-History-Gen2-1 / Phase 2.3 - Ground Settings Ownership And Commit Boundary Proof`
+
+<!-- ENTRY 1665 -->
+HUMAN SUMMARY: `Ground settings are now proven as durable presentation state under view settings persistence, while raw ground changes remain outside canonical undo until wrappers are added.`
+
+- Added focused readiness coverage proving `view.ground` persists through `viewSettingsPersistence` rather than `environmentPersistence`.
+- Proved raw ground updates through `useUiPrefsStore.setView({ ground: ... })` create no canonical entries and preserve existing redo before wrappers exist.
+- Proved accepted environment-look undo/redo and material-only undo/redo preserve later ground mutations instead of restoring ground state.
+- Proved built-in ground material ids are independent from editable material presets, keeping future ground entries separate from material preset editing.
+- Kept runtime ground history helpers, full `ViewSettings` snapshots, grid/projection/wireframe/display, material editing, viewer runtime/cache/provider, camera/navigation, history UI, persistence architecture, collaboration/checkpoints/branching, and Catalog/Pubwheel work out of scope.
+
+<!-- ENTRY 1664 -->
+
+### [1664] - 2026-04-22 05:20 - `Edit-History-Gen2-1 / Phase 2.2 - Material Preset And Per-Part Commit Entries`
+
+<!-- ENTRY 1664 -->
+HUMAN SUMMARY: `Safe discrete material preset and per-part material actions now create canonical material history entries, with undo and redo restoring only view.materials snapshots.`
+
+- Added a store-adjacent material edit-history helper that snapshots, compares, and restores only `view.materials`.
+- Added canonical `Change material` entries for preset selection, preset add, preset delete, transparent toggle, per-part mode toggle, per-part assignment, and per-part clear.
+- Preserved generated material ids across redo and restored delete fallback selection plus per-part cleanup deterministically.
+- Kept raw `useUiPrefsStore` material setters history-free and left material name text, native color inputs, numeric range inputs, full `ViewSettings` snapshots, ground/display/projection/workspace preference work, and history UI/persistence/collaboration/checkpoint/branching work out of scope.
+
+<!-- ENTRY 1663 -->
+
+### [1663] - 2026-04-22 05:10 - `Edit-History-Gen2-1 / Phase 2.1 - Material Ownership And Commit Boundary Proof`
+
+<!-- ENTRY 1663 -->
+HUMAN SUMMARY: `Material preset and per-part material state now has focused proof coverage for ownership, raw no-entry behavior, redo preservation, and future commit-boundary splits before runtime material undo entries are introduced.`
+
+- Added proof that material state lives under `view.materials` / `viewSettingsPersistence` and remains separate from the accepted `EnvironmentLookSnapshot` restore boundary.
+- Proved raw material preset select, add, delete, update, per-part toggle, assignment, and clear actions do not create canonical edit-history entries or invalidate existing redo before wrappers exist.
+- Proved generated material ids, selected preset fallback on delete, one-preset delete no-op, missing preset assignment no-op, missing assignment clear no-op, and delete cleanup of per-part assignments.
+- Kept runtime material undo wrappers, custom color picker work, broad material editor input architecture, full `ViewSettings` snapshots, ground/display/projection/workspace preference work, and history UI/persistence/collaboration/checkpoint/branching work out of scope.
+
+<!-- ENTRY 1662 -->
+
+### [1662] - 2026-04-22 03:51 - `Edit-History-6 / Phase 1.1 - Current Derived Build Reader Proof`
+
+<!-- ENTRY 1662 -->
+HUMAN SUMMARY: `Existing derived build/viewport readers are now covered by focused proof that they recompute from current authored state after canonical undo/redo without storing their own undo entries.`
+
+- Added focused derived-sync proof coverage for the current Build Path-adjacent reader seams.
+- Proved canonical authored undo/redo changes are reflected by `buildViewportResultSelectorOptions(...)` / `selectViewportResultState(...)` reads without creating duplicate edit-history entries.
+- Proved build runtime/progress state and current transform scrub-like navigation remain outside canonical history and do not invalidate redo.
+- Kept `Build Path` UI/store/playhead creation, history panel UI, persistence, runtime/cache/provider history, scene/material/productivity/workspace/sampler undo, and unrelated Catalog/Pubwheel work out of scope.
+
+<!-- ENTRY 1661 -->
+
+### [1661] - 2026-04-22 02:54 - `Edit-History-4 / Phase 2 - Durable Create And Delete Entries`
+
+<!-- ENTRY 1661 -->
+HUMAN SUMMARY: `Authored Browser/project assembly and component create/delete actions now create canonical history entries, with undo and redo restoring generated ids, labels, parent order, and deleted authored subtrees through the app-store project-content path.`
+
+#### Scope / Constraints Honored
+- Limited the implementation to durable authored Browser/project create/delete history for `Edit-History-CLG-19`.
+- Preserved raw `createProjectAssembly()`, `createProjectComponent(parentAssemblyId)`, and `deleteProjectContentOwner(target)` validation and return behavior as history-free base methods.
+- Routed Browser controller create/delete callbacks through history-aware wrapper methods.
+- Left accepted Import/Catalog commits, source browsing, provider/cache/preview ownership, imported reference add/remove/explode history, unaccepted import sessions, staged preview organization history, durable expand/collapse layout, selection-only history, history UI, persistence, collaboration, new Browser command language, Viewer Transform, and Build Path out of scope.
+
+#### Summary of Implementation
+- Added `createProjectAssemblyWithHistory(...)`, `createProjectComponentWithHistory(...)`, and `deleteProjectContentOwnerWithHistory(...)` to the app store.
+- Committed `Create Browser item` entries after successful authored assembly/component creation, with redo restoring the same generated id and label.
+- Committed `Delete Browser item` entries after successful authored assembly/component deletion, with undo restoring child order, component child objects, and nested assembly/component/object subtree payloads.
+- Restored only narrow project organization snapshots, leaving Browser local selection, workspace selection, active surface, rename prompts, confirmation flow, command transcript/recall, and runtime/provider/cache/preview state outside history.
+- Added focused no-entry coverage for raw base create calls, missing parents, missing owners, runtime-root assemblies, and non-authored components.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/store/browserOrganizationEditHistoryStore.test.ts`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-4 - Browser Project Content And Accepted Import Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Browser-created authored assemblies/components and Browser-deleted authored assemblies/components now participate in canonical undo/redo.
+- Direct raw store create/delete calls remain available without automatically creating canonical history entries.
+
+#### Verification
+- `npm.cmd test -- --run src/app/store/browserOrganizationEditHistoryStore.test.ts` passed with 13 tests.
+- `npm.cmd run build` passed with the known Vite externalization and chunk-size warnings.
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx` was run because Browser controller create/delete wiring changed; it still has 2 unrelated staged-import expectation failures around `Multiple objects` and `Inspection failed`, while 109 of 111 tests passed.
+
+<!-- ENTRY 1660 -->
+
+### [1660] - 2026-04-22 02:45 - `Edit-History-4 / Phase 1.2 - Browser Drop Organization Entries`
+
+<!-- ENTRY 1660 -->
+HUMAN SUMMARY: `Completed Browser/project reorder and reparent drops now create one canonical Move Browser item entry per completed user drop, with undo and redo restoring authored organization state through the app-store project-content path.`
+
+#### Scope / Constraints Honored
+- Limited the implementation to completed Browser/project reorder and reparent drop history for `Edit-History-CLG-18`.
+- Preserved low-level move validation, grouped move rollback, and return behavior by committing history after the completed controller drop boundary.
+- Coalesced multi-step completed drops into one canonical entry instead of one entry per internal move call.
+- Left rename, create/delete history, accepted Import/Catalog commits, source browsing, provider/cache/preview state, durable expand/collapse layout, selection-only state, console transcript/recall, history UI, persistence, Viewer Transform, and Build Path out of scope.
+
+#### Summary of Implementation
+- Added app-store capture and commit helpers for Browser organization history snapshots.
+- Routed completed Browser content drops through the new move-history helper after successful single or grouped moves.
+- Restored only `projectContent`, `referenceWorkspace.contentOrderByParentKey`, and `runtimeContentPlacementByRowId` during undo/redo.
+- Added focused tests for same-parent reorder, reparent, multi-step completed drop collapse, grouped move restoration, no-entry invalid/no-change moves, and selection/runtime placement exclusion behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/store/browserOrganizationEditHistoryStore.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-4 - Browser Project Content And Accepted Import Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Successful completed Browser/project reorder and reparent drops now participate in canonical undo/redo as one move entry per completed user drop.
+- Low-level `moveProjectContentOwner(...)` and `moveProjectContentOwnersBatch(...)` remain the existing mutation/validation seams; direct callers do not create history unless a completed-drop owner commits the before/after organization snapshot.
+
+#### Verification
+- `npm.cmd test -- --run src/app/store/browserOrganizationEditHistoryStore.test.ts` passed with 8 tests.
+- `npm.cmd run build` passed with the known Vite externalization and chunk-size warnings.
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx` was run because Browser drop controller wiring changed; it still has 2 unrelated staged-import expectation failures around `Multiple objects` and `Inspection failed`, while 109 of 111 tests passed.
+
+<!-- ENTRY 1659 -->
+
+### [1659] - 2026-04-22 02:36 - `Edit-History-4 / Phase 1.1 - Browser Rename Entries`
+
+<!-- ENTRY 1659 -->
+HUMAN SUMMARY: `Browser/project rename actions now create one canonical Rename Browser item entry when an assembly or authored component label actually changes, with undo and redo restoring labels through the app-store project-content path.`
+
+#### Scope / Constraints Honored
+- Limited the implementation to Browser/project rename history for `Edit-History-CLG-17`.
+- Preserved the existing `renameProjectContentOwner(...)` validation and return behavior by adding a history-aware wrapper instead of replacing the base seam.
+- Kept completed Browser drop reorder/reparent history deferred to `Edit-History-4 / Phase 1.2`.
+- Left create/delete, accepted Import/Catalog commits, source browsing, preview/cache/provider/runtime state, selection-only state, expand/collapse, console transcript/recall, history UI, persistence, Viewer Transform, and Build Path out of scope.
+
+#### Summary of Implementation
+- Added `renameProjectContentOwnerWithHistory(...)` to the app store.
+- Routed the Browser panel rename callback through the history-aware rename seam.
+- Committed one `Rename Browser item` entry only when the normalized stored label changed.
+- Added undo/redo label restoration for assemblies and authored components without restoring workspace selection or reference workspace state.
+- Added no-entry proof for unchanged normalized labels, missing owners, unsupported object targets, non-authored components, and blank-label validation failures.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/browserOrganizationEditHistoryStore.test.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-4 - Browser Project Content And Accepted Import Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Browser assembly and authored component renames now participate in canonical undo/redo as one rename entry per changed normalized label.
+- Direct `renameProjectContentOwner(...)` callers keep the previous non-history rename behavior.
+
+#### Verification
+- `npm.cmd test -- --run src/app/store/browserOrganizationEditHistoryStore.test.ts` passed with 3 tests.
+- `npm.cmd run build` passed with the known Vite externalization and chunk-size warnings.
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx` was run because Browser rename wiring changed; it still has 2 unrelated staged-import expectation failures around `Multiple objects` and `Inspection failed`, while 109 of 111 tests passed.
+
+<!-- ENTRY 1658 -->
+
+### [1658] - 2026-04-22 01:32 - `Edit-History-2 / Phase 3.1 - Typed Numeric Parameter Commit Entries`
+
+<!-- ENTRY 1658 -->
+HUMAN SUMMARY: `Generic typed graph node numeric fields now use the accepted graph parameter history seam on Enter or blur, so typed commits can become one canonical Change graph parameter entry without stealing native field undo while focused.`
+
+#### Scope / Constraints Honored
+- Kept the implementation to generic `PortView valueInput` rows rendered through `NumberField`.
+- Reused `commitGraphNodeParameterWithHistory(...)` through the existing `NodeView` graph parameter begin/end callbacks.
+- Left live typed `onChange(...)` updates in place and committed canonical history only on `Enter` or blur.
+- Guarded duplicate blur-after-Enter behavior so one focus session can only end once.
+- Preserved native editable undo by not intercepting `Ctrl+Z` / `Meta+Z` and not changing shared keyboard dispatch.
+- Left feature-stack controls, sketch-plane transforms, console parity, enum/select/string params, runtime/cache/provider state, command transcript, and command recall deferred.
+
+#### Verification
+- `npm.cmd test -- --run src/app/spaghetti/canvas/PortView.test.tsx` passed with 7 tests.
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts` passed with 16 tests.
+- `npm.cmd run build` passed; Vite kept the existing externalized `path` / `crypto` and large chunk warnings.
+- `src/app/spaghetti/canvas/NodeView.test.tsx` was not run because `NodeView` was not changed.
+
+<!-- ENTRY 1656 -->
+
+### [1657] - 2026-04-22 01:22 - `Edit-History-2 / Phase 3 - Parameter Commit Entries`
+
+<!-- ENTRY 1657 -->
+HUMAN SUMMARY: `Generic graph node numeric parameter slider releases now commit one canonical Change graph parameter undo entry while live value changes remain history-free.`
+
+#### Scope / Constraints Honored
+- Kept the slice to generic UI graph node numeric parameter commits through the driver-number / node-param seam.
+- Left live `onChange` and drag updates history-free.
+- Restored undo/redo authored node params through the graph document update path instead of broad `setGraph()` clearing.
+- Preserved selection, hover, camera/view, runtime/cache/provider state, command transcript, command recall, and feature-stack parameter controls as excluded state.
+- Left typed generic `NumberField` confirm/blur commits to a follow-up because that path lacks an accepted commit boundary inside this phase's narrow write scope.
+
+#### Verification
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts` passed with 16 tests.
+- `npm.cmd test -- --run src/app/spaghetti/canvas/PortView.test.tsx` passed with 4 tests.
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.test.tsx` passed with 47 tests.
+- `npm.cmd run build` passed; Vite kept the existing externalized `path` / `crypto` and large chunk warnings.
+
+### [1656] - 2026-04-22 01:05 - `Edit-History-2 / Phase 2 - Node Movement Commit Entries`
+
+<!-- ENTRY 1656 -->
+HUMAN SUMMARY: `Completed graph node movement now commits one canonical Move graph node undo entry on changed rounded-position release while live drag frames remain history-free.`
+
+#### Scope / Constraints Honored
+- Kept the phase limited to completed graph node movement entries.
+- Left live `setManyNodePos` drag frames history-free.
+- Restored undo/redo positions through the graph document-only update path instead of broad `setGraph()` clearing.
+- Kept selection, hover, camera/view, runtime/cache/provider state, command transcript, and command recall outside the entry.
+- Left graph parameter commits, typed numeric commits, console parity, CAD/sketch, Browser/project, transform, Build Path, UI, persistence, async history, and non-graph surfaces deferred.
+
+#### Verification
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts` passed with 13 tests.
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` passed with 2 tests.
+- `npm.cmd run build` passed with existing Vite warnings for browser-externalized `path` / `crypto` from `occt-import-js` and large chunks.
+
+<!-- ENTRY 1655 -->
+
+### [1655] - 2026-04-21 23:09 - `Catalog Cleanup / Phase 4.7 - In-Surface Back Forward Navigation`
+
+<!-- ENTRY 1655 -->
+HUMAN SUMMARY: `Catalog now has local Back and Forward buttons in its content header, restoring Catalog-only navigation and filter states without using browser history or affecting the rest of the workspace.`
+
+#### Scope / Constraints Honored
+- Kept history ownership inside `CatalogShell` and avoided browser `window.history`.
+- Tracked meaningful Catalog route and filter state: content mode, selected item page, selected cards, Platform/Part facets, selection mode, search text, and derived rail filters.
+- Left transient visual chrome out of v1 history, including rail width, facet disclosure, list heights, preview session, and scroll position.
+- Restored missing item-page targets safely to the grid when snapshot items are pruned.
+
+#### Files / Owners Touched
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/theme/surfaces/catalog.css`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1654 -->
+
+### [1654] - 2026-04-21 22:31 - `Catalog Cleanup / Phase 4.6 - PubParts ZIP Drop Acceptance`
+
+<!-- ENTRY 1654 -->
+HUMAN SUMMARY: `The PubParts source-options overlay now accepts a dropped .zip file and sends it through the same local ZIP inspection path as Upload ZIP, so supported archive entries are selected for Import review without reopening the file picker.`
+
+#### Scope / Constraints Honored
+- Reused the existing local PubParts ZIP inspection, Internal Library cache write, Local Library mirror write, candidate mapping, preview reset, and Import-review staging state instead of adding a separate ingestion path.
+- Kept drag-drop scoped to the open PubParts source-options overlay and ignored busy staging or archive-inspection states.
+- Preserved browser-owned file access: ParaHook only reads the dropped file supplied by the user, matching the explicit Upload ZIP grant model.
+
+#### Files / Owners Touched
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/workspace/CatalogSurface.test.tsx`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "falls back to browser-honest ZIP download and upload guidance when ZIP inspection fails"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1652 -->
+
+### [1653] - 2026-04-21 22:23 - `Catalog Cleanup / Phase 4.5 - Unified Rail Facet List Styling`
+
+<!-- ENTRY 1653 -->
+HUMAN SUMMARY: `The Catalog left rail now gives derived facets such as Part Type, System, and Brand the same list treatment as Platform and Part: fixed-height scroll boxes, compact rows, and bottom resize bars.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on left-rail facet list presentation and resize behavior.
+- Preserved existing Platform, Part, and derived facet filtering semantics, disclosure controls, active selections, per-facet All resets, Clear All reset behavior, Catalog Info, Preview Session, source-options, Import/project handoff, builder, and compatibility behavior.
+- Stopped short derived lists from stretching rows vertically inside the fixed-height scroll box.
+
+#### Files / Owners Touched
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1652 -->
+
+### [1652] - 2026-04-21 22:15 - `Catalog Cleanup / Phase 4.4 - Rail Search And Facet Disclosure Polish`
+
+<!-- ENTRY 1652 -->
+HUMAN SUMMARY: `The Catalog left rail search field now matches the dark Catalog styling, and every Platform, Part, and curated facet title has a triangle disclosure control so users can hide or show each facet list without clearing its active filters.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on left-rail visual polish and per-facet disclosure behavior.
+- Preserved existing filter semantics, selected facet values, per-facet All resets, Clear All reset behavior, rail resize, facet-list resize, Catalog Info, Preview Session, source-options, Import/project handoff, builder, and compatibility behavior.
+- Kept disclosure controls keyboard-accessible through native buttons with `aria-expanded` state.
+
+#### Files / Owners Touched
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1651 -->
+
+### [1651] - 2026-04-21 22:07 - `Catalog Cleanup / Phase 4.3 - Store-Style Left Rail Facets`
+
+<!-- ENTRY 1651 -->
+HUMAN SUMMARY: `The Catalog now uses the left rail as the single store-style filtering surface: search, Platform, Part, selection mode, curated Catalog facets, row counts, per-facet All resets, and global Clear All all live in the rail while the Catalog Results header starts directly above the grid.`
+
+#### Scope / Constraints Honored
+- Moved the Catalog search field and non-primary filter facets out of the results header and into the left rail filter body.
+- Kept Platform and Part as the primary rail facets, retired duplicate top Platform Compatibility and Part Groups cloud rendering, and preserved OR-within-facet plus AND-across-facets filtering semantics.
+- Added curated derived rail facets for Source, Availability, Resource Type, Local Status, Preview Status, File Type, Position, and Wheel Fitment where Catalog data exists.
+- Kept Preview Session visible outside the rail filter scrollbar and preserved rail resize, facet-list resize, Catalog Info, source-options, Import/project handoff, builder, and compatibility behavior.
+
+#### Files / Owners Touched
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+### [1650] - 2026-04-21 21:51 - `Catalog Cleanup / Phase 4.2 - Facet Selection Mode Toggle`
+
+<!-- ENTRY 1650 -->
+HUMAN SUMMARY: `The Catalog left rail now has an Add to selection / Switch selection toggle above the Platform facet so users can choose whether facet row clicks accumulate with the current facet selection or replace it with the clicked row.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on left-rail facet selection mode, row-click behavior, styling, and focused tests.
+- Preserved existing Add to selection behavior as the default mode.
+- Preserved All as the explicit per-facet reset and kept Clear All, Platform and Part facet order, facet-list resize, rail resize, Catalog Info, preview session controls, source-options, Import/project handoff, builder, and compatibility behavior unchanged.
+
+#### Summary of Implementation
+- Added a `CatalogFacetSelectionMode` contract with `add` and `switch` modes.
+- Extended `toggleCatalogFacetSelection` so Add to selection keeps the existing multi-select toggle behavior while Switch selection replaces the facet with the clicked row.
+- Added Catalog shell state for the active facet selection mode and passed it into the browse rail.
+- Added the two-button selection mode control above the Platform facet in the left rail.
+- Styled the mode control as a compact segmented rail control and updated focused helper/shell coverage.
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can leave the left rail in Add to selection mode to keep choosing multiple rows within a facet.
+- Users can switch to Switch selection mode so the next facet row click replaces that facet's current selected rows.
+- Clicking the only active concrete row while in Switch selection mode clears that facet to no active row until All or another row is selected.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1649 -->
+
+### [1649] - 2026-04-21 21:36 - `Catalog Cleanup / Phase 4.1 - Expanded Part Facet Taxonomy`
+
+<!-- ENTRY 1649 -->
+HUMAN SUMMARY: `The Catalog left-rail Part facet now has a broader canonical part taxonomy, and PubParts type labels project into useful facet rows such as Tires, Fenders, Rails, Bumpers, Battery Boxes, Controllers, Rim Savers, Guards, Electronics, Tools, and hardware support groups.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on Catalog taxonomy projection, Part facet row availability, and focused coverage.
+- Preserved the existing Platform and Part facet behavior: OR within a facet, AND across facets, and All as the per-facet reset.
+- Preserved source-options, staging, local-library, preview loading, Import/project handoff, builder, compatibility, Catalog Info, and left-rail resize behavior.
+
+#### Summary of Implementation
+- Expanded the canonical Catalog item part-group contract and seed item type surface with additional Part facet buckets.
+- Mapped more PubParts `typeOfPart` labels into ParaHook-owned `systemKey`, `partType`, and `partGroups` classifications.
+- Allowed multi-label PubParts type values to keep one priority-picked primary part type while contributing all recognized part groups.
+- Seeded the Part facet section options from the canonical part-group list so the left rail can show the expanded set of part rows consistently.
+- Updated focused Catalog source/shared/shell coverage for richer classifications and the expanded left-rail Part facet.
+
+#### Files Changed
+- `src/app/catalog/catalogItemContract.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The left-rail Part facet now exposes more part-family rows even before every bucket has visible item counts.
+- PubParts records with recognized labels such as Controller Box, Gasket, Rim Saver, Tire, Fender, Rails, Battery Box, and Axle Block now populate the richer Part facet groups.
+- Items with multiple recognized source type labels can appear under multiple Part facet buckets while retaining a single primary part type for detail reads.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1648 -->
+
+### [1648] - 2026-04-21 21:29 - `Catalog Cleanup / Phase 4 - Left Rail Faceted Filters`
+
+<!-- ENTRY 1648 -->
+HUMAN SUMMARY: `The Catalog left rail now presents its primary narrowing controls as faceted Filters instead of Browse Groups: Platform and Part facets keep OR-within-facet and AND-across-facets behavior, All still resets its facet, and the result-area copy now reads as filtered Catalog results.`
+
+#### Scope / Constraints Honored
+- Kept the change focused on Catalog left-rail naming, facet-selection helper names, visible copy, and focused tests.
+- Preserved existing faceted behavior: OR inside Platform or Part, AND across Platform and Part, and All as a per-facet reset.
+- Preserved left-rail width resize, facet-list height resize, Catalog Info page, preview session controls, source-options, Import/project handoff, source records, staging, local-library, preview loading, builder, and compatibility behavior.
+
+#### Summary of Implementation
+- Renamed the left rail header from Browse Groups to Catalog Filters.
+- Renamed visible facet boxes from Platform Read and Part Read to Platform and Part.
+- Renamed the core selection contract/helpers/tests from browse-section selection language to facet-selection language.
+- Updated result-area copy and card metadata copy from read language to facet/filter language.
+- Updated focused CatalogShell and shared-helper tests for the renamed selectors and visible copy.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users now see the left rail as Catalog Filters with Platform and Part facets.
+- Catalog result copy now describes filtered Catalog results instead of a single active browse read.
+- Filtering behavior remains OR within a facet, AND across facets, and All resets the matching facet.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1647 -->
+
+### [1647] - 2026-04-21 21:13 - `Catalog Cleanup / Phase 3.5 - Browse Groups Clear All Control`
+
+<!-- ENTRY 1647 -->
+HUMAN SUMMARY: `The Catalog left rail now has a top Clear All control for Browse Groups, letting users quickly reset Platform Read and Part Read back to All while clearing related Catalog filter state without touching preview-loaded items.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog browse-rail controls, shell reset behavior, styling, and focused coverage.
+- Preserved Browse Group multi-select semantics, section order, section heights, resize handles, Catalog Info page, preview session controls, source-options, Import/project handoff, and left-rail width resize behavior.
+- Did not change source records, staging, local-library, preview loading, builder, or compatibility behavior.
+
+#### Summary of Implementation
+- Added a compact `Clear All` button to the top of the Catalog left rail Browse Groups header.
+- Wired the action to reset Platform Read and Part Read selections back to `All`.
+- Cleared Catalog local filter state during the same reset while leaving preview-loaded items alone.
+- Updated focused CatalogShell coverage for the Clear All reset behavior.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can reset Browse Group selections from the top of the left rail with one click.
+- Preview Session still uses its separate `Unload All` action and is not cleared by Browse Groups Clear All.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1646 -->
+
+### [1646] - 2026-04-21 21:09 - `Catalog Cleanup / Phase 3.4 - Browse Groups Multi-Select Filtering`
+
+<!-- ENTRY 1646 -->
+HUMAN SUMMARY: `Catalog Browse Groups now behave like toggleable filter rows: Platform Read and Part Read can each hold none, one, or many active rows, active rows use the same muted visual as hover, and each group's All row resets that group back to only All.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog browse-group state, filtering helpers, rail rendering, styling, and focused coverage.
+- Preserved Catalog Info page, preview session, source-options, Import/project handoff, left-rail width resize behavior, and browse-section height resize behavior.
+- Did not change source records, staging, local-library, preview, builder, or compatibility behavior.
+
+#### Summary of Implementation
+- Added a shared `CatalogBrowseSectionSelections` contract for independent Platform Read and Part Read selection sets.
+- Added Browse Group toggle behavior where normal rows add/remove themselves and `All` is exclusive per group.
+- Updated visible-item and filter-group resolution so selected rows are OR'd within a Browse Group and Platform/Part groups combine together.
+- Updated Browse Group row rendering with `aria-pressed` and hover-style active visuals.
+- Added focused shell and shared-helper coverage for multi-select, deselect, and All reset behavior.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can select multiple Platform Read rows such as ADV and XR at the same time.
+- Users can combine Platform Read rows with Part Read rows as browse-group filters.
+- Users can deselect normal rows until no row is active in that group.
+- Clicking `All` in a Browse Group clears that group's normal row selections and keeps only `All` active.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1645 -->
+
+### [1645] - 2026-04-21 21:01 - `Catalog Cleanup / Phase 3.3 - Browse Section Visible Row Height`
+
+<!-- ENTRY 1645 -->
+HUMAN SUMMARY: `The Catalog browse rail now starts the Platform Read and Part Read scroll boxes 50px taller at 170px, making the first six compact section options visible before users adjust the bottom resize handles.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog browse-rail default sizing and focused coverage.
+- Preserved Catalog browse/filter semantics, section order, section counts, resize handles, Catalog Info page, preview session, source-options, Import/project handoff, and left-rail width resize behavior.
+- Did not change source records, staging, local-library, preview, builder, or compatibility behavior.
+
+#### Summary of Implementation
+- Increased the default browse-section scroll-box height from 120px to 170px.
+- Updated the CSS fallback height to match the component default.
+- Updated focused CatalogShell coverage for the taller default height and resize values.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Platform Read and Part Read section boxes show more rows before scrolling while remaining user-resizeable from the bottom edge.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1644 -->
+
+### [1644] - 2026-04-21 20:54 - `Catalog Cleanup / Phase 3.2 - Browse Section Order And Height Correction`
+
+<!-- ENTRY 1644 -->
+HUMAN SUMMARY: `The Catalog browse rail now places Platform Read above Part Read and starts both resizeable section scroll boxes 20 percent taller, giving the platform-first read more room before users adjust the bottom handles.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog browse-rail ordering, default sizing, and focused coverage.
+- Preserved Catalog browse/filter semantics, section counts, resize handles, Catalog Info page, preview session, source-options, Import/project handoff, and left-rail width resize behavior.
+- Did not change source records, staging, local-library, preview, builder, or compatibility behavior.
+
+#### Summary of Implementation
+- Reordered the browse-section boxes so Platform Read renders before Part Read.
+- Increased the default browse-section scroll-box height from 100px to 120px.
+- Updated focused CatalogShell coverage for the new order and default resize values.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Platform Read is the first browse-section box in the Catalog left rail.
+- Part Read and Platform Read scroll boxes begin 20 percent taller while remaining user-resizeable.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1643 -->
+
+### [1643] - 2026-04-21 20:51 - `Catalog Cleanup / Phase 3.1 - Browse Section Height Resize Handles`
+
+<!-- ENTRY 1643 -->
+HUMAN SUMMARY: `Catalog's Part Read and Platform Read scroll boxes can now be resized vertically from their bottom edge, with per-box drag and keyboard controls so users can tune how much of each browse list is visible.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog browse-rail UI behavior and styling.
+- Preserved Catalog browse/filter semantics, section counts, Catalog Info page, preview session, source-options, Import/project handoff, and left-rail width resize behavior.
+- Did not change source records, staging, local-library, preview, builder, or compatibility behavior.
+
+#### Summary of Implementation
+- Added independent height state for Part Read and Platform Read scroll boxes.
+- Added bottom-edge resize handles with mouse drag support.
+- Added keyboard support with ArrowUp, ArrowDown, Home, and End on the focused handle.
+- Updated focused CatalogShell coverage for drag and keyboard height resizing.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can drag the bottom edge of each browse-section scroll box to adjust its visible height.
+- Users can focus the bottom handle and resize via keyboard.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1642 -->
+
+### [1642] - 2026-04-21 20:47 - `Catalog Cleanup / Phase 3 - Part And Platform Browse Section Boxes`
+
+<!-- ENTRY 1642 -->
+HUMAN SUMMARY: `The Catalog left rail now shows Part Read and Platform Read as two always-visible scroll boxes instead of a Part/Platform toggle, with each option list capped around 100px so long section lists stay compact while still exposing both browse modes.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog shell browse-rail layout and content-mode routing.
+- Preserved existing Catalog filter semantics, section counts, Catalog Info page behavior, preview session, source-options, Import/project handoff, and resize behavior.
+- Did not change source records, taxonomy projection, staging, local-library, preview, builder, or compatibility behavior.
+
+#### Summary of Implementation
+- Replaced the left-rail Part/Platform toggle with separate Part Read and Platform Read browse-section boxes.
+- Added zero-padding scroll containers for each section list with a 100px max-height.
+- Clicking a row now sets both the active browse mode and the selected section.
+- Updated focused CatalogShell coverage for the always-visible Part and Platform lists.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Part and Platform section options are visible at the same time in the left rail.
+- Each section group scrolls independently when its rows exceed the compact list height.
+- The old Part/Platform toggle is no longer rendered.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1641 -->
+
+### [1641] - 2026-04-21 20:29 - `Catalog-Gen2-19 / Phase 1 - Catalog Info Page And Rail Utility Cleanup`
+
+<!-- ENTRY 1641 -->
+HUMAN SUMMARY: `Catalog now has one top-right Catalog Info action that opens a combined content page for Staged Sources and Local Downloads, keeping those source utility/status reads out of the left browse rail while preserving the existing staged-source clear and local-library status behavior.`
+
+#### Scope / Constraints Honored
+- Kept the change scoped to Catalog shell UI placement and content-mode routing.
+- Preserved staged-source metadata, clear controls, local-library mirror status reads, source-options, Import/project handoff, preview behavior, builder behavior, and compatibility behavior.
+- Used one combined Catalog Info page instead of adding separate title-bar buttons for Staged Sources and Local Downloads.
+
+#### Summary of Implementation
+- Added `CatalogShellInfoPage` for the combined Staged Sources and Local Downloads content read.
+- Added `catalog-info` content-mode routing and a top-right `Catalog Info` action in the Catalog content header.
+- Removed Staged Sources and Local Downloads from `CatalogShellBrowseRail`, leaving the rail focused on browse navigation plus Preview Session.
+- Added focused CatalogShell coverage proving source utility sections are out of the rail and visible from Catalog Info.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShellInfoPage.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-19 - Catalog Info Page And Rail Utility Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Doc-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- A `Catalog Info` button appears at the top right of the Catalog content header.
+- The Catalog Info page shows Staged Sources and Local Downloads together.
+- The left browse rail no longer renders Staged Sources or Local Downloads.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1640 -->
+
+### [1640] - 2026-04-21 20:22 - `Catalog Cleanup / Phase 2.1 - Browse Rail Density Correction`
+
+<!-- ENTRY 1640 -->
+HUMAN SUMMARY: `The compact Catalog browse rail controls were nudged back up by 25 percent so the left rail remains dense without making the section rows, mode pills, headers, and helper copy feel too small.`
+
+#### Scope / Constraints Honored
+- Kept the correction scoped to `.CatalogShellFilters`.
+- Preserved Catalog behavior, filter semantics, resize divider behavior, source-options, preview, and Import/project handoff.
+
+#### Summary of Implementation
+- Increased the compact rail header, eyebrow, section-row, count, Part/Platform pill, and rail helper-copy font sizes by 25 percent from the prior compact pass.
+- Increased compact section-row and mode-pill dimensions to match the corrected visual scale.
+
+#### Files Changed
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The Catalog left rail controls are larger than the prior compact pass while staying smaller and denser than the original rail sizing.
+
+#### Verification
+- `npm.cmd run build`
+
+<!-- ENTRY 1639 -->
+
+### [1639] - 2026-04-21 20:20 - `Catalog Cleanup / Phase 2 - Compact Browse Rail Rows`
+
+<!-- ENTRY 1639 -->
+HUMAN SUMMARY: `Catalog's left browse rail controls are now visually denser: section rows, filter buttons, mode pills, headers, and rail-only helper copy use compact sizing so more Catalog groups fit in the rail without changing content-area controls.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup scoped to `.CatalogShellFilters` so Catalog cards, item-page actions, source-options controls, and content-area controls keep their existing scale.
+- Preserved the resizable browse-rail divider and existing Catalog behavior.
+- Avoided data, filter semantics, source-options, Import/project, preview, and PubParts handoff changes.
+
+#### Summary of Implementation
+- Reduced the left rail padding and vertical gaps.
+- Added rail-scoped compact sizing for section filter rows such as All, Footpads, Shoes, FootHolds, and related rail entries.
+- Added rail-scoped compact sizing for the Part/Platform mode pills and supporting rail copy.
+
+#### Files Changed
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The Catalog left rail now shows smaller text and roughly half-height section/filter rows compared with the prior rail scale.
+
+#### Verification
+- `npm.cmd run build`
+
+<!-- ENTRY 1638 -->
+
+### [1638] - 2026-04-21 20:17 - `Catalog Cleanup / Phase 1 - Resizable Browse Rail Edge`
+
+<!-- ENTRY 1638 -->
+HUMAN SUMMARY: `Catalog's left browse rail can now be resized from the edge between the rail and content area, with the outer shell padding/gap retired so the divider reads as the real boundary.`
+
+#### Scope / Constraints Honored
+- Kept the change inside Catalog shell layout and interaction code.
+- Preserved existing Catalog source records, filters, preview loading, Import/project handoff, PubParts source-options behavior, and mobile single-column layout.
+- Added an accessible separator handle with keyboard support instead of making resize behavior mouse-only.
+
+#### Summary of Implementation
+- Added Catalog shell browse-rail width state, drag lifecycle handling, clamped width bounds, and Arrow/Home/End keyboard resizing.
+- Replaced the two-column padded Catalog shell grid with a rail, resize handle, and content grid so the divider sits directly between the left rail and content area.
+- Hid the resize handle in the narrow single-column layout where the browse rail and content stack.
+- Added focused CatalogShell coverage for drag resize and keyboard resize behavior.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can resize the Catalog left browse rail by dragging the vertical edge between the browse rail and content area.
+- Users can focus the divider and resize with ArrowLeft, ArrowRight, Home, and End.
+- The Catalog shell no longer adds its previous outer padding/gap around the browse/content split.
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1637 -->
+
+### [1637] - 2026-04-21 19:58 - `Catalog-Gen2-18 / Phase 2-3 - Live Projection And Source-Update Preservation Closeout`
+
+<!-- ENTRY 1637 -->
+HUMAN SUMMARY: `Live PubParts records now keep ParaHook-owned projection and stable source identity: upstream labels map through Catalog's canonical taxonomy rules, and PubParts additions, reorderings, or title renames no longer shift item IDs used by source-options, Internal Library, Local Library, and Import/project handoff state.`
+
+#### Scope / Constraints Honored
+- Kept PubParts as upstream metadata truth while keeping ParaHook-owned platform, system, part type, part group, search, and filter projection in `catalogSource.ts`.
+- Preserved raw upstream type/platform labels as metadata without letting unknown PubParts labels create new ParaHook-owned systems, groups, or platform families.
+- Changed item identity only for external PubParts records; repo, planned, imports, source-options byte handling, Import review, project acceptance, builder behavior, compatibility verdicts, and ZIP archive logic stayed unchanged.
+- Did not auto-delete or prune staged source metadata, Internal Library cache records, Local Library mirror records, accepted imports, or project assets when a live PubParts source item disappears or changes upstream metadata.
+
+#### Summary of Implementation
+- Updated `src/app/catalog/catalogSource.ts` so external PubParts item IDs derive from stable source identity: external/source URL first, linked archive URL second, then a title/type/platform/resource fallback.
+- Updated `src/app/catalog/pubPartsCachedSource.ts` so duplicate records inside the same cached source set receive scoped identity metadata only when needed, keeping React keys unique without making normal PubParts IDs order-dependent.
+- Added `catalogSource` coverage proving a Zinc-added item inserted before an existing source and an upstream title rename preserve the unchanged source item's Catalog ID.
+- Added projection coverage proving unknown upstream PubParts labels remain raw metadata plus canonical `Other`, with no invented ParaHook system/type/group.
+- Updated CatalogSurface expectations to the new stable PubParts ID shape used by source-options and Internal Library cache reopening.
+
+#### Files Changed
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/pubPartsCachedSource.ts`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-18 - PubParts Live Source Sync And Normalized Projection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/pubPartsLiveSource.test.ts`
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "PubParts part records|live metadata|source options"`
+
+<!-- ENTRY 1636 -->
+
+### [1636] - 2026-04-21 19:45 - `Catalog-Gen2-18 / Phase 1 - Runtime PubParts Metadata Refresh`
+
+<!-- ENTRY 1636 -->
+HUMAN SUMMARY: `Catalog now asks the live PubParts \`parts.json\` metadata endpoint for current part records after rendering the baked cache, tries a same-origin Vite dev proxy route when direct browser fetch is blocked, then swaps in live normalized PubParts part cards when the read succeeds and keeps baked records when it fails.`
+
+#### Scope / Constraints Honored
+- Kept Phase 1 metadata-only: live reads can update PubParts part cards, source pages, preview image URLs, archive links, platform labels, type labels, and freshness metadata.
+- Added only a development same-origin metadata proxy route for browser-readable JSON; did not add a production server, secrets, scraping, or archive-byte proxy.
+- Kept baked generated PubParts parts/resources as immediate render and fallback data.
+- Reused the existing PubParts normalizer and Catalog external projection instead of adding a second live-only mapper.
+- Did not fetch Dropbox ZIP bytes, inspect archives, write OPFS/Internal Library bytes, replace Upload ZIP, stage Import review files, accept project assets, change source-options behavior, widen resources, add compatibility/build behavior, or migrate stable item identity.
+
+#### Summary of Implementation
+- Added `src/app/catalog/pubPartsLiveSource.ts` with an injectable live `parts.json` reader, direct PubParts request plus same-origin proxy request fallback, non-array/non-OK/rejected fetch fallback, malformed-record tolerance, deterministic ordering/dedupe, live source-set metadata, and test reset/disable seams.
+- Added `src/app/catalog/pubPartsLiveSource.test.ts` covering successful live normalization, root-relative image normalization, fallback states, same-origin proxy fallback, malformed payload tolerance, and deterministic ordering/dedupe.
+- Added a Vite dev proxy from `/pubparts-source/*` to `https://pubparts.xyz/*` so local browser refreshes can read live PubParts metadata even while the upstream JSON response lacks cross-origin headers.
+- Updated `src/app/workspace/CatalogSurface.tsx` to render baked PubParts part/resource records first, request live part metadata after mount, replace only the part source lane on success, and preserve baked data on fallback.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` to keep live metadata disabled by default in legacy surface tests, then prove live upstream-only part appearance, baked resource preservation, baked fallback preservation, and no automatic Import/project handoff.
+
+#### Files Changed
+- `src/app/catalog/pubPartsLiveSource.ts`
+- `src/app/catalog/pubPartsLiveSource.test.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `vite.config.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-18 - PubParts Live Source Sync And Normalized Projection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsLiveSource.test.ts src/app/catalog/catalogSource.test.ts`
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://127.0.0.1:5173/pubparts-source/parts.json`
+
+<!-- ENTRY 1635 -->
+
+### [1635] - 2026-04-21 17:29 - `Catalog-Gen2-17 / Phase 3 - Trusted Provider Boundary`
+
+<!-- ENTRY 1635 -->
+HUMAN SUMMARY: `Catalog now has a trusted source-byte provider boundary that is unavailable by default, test-injectable, and able to map fake provider results into the Phase 1 provider-materialized contract so successful trusted bytes reuse the same Internal Library and source-options ZIP path as browser-fetched bytes.`
+
+#### Scope / Constraints Honored
+- Kept Phase 3 as a contract/app seam with a side-effect-free default unavailable provider.
+- Used fake/injected provider tests instead of live network, server, native helper, OAuth, service worker, PubParts API, or Dropbox API behavior.
+- Routed successful fake provider ZIP bytes through the existing source-options archive blob, ZIP entry listing, preview, selected-entry extraction, Import review staging, archive manifest cache, and Internal Library archive cache path.
+- Preserved browser fetch and Upload ZIP fallback when the provider is unavailable, blocked, or failed.
+- Did not add browser secrets, scraping, CORS bypass, provider-specific UI, provider-specific importer, object URL/File fields, Import/project acceptance changes, SQLite/IndexedDB/BLOB storage, STEP fidelity, builder behavior, or compatibility behavior.
+
+#### Summary of Implementation
+- Added `pubPartsTrustedSourceProvider.ts` with provider capability, request, result, default unavailable adapter, resettable test injection seam, capability read helper, provider-result-to-Phase-1 decision mapping, and same-path assertion helper.
+- Added focused provider-boundary tests for unavailable default behavior, configured capability reads, blocked/source-blocked/failed fallback decisions, provider-materialized trusted-provider archive input, and deterministic injection/reset.
+- Integrated the provider seam into Catalog source options after Internal Library cache miss without replacing the Phase 2 browser fetch path.
+- Added fake-provider Catalog tests proving provider ZIP bytes skip browser fetch, populate normal ZIP entry rows, write Internal Library cache bytes, preview/stage through the existing path, and avoid auto project commits.
+- Added blocked-provider Catalog proof that browser fetch and Upload ZIP fallback remain available.
+
+#### Files Changed
+- `src/app/catalog/pubPartsTrustedSourceProvider.ts`
+- `src/app/catalog/pubPartsTrustedSourceProvider.test.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-17 - Direct Source Byte Materialization And Library Metadata Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsSourceMaterialization.test.ts` passed: 8 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsTrustedSourceProvider.test.ts` passed: 7 passed.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "trusted provider"` passed: 2 passed, 50 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed: 52 passed, with existing nonblocking OPFS-unavailable stderr in fallback/cache tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1634 -->
+
+### [1634] - 2026-04-21 17:18 - `Catalog-Gen2-17 / Phase 2 - Browser Fetch Attempt And Fallback Status`
+
+<!-- ENTRY 1634 -->
+HUMAN SUMMARY: `Catalog source-options now represent the existing Add To Project-triggered PubParts ZIP browser attempt through the Phase 1 materialization contract, so readable browser ZIP bytes and Internal Library cache hits assert the same archive list/preview/select/stage path while blocked browser fetches keep Download ZIP and Upload ZIP fallback truthful.`
+
+#### Scope / Constraints Honored
+- Kept `Add To Project` as the explicit user action; no PubParts archive fetch occurs on Catalog load or item-page open.
+- Reused the existing `inspectPubPartsSharedLinkArchive` browser fetch/list path instead of adding a second fetch implementation.
+- Preserved the existing OPFS/Internal Library archive cache write, source-options `archiveBlob`, ZIP list, preview, selection, extraction, and Import review staging path.
+- Kept metadata-only manifest cache rows non-materialized and unavailable for byte-backed preview/extraction until real archive bytes exist.
+- Kept blocked/failed browser fetch copy browser-honest and left Download ZIP plus `Upload ZIP` available.
+- Did not add provider/proxy/native/API materialization, SQLite/IndexedDB/BLOB storage, Import/project acceptance changes, STEP fidelity, builder behavior, or compatibility behavior.
+
+#### Summary of Implementation
+- Added local Catalog source-options materialization decision wiring using the Phase 1 `pubPartsSourceMaterialization` helpers.
+- Represented the source-options browser attempt as `browser-fetch-readable`, then successful readable ZIP bytes as `materialized` with `byteOrigin: 'browser-fetch'`.
+- Asserted the same-path invariant before browser-fetched archive bytes continue through the existing ZIP list/preview/select/stage path.
+- Represented same-source Internal Library archive cache hits as `internal-library-cache-hit` materialized bytes with no browser fetch.
+- Mapped blocked/failed browser fetch attempts to the Phase 1 fallback decision while preserving source/download and local ZIP upload controls.
+- Tightened Catalog source-options tests for direct browser attempt status, materialized browser-byte status, Internal Library cache write/read proof, cache-hit no-fetch reuse, and blocked fallback status.
+
+#### Files Changed
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-17 - Direct Source Byte Materialization And Library Metadata Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsSourceMaterialization.test.ts` passed: 8 passed.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "ZIP-inspected PubParts archive source options|browser-honest ZIP download and upload guidance|Internal Library cache"` passed: 6 passed, 44 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed: 50 passed, with existing nonblocking OPFS-unavailable stderr in fallback/cache tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1633 -->
+
+### [1633] - 2026-04-21 17:08 - `Catalog-Gen2-17 / Phase 1 - Direct Source Byte Materialization Contract`
+
+<!-- ENTRY 1633 -->
+HUMAN SUMMARY: `Catalog now has a pure PubParts source-byte materialization contract that can describe readable, blocked, uploaded, cached, provider, materialized, and failed byte states before any live direct fetch or provider behavior is wired.`
+
+#### Scope / Constraints Honored
+- Kept Phase 1 as a pure contract/helper owner with no runtime source-options wiring.
+- Built identity and freshness reads from existing PubParts staged/source fields instead of UI-owned source identity.
+- Preserved the invariant that successful legal byte origins become archive-byte inputs for the existing archive/list/preview/select/stage path.
+- Did not add network fetch calls, trusted provider implementation, OPFS/Internal Library writes, ZIP listing or extraction changes, object URLs, `File` fields, Import/project/store/viewer/builder/compatibility behavior, or SQLite/IndexedDB/BLOB storage.
+
+#### Summary of Implementation
+- Added `pubPartsSourceMaterialization.ts` with source identity, freshness, byte-origin, status, fallback, and same-path archive-byte input contract helpers.
+- Added decision reads for browser-readable, browser-blocked, uploaded-local-ZIP, Internal Library cache-hit, provider-materialized, provider-unavailable, provider-blocked, upload-required, materialized, and failed states.
+- Added matching identity/freshness helpers so Internal Library cache hits can be represented as materialized only when source identity and freshness match.
+- Added focused contract tests proving blocked browser/provider states route to Upload ZIP fallback and successful uploaded/cache/provider/browser byte origins share the existing archive path.
+
+#### Files Changed
+- `src/app/catalog/pubPartsSourceMaterialization.ts`
+- `src/app/catalog/pubPartsSourceMaterialization.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-17 - Direct Source Byte Materialization And Library Metadata Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsSourceMaterialization.test.ts` passed: 8 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/catalog/pubPartsSource.test.ts` passed: 24 passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1632 -->
+
+### [1632] - 2026-04-21 15:55 - `Catalog-Gen2-15 / Phase 3.1 - Local Library Mirror Readwrite Picker Closeout`
+
+<!-- ENTRY 1632 -->
+HUMAN SUMMARY: `The visible PubParts Local Library chooser now asks the browser for read/write folder access when the user explicitly connects or reconnects it, matching the mirror's actual job of writing manifests, ZIPs, and extracted candidates into the selected folder.`
+
+#### Scope / Constraints Honored
+- Kept the chooser behind the existing Home Page user-clicked connect/reconnect control.
+- Kept selected directory handles in runtime/session state only.
+- Kept localStorage limited to serializable Local Library status metadata.
+- Did not add persistent IndexedDB handle storage, silent disk access, Dropbox bypass behavior, Import/project auto-commit, builder behavior, or compatibility verdicts.
+
+#### Summary of Implementation
+- Updated the Local Library mirror owner env contract so the browser directory picker can receive mode options.
+- Changed `choosePubPartsLocalLibraryMirrorRoot` to call `showDirectoryPicker({ mode: 'readwrite' })`.
+- Added focused owner and Home Page expectations proving the read/write picker option is requested during explicit connect/reconnect flow.
+
+#### Files Changed
+- `src/app/catalog/pubPartsLocalLibraryMirror.ts`
+- `src/app/catalog/pubPartsLocalLibraryMirror.test.ts`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsLocalLibraryMirror.test.ts src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/workspace/HomePageSurface.test.tsx src/app/workspace/homePageStorageTransparency.test.ts src/app/catalog/ui/CatalogShell.test.tsx` passed: 41 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsZipEntryPreview.test.ts src/app/catalog/pubPartsInternalLibrary.test.ts src/app/catalog/pubPartsSharedLinkResolver.test.ts` passed: 32 passed.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed: 50 passed, with expected jsdom OPFS-unavailable warnings.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1631 -->
+
+### [1631] - 2026-04-21 15:49 - `Catalog-Gen2-15 / Phase 3.1 - Local Library Mirror Status And Catalog Wiring`
+
+<!-- ENTRY 1631 -->
+HUMAN SUMMARY: `The optional PubParts Local Library mirror is now user-visible. Home can connect, reconnect, or disable a browser-selected folder for the current session, Catalog shows mirror status, and source-options can mirror uploaded/fetched ZIPs plus selected extracted entries into that visible folder without making OPFS, Import, or project commits depend on the mirror.`
+
+#### Scope / Constraints Honored
+- Kept the selected directory handle in runtime/session state only.
+- Stored only serializable Local Library status, root label, folder path, and timestamp metadata in the PubParts downloads storage bucket.
+- Kept Internal Library as the canonical app-managed source/cache owner when OPFS is available.
+- Made Local Library mirror writes best-effort visible copies from explicit app-owned bytes, including the OPFS-unavailable local ZIP path.
+- Did not add IndexedDB persistent handle storage, silent downloads, Dropbox/CORS/helper/API behavior, object URL storage, viewer runtime ownership, STEP loader behavior, builder behavior, compatibility verdicts, or Import/project auto-commit.
+
+#### Summary of Implementation
+- Added runtime/session root handle helpers and reconnect-needed status reads to `pubPartsLocalLibraryMirror.ts`.
+- Home Page PubParts Library storage controls now call the browser directory picker only from an explicit connect/reconnect click, show unsupported/reconnect/connected/disabled status, and can disable the mirror.
+- Catalog passes Local Library mirror status through `CatalogShell` into the Local Downloads rail and PubParts item-page source rows.
+- Catalog source-options mirror local ZIP upload archive bytes and manifests to the connected visible folder even if OPFS/Internal Library cache writes fail.
+- Catalog mirrors successful browser materialization archive blobs independently of OPFS write success.
+- Selected ZIP entry extraction mirrors extracted/importable candidate bytes from extracted entry blobs even if the optional OPFS extracted-candidate cache callback fails.
+- Mirror write failures update truthful status copy while leaving source-options, Internal Library attempts, selected-entry Import review staging, and project handoff nonblocking.
+
+#### Files Changed
+- `src/app/catalog/pubPartsLocalLibraryMirror.ts`
+- `src/app/catalog/pubPartsLocalLibraryMirror.test.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsLocalLibraryMirror.test.ts src/app/catalog/pubPartsDownloadsStorage.test.ts` passed: 25 passed.
+- `npm.cmd test -- src/app/workspace/HomePageSurface.test.tsx` passed: 11 passed.
+- `npm.cmd test -- src/app/workspace/homePageStorageTransparency.test.ts` passed: 2 passed.
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx` passed: 3 passed.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "Local Library mirror|mirrors local ZIP upload"` passed: 4 passed, 46 skipped.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` browser-compatibility and chunk-size warnings.
+
+<!-- ENTRY 1630 -->
+
+### [1630] - 2026-04-21 15:30 - `Catalog-Gen2-15 / Phase 3 - Optional Local Library Folder Mirror`
+
+<!-- ENTRY 1630 -->
+HUMAN SUMMARY: `Catalog now has a pure PubParts Local Library mirror owner seam for optional visible folder copies. It can choose a user-selected directory, plan deterministic mirror paths, write manifest/archive/extracted candidate files under that handle, and map runtime status into serializable local-library metadata without wiring Catalog or Home UI yet.`
+
+#### Scope / Constraints Honored
+- Added a pure owner module and focused tests only.
+- Did not wire into `CatalogSurface`, `CatalogShell`, Home Page storage UI, Import review, source-options preview, project commits, viewer runtime ownership, Dropbox helper/API behavior, STEP loader behavior, builder behavior, or compatibility verdicts.
+- Kept Internal Library as canonical app-managed source/cache truth; the Local Library mirror is optional best-effort visible copy only.
+- Did not store raw directory handles, `Blob`s, `File`s, object URLs, imported references, or project assets in localStorage.
+
+#### Summary of Implementation
+- Added injected directory-picker/file-handle/writable seams for browser-honest Local Library mirror behavior.
+- Added capability and explicit choose helpers so support can be represented without opening a picker, and the picker runs only from a user action.
+- Added deterministic visible paths under `PubParts/parts/<itemSlug>/...` based on the existing Internal Library manifest shape.
+- Added unsafe path rejection before mirror writes create directories or files.
+- Added manifest, archive, and extracted-candidate mirror write helpers that write only under the supplied selected-folder handle and return nonthrowing mirror/error results.
+- Added serializable storage config mapping into the existing `PubPartsLocalLibraryConfig` shape.
+
+#### Files Changed
+- `src/app/catalog/pubPartsLocalLibraryMirror.ts`
+- `src/app/catalog/pubPartsLocalLibraryMirror.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsLocalLibraryMirror.test.ts` passed: 8 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts -t "Local Library|local source|mirror"` ran but skipped because current test titles do not match that filter.
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts` passed: 14 passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` browser-compatibility and chunk-size warnings.
+
+<!-- ENTRY 1629 -->
+
+### [1629] - 2026-04-21 15:21 - `Catalog-Gen2-16 / Phase 3 - Preview Cleanup And No Auto Import Proof`
+
+<!-- ENTRY 1629 -->
+HUMAN SUMMARY: `The uploaded/cached PubParts ZIP entry 3D preview lane is closed for the source-options-first scope. Focused tests prove preview object URLs are cleaned up, extraction errors surface in source options, and preview remains preview-only without Import review, project commits, Dropbox fetches, OPFS writes, builder behavior, or compatibility verdicts.`
+
+#### Scope / Constraints Honored
+- Kept source-options preview one-entry-at-a-time.
+- Did not add item-page preview, multiple preview sessions, Local Library mirror behavior, Dropbox helper/API behavior, STEP fidelity expansion, builder/load-as-starting-config behavior, compatibility verdicts, or auto-import behavior.
+- Added proof/hardening only around cleanup, extraction-error, and preview-only boundaries.
+- Marked `Catalog-Gen2-16`, `Catalog-Gen2-HLG-21`, `Catalog-Gen2-CLG-38`, and `Catalog-Gen2-CLG-39` complete because focused acceptance criteria passed.
+
+#### Summary of Implementation
+- Added focused `CatalogSurface` tests proving preview object URLs are revoked when previewing another ZIP entry, closing source options, replacing the local ZIP/archive blob, and unmounting `CatalogSurface`.
+- Added a mismatched Internal Library archive-cache test proving selected-entry extraction failures surface as source-options preview errors without creating object URLs or staging Import review.
+- Added a preview-only boundary test proving preview can run without selecting rows, does not enable staging, does not open Import review, does not append staged files, does not commit project references, does not fetch Dropbox, and does not write OPFS.
+- Updated Catalog Gen2 family docs, index, and vision to close the uploaded ZIP entry preview lane under the source-options-first scope.
+
+#### Files Changed
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-16 - Uploaded ZIP Entry 3D Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "preview selection changes"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "source options closes"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "different local ZIP replaces"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "CatalogSurface unmounts"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "selected entry extraction fails"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "without selecting rows"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "uploaded PubParts ZIP without staging Import review"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "does not immediately revoke"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "Internal Library cache hit without fetching Dropbox"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "metadata-only ZIP manifest rows unavailable"` passed: 1 passed, 45 skipped.
+- `npm.cmd test -- src/app/catalog/pubPartsZipEntryPreview.test.ts` passed: 5 passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` browser-compatibility and chunk-size warnings.
+
+<!-- ENTRY 1628 -->
+
+### [1628] - 2026-04-21 15:15 - `Catalog-Gen2-16 / Phase 2.1 - Preview Object URL Ready-State Guard`
+
+<!-- ENTRY 1628 -->
+HUMAN SUMMARY: `The source-options ZIP preview success path now checks the latest dialog state before creating a preview object URL, so a valid ready preview URL is not revoked immediately by a React state-updater timing assumption.`
+
+#### Scope / Constraints Honored
+- Kept the Phase 2 preview surface and Import/project/storage boundaries unchanged.
+- Did not add broader Phase 3 cleanup coverage, Import review staging, project commits, remote fetch behavior, OPFS writes, builder behavior, or compatibility verdicts.
+- Focused only on the successful preview ready-state URL ownership bug found during Manager review.
+
+#### Summary of Implementation
+- Added a current source-options dialog ref synchronized through the dialog state setter.
+- Replaced the `didApplyPreview` state-updater side-effect pattern with a stale-check before object URL creation.
+- Stale extraction completions now return before creating a URL; current completions create the URL, store it as the owned preview URL, and set ready state directly from the current dialog.
+- Added a focused regression proving a successful uploaded ZIP entry preview URL is not revoked immediately while the ready preview remains visible.
+
+#### Files Changed
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-16 - Uploaded ZIP Entry 3D Preview.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "uploaded PubParts ZIP without staging Import review"` passed: 1 passed, 39 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "does not immediately revoke"` passed: 1 passed, 39 skipped.
+- `npm.cmd test -- src/app/catalog/pubPartsZipEntryPreview.test.ts` passed: 5 passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` browser-compatibility and chunk-size warnings.
+
+<!-- ENTRY 1627 -->
+
+### [1627] - 2026-04-21 15:09 - `Catalog-Gen2-16 / Phase 2 - Source Options Uploaded ZIP Entry Preview`
+
+<!-- ENTRY 1627 -->
+HUMAN SUMMARY: `PubParts source-options can now preview one supported uploaded or OPFS-cached ZIP entry as 3D before staging anything into Import review. Preview extracts only the chosen entry from current dialog archive bytes, renders through the existing Catalog preview viewport, and keeps metadata-only rows disabled.`
+
+#### Scope / Constraints Honored
+- Added source-options preview behavior for supported uploaded and Internal Library cache-hit ZIP entries only.
+- Did not auto-select ZIP rows, open Import review, append staged import files, commit project references, fetch blocked Dropbox bytes silently, write OPFS bytes, trigger builder behavior, or create compatibility verdicts.
+- Kept metadata-only localStorage manifest rows unavailable for preview because no archive bytes are present.
+- Reused `CatalogCardPreviewViewport`; no second Three.js viewer was added.
+
+#### Summary of Implementation
+- Added one-entry source-options preview state in `CatalogSurface` with idle, loading, ready, and error states.
+- Wired row-level `Preview 3D` actions through the Phase 1 `pubPartsZipEntryPreview` helper.
+- Extracted only the chosen normalized archive path from the current `archiveBlob`, created a preview object URL, and rendered it through `CatalogCardPreviewViewport`.
+- Added basic object URL revocation on preview switch, local archive replacement, source-options close, and `CatalogSurface` unmount; the fuller cleanup proof remains Phase 3.
+- Added focused `CatalogSurface` coverage for uploaded ZIP preview without Import staging, Internal Library cache-hit preview without Dropbox fetch, and metadata-only cache rows staying unavailable.
+
+#### Files Changed
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/catalog/ui/CatalogCardPreviewViewport.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-16 - Uploaded ZIP Entry 3D Preview.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "does not reopen source options"` passed: 1 passed, 38 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "uploaded PubParts ZIP without staging Import review"` passed: 1 passed, 38 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "Internal Library cache hit without fetching Dropbox"` passed: 1 passed, 38 skipped.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "metadata-only ZIP manifest rows unavailable"` passed: 1 passed, 38 skipped.
+- `npm.cmd test -- src/app/catalog/pubPartsZipEntryPreview.test.ts` passed: 5 passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` browser-compatibility and chunk-size warnings.
+
+<!-- ENTRY 1626 -->
+
+### [1626] - 2026-04-21 14:57 - `Catalog-Gen2-16 / Phase 1 - Preview Candidate Contract And Source Options State`
+
+<!-- ENTRY 1626 -->
+HUMAN SUMMARY: `Catalog now has a pure PubParts ZIP entry preview-state helper that can tell source-options which uploaded or cached archive entries may show a future 3D preview action. It does not extract ZIP entries, create object URLs, render preview UI, stage Import review, or commit project assets.`
+
+#### Scope / Constraints Honored
+- Added a pure helper and focused tests only.
+- Did not touch `CatalogShellSourceOptionsDialog.tsx`, `CatalogSurface.tsx`, source-options rendering, Import review handoff, OPFS writes, ZIP extraction, object URL creation, remote fetches, project commits, builder behavior, or compatibility verdicts.
+- Kept unsupported, unsafe, directory, blocked, direct-file, non-archive, metadata-only, no-byte, stale-byte, missing-path, and unselectable states disabled with reason data.
+- Kept actual preview rendering and object URL lifecycle for later `Catalog-Gen2-16` phases.
+
+#### Summary of Implementation
+- Added `src/app/catalog/pubPartsZipEntryPreview.ts` with `resolvePubPartsZipEntryPreviewActionState`, `resolvePubPartsZipEntryPreviewActionStates`, preview file-type detection, archive byte availability input types, and unavailable reason codes.
+- Supported `step`, `stl`, `obj`, and `glb` staged archive entries become previewable only when source-options has current archive bytes.
+- Metadata-only localStorage/Internal Library manifest reads and stale/no-byte cache states remain disabled even when candidate metadata is otherwise supported.
+- Added deterministic tests for supported preview states, metadata-only/no-byte/stale-byte states, unsupported/unsafe/directory/blocked entries, direct/non-archive candidates, missing archive paths, and unselectable archive entries.
+
+#### Files Changed
+- `src/app/catalog/pubPartsZipEntryPreview.ts`
+- `src/app/catalog/pubPartsZipEntryPreview.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-16 - Uploaded ZIP Entry 3D Preview.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsZipEntryPreview.test.ts` passed: 5 passed.
+- `npm.cmd run build` passed.
+
+<!-- ENTRY 1625 -->
+
+### [1625] - 2026-04-21 14:29 - `Catalog-Gen2-15 / Phase 1 - OPFS Capability And Internal Library Boundary`
+
+<!-- ENTRY 1625 -->
+HUMAN SUMMARY: `Catalog now has a pure PubParts Internal Library owner seam for OPFS capability detection, deterministic Internal Library paths, and source manifest build/sanitize helpers. Nothing is wired into source-options or Import yet, and no OPFS bytes are written in this phase.`
+
+#### Scope / Constraints Honored
+- Added a pure owner module and focused tests only.
+- Did not wire into `CatalogSurface`, `CatalogShellSourceOptionsDialog`, Home Page, Import review, `ViewerHost`, Local Library mirror, or uploaded ZIP preview toggles.
+- Did not write OPFS bytes, extract ZIP entries into persistent storage, create object URLs, stage Import review files, or change current Add To Project/source-options/local ZIP fallback behavior.
+- Kept Dropbox/CORS/helper behavior, STEP loader behavior, `.stp` support expansion, builder behavior, and compatibility verdicts out of scope.
+
+#### Summary of Implementation
+- Added injectable OPFS capability detection with `available`, `unsupported`, `unavailable`, `quota-unavailable`, and `error` states.
+- Added deterministic `Internal Library/PubParts` path helpers for source, archive, inspection, extracted, and importable file locations.
+- Added PubParts Internal Library manifest build/sanitize helpers covering provider/item identity, source URL/freshness, source file name, byte size, inspection state, extracted candidates, and import handoff state.
+- Added tests proving the manifest does not persist Blob/File/object URL/imported-reference ownership.
+
+#### Files Changed
+- `src/app/catalog/pubPartsInternalLibrary.ts`
+- `src/app/catalog/pubPartsInternalLibrary.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsInternalLibrary.test.ts` passed: 7 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts` passed: 14 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsArchiveManifestCache.test.ts` passed: 5 passed.
+- `npm.cmd test -- src/app/catalog/pubPartsZipArchive.test.ts` passed: 7 passed.
+- `npm.cmd test -- src/app/workspace/homePageStorageTransparency.test.ts` passed: 2 passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
 
 <!-- ENTRY 1624 -->
 
@@ -5603,7 +7322,7 @@ HUMAN SUMMARY: `Made the staged import preview viewport inspectable and the thre
 <!-- ENTRY 1399 -->
 ### [1399] - 2026-04-16 20:05 - `Import-4 - Phase 6.2 - Load Into Preview Viewport Action And Preview Rendering`
 <!-- ENTRY 1399 -->
-HUMAN SUMMARY: `Turned the staged import dialog’s new Object Preview column into a real draft-local preview surface by adding explicit staged-file load actions, wiring one dialog-local preview selection, and rendering the selected staged object with truthful empty, loading, ready, and failed states without widening into orbit or divider work yet.`
+HUMAN SUMMARY: `Turned the staged import dialogâ€™s new Object Preview column into a real draft-local preview surface by adding explicit staged-file load actions, wiring one dialog-local preview selection, and rendering the selected staged object with truthful empty, loading, ready, and failed states without widening into orbit or divider work yet.`
 #### Scope / Constraints Honored
 - Kept this phase preview-load-and-render only by deferring orbit controls, divider resizing, persisted preview state, and any main-workspace viewer integration.
 - Preserved draft-local ownership so previewing a staged file does not mutate project content, commit staged files, or introduce a new store-owned preview runtime.
@@ -5719,7 +7438,7 @@ HUMAN SUMMARY: `Gave staged Add To Project one honest per-file result contract s
 <!-- ENTRY 1395 -->
 ### [1395] - 2026-04-16 18:21 - `Import-4 - Phase 2 - Per-File Staged Inspection Feedback`
 <!-- ENTRY 1395 -->
-HUMAN SUMMARY: `Improved the staged import dialog’s per-file inspection failure read so failed rows now explain the pre-commit problem more clearly, keep the raw inspection error visible, and stay distinct from both loading and successful structure-summary rows.`
+HUMAN SUMMARY: `Improved the staged import dialogâ€™s per-file inspection failure read so failed rows now explain the pre-commit problem more clearly, keep the raw inspection error visible, and stay distinct from both loading and successful structure-summary rows.`
 #### Scope / Constraints Honored
 - Kept this phase pre-commit-only and did not change staged acceptance, partial-result handling, or dialog recovery behavior.
 - Reused the existing `structureInspection.status` owner model instead of adding new staged state or a second failure contract.
@@ -8420,7 +10139,7 @@ HUMAN SUMMARY: `Implemented Worker 10 Phase 5 by fixing the proven preview-prepa
 - [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
 #### Behavior Changes (if any)
 - Preview preparation now includes all relevant `Output Preview` surfaces in a graph instead of only the first one.
-- In the richer parallel-preview graph, the unaffected sibling branch stays fully loaded during branch-local editing instead of disappearing or inheriting the edited branch’s preview treatment due to missing preparation membership.
+- In the richer parallel-preview graph, the unaffected sibling branch stays fully loaded during branch-local editing instead of disappearing or inheriting the edited branchâ€™s preview treatment due to missing preparation membership.
 #### Verification Steps
 - Ran `cmd /c npm.cmd test -- src/app/spaghetti/previewPreparation.test.ts --testNamePattern "keeps both Output Preview surfaces in preview preparation for a parallel graph with separate preview nodes"`
 - Ran `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "keeps the unaffected sibling fully loaded when parallel branches publish through separate Output Preview surfaces"`
@@ -8494,7 +10213,7 @@ HUMAN SUMMARY: `Implemented AutoDraftFinal Phase 9.2 as a proof-first slice by a
 #### Verification Steps
 - Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
 - Current expected failure:
-  - `expected [ …(3) ] to have a length of 1 but got 3`
+  - `expected [ â€¦(3) ] to have a length of 1 but got 3`
 
 <!-- ENTRY 1287 -->
 ### [1287] - 2026-04-14 09:08 - `WK - Viewport Slider Release Interaction Contract Fix`
@@ -8769,7 +10488,7 @@ HUMAN SUMMARY: `Implemented the second Worker 10 viewport-honesty slice by addin
 - `docs/Doc-Log.md`
 #### Behavior Changes
 - In the viewport preview overlay path, a narrowed accepted preview bundle with one `retained` branch and one `rebuilt` branch now renders only the rebuilt branch as yellow live preview geometry.
-- Retained sibling entries remain present in accepted bundle recomposition truth, but they no longer overclaim membership in the viewport’s artifact-preview overlay.
+- Retained sibling entries remain present in accepted bundle recomposition truth, but they no longer overclaim membership in the viewportâ€™s artifact-preview overlay.
 #### Verification Steps
 - `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/previewPreparation.test.ts`
 - `cmd /c npm.cmd run build`
@@ -10521,7 +12240,7 @@ HUMAN SUMMARY: `Tightened the `OutputPreview` managed input surface so the `Soli
 - Limited copy changes to the selector-owned secondary row summary so the surface reads more calmly without changing publication truth.
 
 #### Summary of Implementation
-- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so `OutputPreview` rows now emit compact secondary summaries such as `1 collection contributor · split to 4 objects` instead of the older sentence-length narration.
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so `OutputPreview` rows now emit compact secondary summaries such as `1 collection contributor Â· split to 4 objects` instead of the older sentence-length narration.
 - Updated `src/app/theme/surfaces/spaghetti.css` so the `OutputPreview` managed row now uses the same header text metrics and width rules as the settled managed template, while the attached body and published-object area use a lighter, less card-heavy layout.
 - Refreshed the focused selector and node-surface tests to lock the shorter summary copy and the still-shared aggregate-body row contract.
 
@@ -12444,9 +14163,9 @@ HUMAN SUMMARY: `Released delayed draft placeholders back into the normal build p
 - Kept settle support honest and narrow by leaving `settle` placeholders staged unless a real trigger is provided later.
 
 #### Summary of Implementation
-- Updated `src/app/store/useAppStore.ts` so delayed draft placeholders now retain the compile/build payload needed for later real dispatch and so `endBrowserBuildInteraction(...)` can release the current graph’s delayed `release` placeholder into the normal dispatcher path.
-- Added one release-trigger bypass for queued release-end builds so the interaction-release seam can dispatch the newest graph state instead of re-staging another delayed placeholder, while still clearing only the targeted graph’s placeholder.
-- Expanded `src/app/store/useAppStore.test.ts` with focused proof that delayed release placeholders dispatch exactly once on interaction end, do not flush other graphs’ placeholders, and yield real in-flight compile-build state only after release.
+- Updated `src/app/store/useAppStore.ts` so delayed draft placeholders now retain the compile/build payload needed for later real dispatch and so `endBrowserBuildInteraction(...)` can release the current graphâ€™s delayed `release` placeholder into the normal dispatcher path.
+- Added one release-trigger bypass for queued release-end builds so the interaction-release seam can dispatch the newest graph state instead of re-staging another delayed placeholder, while still clearing only the targeted graphâ€™s placeholder.
+- Expanded `src/app/store/useAppStore.test.ts` with focused proof that delayed release placeholders dispatch exactly once on interaction end, do not flush other graphsâ€™ placeholders, and yield real in-flight compile-build state only after release.
 
 #### Files Changed
 - `src/app/store/useAppStore.ts`
@@ -12456,7 +14175,7 @@ HUMAN SUMMARY: `Released delayed draft placeholders back into the normal build p
 #### Behavior Changes
 - Delayed `release` draft placeholders now dispatch once from `endBrowserBuildInteraction(...)` instead of waiting indefinitely.
 - Released delayed draft work now mints a normal build request id and build seq, then enters the same dispatcher and spaghetti-store in-flight path as immediate requests.
-- Other graphs’ delayed placeholders remain untouched when one graph releases, and `settle` placeholders remain staged until a later slice adds a concrete trigger owner.
+- Other graphsâ€™ delayed placeholders remain untouched when one graph releases, and `settle` placeholders remain staged until a later slice adds a concrete trigger owner.
 
 #### Verification Steps
 - `npx.cmd vitest run src/app/store/useAppStore.test.ts src/shared/buildTypes.test.ts src/worker/worker.test.ts`
@@ -12619,7 +14338,7 @@ HUMAN SUMMARY: `Made request supersession identity explicit in \`BuildDispatcher
 <!-- ENTRY 1143 -->
 ### [1143] - 2026-04-09 10:21 - `SP - Phase Extrude Node Depth Clamp For Testing`
 <!-- ENTRY 1143 -->
-HUMAN SUMMARY: `Lowered the graph-native `Geometry/Extrude` node-side depth clamp from 2000 mm to 100 mm for testing, so the node’s one-side and two-side depth editors now stay inside a much smaller authored range without touching the older feature-stack extrude surface.`
+HUMAN SUMMARY: `Lowered the graph-native `Geometry/Extrude` node-side depth clamp from 2000 mm to 100 mm for testing, so the nodeâ€™s one-side and two-side depth editors now stay inside a much smaller authored range without touching the older feature-stack extrude surface.`
 #### Scope / Constraints Honored
 - Kept this as a node-side-only test cleanup and did not touch the older feature-stack extrude editor or add new runtime validation rules.
 - Changed only the graph-native `Geometry/Extrude` authored depth editors in `src/app/spaghetti/canvas/NodeView.tsx`, including `Depth`, `Start Depth`, and `End Depth`.
@@ -14506,7 +16225,7 @@ HUMAN SUMMARY: `Shipped the first Model Viewport result-mode contract by adding 
 #### Behavior Changes
 - Model viewport chrome state now carries an explicit viewport-local `viewportResultMode` value with the first supported values `auto`, `draft`, and `final`.
 - Each viewport defaults to `auto`, and later viewport-local updates no longer need to hide result-mode meaning inside generic local-view patches.
-- The workspace layer now exposes explicit helpers for “active viewport result mode” and “result-mode behavior” so later viewport swap logic can consume one locked contract instead of inventing its own flags.
+- The workspace layer now exposes explicit helpers for â€œactive viewport result modeâ€ and â€œresult-mode behaviorâ€ so later viewport swap logic can consume one locked contract instead of inventing its own flags.
 
 #### Verification Steps
 - `npm.cmd exec vitest run src/app/workspace/useWorkspaceStore.test.ts src/app/workspace/workspaceViewportResultMode.test.ts`
@@ -15704,7 +17423,7 @@ HUMAN SUMMARY: `Swapped the primitive \`Depth\` row endcap glyphs from raw angle
 <!-- ENTRY 1043 -->
 ### [1043] - 2026-04-05 02:51 - `Nodes-2.5C - Primitive Row Fill Color Returns To Port Tint`
 <!-- ENTRY 1043 -->
-HUMAN SUMMARY: `Retuned the primitive \`Depth\` row fill so it uses the port/pin tint again instead of the temporary blue \`ParaSlider\` parity color. This keeps the now-working local fill/marker sync behavior intact while restoring the row’s color language back to the socket type.`  
+HUMAN SUMMARY: `Retuned the primitive \`Depth\` row fill so it uses the port/pin tint again instead of the temporary blue \`ParaSlider\` parity color. This keeps the now-working local fill/marker sync behavior intact while restoring the rowâ€™s color language back to the socket type.`  
 #### Scope / Constraints Honored
 - Kept this pass strictly visual and limited to primitive-row fill color.
 - Preserved the current continuous-track layout, marker behavior, and local-value sync fix.
@@ -15991,7 +17710,7 @@ HUMAN SUMMARY: `Corrected the rebuilt primitive \`Depth\` row spacing so the edg
 - Avoided any broader markup or behavior changes.
 
 #### Summary of Implementation
-- Widened the primitive row’s left/right content gutters in `src/app/theme/surfaces/spaghetti.css`.
+- Widened the primitive rowâ€™s left/right content gutters in `src/app/theme/surfaces/spaghetti.css`.
 - Shifted the fill start inward to the same safe lane and nudged the edge arrows slightly outward while keeping them inside the shell.
 
 #### Files Changed
@@ -16234,11 +17953,11 @@ HUMAN SUMMARY: `Converted the extrude \`Depth\` row from a managed expandable nu
 <!-- ENTRY 1024 -->
 ### [1024] - 2026-04-05 01:09 - `Nodes-2C - Extrude Depth ParaSlider Adoption`
 <!-- ENTRY 1024 -->
-HUMAN SUMMARY: `Swapped the managed extrude \`Depth\` row off the older spaghetti number-field presentation and onto the repo’s real \`ParaSlider\` control. The shared numeric-row seam now knows how to request a proper slider rendering, so \`Depth\` keeps the newer `SWR` row behavior while finally looking like the intended current control family.`
+HUMAN SUMMARY: `Swapped the managed extrude \`Depth\` row off the older spaghetti number-field presentation and onto the repoâ€™s real \`ParaSlider\` control. The shared numeric-row seam now knows how to request a proper slider rendering, so \`Depth\` keeps the newer `SWR` row behavior while finally looking like the intended current control family.`
 #### Scope / Constraints Honored
 - Kept this pass narrow to visual/editor cleanup for the already-shipped `Nodes-2C` `Depth` row instead of widening into new row-family architecture or `Nodes-3`.
 - Preserved the existing managed-row `collapsed / essentials / expanded` behavior and the shared numeric-row helper seam.
-- Reused the app’s existing `ParaSlider` component instead of inventing another node-local slider.
+- Reused the appâ€™s existing `ParaSlider` component instead of inventing another node-local slider.
 
 #### Summary of Implementation
 - Updated `src/app/spaghetti/canvas/PortView.tsx` so numeric row inputs can opt into a `ParaSlider` render path.
@@ -17390,7 +19109,7 @@ HUMAN SUMMARY: `Landed the first dashboard-owned attachment-tree groundwork by a
 HUMAN SUMMARY: `Fixed the sticky-note title-bar corner so the top fillet stays smooth after the overflow-layering work, by restoring local title-bar clipping without breaking the menu surfaces that now render above the note.`
 #### Scope / Constraints Honored
 - Kept this pass tightly scoped to the sticky-note title-bar corner clipping issue instead of widening into new menu behavior, drag changes, or broader sticky-note restyling.
-- Preserved the earlier overflow-layering fix by changing only the title-bar’s own corner clipping rather than reverting the card shell back to overflow clipping.
+- Preserved the earlier overflow-layering fix by changing only the title-barâ€™s own corner clipping rather than reverting the card shell back to overflow clipping.
 - Left the burger menu and legacy right-click color palette behavior unchanged apart from the smoother top corner render.
 
 #### Summary of Implementation
@@ -17417,7 +19136,7 @@ HUMAN SUMMARY: `Adjusted the sticky-note overflow layering so both the burger me
 #### Scope / Constraints Honored
 - Kept this pass tightly scoped to menu layering and clipping behavior instead of widening into new sticky-note actions, menu structure changes, or dashboard camera/layout work.
 - Preserved the existing sticky-note menu logic by changing only the card-local open-state attribute and the CSS overflow/z-index behavior needed to let the menus escape the note shell.
-- Left the previously shipped burger-menu and right-click color paths unchanged from the user’s perspective apart from the improved visibility.
+- Left the previously shipped burger-menu and right-click color paths unchanged from the userâ€™s perspective apart from the improved visibility.
 
 #### Summary of Implementation
 - Updated `DashboardStickyNoteCard.tsx` so an open sticky-note menu marks the active note shell, giving the card one explicit elevated state while a menu is visible.
@@ -17515,7 +19234,7 @@ HUMAN SUMMARY: `Widened the dashboard sticky-note drag path so one selected note
 - Reused the shipped sticky-note drag seam instead of introducing a second movement system or a new persisted group object model.
 
 #### Summary of Implementation
-- Extended `DashboardSurface.tsx` so the existing sticky-note drag state can carry one selected note set, preserve each selected note’s relative world-space offset, and commit all moved note placements together through the existing dashboard placement seam.
+- Extended `DashboardSurface.tsx` so the existing sticky-note drag state can carry one selected note set, preserve each selected noteâ€™s relative world-space offset, and commit all moved note placements together through the existing dashboard placement seam.
 - Kept single-note drag as the natural fallback when only one note is selected and left cross-lane movement behavior unchanged for that single-note path.
 - Preserved selected-state visuals through `DashboardStickyNoteCard.tsx` while allowing already-selected notes to keep the current selection instead of forcing a one-note reset before drag.
 - Expanded focused dashboard AppShell regressions to prove lane-local group movement and preserved relative note spacing while the existing selection, camera, fit, and single-note drag tests continue to pass.
@@ -19179,7 +20898,7 @@ HUMAN SUMMARY: `Strengthened the model viewport split camera path so the source 
 <!-- ENTRY 928 -->
 ### [928] - 2026-04-03 08:32 - `Workspace 7.5 - Model Viewport Split Camera Persistence Follow-Up`
 <!-- ENTRY 928 -->
-HUMAN SUMMARY: `Hardened the model viewport split camera behavior so both panes restore from the user’s last live camera pose even when the split causes the primary viewer to remount during the layout transition.`
+HUMAN SUMMARY: `Hardened the model viewport split camera behavior so both panes restore from the userâ€™s last live camera pose even when the split causes the primary viewer to remount during the layout transition.`
 #### Scope / Constraints Honored
 - Kept this follow-up narrowly focused on the split-time model viewer camera regression.
 - Preserved the earlier copied primary popout behavior and reused the same camera-pose plumbing instead of adding a separate split-only camera system.
@@ -19200,7 +20919,7 @@ HUMAN SUMMARY: `Hardened the model viewport split camera behavior so both panes 
 - `src/app/AppShell.test.tsx`
 
 #### Behavior Changes
-- Splitting a model viewport now restores both panes from the user’s last live camera pose instead of falling back to the constructor/default framed view when the primary viewer remounts during the split.
+- Splitting a model viewport now restores both panes from the userâ€™s last live camera pose instead of falling back to the constructor/default framed view when the primary viewer remounts during the split.
 
 #### Verification Steps
 - `cmd /c npx.cmd vitest run src/app/components/ViewerHost.test.tsx src/app/AppShell.test.tsx`
@@ -19975,7 +21694,7 @@ HUMAN SUMMARY: `Extended the \`Spaghetti Editor\` popup diagnostics to inspect t
 - Updated `src/app/hosts/SpaghettiWindowHost.test.tsx` so the host-missing path proves empty host-commit truth while the normal popup path proves host-level surface and window descendants are detected.
 
 #### Behavior Changes
-- The Spaghetti popup diagnostics overlay now distinguishes between “document-level subtree missing” and “host actually contains portal descendants.”
+- The Spaghetti popup diagnostics overlay now distinguishes between â€œdocument-level subtree missingâ€ and â€œhost actually contains portal descendants.â€
 - The next live popup repro should be able to tell us whether the portal subtree never commits into the host or whether our earlier document queries were simply looking in the wrong place.
 - No end-user popup semantics changed beyond the expanded temporary diagnostics surface.
 
@@ -19999,7 +21718,7 @@ HUMAN SUMMARY: `Hardened the shared child-window host contract so popup surfaces
 
 #### Behavior Changes
 - Shared child-window surfaces now have a stronger recovery path when a popup host becomes stale or detached from the live popup document.
-- The `Spaghetti Editor` popup diagnostics overlay now distinguishes between “host was previously seen” and “host is currently connected to the live popup document.”
+- The `Spaghetti Editor` popup diagnostics overlay now distinguishes between â€œhost was previously seenâ€ and â€œhost is currently connected to the live popup document.â€
 - A recovered popup host now gets a fresh portal subtree mount instead of reusing the previous target silently.
 
 #### Verification Steps
@@ -20573,7 +22292,7 @@ HUMAN SUMMARY: `Collapsed the hosted spaghetti activation paths so one floating,
 <!-- ENTRY 873 -->
 ### [873] - 2026-04-01 21:32 - `VR-SP - Workspace 7.5-7A Phase 2D Retry - Tagged AppShell Clear Sources`
 <!-- ENTRY 873 -->
-HUMAN SUMMARY: `Retried the late-root replay fix by tagging every AppShell `surface-clear` publisher and tightening when spaghetti-visibility loss is allowed to clear the console. The shell now distinguishes viewer activation, outside-click clear, and lost-spaghetti-visibility, and it no longer treats normal split-host spaghetti presence as “spaghetti disappeared.”`
+HUMAN SUMMARY: `Retried the late-root replay fix by tagging every AppShell `surface-clear` publisher and tightening when spaghetti-visibility loss is allowed to clear the console. The shell now distinguishes viewer activation, outside-click clear, and lost-spaghetti-visibility, and it no longer treats normal split-host spaghetti presence as â€œspaghetti disappeared.â€`
 #### Scope / Constraints Honored
 - Kept this inside the same `Workspace 7.5-7A Phase 2D` lane instead of jumping ahead to duplicate-publish cleanup or the submit-path reserve.
 - Left `ConsoleDock` behavior unchanged in this retry; the work stayed AppShell-first as planned.
@@ -20592,7 +22311,7 @@ HUMAN SUMMARY: `Retried the late-root replay fix by tagging every AppShell `surf
 
 #### Behavior Changes
 - AppShell now preserves the source of its late `surface-clear` requests, making the remaining live replay traceable without guessing.
-- Normal split-host spaghetti presence no longer counts as “spaghetti disappeared,” so that visibility-loss clear should not fire during ordinary split transitions.
+- Normal split-host spaghetti presence no longer counts as â€œspaghetti disappeared,â€ so that visibility-loss clear should not fire during ordinary split transitions.
 
 #### Verification Steps
 - `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
@@ -21101,7 +22820,7 @@ HUMAN SUMMARY: `Landed the narrow Phase 9C ownership-alignment slice by making B
 - `src/app/store/useAppStore.test.ts`
 
 #### Behavior Changes
-- Browser content no longer shows an empty graph-default published component shell after the user has moved all of that component’s published objects into other authored components.
+- Browser content no longer shows an empty graph-default published component shell after the user has moved all of that componentâ€™s published objects into other authored components.
 - Component membership in Browser-facing rows now reflects current object parentage immediately after a move, instead of waiting for a later sync to repair stale `childObjectIds`.
 - Policy-driven sync now keeps that stale published component shell gone instead of recreating it as a misleading second ownership story.
 
@@ -21255,21 +22974,21 @@ HUMAN SUMMARY: `Fixed the Browser policy sync regression where moved graph-backe
 <!-- ENTRY 851 -->
 ### [851] - 2026-04-01 13:30 - `VR-SP - Workspace 7.5-5 Phase 7 - Browser Reveal Frames Rendered Graph Parts`
 <!-- ENTRY 851 -->
-HUMAN SUMMARY: `Started the real `Workspace 7.5-5` Phase 7 presentation-cleanup lane by changing graph-row `Reveal` from a pseudo viewer-target owner switch into a Browser-layer frame action over the graph’s currently rendered parts. Reveal now stays useful even during shared viewer composition, while Browser build policy remains the truth for whether a graph is actually loaded in the viewer.`
+HUMAN SUMMARY: `Started the real `Workspace 7.5-5` Phase 7 presentation-cleanup lane by changing graph-row `Reveal` from a pseudo viewer-target owner switch into a Browser-layer frame action over the graphâ€™s currently rendered parts. Reveal now stays useful even during shared viewer composition, while Browser build policy remains the truth for whether a graph is actually loaded in the viewer.`
 #### Scope / Constraints Honored
 - Kept this as a narrow `Workspace 7.5-5` Phase 7 Browser/viewer presentation slice instead of widening into runtime ownership refactors, `AppShell` cleanup, or the later `ConsoleDock` sync pass.
 - Preserved the new Browser-owned multi-graph viewer composition rule so render presence still follows Browser build policy rather than focused editor state.
 - Limited behavior changes to graph-row reveal semantics and the Browser row affordance around that action.
 
 #### What Changed
-- Updated `src/app/panels/useBrowserPanelController.ts` so graph-row reveal now gathers the target graph’s currently visible Browser-owned part keys and frames them in the viewer, instead of only retargeting `viewerTargetGraphDocumentId`.
+- Updated `src/app/panels/useBrowserPanelController.ts` so graph-row reveal now gathers the target graphâ€™s currently visible Browser-owned part keys and frames them in the viewer, instead of only retargeting `viewerTargetGraphDocumentId`.
 - Kept a narrow fallback to graph targeting only when no rendered graph parts are available and explicit shared viewer composition is not active.
 - Updated `src/app/panels/browserRowActions.ts` so graph reveal always routes through the reveal handler, even when shared viewer composition is active.
-- Updated `src/app/panels/selectBrowserTreeRows.ts` so graph-row `Reveal` is no longer disabled by shared composition alone and is instead disabled only when the graph’s own Browser build policy is `off`.
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so graph-row `Reveal` is no longer disabled by shared composition alone and is instead disabled only when the graphâ€™s own Browser build policy is `off`.
 - Added focused coverage in `src/app/panels/browserRowActions.test.ts`, `src/app/panels/selectBrowserTreeRows.test.ts`, and `src/app/panels/BrowserPanel.test.tsx` to lock the new reveal behavior and affordance.
 
 #### Behavior Changes
-- Graph-row `Reveal` now frames the graph’s currently rendered viewer parts instead of acting like it owns what the viewer loads.
+- Graph-row `Reveal` now frames the graphâ€™s currently rendered viewer parts instead of acting like it owns what the viewer loads.
 - Shared viewer composition no longer disables graph reveal when the graph is still Browser-enabled and has rendered content to frame.
 
 #### Verification Steps
@@ -22565,7 +24284,7 @@ HUMAN SUMMARY: `Browser popout no longer steals the live Browser out of whatever
 
 ### [801] - 2026-03-31 10:14 - `VR-SP - Workspace 7 - Make Browser Quick-Dock Return Detached Floats To The Left Toolbar`
 <!-- ENTRY 801 -->
-HUMAN SUMMARY: `The floating Browser quick-dock button now always means “dock back under \`ParaHook Generator v20\`.” A Browser that originally came from a split slot no longer uses the old detached-slot restore path when you click \`<\`, so it returns to the left toolbar instead of recreating its prior split lane.` 
+HUMAN SUMMARY: `The floating Browser quick-dock button now always means â€œdock back under \`ParaHook Generator v20\`.â€ A Browser that originally came from a split slot no longer uses the old detached-slot restore path when you click \`<\`, so it returns to the left toolbar instead of recreating its prior split lane.` 
 #### Scope / Constraints Honored
 - Kept this cleanup focused on the floating Browser quick-dock action.
 - Preserved the existing detached-slot split redock behavior for edge-drop and explicit split actions.
@@ -22624,14 +24343,14 @@ HUMAN SUMMARY: `Dragging a split Browser back into floating mode no longer start
 
 ### [798] - 2026-03-31 09:45 - `VR-SP - Workspace 7 - Add Floating Browser Quick-Dock Button Beside Popout`
 <!-- ENTRY 798 -->
-HUMAN SUMMARY: `Floating Browser no longer repurposes its popout icon as a hidden dock shortcut. It now gets a dedicated \`<\` quick-dock button beside the real \`↗\` popout button, so docking back to the left toolbar and popping out to a new browser window are separate actions.` 
+HUMAN SUMMARY: `Floating Browser no longer repurposes its popout icon as a hidden dock shortcut. It now gets a dedicated \`<\` quick-dock button beside the real \`â†—\` popout button, so docking back to the left toolbar and popping out to a new browser window are separate actions.` 
 #### Scope / Constraints Honored
 - Kept this focused on the floating Browser titlebar controls.
-- Preserved the existing left-toolbar quick-dock behavior while restoring real popout behavior for the `↗` button.
+- Preserved the existing left-toolbar quick-dock behavior while restoring real popout behavior for the `â†—` button.
 
 #### What Changed
 - Added a dedicated floating Browser quick-dock button rendered to the left of the popout button.
-- Changed the floating Browser path so `<` docks back to the left toolbar while `↗` performs a true popout.
+- Changed the floating Browser path so `<` docks back to the left toolbar while `â†—` performs a true popout.
 - Added the Browser titlebar actions cluster styling for the two-button layout.
 - Updated focused Browser host/AppShell mocks and added a Browser host regression for the separate quick-dock and popout controls.
 
@@ -22648,13 +24367,13 @@ HUMAN SUMMARY: `Floating Browser no longer repurposes its popout icon as a hidde
 
 ### [797] - 2026-03-31 09:38 - `VR-SP - Workspace 7 - Make Viewport Top-Right Button A Dedicated Popout Control`
 <!-- ENTRY 797 -->
-HUMAN SUMMARY: `The viewport frame no longer uses the top-right \`...\` button for an action menu that already exists on titlebar right click. That button is now a dedicated \`↗\` popout control, which lines it up with the Browser floating titlebar popout behavior.` 
+HUMAN SUMMARY: `The viewport frame no longer uses the top-right \`...\` button for an action menu that already exists on titlebar right click. That button is now a dedicated \`â†—\` popout control, which lines it up with the Browser floating titlebar popout behavior.` 
 #### Scope / Constraints Honored
 - Kept the viewport titlebar right-click action menu intact.
 - Changed only the duplicate top-right frame button behavior.
 
 #### What Changed
-- Replaced the top-right viewport frame `...` button with a dedicated `↗` popout button.
+- Replaced the top-right viewport frame `...` button with a dedicated `â†—` popout button.
 - Wired that button to call the existing `onPopOut` action directly.
 - Left the titlebar right-click action menu as the route for split and float actions.
 - Updated focused ViewportFrame tests for the new button contract.
@@ -23172,7 +24891,7 @@ HUMAN SUMMARY: `This fixes the new slot layout rendering so `Split Left` actuall
 <!-- ENTRY 773 -->
 HUMAN SUMMARY: `This keeps floating Browser and Spaghetti windows out of the model viewport header band by clamping their live drag bounds to the primary viewport body vertically, while preserving the older horizontal floating behavior that the workspace still relies on.` 
 #### Scope / Constraints Honored
-- Fixed the specific “float window can slide under the title bar” bug without widening into a broader floating-host rewrite.
+- Fixed the specific â€œfloat window can slide under the title barâ€ bug without widening into a broader floating-host rewrite.
 - Kept the older horizontal float behavior intact so existing drag-out, dock preview, and shell-size assumptions continue to work.
 
 #### What Changed
@@ -23395,7 +25114,7 @@ HUMAN SUMMARY: `This fixes the compact viewport menus staying open when the user
 
 ### [762] - 2026-03-30 22:23 - `VR-SP - Workspace 7.2b - Pointer-Anchored Viewport Menu Positioning Slice`
 <!-- ENTRY 762 -->
-HUMAN SUMMARY: `This makes the new viewport action menu behave like a real context menu by anchoring it to the user’s right-click position inside the viewport frame instead of opening from a fixed header corner.` 
+HUMAN SUMMARY: `This makes the new viewport action menu behave like a real context menu by anchoring it to the userâ€™s right-click position inside the viewport frame instead of opening from a fixed header corner.` 
 #### Scope / Constraints Honored
 - Kept this as a focused viewport-menu positioning fix instead of widening the slot action model.
 - Preserved the compact viewport action menu and only changed how its open position is computed.
@@ -23575,7 +25294,7 @@ HUMAN SUMMARY: `This lands the next `Workspace 7.2b` live-parity cleanup by supp
 HUMAN SUMMARY: `This lands the first real `Workspace 7.2b` slice by adding a shared detached-slot surface contract in the workspace seam, then using it so Browser and Console compatibility hosts dock back into the slot tree and detached Spaghetti surfaces re-enter the slot tree when they edge-dock or close their popout window.` 
 #### Scope / Constraints Honored
 - Kept this as the first safe `Workspace 7.2b` slice instead of pretending every legacy Browser / Console / Spaghetti host can disappear in one pass.
-- Added one shared workspace-owned detached-slot record and redock action rather than letting each compatibility host invent a separate “return to slots” rule.
+- Added one shared workspace-owned detached-slot record and redock action rather than letting each compatibility host invent a separate â€œreturn to slotsâ€ rule.
 - Preserved the older Browser and Console compatibility hosts for live floating and popout rendering, but made their dock-back path return through the slot tree when the surface originally came from a slot.
 - Kept the current single protected model viewport assumption intact; detached surfaces redock against the protected viewer slot for now rather than widening full multi-model-viewer routing early.
 #### What Changed
@@ -24155,7 +25874,7 @@ HUMAN SUMMARY: `This landed the first real Workspace 1 extraction by giving the 
 
 ### [729] - 2026-03-29 14:17 - `BRW - Browser Part Visibility Eyeball Parity`
 <!-- ENTRY 729 -->
-HUMAN SUMMARY: `This extended the Browser’s viewer-only visibility contract down to part rows, so imported object parts now carry the same eyeball affordance as assemblies, components, and objects and can be hidden directly from the tree without introducing a separate part-only visibility system.`
+HUMAN SUMMARY: `This extended the Browserâ€™s viewer-only visibility contract down to part rows, so imported object parts now carry the same eyeball affordance as assemblies, components, and objects and can be hidden directly from the tree without introducing a separate part-only visibility system.`
 #### Scope / Constraints Honored
 - Kept the change focused on Browser visibility affordances and the existing viewer-only `partsVisibility` seam instead of widening into transform, selection, or tree-structure work.
 - Preserved the current assembly/component/object visibility behavior for both generated and reference-backed rows while adding honest part-row visibility state.
@@ -24163,7 +25882,7 @@ HUMAN SUMMARY: `This extended the Browser’s viewer-only visibility contract do
 #### What Changed
 - Updated `src/app/panels/selectBrowserTreeRows.ts` so `part` rows now carry `isVisible` and `visibilityPartKeys`, sourced from the shared `partsVisibility` map, and threaded that `partsVisibility` input through `src/app/panels/useBrowserPanelController.ts`.
 - Updated `src/app/panels/browserTreeRowPresenter.tsx` so part rows render the Browser eyeball toggle alongside the existing assembly/component/object/reference visibility controls.
-- Updated `src/app/panels/browserInteractions.ts` so part-row eyeball clicks route through the existing content visibility handler and toggle the part’s viewer visibility with `setPartVisibility`.
+- Updated `src/app/panels/browserInteractions.ts` so part-row eyeball clicks route through the existing content visibility handler and toggle the partâ€™s viewer visibility with `setPartVisibility`.
 - Refreshed focused Browser coverage in `src/app/panels/BrowserPanel.test.tsx`, `src/app/panels/browserInteractions.test.ts`, and `src/app/panels/selectBrowserTreeRows.test.ts` so the new part-row visibility contract is exercised end to end.
 #### Verification
 - `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/selectBrowserTreeRows.test.ts`
@@ -24171,7 +25890,7 @@ HUMAN SUMMARY: `This extended the Browser’s viewer-only visibility contract do
 
 ### [728] - 2026-03-29 14:10 - `BRW - Browser Part Rows Black Surface And Tree Guide Alignment`
 <!-- ENTRY 728 -->
-HUMAN SUMMARY: `This finished the latest part-row polish by making part children render with a black object-like surface and aligning their first tree-guide segment with the same branch geometry the parent content rows use, which cleans up the broken line look when an imported object’s part list is open.`
+HUMAN SUMMARY: `This finished the latest part-row polish by making part children render with a black object-like surface and aligning their first tree-guide segment with the same branch geometry the parent content rows use, which cleans up the broken line look when an imported objectâ€™s part list is open.`
 #### Scope / Constraints Honored
 - Kept the pass tightly scoped to Browser part-row presentation and guide alignment instead of changing part selection, expansion behavior, or object ownership.
 - Preserved the existing part-row shell, labels, and `P` badge while only tuning the surface colors and guide positioning.
@@ -26927,7 +28646,7 @@ HUMAN SUMMARY: `Changed the viewer null-pick handoff so clicking the plain model
 
 ### [629] - 2026-03-25 17:14 - `SP - Console Root Prompt Alias Hint Persistence`
 <!-- ENTRY 629 -->
-HUMAN SUMMARY: `Kept the root Console prompt’s alias-hint highlighting visible after \`Escape\` unwinds the live staged root session, so choices like \`References\` still visually advertise the \`ref\` alias instead of dropping back to an unhinted static prompt.` 
+HUMAN SUMMARY: `Kept the root Console promptâ€™s alias-hint highlighting visible after \`Escape\` unwinds the live staged root session, so choices like \`References\` still visually advertise the \`ref\` alias instead of dropping back to an unhinted static prompt.` 
 #### Scope / Constraints Honored
 - Kept the existing staged-console `Escape` ownership and root opt-out behavior unchanged.
 - Limited the change to the fallback summary-render path instead of rewriting staged root session handling.
@@ -28428,7 +30147,7 @@ HUMAN SUMMARY: `Finished sketches now turn their browser visibility on automatic
 - `docs/CHANGELOG.md`
 
 #### Behavior Changes
-- `SketchDraw > Done` now auto-enables the finished sketch’s browser visibility.
+- `SketchDraw > Done` now auto-enables the finished sketchâ€™s browser visibility.
 - The viewport overlay `Done` button now does the same.
 - After finishing a sketch, it stays visible in the viewport until the user turns it off from the browser eyeball.
 
@@ -30717,7 +32436,7 @@ HUMAN SUMMARY: `Added internal scrollbars to the merged \`Radio\` and \`Sampler\
 #### Summary of Implementation
 - Updated `src/app/theme/v15Theme.css` so each merged section body now has its own bounded vertical scroll area.
 - Added green-styled scrollbar treatment that matches the sampler-forward visual direction.
-- Increased the sampler section’s internal max-height so it can show more of the horizontal row plus step detail before clipping.
+- Increased the sampler sectionâ€™s internal max-height so it can show more of the horizontal row plus step detail before clipping.
 
 #### Files Changed
 - `src/app/theme/v15Theme.css`
@@ -31347,7 +33066,7 @@ HUMAN SUMMARY: `Implemented the first console-radio slice by adding a real \`Roo
 - Typing `r` / `radio` at console root now enters the staged `Radio` branch instead of the old flat `rotate` alias path; flat `rotate` still remains available by its full command token.
 - `Radio > Url` now opens a guided prompt seeded with the current/default SoundCloud URL and valid submission turns radio on with that URL.
 - `Radio > SampleBurstTime` now opens a guided prompt seeded with the current float value and valid submission stores the new burst time before returning to `Radio`.
-- `RandomizeSampleTimes` now resets the current session’s stable command-to-sample mapping and reports that refresh in the transcript.
+- `RandomizeSampleTimes` now resets the current sessionâ€™s stable command-to-sample mapping and reports that refresh in the transcript.
 - Actual SoundCloud playback is still not wired in this entry; this patch only ships the console grammar/state/template side.
 
 #### Verification Steps
@@ -31456,7 +33175,7 @@ HUMAN SUMMARY: `Implemented the first shared sketch-local back-step seam so `Ske
 <!-- ENTRY 489 -->
 ### [489] - 2026-03-20 01:16 - `CS - [4.1N] Feature Session Prompt Descriptors`
 <!-- ENTRY 489 -->
-HUMAN SUMMARY: `Extended the console’s assisted staged-choice seam into active feature sessions so `Sketch Plane` and idle `Sketch Draw` can publish one shared prompt descriptor for prompt rendering, input prefill, targeted choice tracking, arrow cycling, and manual-typing override without relying on feature-local input seeding.`
+HUMAN SUMMARY: `Extended the consoleâ€™s assisted staged-choice seam into active feature sessions so `Sketch Plane` and idle `Sketch Draw` can publish one shared prompt descriptor for prompt rendering, input prefill, targeted choice tracking, arrow cycling, and manual-typing override without relying on feature-local input seeding.`
 
 #### Why
 - The staged-choice prefill/cycling work in `[4.1M]` solved assisted choice handling only for staged navigation.
@@ -33053,7 +34772,7 @@ HUMAN SUMMARY: `Restructured the shared port surface so the \`SketchPlane\` top 
 - Split `PortView` into a `SpaghettiPortMain` top-row box plus the existing lower details box.
 - Moved the port anchor/pin onto the new top-row box so it remains visually attached there.
 - Shifted the border/background/radius styling from the outer port wrapper to the new top-row box.
-- Restyled the lower details box to sit below the top row without stealing the top row’s rounded corners.
+- Restyled the lower details box to sit below the top row without stealing the top rowâ€™s rounded corners.
 
 #### Files Changed
 - `src/app/spaghetti/canvas/PortView.tsx`
@@ -33176,7 +34895,7 @@ HUMAN SUMMARY: `Cleaned up the integrated \`SketchPlane\` left chevron so it no 
 
 #### Scope / Constraints Honored
 - Kept this pass limited to the visual styling of the integrated `SketchPlane` row chevron.
-- Preserved the managed input-row behavior and its tie-in to the sketch node’s row-mode defaults.
+- Preserved the managed input-row behavior and its tie-in to the sketch nodeâ€™s row-mode defaults.
 - Left the other port chevrons and output-row controls unchanged.
 
 #### Summary of Implementation
@@ -33459,7 +35178,7 @@ HUMAN SUMMARY: `Added a new Codex note locking the cleaner forward model for geo
 
 #### Verification Steps
 - Confirmed note `[178]` appears above `[177]` in `12_CodexChatNotes.md`.
-- Confirmed the note records the chosen “defaults only” row-mode contract and the implementation order for replacing the temporary geometry promotion patch.
+- Confirmed the note records the chosen â€œdefaults onlyâ€ row-mode contract and the implementation order for replacing the temporary geometry promotion patch.
 - Confirmed this permanent changelog entry records the new planning note.
 
 <!-- ENTRY 419 -->
@@ -33692,7 +35411,7 @@ HUMAN SUMMARY: `Rewrote note `[176]` in `docs/Human-Plans/CodexNotes/12_CodexCha
 - Preserved the existing Codex-notes numbering by rewriting the contents of `[176]` instead of creating a duplicate decision note.
 
 #### Summary of Implementation
-- Reframed note `[176]` from a directional “what I would do next” entry into an executable cleanup spec.
+- Reframed note `[176]` from a directional â€œwhat I would do nextâ€ entry into an executable cleanup spec.
 - Locked the first cleanup cut as `shared shell + Geometry/Sketch`, with `Geometry/Extrude` explicitly deferred to the next follow-up.
 - Defined the shared `GeometryNodeShell` structure, the exact first `Sketch` migration layout, the legacy/frozen treatment for older nodes, and the implementation order and acceptance criteria.
 
@@ -34046,7 +35765,7 @@ HUMAN SUMMARY: `Made the floating sketch draw/review window behave like a proper
 #### Scope / Constraints Honored
 - Kept the existing sketch session flow, ParaSlider controls, and viewer-rendered sketch geometry intact.
 - Limited this change to window movement and resize behavior for the floating sketch session overlay.
-- Reused the repo’s existing floating-toolbar resize pattern rather than inventing a separate windowing system.
+- Reused the repoâ€™s existing floating-toolbar resize pattern rather than inventing a separate windowing system.
 
 #### Summary of Implementation
 - Added full edge and corner resize handles to the sketch session window in `ViewportOverlay.tsx` with viewport-clamped width, height, and position updates.
@@ -34163,13 +35882,13 @@ HUMAN SUMMARY: `Rewrote the \`3.2B-2\` follow-up doc into a decision-complete im
 
 #### Scope / Constraints Honored
 - Kept this as a docs-only refinement of the existing `3.2B-2` follow-up instead of implementing the viewer overlay itself.
-- Replaced the old generic “main viewport overlay path” wording with a concrete architectural choice so the implementer no longer needs to decide between HTML overlay rendering and viewer-layer rendering.
+- Replaced the old generic â€œmain viewport overlay pathâ€ wording with a concrete architectural choice so the implementer no longer needs to decide between HTML overlay rendering and viewer-layer rendering.
 - Kept direct viewport drawing, hit-testing, snapping upgrades, and broader workspace/window architecture explicitly deferred.
 
 #### Summary of Implementation
 - Updated the `3.2B-2` task doc to lock `ViewerHost -> viewerBridge -> Viewer` as the canonical render path for sketch overlay state.
 - Added the explicit `GeometrySketchOverlayVm` plus `setGeometrySketchOverlay(...)` contract, the required 2D-to-3D plane mapping rules, the tightened implementation order, and viewer-focused verification coverage.
-- Converted “remove the large preview card” from a preference into a hard requirement for this follow-up.
+- Converted â€œremove the large preview cardâ€ from a preference into a hard requirement for this follow-up.
 
 #### Files Changed
 - `docs/Phase-Plans/Tasks/Future/03.2B-2 - SP-NI-FS-GE - Main Viewport Sketch Rendering And Toolbar Split.md`
@@ -34664,7 +36383,7 @@ HUMAN SUMMARY: `Added a second body-padding slider for top/bottom spacing in the
 <!-- ENTRY 377 -->
 ### [377] - 2026-03-17 21:23 - `VR / Spaghetti - Add Body Side Padding Slider`
 <!-- ENTRY 377 -->
-HUMAN SUMMARY: `Added a new Body > Side Padding slider to the spaghetti editor window-settings menu so the main shell’s left/right inset is now a real per-window appearance control instead of a hardcoded CSS tweak.` 
+HUMAN SUMMARY: `Added a new Body > Side Padding slider to the spaghetti editor window-settings menu so the main shellâ€™s left/right inset is now a real per-window appearance control instead of a hardcoded CSS tweak.` 
 
 #### Scope / Constraints Honored
 - Kept this pass limited to the spaghetti window appearance model and the existing `i`-menu settings surface.
@@ -34719,7 +36438,7 @@ HUMAN SUMMARY: `Corrected the spaghetti spacing pass by restoring the subsection
 <!-- ENTRY 375 -->
 ### [375] - 2026-03-17 21:21 - `VR / Spaghetti - Remove Horizontal Section Gutters`
 <!-- ENTRY 375 -->
-HUMAN SUMMARY: `Removed the left/right section gutters inside the spaghetti editor’s subsection shells so the section headers and bodies now sit flush to the shell edges more like the browser treatment.` 
+HUMAN SUMMARY: `Removed the left/right section gutters inside the spaghetti editorâ€™s subsection shells so the section headers and bodies now sit flush to the shell edges more like the browser treatment.` 
 
 #### Scope / Constraints Honored
 - Kept this pass limited to spaghetti section-level padding.
@@ -34752,7 +36471,7 @@ HUMAN SUMMARY: `Scoped the wider browser row layout back down to the content/ref
 - Left row action behavior untouched.
 
 #### Summary of Implementation
-- Restored the browser row shell’s original multi-column grid as the default.
+- Restored the browser row shellâ€™s original multi-column grid as the default.
 - Added a narrower two-column grid override only for reference/content row kinds: references root, reference categories/items, and assembly/component/object rows.
 
 #### Files Changed
@@ -34776,7 +36495,7 @@ HUMAN SUMMARY: `Reworked the browser row grid so reference/content bars can actu
 - Focused on the shared row surfaces used by reference rows through assembly/content rows.
 
 #### Summary of Implementation
-- Removed the browser row’s always-present trailing empty action columns so rows without actions no longer reserve dead space on the right.
+- Removed the browser rowâ€™s always-present trailing empty action columns so rows without actions no longer reserve dead space on the right.
 - Restored the inner state-bar padding after the earlier text-only shift, since the actual fix was to widen the row surface itself.
 
 #### Files Changed
@@ -34792,7 +36511,7 @@ HUMAN SUMMARY: `Reworked the browser row grid so reference/content bars can actu
 <!-- ENTRY 372 -->
 ### [372] - 2026-03-17 21:14 - `VR / Browser - Hide Empty User References Section`
 <!-- ENTRY 372 -->
-HUMAN SUMMARY: `Stopped rendering the browser’s User References category when there are no imported references, which also removes the stray \`No imported references yet.\` empty-state text from the tree.` 
+HUMAN SUMMARY: `Stopped rendering the browserâ€™s User References category when there are no imported references, which also removes the stray \`No imported references yet.\` empty-state text from the tree.` 
 
 #### Scope / Constraints Honored
 - Kept this pass limited to the browser reference-tree view model and its direct panel coverage.
@@ -34818,7 +36537,7 @@ HUMAN SUMMARY: `Stopped rendering the browser’s User References category when 
 <!-- ENTRY 371 -->
 ### [371] - 2026-03-17 21:11 - `VR / Browser - Darken Reference And Object Rows`
 <!-- ENTRY 371 -->
-HUMAN SUMMARY: `Darkened the browser’s main row-button surface so reference rows, object rows, and the other BrowserTreeRow items no longer read like the lighter generic panel-button slab, while keeping the existing selected and active states intact.` 
+HUMAN SUMMARY: `Darkened the browserâ€™s main row-button surface so reference rows, object rows, and the other BrowserTreeRow items no longer read like the lighter generic panel-button slab, while keeping the existing selected and active states intact.` 
 
 #### Scope / Constraints Honored
 - Kept this pass limited to the browser row-button surface styling.
@@ -34843,7 +36562,7 @@ HUMAN SUMMARY: `Darkened the browser’s main row-button surface so reference ro
 <!-- ENTRY 370 -->
 ### [370] - 2026-03-17 21:09 - `VR / Browser - Collapse Reference Categories On Load`
 <!-- ENTRY 370 -->
-HUMAN SUMMARY: `Changed the browser’s initial reference workspace defaults so Footpads, Shoes, and Premade Foothooks now start collapsed on app load, which makes the browser land in a cleaner state without hiding the User References section.` 
+HUMAN SUMMARY: `Changed the browserâ€™s initial reference workspace defaults so Footpads, Shoes, and Premade Foothooks now start collapsed on app load, which makes the browser land in a cleaner state without hiding the User References section.` 
 
 #### Scope / Constraints Honored
 - Kept this pass limited to the initial reference workspace expansion defaults.
@@ -35119,7 +36838,7 @@ HUMAN SUMMARY: `Added a subtle animated border highlight to the main ParaHook Ge
 - `docs/CHANGELOG.md`
 
 #### Behavior Changes
-- The main generator title bar border should now carry a subtle animated highlight that moves in sync with the shell’s sheen/glow treatment.
+- The main generator title bar border should now carry a subtle animated highlight that moves in sync with the shellâ€™s sheen/glow treatment.
 
 #### Verification Steps
 - No automated test run for this visual fix; `AppShell.test.tsx` currently mocks `TitleStatusBar`.
@@ -37196,7 +38915,7 @@ HUMAN SUMMARY: `Added a third stronger grid cadence every 100 units so the enlar
 <!-- ENTRY 287 -->
 ### [287] - 2026-03-16 18:55 - `VR - Phase 5 - Viewer Minor Grid Dimmed`
 <!-- ENTRY 287 -->
-HUMAN SUMMARY: `Dimmed the viewer’s minor grid layer so the fine workspace lines recede further into the background while the major grid remains readable.`
+HUMAN SUMMARY: `Dimmed the viewerâ€™s minor grid layer so the fine workspace lines recede further into the background while the major grid remains readable.`
 
 #### Scope / Constraints Honored
 - Kept the change limited to the viewer grid color tuning.
@@ -37982,7 +39701,7 @@ HUMAN SUMMARY: `Expanded roadmap lane `[4.2]` so the later build/runtime lane no
 
 #### Behavior Changes
 - No application behavior changes.
-- The roadmap now places the “Object 2 changed but Object 1 should remain cached” requirement explicitly in `[4.2]`.
+- The roadmap now places the â€œObject 2 changed but Object 1 should remain cachedâ€ requirement explicitly in `[4.2]`.
 
 #### Verification Steps
 - Read back `[4.2]` in `docs/Human-Plans/roadmap/roadmap.md` after the edit and confirmed the new selective-build bullets are present.
@@ -38820,7 +40539,7 @@ HUMAN SUMMARY: `Added the remaining \`02.2\` closeout tasks directly to the acti
 #### Scope / Constraints Honored
 - Kept this pass documentation-only.
 - Mirrored the existing roadmap closeout work into the active `02.2` task/spec doc instead of inventing a second task surface.
-- Preserved the current implementation state as “first cut shipped, closeout remaining.”
+- Preserved the current implementation state as â€œfirst cut shipped, closeout remaining.â€
 
 #### Summary of Implementation
 - Updated `docs/Phase-Plans/Tasks/02.2 - AS - Browser-Facing Graph Output Structure.md` to add:
@@ -40367,7 +42086,7 @@ HUMAN SUMMARY: Updated the roadmap lane-body status for `GE - Phase 11 - Graph P
 #### Scope / Constraints Honored
 - Updated docs only.
 - Changed the lane-body completion state without altering the parent `[1.2]` `Plan.md Status` tracker.
-- Kept the distinction between “implemented phase” and “separate umbrella task doc exists.”
+- Kept the distinction between â€œimplemented phaseâ€ and â€œseparate umbrella task doc exists.â€
 
 #### Summary of Implementation
 - Marked `### [1.2]` as `[x]` in the roadmap lane body.
@@ -40715,7 +42434,7 @@ HUMAN SUMMARY: `Added a concrete carry-forward note under \`SP - Phase 11 Q6\` s
   - `SP - Phase 11` is still only a planning surface
   - the roadmap already carries a defer map into later Browser workspace, output-structure, build-control, visibility/material, and workspace-presentation phases
   - the answered `Q2` through `Q5` items already narrowed the first pass to a graph-document tree with simple open/focus behavior
-- Added a short “what is still left to lock” list so `Q6` now shows the remaining out-of-scope boundary work instead of only saying `pending`.
+- Added a short â€œwhat is still left to lockâ€ list so `Q6` now shows the remaining out-of-scope boundary work instead of only saying `pending`.
 
 #### Files Changed
 - `docs/Phase-Plans/11_SP - Phase-Plans.md`
@@ -42657,7 +44376,7 @@ HUMAN SUMMARY: `Consolidated the active chill-mode work into one permanent chang
 <!-- ============================================================ -->
 ### [126] - 2026-03-06 02:35 - `DOC - Phase 10 - Docs Planning Sprint - Consolidate Chill Batch #1`
 <!-- ============================================================ -->
-HUMAN SUMMARY: `Consolidated Chill Batch #1 into one permanent changelog entry and one permanent change-List.md line. Organized the repoï¿½s planning/docs structure around architecture, wish features, Spaghetti editor planning, roadmap cleanup, and unresolved decisions.`
+HUMAN SUMMARY: `Consolidated Chill Batch #1 into one permanent changelog entry and one permanent change-List.md line. Organized the repoÃ¯Â¿Â½s planning/docs structure around architecture, wish features, Spaghetti editor planning, roadmap cleanup, and unresolved decisions.`
 
 #### Scope / Constraints Honored
 - Documentation-only consolidation.
@@ -42671,7 +44390,7 @@ HUMAN SUMMARY: `Consolidated Chill Batch #1 into one permanent changelog entry a
 
 #### Summary of Implementation
 - Consolidated `Chill Batch #1` into one permanent changelog entry and one permanent `change-List.md` line.
-- Organized the repoï¿½s planning/docs structure around architecture, wish features, Spaghetti editor planning, roadmap cleanup, and unresolved decisions.
+- Organized the repoÃ¯Â¿Â½s planning/docs structure around architecture, wish features, Spaghetti editor planning, roadmap cleanup, and unresolved decisions.
 - Added and expanded core planning docs for the current `/20/` app, including architecture history, system map, glossary, old-feature wishlist, Jake mode direction, decisions backlog, and Spaghetti editor concept docs.
 - Refined the chill-mode workflow itself by adding numbered batch entries, per-doc `Doc History` rules, and timestamped local doc histories.
 - Cleaned up several planning docs from pasted transcript form into structured reference notes.
@@ -43144,7 +44863,7 @@ HUMAN SUMMARY: `Normalized part-node section shells in NodeView so Drivers, Inpu
 #### Behavior Changes
 - Collapsed mode now renders section shells only for part nodes; section bodies stay hidden until the node returns to `essentials` or `expanded`.
 - Feature Stack no longer renders actual `Feature Wire Inputs` or owns wireable port rows; linked feature params now render as status-only indicators while real inputs remain in the `Inputs` section.
-- Part nodes keep deterministic section order (`Drivers -> Inputs -> Feature Stack -> Outputs`) and title clicks now cycle the current nodeï¿½s mode without altering NI-1 drag ownership.
+- Part nodes keep deterministic section order (`Drivers -> Inputs -> Feature Stack -> Outputs`) and title clicks now cycle the current nodeÃ¯Â¿Â½s mode without altering NI-1 drag ownership.
 
 #### Verification Steps
 - `npx.cmd tsc -p tsconfig.json --noEmit` (passed)
@@ -43170,7 +44889,7 @@ HUMAN SUMMARY: `Replaced the canvas-global row mode with node-scoped UI-store st
 #### Summary of Implementation
 - Replaced the canvas-global row mode with node-scoped UI-store state by adding `nodeModeByNodeId`, `getNodeMode(nodeId)`, and `setNodeMode(nodeId, mode)`, with deterministic fallback to `essentials`.
 - Standardized the view-mode vocabulary to `collapsed | essentials | expanded`, removed the remaining internal `everything` token, and updated `NodeView` to read its mode directly from `useSpaghettiUiStore`.
-- Removed the canvas-toolbar row-mode selector, converted the node context menu to target the clicked nodeï¿½s stored mode, and removed the old hidden auto-mode switching paths so canvas rendering no longer has a global mode owner.
+- Removed the canvas-toolbar row-mode selector, converted the node context menu to target the clicked nodeÃ¯Â¿Â½s stored mode, and removed the old hidden auto-mode switching paths so canvas rendering no longer has a global mode owner.
 
 #### Files Changed
 - `src/app/spaghetti/canvas/rowViewMode.ts`
@@ -43433,7 +45152,7 @@ HUMAN SUMMARY: `Added generic feature-stack enabled-state support with backward-
 - Hardened `compileFeatureStack` to emit deterministic IR from the effective enabled feature order only, while preserving feature ids and current runtime payload shape.
 - Added commit-boundary feature editing actions for move-up, move-down, and enable/disable in the Spaghetti store, with deterministic rejection of dependency-breaking reorders.
 - Updated the feature stack UI to expose row-level Up/Down and Enable/Disable controls while keeping disabled features visible and locally editable in place.
-- Preserved Cubeï¿½s existing render path while ensuring disabled or misordered feature dependencies resolve as unresolved through the current compile/runtime/artifact pipeline.
+- Preserved CubeÃ¯Â¿Â½s existing render path while ensuring disabled or misordered feature dependencies resolve as unresolved through the current compile/runtime/artifact pipeline.
 
 #### Files Changed
 - `src/app/spaghetti/features/featureTypes.ts`
@@ -45265,7 +46984,7 @@ HUMAN SUMMARY: `Restored toolbar control visibility by keeping the toolbar toggl
 - Duplicate `Drivers` headers for Baseplate-style default-group drivers were removed.
 - Driver buckets now participate in section/group collapse interactions.
 - Node dragging in Spaghetti canvas now requires pointer events to originate in top node chrome (`SpaghettiNodeHeader`, `SpaghettiNodePresetRow`, or toolbar editor region), preventing unintended drags from ports/rows.
-- Added a global ï¿½Pin Sizeï¿½ toolbar slider to control port dot diameter for both input and output pins across nodes.
+- Added a global Ã¯Â¿Â½Pin SizeÃ¯Â¿Â½ toolbar slider to control port dot diameter for both input and output pins across nodes.
 - Port dot size now follows a shared canvas-level CSS variable (`--sp-port-dot-size`) so updates apply instantly and consistently to all node pins (including template and legacy ports).
 
 #### Verification Steps
@@ -45304,7 +47023,7 @@ HUMAN SUMMARY: `Changed the node preset picker control width behavior so the dro
 - Updated `.SpaghettiNodePresetControls` to auto-width and made the `<select>` intrinsic-content width with nowrap text.
 - In output template rows, anchored output header text by position: node output names now align to the top-left corner and output type labels align to the bottom-right near the anchor.
 - In output template rows, expanded output header to full row height so type labels can anchor to the row bottom (not only the header token height), reducing the perceived bottom offset from header padding.
-- In output template rows, changed the header layout to a 3-row grid so the type sits on a lower row (with extra space) and removed the `â†’` glyph from type labels.
+- In output template rows, changed the header layout to a 3-row grid so the type sits on a lower row (with extra space) and removed the `Ã¢â€ â€™` glyph from type labels.
 - Mirrored the output node-row styling to template input rows in `v15Theme.css`:
   - input rows now use the slider-driven row height variable (default 40),
   - input row header text is mirrored (name top-right, type bottom-left) with type text using `var(--sp-port-color)`,

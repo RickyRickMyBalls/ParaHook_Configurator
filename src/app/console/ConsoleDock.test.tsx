@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
+import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { defaultPrimaryViewportSlotId } from '../workspace/workspaceShellTypes'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
@@ -48,6 +49,7 @@ describe('ConsoleDock', () => {
   const originalWorker = globalThis.Worker
 
   beforeEach(async () => {
+    editHistoryStore.clear()
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
@@ -73,6 +75,7 @@ describe('ConsoleDock', () => {
     root = null
     container = null
     document.body.innerHTML = ''
+    editHistoryStore.clear()
     window.open = originalWindowOpen
     globalThis.Worker = originalWorker
     setViewer(null)
@@ -3066,6 +3069,7 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().inputText).toBe('Orbit')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
   })
 
   it('auto-captures printable typing into the console without slash', async () => {
@@ -4403,6 +4407,153 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> 12,15')).toBe(true)
   })
 
+  it('routes focused-console Ctrl+Z and Ctrl+Y to staged Sketch Draw command undo after submitted rectangle points', async () => {
+    const rectangleNodeId = 'node-sketch-rect-undo'
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: rectangleNodeId,
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession(rectangleNodeId, 'draw')
+      useConsoleStore.getState().setInputText('rec')
+    })
+
+    const submit = async () => {
+      await act(async () => {
+        const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+        form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+    }
+    const sketchComponents = (): Array<{ type: string }> =>
+      (useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === rectangleNodeId)
+        ?.params.sketch as { components: Array<{ type: string }> }).components
+
+    await submit()
+    await act(async () => {
+      useConsoleStore.getState().setInputText('2,3')
+    })
+    await submit()
+    await act(async () => {
+      useConsoleStore.getState().setInputText('12,15')
+    })
+    await submit()
+
+    expect(sketchComponents()).toEqual([
+      expect.objectContaining({ type: 'rectangle' }),
+    ])
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('')
+      input?.focus()
+      input?.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'z',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }))
+    })
+
+    expect(sketchComponents()).toHaveLength(0)
+    expect(useSpaghettiStore.getState().geometrySketchSession?.stagedRedoCommands).toHaveLength(1)
+
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'y',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }))
+    })
+
+    expect(sketchComponents()).toEqual([
+      expect.objectContaining({ type: 'rectangle' }),
+    ])
+  })
+
+  it('keeps focused-console Ctrl+Z native when Sketch Draw has a meaningful unsent manual draft', async () => {
+    const rectangleNodeId = 'node-sketch-rect-native-undo'
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: rectangleNodeId,
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: { profiles: [], diagnostics: [] },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startGeometrySketchSession(rectangleNodeId, 'draw')
+      useSpaghettiStore.getState().setGeometrySketchSessionTool('rectangle')
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 2, y: 3 }, null)
+      useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 12, y: 15 }, null)
+      useConsoleStore.getState().setInputText('manual draft', { startManualOverride: true })
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'z',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }))
+    })
+
+    expect(
+      (useSpaghettiStore.getState().graph.nodes.find((node) => node.nodeId === rectangleNodeId)
+        ?.params.sketch as { components: Array<{ type: string }> }).components,
+    ).toEqual([
+      expect.objectContaining({ type: 'rectangle' }),
+    ])
+    expect(useSpaghettiStore.getState().geometrySketchSession?.stagedRedoCommands).toHaveLength(0)
+    expect(useConsoleStore.getState().inputText).toBe('manual draft')
+  })
+
   it('accepts typed radius submissions during an active Circle command and returns to idle after commit', async () => {
     const circleNodeId = 'node-sketch-circle-1'
     container = document.createElement('div')
@@ -5513,6 +5664,8 @@ describe('ConsoleDock', () => {
       .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
 
     expect(sketchNodes).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]?.label).toBe('Add graph node')
     expect(useSpaghettiStore.getState().selectedNodeId).toBe(sketchNodes[0]?.nodeId ?? null)
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
     expect(
@@ -5529,6 +5682,25 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Root > Graph Documents > Graph 1 > Sketch > sketch_[1] > Choose next',
     )
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(
+      useSpaghettiStore
+        .getState()
+        .graph.nodes.some((node) => node.nodeId === sketchNodes[0]?.nodeId),
+    ).toBe(false)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(
+      useSpaghettiStore
+        .getState()
+        .graph.nodes.some((node) => node.nodeId === sketchNodes[0]?.nodeId),
+    ).toBe(true)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
   })
 
   it('creates an extrude node when graph extrude scope is empty and continues into that node', async () => {
@@ -5800,6 +5972,8 @@ describe('ConsoleDock', () => {
     expect(
       useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
     ).toBe(false)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]?.label).toBe('Remove graph node')
     expect(useSpaghettiStore.getState().selectedNodeId).toBeNull()
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
       kind: 'graph-document',
@@ -5816,6 +5990,22 @@ describe('ConsoleDock', () => {
           'Graph > Choose next [Sketch, Extrude, Output Preview, Focus Node, Zoom, Collapsed, Essentials, Expanded, References, Open, Build, Back]',
       ),
     ).toBe(true)
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(true)
+    expect(editHistoryStore.getRedoEntries()).toHaveLength(1)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(false)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
   })
 
   it('syncs surface-driven spaghetti activation into graph scope', async () => {

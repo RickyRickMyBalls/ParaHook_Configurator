@@ -24,7 +24,30 @@ export type CatalogRepoSeedItem = {
   productName?: string
   brand?: string
   partGroups?: Array<
-    'Footpads' | 'Bumpers' | 'Rails' | 'Motors' | 'Tires' | 'Boxes' | 'Axle Blocks' | 'FootHolds' | 'Shoes' | 'Screw & Nuts'
+    | 'Footpads'
+    | 'Bumpers'
+    | 'Rails'
+    | 'Motors'
+    | 'Tires'
+    | 'Boxes'
+    | 'Battery Boxes'
+    | 'Controllers'
+    | 'Fenders'
+    | 'Rim Savers'
+    | 'Axle Blocks'
+    | 'Bearings'
+    | 'Guards'
+    | 'Brackets'
+    | 'Adapters'
+    | 'Tools'
+    | 'Electronics'
+    | 'Lights'
+    | 'Remotes'
+    | 'Stands'
+    | 'FootHolds'
+    | 'Shoes'
+    | 'Screw & Nuts'
+    | 'Miscellaneous'
   >
   description: string
   assetKind: CatalogItemAssetKind

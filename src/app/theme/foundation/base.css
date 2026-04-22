@@ -2285,6 +2285,202 @@ button.ParaSelectMenuAction:hover {
     rgba(7, 9, 13, 0.74);
 }
 
+.EditHistoryReaderSurface {
+  display: grid;
+  place-items: stretch;
+  padding: 14px;
+  background: rgba(7, 9, 13, 0.88);
+  color: rgba(241, 244, 255, 0.94);
+}
+
+.EditHistoryReaderSurfacePanel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid rgba(110, 135, 190, 0.2);
+  border-radius: 8px;
+  background: rgba(10, 13, 19, 0.78);
+}
+
+.EditHistoryReaderSurfaceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.EditHistoryReaderSurfaceHeader h2,
+.EditHistoryReaderInspector h3,
+.EditHistoryReaderSurfaceEyebrow {
+  margin: 0;
+}
+
+.EditHistoryReaderSurfaceHeader h2 {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.EditHistoryReaderSurfaceEyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: rgba(173, 209, 255, 0.72);
+}
+
+.EditHistoryReaderSurfaceActions,
+.EditHistoryReaderStackTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.EditHistoryReaderSurfaceActions button,
+.EditHistoryReaderStackTabs button,
+.EditHistoryReaderEntryList button {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(241, 244, 255, 0.94);
+  cursor: pointer;
+}
+
+.EditHistoryReaderSurfaceActions button {
+  min-height: 30px;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.EditHistoryReaderStackTabs button {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.EditHistoryReaderSurfaceActions button:hover:not(:disabled),
+.EditHistoryReaderSurfaceActions button:focus-visible:not(:disabled),
+.EditHistoryReaderStackTabs button:hover,
+.EditHistoryReaderStackTabs button:focus-visible,
+.EditHistoryReaderEntryList button:hover,
+.EditHistoryReaderEntryList button:focus-visible {
+  border-color: rgba(133, 160, 224, 0.32);
+  background: rgba(133, 160, 224, 0.1);
+}
+
+.EditHistoryReaderSurfaceActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.EditHistoryReaderStackTabs button.isActive,
+.EditHistoryReaderEntryList button.isSelected {
+  border-color: rgba(118, 198, 255, 0.5);
+  background: rgba(71, 150, 220, 0.18);
+}
+
+.EditHistoryReaderSurfaceBody {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.EditHistoryReaderEntryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.EditHistoryReaderEntryList button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 70px;
+  padding: 10px;
+  text-align: left;
+}
+
+.EditHistoryReaderEntryList strong,
+.EditHistoryReaderEntryList span,
+.EditHistoryReaderEntryList time,
+.EditHistoryReaderInspector dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.EditHistoryReaderEntryList strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.EditHistoryReaderEntryList span,
+.EditHistoryReaderEntryList time,
+.EditHistoryReaderEmptyState {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(220, 226, 255, 0.66);
+}
+
+.EditHistoryReaderInspector {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid rgba(110, 135, 190, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.EditHistoryReaderInspector h3 {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.EditHistoryReaderInspector dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.EditHistoryReaderInspector dl div {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.34fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.EditHistoryReaderInspector dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: rgba(220, 226, 255, 0.62);
+}
+
+.EditHistoryReaderInspector dd {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(241, 244, 255, 0.9);
+}
+
+@media (max-width: 760px) {
+  .EditHistoryReaderSurfaceBody {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .HomePageSurfacePanel {
   display: flex;
   flex-direction: column;

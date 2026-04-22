@@ -7,11 +7,28 @@ import {
   readRecentItemsPolicy,
   setRecentItemsRememberEnabled,
 } from '../recentItems/recentItemsPersistence'
+import {
+  setDashboardPersistenceWithHistory,
+  setEnvironmentPersistenceWithHistory,
+  setNotepadPersistenceWithHistory,
+  setViewSettingsPersistenceWithHistory,
+  setWorkspaceRestorePersistenceWithHistory,
+  setWorkspaceStartupSurfaceWithHistory,
+} from '../store/uiPreferenceEditHistory'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   readPubPartsDownloadsStorage,
   setPubPartsLocalLibraryEnabled,
+  writePubPartsDownloadsStorage,
 } from '../catalog/pubPartsDownloadsStorage'
+import {
+  choosePubPartsLocalLibraryMirrorRoot,
+  clearPubPartsLocalLibraryMirrorSessionRoot,
+  readPubPartsLocalLibraryMirrorStatus,
+  setPubPartsLocalLibraryMirrorSessionRoot,
+  toPubPartsLocalLibraryMirrorStorageConfig,
+  type PubPartsLocalLibraryMirrorRead,
+} from '../catalog/pubPartsLocalLibraryMirror'
 import {
   homePageGraphDocumentPersistenceNote,
   homePageRecentItemsPersistenceNote,
@@ -62,7 +79,6 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
     onOpenSurface,
   } = props
   const workspaceStartupSurface = useUiPrefsStore((state) => state.workspaceStartupSurface)
-  const setWorkspaceStartupSurface = useUiPrefsStore((state) => state.setWorkspaceStartupSurface)
   const [storageRefreshIndex, setStorageRefreshIndex] = useState(0)
   const storageBuckets = readHomePageStorageBuckets(
     typeof window === 'undefined' ? undefined : window.localStorage,
@@ -77,10 +93,10 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
   const [recentItemsRemembered, setRecentItemsRemembered] = useState(
     () => readRecentItemsPolicy().rememberRecentItems,
   )
-  const [pubPartsLibraryEnabled, setPubPartsLibraryEnabled] = useState(
-    () => readPubPartsDownloadsStorage().library.status !== 'not-configured' &&
-      readPubPartsDownloadsStorage().library.status !== 'disabled',
-  )
+  const [pubPartsLocalLibraryMirrorRead, setPubPartsLocalLibraryMirrorRead] =
+    useState<PubPartsLocalLibraryMirrorRead>(() =>
+      readPubPartsLocalLibraryMirrorStatus(readPubPartsDownloadsStorage().library),
+    )
   const workspaceRestorePersistence = useUiPrefsStore(
     (state) => state.workspaceRestorePersistence,
   )
@@ -88,13 +104,6 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
   const environmentPersistence = useUiPrefsStore((state) => state.environmentPersistence)
   const dashboardPersistence = useUiPrefsStore((state) => state.dashboardPersistence)
   const notepadPersistence = useUiPrefsStore((state) => state.notepadPersistence)
-  const setWorkspaceRestorePersistence = useUiPrefsStore(
-    (state) => state.setWorkspaceRestorePersistence,
-  )
-  const setViewSettingsPersistence = useUiPrefsStore((state) => state.setViewSettingsPersistence)
-  const setEnvironmentPersistence = useUiPrefsStore((state) => state.setEnvironmentPersistence)
-  const setDashboardPersistence = useUiPrefsStore((state) => state.setDashboardPersistence)
-  const setNotepadPersistence = useUiPrefsStore((state) => state.setNotepadPersistence)
 
   useEffect(() => {
     const storageManager =
@@ -143,12 +152,79 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
     setStorageRefreshIndex((current) => current + 1)
   }
 
+  const refreshPubPartsLocalLibraryMirrorRead = () => {
+    setPubPartsLocalLibraryMirrorRead(
+      readPubPartsLocalLibraryMirrorStatus(readPubPartsDownloadsStorage().library),
+    )
+    setStorageRefreshIndex((current) => current + 1)
+  }
+
+  const connectPubPartsLocalLibraryMirror = () => {
+    void choosePubPartsLocalLibraryMirrorRoot().then((chooseResult) => {
+      if (chooseResult.status === 'enabled') {
+        setPubPartsLocalLibraryMirrorSessionRoot(chooseResult)
+      }
+
+      const downloadsStorage = readPubPartsDownloadsStorage()
+      writePubPartsDownloadsStorage({
+        ...downloadsStorage,
+        library: toPubPartsLocalLibraryMirrorStorageConfig(chooseResult),
+      })
+      refreshPubPartsLocalLibraryMirrorRead()
+    })
+  }
+
+  const disablePubPartsLocalLibraryMirror = () => {
+    clearPubPartsLocalLibraryMirrorSessionRoot()
+    setPubPartsLocalLibraryEnabled(false)
+    refreshPubPartsLocalLibraryMirrorRead()
+  }
+
+  const renderPubPartsLocalLibraryMirrorControl = () => {
+    const isConnected = pubPartsLocalLibraryMirrorRead.status === 'enabled'
+    const canChoose = pubPartsLocalLibraryMirrorRead.status !== 'unsupported'
+    const connectLabel =
+      pubPartsLocalLibraryMirrorRead.status === 'permission-needed' ? 'Reconnect' : 'Connect'
+
+    return (
+      <div
+        className="HomePageSurfaceStoragePolicyToggle HomePageSurfaceStoragePolicyToggle--pubparts"
+        data-home-page-pubparts-local-library-status={pubPartsLocalLibraryMirrorRead.status}
+      >
+        <span>PubParts Library</span>
+        <span className="HomePageSurfaceStoragePolicyStatus">
+          {isConnected
+            ? `${pubPartsLocalLibraryMirrorRead.rootLabel} connected`
+            : pubPartsLocalLibraryMirrorRead.message}
+        </span>
+        <button
+          className="CatalogShellButton CatalogShellButton--secondary"
+          type="button"
+          onClick={connectPubPartsLocalLibraryMirror}
+          disabled={!canChoose}
+          data-home-page-pubparts-local-library-connect
+        >
+          {connectLabel}
+        </button>
+        <button
+          className="CatalogShellButton CatalogShellButton--ghost"
+          type="button"
+          onClick={disablePubPartsLocalLibraryMirror}
+          disabled={pubPartsLocalLibraryMirrorRead.status === 'disabled'}
+          data-home-page-pubparts-local-library-disable
+        >
+          Disable
+        </button>
+      </div>
+    )
+  }
+
   const storagePolicyControlsByBucketId = new Map([
     [
       'workspace-layout',
       [
         renderStoragePolicySwitch('Workspace restore', workspaceRestorePersistence, () => {
-          setWorkspaceRestorePersistence(!workspaceRestorePersistence)
+          setWorkspaceRestorePersistenceWithHistory(!workspaceRestorePersistence)
         }),
       ],
     ],
@@ -156,10 +232,10 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
       'ui-prefs',
       [
         renderStoragePolicySwitch('View settings', viewSettingsPersistence, () => {
-          setViewSettingsPersistence(!viewSettingsPersistence)
+          setViewSettingsPersistenceWithHistory(!viewSettingsPersistence)
         }),
         renderStoragePolicySwitch('Environment', environmentPersistence, () => {
-          setEnvironmentPersistence(!environmentPersistence)
+          setEnvironmentPersistenceWithHistory(!environmentPersistence)
         }),
       ],
     ],
@@ -167,7 +243,7 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
       'dashboard',
       [
         renderStoragePolicySwitch('Dashboard', dashboardPersistence, () => {
-          setDashboardPersistence(!dashboardPersistence)
+          setDashboardPersistenceWithHistory(!dashboardPersistence)
         }),
       ],
     ],
@@ -175,7 +251,7 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
       'notepad',
       [
         renderStoragePolicySwitch('Notepad', notepadPersistence, () => {
-          setNotepadPersistence(!notepadPersistence)
+          setNotepadPersistenceWithHistory(!notepadPersistence)
         }),
       ],
     ],
@@ -201,14 +277,7 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
     ],
     [
       'pubparts-downloads',
-      [
-        renderStoragePolicySwitch('PubParts Library', pubPartsLibraryEnabled, () => {
-          const nextEnabled = !pubPartsLibraryEnabled
-          setPubPartsLocalLibraryEnabled(nextEnabled)
-          setPubPartsLibraryEnabled(nextEnabled)
-          setStorageRefreshIndex((current) => current + 1)
-        }),
-      ],
+      [renderPubPartsLocalLibraryMirrorControl()],
     ],
   ])
 
@@ -238,7 +307,7 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
                     aria-label="Start in Model Viewport"
                     checked={workspaceStartupSurface === 'modelViewer'}
                     onChange={() =>
-                      setWorkspaceStartupSurface(
+                      setWorkspaceStartupSurfaceWithHistory(
                         workspaceStartupSurface === 'modelViewer' ? 'homePage' : 'modelViewer',
                       )
                     }

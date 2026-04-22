@@ -1,13 +1,20 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearWorkspaceTargetSelection,
   commitWorkspaceExplicitSelection,
   commitWorkspaceTargetSelection,
   deleteWorkspaceSelectedEnvironmentLight,
+  deleteWorkspaceSelectedEnvironmentLightWithHistory,
 } from './workspaceSelectionCommands'
+import { editHistoryStore } from './editHistoryStore'
 import { useUiPrefsStore } from './uiPrefsStore'
 
 describe('workspaceSelectionCommands', () => {
+  beforeEach(() => {
+    editHistoryStore.clear()
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+  })
+
   it('commits a single workspace target through one shared selection outcome seam', () => {
     const setWorkspaceSelectedTarget = vi.fn()
     const selectPart = vi.fn()
@@ -236,5 +243,76 @@ describe('workspaceSelectionCommands', () => {
     expect(requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
 
     getStateSpy.mockRestore()
+  })
+
+  it('commits selected environment light delete history without changing command return shape', () => {
+    const setWorkspaceSelectedTarget = vi.fn()
+    const selectLight = vi.fn()
+    const requestConsoleContextSync = vi.fn()
+    const requestConsoleWorkspaceContextHandoff = vi.fn()
+
+    const result = deleteWorkspaceSelectedEnvironmentLightWithHistory(
+      {
+        setWorkspaceSelectedTarget,
+        selectLight,
+        requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
+        deleteLight: useUiPrefsStore.getState().deleteLight,
+      },
+      {
+        kind: 'environment-light',
+        lightId: 'key',
+      },
+    )
+
+    expect(result).toEqual({
+      deletedTarget: {
+        kind: 'environment-light',
+        lightId: 'key',
+      },
+      nextSelectedTarget: {
+        kind: 'environment-light',
+        lightId: 'fill',
+      },
+    })
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Change environment look',
+        source: {
+          surface: 'viewer-environment',
+        },
+        targetId: 'environment-light:key:delete',
+        targetLabel: 'Environment light delete',
+      },
+    ])
+    expect(useUiPrefsStore.getState().view.lighting.lights.map((light) => light.id)).not.toContain(
+      'key',
+    )
+
+    editHistoryStore.undo()
+    expect(useUiPrefsStore.getState().view.lighting.lights.map((light) => light.id)).toContain(
+      'key',
+    )
+
+    editHistoryStore.redo()
+    expect(useUiPrefsStore.getState().view.lighting.lights.map((light) => light.id)).not.toContain(
+      'key',
+    )
+  })
+
+  it('keeps missing selected environment light delete out of history', () => {
+    const result = deleteWorkspaceSelectedEnvironmentLightWithHistory(
+      {
+        setWorkspaceSelectedTarget: vi.fn(),
+        deleteLight: useUiPrefsStore.getState().deleteLight,
+      },
+      {
+        kind: 'environment-light',
+        lightId: 'missing-light',
+      },
+    )
+
+    expect(result).toBeNull()
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
   })
 })

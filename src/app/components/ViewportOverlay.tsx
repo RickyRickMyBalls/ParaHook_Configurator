@@ -580,6 +580,12 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const runGeometrySketchDrawCommand = useSpaghettiStore(
     (state) => state.runGeometrySketchDrawCommand,
   )
+  const undoGeometrySketchStagedCommand = useSpaghettiStore(
+    (state) => state.undoGeometrySketchStagedCommand,
+  )
+  const redoGeometrySketchStagedCommand = useSpaghettiStore(
+    (state) => state.redoGeometrySketchStagedCommand,
+  )
   const setGeometrySketchSelectedProfile = useSpaghettiStore(
     (state) => state.setGeometrySketchSelectedProfile,
   )
@@ -1674,6 +1680,16 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       if (routing.owner !== 'sketch-draw' || routing.decision !== 'handle') {
         return
       }
+      if (routing.sketchDrawAction === 'undo') {
+        event.preventDefault()
+        undoGeometrySketchStagedCommand()
+        return
+      }
+      if (routing.sketchDrawAction === 'redo') {
+        event.preventDefault()
+        redoGeometrySketchStagedCommand()
+        return
+      }
       if (event.key === 'Escape') {
         event.preventDefault()
         runGeometrySketchDrawCommand('esc')
@@ -1689,7 +1705,12 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [geometrySketchSession, runGeometrySketchDrawCommand])
+  }, [
+    geometrySketchSession,
+    redoGeometrySketchStagedCommand,
+    runGeometrySketchDrawCommand,
+    undoGeometrySketchStagedCommand,
+  ])
 
   const beginSketchSessionWindowDrag = (
     pointerId: number | null,

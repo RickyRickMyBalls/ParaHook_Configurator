@@ -56,6 +56,7 @@ const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
   notepad: 'Notepad',
   dashboard: 'Dashboard',
   homePage: 'Home Page',
+  editHistory: 'Edit History',
 }
 
 const typePickerWidth = 180
@@ -124,6 +125,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
           'notepad',
           'dashboard',
           'homePage',
+          'editHistory',
         ] as const)
       ).map((kind) => ({
         kind,

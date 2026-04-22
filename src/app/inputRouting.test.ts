@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest'
-import { routeKeyboardInput } from './inputRouting'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  dispatchEditHistoryShortcut,
+  routeKeyboardInput,
+} from './inputRouting'
 
 describe('routeKeyboardInput', () => {
   const createEvent = (key: string): KeyboardEvent =>
@@ -18,6 +21,383 @@ describe('routeKeyboardInput', () => {
       owner: 'text-field',
       decision: 'defer-native',
     })
+  })
+
+  it('defers native undo and redo shortcuts for editable targets', () => {
+    const targets = [
+      document.createElement('input'),
+      document.createElement('textarea'),
+      document.createElement('select'),
+      document.createElement('div'),
+    ]
+    targets[3].setAttribute('contenteditable', 'true')
+
+    for (const target of targets) {
+      expect(routeKeyboardInput({
+        event: {
+          key: 'z',
+          ctrlKey: true,
+          target,
+        },
+        editHistoryCanUndo: true,
+      })).toEqual({
+        owner: 'text-field',
+        decision: 'defer-native',
+      })
+
+      expect(routeKeyboardInput({
+        event: {
+          key: 'y',
+          ctrlKey: true,
+          target,
+        },
+        editHistoryCanRedo: true,
+      })).toEqual({
+        owner: 'text-field',
+        decision: 'defer-native',
+      })
+    }
+  })
+
+  it('routes focused console undo and redo to active sketch draw when there is no unsent console draft', () => {
+    const input = document.createElement('input')
+    input.dataset.consoleInput = 'true'
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: input,
+      },
+      consoleCommandSessionUndoOwner: 'sketch-draw',
+      consoleInputAllowsCommandSessionUndo: true,
+    })).toEqual({
+      owner: 'sketch-draw',
+      decision: 'handle',
+      sketchDrawAction: 'undo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: input,
+      },
+      consoleCommandSessionUndoOwner: 'sketch-draw',
+      consoleInputAllowsCommandSessionUndo: true,
+    })).toEqual({
+      owner: 'sketch-draw',
+      decision: 'handle',
+      sketchDrawAction: 'redo',
+    })
+  })
+
+  it('preserves native undo for focused console input with a meaningful unsent draft', () => {
+    const input = document.createElement('input')
+    input.dataset.consoleInput = 'true'
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: input,
+      },
+      consoleCommandSessionUndoOwner: 'sketch-draw',
+      consoleInputAllowsCommandSessionUndo: false,
+    })).toEqual({
+      owner: 'text-field',
+      decision: 'defer-native',
+    })
+  })
+
+  it('routes available undo and redo shortcuts to edit history in normal contexts', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'undo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        metaKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'undo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        metaKey: true,
+        shiftKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    })
+  })
+
+  it('routes undo and redo shortcuts to sketch draw while draw mode is active', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      geometrySketchMode: 'draw',
+      viewerCameraShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'sketch-draw',
+      decision: 'handle',
+      sketchDrawAction: 'undo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: true,
+      geometrySketchMode: 'draw',
+      viewerCameraShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'sketch-draw',
+      decision: 'handle',
+      sketchDrawAction: 'redo',
+    })
+  })
+
+  it('routes available undo and redo shortcuts to edit history while reference transform is active', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'undo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: true,
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        metaKey: true,
+        shiftKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: true,
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    })
+  })
+
+  it('leaves unavailable undo and redo shortcuts unclaimed while reference transform is active', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: false,
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: false,
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
+  it('does not claim unavailable edit history undo and redo shortcuts', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: false,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: false,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
+  it('keeps unavailable canonical dispatch from changing runtime or view-like event handling', () => {
+    const owner = {
+      canUndo: vi.fn(() => false),
+      canRedo: vi.fn(() => false),
+      undo: vi.fn(),
+      redo: vi.fn(),
+    }
+    const event = {
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    }
+
+    const unavailableUndoRoute = routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: false,
+      viewerCameraShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+    })
+    expect(unavailableUndoRoute).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+    expect(dispatchEditHistoryShortcut(unavailableUndoRoute, event, owner)).toBe(false)
+    expect(owner.undo).not.toHaveBeenCalled()
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    expect(event.stopImmediatePropagation).not.toHaveBeenCalled()
+  })
+
+  it('dispatches edit history shortcuts only when the owner can perform them', () => {
+    const owner = {
+      canUndo: vi.fn(() => true),
+      canRedo: vi.fn(() => true),
+      undo: vi.fn(),
+      redo: vi.fn(),
+    }
+    const event = {
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    }
+
+    expect(dispatchEditHistoryShortcut({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'undo',
+    }, event, owner)).toBe(true)
+    expect(owner.undo).toHaveBeenCalledTimes(1)
+    expect(event.preventDefault).toHaveBeenCalledTimes(1)
+    expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1)
+
+    expect(dispatchEditHistoryShortcut({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    }, event, owner)).toBe(true)
+    expect(owner.redo).toHaveBeenCalledTimes(1)
+    expect(event.preventDefault).toHaveBeenCalledTimes(2)
+    expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(2)
+  })
+
+  it('leaves unavailable edit history dispatch unclaimed', () => {
+    const owner = {
+      canUndo: vi.fn(() => false),
+      canRedo: vi.fn(() => false),
+      undo: vi.fn(),
+      redo: vi.fn(),
+    }
+    const event = {
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    }
+
+    expect(dispatchEditHistoryShortcut({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'undo',
+    }, event, owner)).toBe(false)
+    expect(dispatchEditHistoryShortcut({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    }, event, owner)).toBe(false)
+    expect(owner.undo).not.toHaveBeenCalled()
+    expect(owner.redo).not.toHaveBeenCalled()
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    expect(event.stopImmediatePropagation).not.toHaveBeenCalled()
   })
 
   it('gives Escape to sketch-plane pick before staged console', () => {
@@ -252,6 +632,39 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('keeps camera navigation shortcuts out of edit history routing', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'Z',
+        code: 'KeyZ',
+        shiftKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      viewerCameraShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: '5',
+        code: 'Numpad5',
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      viewerCameraShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
   it('keeps viewer camera shortcuts dormant while fly mode is active', () => {
     const result = routeKeyboardInput({
       event: {
@@ -293,6 +706,32 @@ describe('routeKeyboardInput', () => {
       owner: 'reference-transform',
       decision: 'handle',
     })
+  })
+
+  it('keeps transform-local keys owned by reference transform when edit history is available', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('Escape'),
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'reference-transform',
+      decision: 'handle',
+    })
+
+    for (const key of ['m', 'r', 's']) {
+      expect(routeKeyboardInput({
+        event: createEvent(key),
+        editHistoryCanUndo: true,
+        editHistoryCanRedo: true,
+        referenceTransformActive: true,
+        allowFlatConsoleCapture: true,
+      })).toEqual({
+        owner: 'reference-transform',
+        decision: 'handle',
+      })
+    }
   })
 
   it('lets x/y/z fall back to console capture during a live reference transform entry', () => {
@@ -396,6 +835,75 @@ describe('routeKeyboardInput', () => {
       }),
     ).toEqual({
       owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
+  it('keeps console recall, focus/menu, sketch, and reference local owners out of edit history routing', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('ArrowUp'),
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('ArrowDown'),
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('Escape'),
+      editHistoryCanUndo: true,
+      sketchPlanePickStage: 'pick',
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'sketch-plane',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('m'),
+      editHistoryCanUndo: true,
+      referenceTransformActive: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'reference-transform',
+      decision: 'handle',
+    })
+  })
+
+  it('keeps command transcript and runtime-like printable keys as console-local capture', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('b'),
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('b'),
+      editHistoryCanUndo: true,
+      editHistoryCanRedo: true,
+      allowFlatConsoleCapture: true,
+    })).toEqual({
+      owner: 'flat-console',
       decision: 'handle',
     })
   })

@@ -29,7 +29,7 @@ type CatalogCardPreviewViewportProps = {
     objectUrl: string
   }
   fallbackPreviewMedia: CatalogItemPreviewMedia | null
-  surfaceKind?: 'card' | 'item-page'
+  surfaceKind?: 'card' | 'item-page' | 'source-options'
 }
 
 type CatalogCardPreviewViewportStatus =

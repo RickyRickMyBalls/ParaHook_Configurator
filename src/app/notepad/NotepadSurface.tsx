@@ -1,9 +1,23 @@
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import {
+  commitNoteTextFieldWithHistory,
+  createNoteWithHistory,
+  deleteNoteWithHistory,
+  setNotePinnedWithHistory,
+} from '../store/notepadEditHistory'
 import { useNotepadStore } from './useNotepadStore'
 
 type NotepadSurfaceProps = {
   surfaceInstanceId: string
   hostMode?: 'slotted' | 'floating' | 'popout'
   onActivate?: () => void
+}
+
+type NotepadTextFieldSession = {
+  noteId: string
+  field: 'title' | 'body'
+  beforeValue: string
+  updatedAtBefore: string
 }
 
 const formatTimestamp = (value: string): string => {
@@ -24,16 +38,66 @@ export function NotepadSurface(props: NotepadSurfaceProps) {
   const noteOrder = useNotepadStore((state) => state.noteOrder)
   const notesById = useNotepadStore((state) => state.notesById)
   const activeNoteId = useNotepadStore((state) => state.activeNoteId)
-  const createNote = useNotepadStore((state) => state.createNote)
-  const deleteNote = useNotepadStore((state) => state.deleteNote)
   const renameNote = useNotepadStore((state) => state.renameNote)
   const setActiveNoteId = useNotepadStore((state) => state.setActiveNoteId)
-  const setNotePinned = useNotepadStore((state) => state.setNotePinned)
   const updateNoteBody = useNotepadStore((state) => state.updateNoteBody)
+  const textSessionRef = useRef<NotepadTextFieldSession | null>(null)
+  const [, setTextSessionVersion] = useState(0)
 
   const activeNote =
     (activeNoteId !== null ? notesById[activeNoteId] : null) ??
     (noteOrder.length > 0 ? notesById[noteOrder[0] ?? ''] ?? null : null)
+
+  const beginTextSession = (field: 'title' | 'body', note = activeNote) => {
+    if (note === null) {
+      return
+    }
+    textSessionRef.current = {
+      noteId: note.id,
+      field,
+      beforeValue: note[field],
+      updatedAtBefore: note.updatedAt,
+    }
+  }
+
+  const clearTextSession = () => {
+    textSessionRef.current = null
+    setTextSessionVersion((version) => version + 1)
+  }
+
+  const commitTextSession = (field: 'title' | 'body', note = activeNote) => {
+    const session = textSessionRef.current
+    if (session === null || note === null || session.noteId !== note.id || session.field !== field) {
+      clearTextSession()
+      return
+    }
+    const afterValue = note[field]
+    const updatedAtAfter = note.updatedAt
+    clearTextSession()
+    commitNoteTextFieldWithHistory(note.id, field, session.beforeValue, afterValue, {
+      updatedAtBefore: session.updatedAtBefore,
+      updatedAtAfter,
+    })
+  }
+
+  const cancelTextSession = (
+    event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    field: 'title' | 'body',
+    note = activeNote,
+  ) => {
+    const session = textSessionRef.current
+    if (event.key !== 'Escape' || session === null || note === null || session.noteId !== note.id || session.field !== field) {
+      return
+    }
+    event.preventDefault()
+    if (field === 'title') {
+      renameNote(note.id, session.beforeValue)
+    } else {
+      updateNoteBody(note.id, session.beforeValue)
+    }
+    clearTextSession()
+    event.currentTarget.blur()
+  }
 
   return (
     <div
@@ -52,7 +116,7 @@ export function NotepadSurface(props: NotepadSurfaceProps) {
             type="button"
             className="NotepadSurfaceCreateButton"
             onClick={() => {
-              createNote()
+              createNoteWithHistory()
             }}
           >
             New Note
@@ -66,7 +130,7 @@ export function NotepadSurface(props: NotepadSurfaceProps) {
                 type="button"
                 className="NotepadSurfaceCreateButton"
                 onClick={() => {
-                  createNote()
+                  createNoteWithHistory()
                 }}
               >
                 Create First Note
@@ -131,14 +195,14 @@ export function NotepadSurface(props: NotepadSurfaceProps) {
                 <button
                   type="button"
                   className="NotepadSurfaceToolbarButton"
-                  onClick={() => setNotePinned(activeNote.id, !activeNote.isPinned)}
+                  onClick={() => setNotePinnedWithHistory(activeNote.id, !activeNote.isPinned)}
                 >
                   {activeNote.isPinned ? 'Unpin' : 'Pin to Dashboard'}
                 </button>
                 <button
                   type="button"
                   className="NotepadSurfaceToolbarButton NotepadSurfaceToolbarButton--danger"
-                  onClick={() => deleteNote(activeNote.id)}
+                  onClick={() => deleteNoteWithHistory(activeNote.id)}
                 >
                   Delete
                 </button>
@@ -149,13 +213,19 @@ export function NotepadSurface(props: NotepadSurfaceProps) {
               type="text"
               value={activeNote.title}
               placeholder="Untitled note"
+              onFocus={() => beginTextSession('title', activeNote)}
               onChange={(event) => renameNote(activeNote.id, event.currentTarget.value)}
+              onBlur={() => commitTextSession('title', activeNote)}
+              onKeyDown={(event) => cancelTextSession(event, 'title', activeNote)}
             />
             <textarea
               className="NotepadSurfaceBodyInput"
               value={activeNote.body}
               placeholder="Write here..."
+              onFocus={() => beginTextSession('body', activeNote)}
               onChange={(event) => updateNoteBody(activeNote.id, event.currentTarget.value)}
+              onBlur={() => commitTextSession('body', activeNote)}
+              onKeyDown={(event) => cancelTextSession(event, 'body', activeNote)}
             />
           </>
         )}

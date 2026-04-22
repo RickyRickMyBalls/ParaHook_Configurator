@@ -15,12 +15,35 @@ import {
   readCachedPubPartsResourceSourceItems,
 } from './pubPartsCachedSource'
 import { resolveCatalogRepoReferencePreviewSource } from './catalogItemContract'
+import type { PubPartsNormalizedSourceItem } from './pubPartsSource'
 
 describe('catalogSource', () => {
   const gtSourceFitmentMetadataRow = {
     label: 'Source Fitment Note',
     value: 'GT-S source label preserved; canonical platform family remains GT',
   }
+  const buildPubPartsSourceItem = (
+    overrides: Partial<PubPartsNormalizedSourceItem> = {},
+  ): PubPartsNormalizedSourceItem => ({
+    providerId: 'pubparts',
+    providerName: 'PubParts',
+    sourceRecordKind: 'part',
+    sourceTitle: 'Live Source Stable Footpad',
+    sourceCollectionKey: 'Footpad Attachment',
+    sourceCollectionLabel: 'Floatwheel',
+    sourceUrl: 'https://pubparts.xyz/parts/live-source-stable-footpad',
+    externalItemUrl: 'https://pubparts.xyz/parts/live-source-stable-footpad',
+    previewImageUrl: 'https://pubparts.xyz/images/live-source-stable-footpad.png',
+    linkedArchiveUrl: 'https://www.dropbox.com/scl/fi/live/source-stable-footpad.zip?dl=0',
+    sourceLastUpdated: '2026-04-21T19:45:00.000Z',
+    archiveLastUpdated: '2026-04-21',
+    sourceMetadata: {
+      fabricationMethod: '3d Printed',
+      typeOfPart: 'Footpad Attachment',
+      platform: 'Floatwheel',
+    },
+    ...overrides,
+  })
 
   it('normalizes external PubParts platform source labels into canonical Catalog platform families', () => {
     expect(normalizeCatalogExternalPlatformCompatibility('Floatwheel')).toEqual(['ADV'])
@@ -97,30 +120,117 @@ describe('catalogSource', () => {
     expect(buildCatalogExternalTypeClassification(['Gasket', 'Controller Box'])).toEqual({
       systemKey: 'Platform',
       partType: 'Controller Box',
-      partGroups: ['Boxes'],
+      partGroups: ['Boxes', 'Controllers', 'Screw & Nuts'],
     })
     expect(buildCatalogExternalTypeClassification('Gasket, Controller Box')).toEqual({
       systemKey: 'Platform',
       partType: 'Controller Box',
-      partGroups: ['Boxes'],
+      partGroups: ['Boxes', 'Controllers', 'Screw & Nuts'],
     })
     expect(buildCatalogExternalTypeClassification('Rim Saver')).toEqual({
       systemKey: 'Wheel',
       partType: 'Rim Saver',
+      partGroups: ['Rim Savers', 'Guards'],
     })
     expect(buildCatalogExternalTypeClassification([' Rim Saver ', 'Rim Saver'])).toEqual({
       systemKey: 'Wheel',
       partType: 'Rim Saver',
+      partGroups: ['Rim Savers', 'Guards'],
     })
     expect(buildCatalogExternalTypeClassification(['Rim Saver', 'Controller Box'])).toEqual({
       systemKey: 'Wheel',
       partType: 'Rim Saver',
+      partGroups: ['Rim Savers', 'Guards', 'Boxes', 'Controllers'],
+    })
+    expect(buildCatalogExternalTypeClassification(['Tire', 'Fender', 'Rails'])).toEqual({
+      systemKey: 'Platform',
+      partType: 'Rails',
+      partGroups: ['Rails', 'Tires', 'Fenders'],
+    })
+    expect(buildCatalogExternalTypeClassification(['Battery Box', 'Axle Block'])).toEqual({
+      systemKey: 'Platform',
+      partType: 'Battery Box',
+      partGroups: ['Battery Boxes', 'Axle Blocks'],
     })
     expect(buildCatalogExternalTypeClassification('Unknown Type')).toEqual({})
     expect(buildCatalogExternalTypeClassification('')).toEqual({})
     expect(buildCatalogExternalTypeClassification('   ')).toEqual({})
     expect(buildCatalogExternalTypeClassification(null)).toEqual({})
     expect(buildCatalogExternalTypeClassification(undefined)).toEqual({})
+  })
+
+  it('keeps live PubParts projection ParaHook-owned and item ids source-stable', () => {
+    const targetSourceItem = buildPubPartsSourceItem()
+    const insertedSourceItem = buildPubPartsSourceItem({
+      sourceTitle: 'New Zinc Source Addition',
+      sourceCollectionKey: 'Mystery PubParts Type',
+      sourceCollectionLabel: 'Future Board',
+      sourceUrl: 'https://pubparts.xyz/parts/new-zinc-source-addition',
+      externalItemUrl: 'https://pubparts.xyz/parts/new-zinc-source-addition',
+      linkedArchiveUrl: 'https://www.dropbox.com/scl/fi/live/new-source-addition.zip?dl=0',
+      sourceMetadata: {
+        fabricationMethod: '3d Printed',
+        typeOfPart: 'Mystery PubParts Type',
+        platform: 'Future Board',
+      },
+    })
+    const renamedTargetSourceItem = buildPubPartsSourceItem({
+      sourceTitle: 'Renamed Live Source Stable Footpad',
+    })
+    const targetItemId = 'external:pubparts:part:https-pubparts-xyz-parts-live-source-stable-footpad'
+
+    const initialSnapshot = createCatalogSourceSnapshot(undefined, {
+      pubPartsSourceItems: [targetSourceItem],
+    })
+    const updatedSnapshot = createCatalogSourceSnapshot(undefined, {
+      pubPartsSourceItems: [insertedSourceItem, renamedTargetSourceItem],
+    })
+    const initialTargetItem = initialSnapshot.externalItems.find(
+      (item) => item.source.sourceKind === 'external' && item.source.sourceUrl === targetSourceItem.sourceUrl,
+    )
+    const updatedTargetItem = updatedSnapshot.externalItems.find(
+      (item) => item.source.sourceKind === 'external' && item.source.sourceUrl === targetSourceItem.sourceUrl,
+    )
+    const insertedItem = updatedSnapshot.externalItems.find(
+      (item) => item.source.sourceKind === 'external' && item.source.sourceUrl === insertedSourceItem.sourceUrl,
+    )
+
+    expect(initialTargetItem).toEqual(
+      expect.objectContaining({
+        itemId: targetItemId,
+        label: 'Live Source Stable Footpad',
+        platformCompatibility: ['ADV'],
+        systemKey: 'Platform',
+        partType: 'Footpad Attachment',
+        partGroups: ['Footpads'],
+      }),
+    )
+    expect(updatedTargetItem).toEqual(
+      expect.objectContaining({
+        itemId: targetItemId,
+        label: 'Renamed Live Source Stable Footpad',
+        platformCompatibility: ['ADV'],
+        systemKey: 'Platform',
+        partType: 'Footpad Attachment',
+        partGroups: ['Footpads'],
+      }),
+    )
+    expect(insertedItem).toEqual(
+      expect.objectContaining({
+        itemId: 'external:pubparts:part:https-pubparts-xyz-parts-new-zinc-source-addition',
+        label: 'New Zinc Source Addition',
+        platformCompatibility: ['Other'],
+      }),
+    )
+    expect(insertedItem?.systemKey).toBeUndefined()
+    expect(insertedItem?.partType).toBeUndefined()
+    expect(insertedItem?.partGroups).toBeUndefined()
+    expect(insertedItem?.metadata).toEqual(
+      expect.arrayContaining([
+        { label: 'Part Type', value: 'Mystery PubParts Type' },
+        { label: 'Platform', value: 'Future Board' },
+      ]),
+    )
   })
 
   it('exposes authored repo-backed catalog entries through one catalog-owned source seam', () => {
@@ -580,7 +690,7 @@ describe('catalogSource', () => {
         platformCompatibility: ['GT'],
         systemKey: 'Platform',
         partType: 'Controller Box',
-        partGroups: ['Boxes'],
+        partGroups: ['Boxes', 'Controllers', 'Screw & Nuts'],
       }),
     )
     expect(celesteItem?.metadata).toEqual(
@@ -605,9 +715,9 @@ describe('catalogSource', () => {
       expect.objectContaining({
         systemKey: 'Wheel',
         partType: 'Rim Saver',
+        partGroups: ['Rim Savers', 'Guards'],
       }),
     )
-    expect(floatNlcItem?.partGroups).toBeUndefined()
     expect(floatNlcItem?.metadata).toEqual(
       expect.arrayContaining([
         { label: 'Part Type', value: 'Rim Saver' },

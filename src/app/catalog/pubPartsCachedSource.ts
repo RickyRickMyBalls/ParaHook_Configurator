@@ -119,6 +119,19 @@ function buildCachedPartDedupeKey(item: PubPartsNormalizedSourceItem): string {
   ].join(':')
 }
 
+function withCachedSourceIdentityKey(
+  item: PubPartsNormalizedSourceItem,
+  sourceIdentityKey: string,
+): PubPartsNormalizedSourceItem {
+  return {
+    ...item,
+    sourceMetadata: {
+      ...item.sourceMetadata,
+      sourceIdentityKey,
+    },
+  }
+}
+
 function appendUniqueMetadataValue(existingValue: string | undefined, nextValue: string): string {
   const values = (existingValue ?? '')
     .split(', ')
@@ -180,9 +193,10 @@ export function readCachedPubPartsDedupedPartSourceItems(
       }
 
       if (sourceSetSeenKeys.has(dedupeKey)) {
+        const duplicateDedupeKey = `${dedupeKey}:source-duplicate:${sourceSet.sourceSetId}:${sourceItemIndex}`
         itemsByDedupeKey.set(
-          `${dedupeKey}:source-duplicate:${sourceSet.sourceSetId}:${sourceItemIndex}`,
-          sourceItem,
+          duplicateDedupeKey,
+          withCachedSourceIdentityKey(sourceItem, duplicateDedupeKey),
         )
         sourceSetSeenKeys.add(dedupeKey)
         continue

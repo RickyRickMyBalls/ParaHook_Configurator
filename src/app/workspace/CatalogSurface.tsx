@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { resolveCatalogEnvironmentApplyRequest } from '../catalog/catalogEnvironmentApply'
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 import { resolveCatalogActionPlan } from '../catalog/catalogActionPlan'
@@ -15,8 +15,35 @@ import {
   readPubPartsArchiveManifestCacheRecord,
   writePubPartsArchiveManifestCacheRecord,
 } from '../catalog/pubPartsArchiveManifestCache'
+import {
+  buildPubPartsInternalLibraryManifest,
+  readPubPartsInternalLibraryArchiveCache,
+  writePubPartsInternalLibraryArchiveCache,
+  writePubPartsInternalLibraryExtractedCandidate,
+  type PubPartsInternalLibraryExtractedCandidate,
+  type PubPartsInternalLibraryManifest,
+} from '../catalog/pubPartsInternalLibrary'
+import {
+  assertPubPartsSourceMaterializationSamePath,
+  buildPubPartsSourceMaterializationFreshness,
+  buildPubPartsSourceMaterializationIdentity,
+  resolvePubPartsSourceMaterializationDecision,
+  type PubPartsSourceByteOrigin,
+  type PubPartsSourceMaterializationDecision,
+  type PubPartsSourceMaterializationDecisionInput,
+  type PubPartsSourceMaterializationSourceKind,
+  type PubPartsSourceMaterializationStatus,
+} from '../catalog/pubPartsSourceMaterialization'
+import {
+  assertPubPartsTrustedSourceProviderSamePath,
+  getPubPartsTrustedSourceProvider,
+  resolvePubPartsTrustedSourceProviderMaterializationDecision,
+} from '../catalog/pubPartsTrustedSourceProvider'
 import { CatalogShell } from '../catalog/ui/CatalogShell'
-import { CatalogShellSourceOptionsDialog } from '../catalog/ui/CatalogShellSourceOptionsDialog'
+import {
+  CatalogShellSourceOptionsDialog,
+  type CatalogShellSourceOptionsPreviewState,
+} from '../catalog/ui/CatalogShellSourceOptionsDialog'
 import {
   buildCatalogPubPartsImportedReferenceSourceAttribution,
   type CatalogPubPartsDropboxChooserStatus,
@@ -29,6 +56,7 @@ import {
   readCachedPubPartsFullPartSourceItems,
   readCachedPubPartsResourceSourceItems,
 } from '../catalog/pubPartsCachedSource'
+import { readLivePubPartsPartSourceItems } from '../catalog/pubPartsLiveSource'
 import {
   readCatalogPreviewSession,
   sanitizeCatalogPreviewSessionState,
@@ -52,7 +80,27 @@ import {
   importSupportedReferenceFilesFromDisk,
   type ImportedReferenceFile,
 } from '../references/importReferenceFile'
-import { listPubPartsZipArchiveEntries } from '../catalog/pubPartsZipArchive'
+import {
+  extractPubPartsZipArchiveEntries,
+  listPubPartsZipArchiveEntries,
+} from '../catalog/pubPartsZipArchive'
+import {
+  resolvePubPartsZipEntryPreviewActionState,
+  resolvePubPartsZipEntryPreviewActionStates,
+  type PubPartsZipEntryPreviewActionState,
+  type PubPartsZipEntryPreviewArchiveByteAvailability,
+} from '../catalog/pubPartsZipEntryPreview'
+import {
+  getPubPartsLocalLibraryMirrorSessionRoot,
+  readPubPartsLocalLibraryMirrorCandidatePath,
+  readPubPartsLocalLibraryMirrorStatus,
+  resolvePubPartsLocalLibraryMirrorPlan,
+  writePubPartsLocalLibraryMirrorArchive,
+  writePubPartsLocalLibraryMirrorExtractedCandidate,
+  writePubPartsLocalLibraryMirrorManifest,
+  type PubPartsLocalLibraryMirrorRead,
+} from '../catalog/pubPartsLocalLibraryMirror'
+import { runEnvironmentLookHistoryAction } from '../store/environmentLookEditHistory'
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 
@@ -69,9 +117,14 @@ type PubPartsSourceOptionsDialogState = {
   statusMessage: string | null
   isInspectingArchive: boolean
   isStaging: boolean
+  previewState: CatalogShellSourceOptionsPreviewState
   archiveBlob?: Blob
   archiveBlobSourceUrl?: string
   archiveBlobStagedSourceId?: string
+  archiveBlobPreviewSource?: Extract<
+    PubPartsZipEntryPreviewArchiveByteAvailability,
+    { state: 'available' }
+  >['source']
 } | null
 
 type LocalZipInputLike = HTMLInputElement & {
@@ -150,6 +203,63 @@ const resolvePubPartsSourceOptionsSelectionStatus = (
   } selected for Import review.`
 }
 
+const resolvePubPartsSourceOptionsArchiveByteAvailability = (
+  dialog: Exclude<PubPartsSourceOptionsDialogState, null>,
+): PubPartsZipEntryPreviewArchiveByteAvailability => {
+  if (
+    dialog.archiveBlob !== undefined &&
+    dialog.archiveBlobSourceUrl === dialog.stagedRecord.sourceCandidateUrl.trim() &&
+    dialog.archiveBlobStagedSourceId === dialog.stagedRecord.stagedSourceId
+  ) {
+    return {
+      state: 'available',
+      source: dialog.archiveBlobPreviewSource ?? 'source-options-archive',
+    }
+  }
+
+  if (dialog.archiveBlob !== undefined) {
+    return {
+      state: 'missing',
+      reason: 'stale-archive-bytes',
+    }
+  }
+
+  if (
+    dialog.candidates.some(
+      (candidate) =>
+        candidate.kind === 'supported-archive-entry' ||
+        candidate.kind === 'unsupported-archive-entry',
+    )
+  ) {
+    return {
+      state: 'metadata-only',
+      source: 'local-storage-manifest',
+    }
+  }
+
+  return {
+    state: 'missing',
+    reason: 'no-archive-bytes',
+  }
+}
+
+const buildPubPartsPreviewErrorMessage = (error: unknown): string =>
+  error instanceof Error
+    ? error.message
+    : 'This ZIP entry could not be prepared for preview.'
+
+const isCurrentPubPartsSourceOptionsPreviewRequest = (
+  dialog: PubPartsSourceOptionsDialogState,
+  stagedSourceId: string,
+  archiveBlob: Blob,
+  candidateId: string,
+): dialog is Exclude<PubPartsSourceOptionsDialogState, null> =>
+  dialog !== null &&
+  dialog.stagedRecord.stagedSourceId === stagedSourceId &&
+  dialog.archiveBlob === archiveBlob &&
+  dialog.previewState.status === 'loading' &&
+  dialog.previewState.candidateId === candidateId
+
 const resolvePubPartsArchiveInspectionSuccessStatus = (
   candidates: PubPartsSharedLinkCandidate[],
   selectedCandidateIds: string[],
@@ -159,10 +269,30 @@ const resolvePubPartsArchiveInspectionSuccessStatus = (
   ).length
 
   if (supportedArchiveCount === 0) {
-    return 'ZIP inspected, but no supported entries are selectable. Use Open Source or Import Local Files after downloading and extracting manually.'
+    return 'ZIP inspected, but no supported entries are selectable. Direct browser source fetch materialized archive bytes for the existing ZIP list/preview/select/stage path. Use Open Source or Import Local Files after downloading and extracting manually.'
   }
 
   return `ZIP inspected. ${selectedCandidateIds.length} supported archive candidate${
+    selectedCandidateIds.length === 1 ? '' : 's'
+  } selected for extraction into Import review. Direct browser source fetch materialized archive bytes for the existing ZIP list/preview/select/stage path.`
+}
+
+const resolvePubPartsProviderArchiveInspectionSuccessStatus = (
+  candidates: PubPartsSharedLinkCandidate[],
+  selectedCandidateIds: string[],
+  providerLabel: string,
+): string => {
+  const supportedArchiveCount = candidates.filter(
+    (candidate) => candidate.kind === 'supported-archive-entry',
+  ).length
+
+  if (supportedArchiveCount === 0) {
+    return `Trusted provider ${providerLabel} materialized archive bytes for the existing ZIP list/preview/select/stage path, but no supported entries are selectable. Use Open Source or Import Local Files after downloading and extracting manually.`
+  }
+
+  return `Trusted provider ${providerLabel} materialized archive bytes for the existing ZIP list/preview/select/stage path. ${
+    selectedCandidateIds.length
+  } supported archive candidate${
     selectedCandidateIds.length === 1 ? '' : 's'
   } selected for extraction into Import review.`
 }
@@ -186,14 +316,68 @@ const resolvePubPartsArchiveManifestCacheHitStatus = (
   } selected; files will still be revalidated from the ZIP before Import review.`
 }
 
-const resolvePubPartsArchiveInspectionFailureStatus = (error: unknown): string =>
-  error instanceof Error
-    ? `${error.message} Use Download ZIP to open or save the archive, then upload that ZIP here.`
-    : 'PubParts ZIP archive inspection failed. Use Download ZIP to open or save the archive, then upload that ZIP here.'
+const buildPubPartsSourceMaterializationDecisionForStagedRecord = (
+  stagedRecord: PubPartsStagedSourceRecord,
+  options: {
+    status: PubPartsSourceMaterializationStatus
+    sourceKind?: PubPartsSourceMaterializationSourceKind
+    byteOrigin?: PubPartsSourceByteOrigin
+    byteSize?: number
+    materializedAt?: string
+    reason?: string
+    sourceIdentityMatches?: boolean
+  },
+): PubPartsSourceMaterializationDecision => {
+  const decisionInput: PubPartsSourceMaterializationDecisionInput = {
+    identity: buildPubPartsSourceMaterializationIdentity(
+      stagedRecord,
+      options.sourceKind === undefined ? {} : { sourceKind: options.sourceKind },
+    ),
+    freshness: buildPubPartsSourceMaterializationFreshness(stagedRecord, {
+      ...(options.byteSize === undefined ? {} : { byteSize: options.byteSize }),
+      ...(options.materializedAt === undefined
+        ? {}
+        : { materializedAt: options.materializedAt }),
+    }),
+    status: options.status,
+    ...(options.byteOrigin === undefined ? {} : { byteOrigin: options.byteOrigin }),
+    ...(options.reason === undefined ? {} : { reason: options.reason }),
+    ...(options.sourceIdentityMatches === undefined
+      ? {}
+      : { sourceIdentityMatches: options.sourceIdentityMatches }),
+  }
+
+  return resolvePubPartsSourceMaterializationDecision(decisionInput)
+}
+
+const resolvePubPartsBrowserFetchAttemptStatus = (
+  decision: PubPartsSourceMaterializationDecision,
+): string =>
+  decision.nextStep === 'attempt-browser-fetch'
+    ? 'Inspecting ZIP archive from the PubParts source after your Add To Project action. Direct browser source fetch is being attempted; if the source blocks access, use Download ZIP and Upload ZIP.'
+    : 'Inspecting ZIP archive from the PubParts source...'
+
+const resolvePubPartsArchiveInspectionFailureStatus = (
+  decision: PubPartsSourceMaterializationDecision,
+  error: unknown,
+): string => {
+  const fallbackStatus =
+    error instanceof Error
+      ? `${error.message} Use Download ZIP to open or save the archive, then upload that ZIP here.`
+      : 'PubParts ZIP archive inspection failed. Use Download ZIP to open or save the archive, then upload that ZIP here.'
+
+  if (decision.fallback !== 'open-source-and-upload-zip') {
+    return fallbackStatus
+  }
+
+  return `${fallbackStatus} Browser source fetch failed or was blocked; ParaHook has not materialized archive bytes from this source.`
+}
 
 export function CatalogSurface(props: CatalogSurfaceProps) {
   const { slotId, surfaceInstanceId, hostMode = 'slotted' } = props
-  const addImportedReference = useAppStore((state) => state.addImportedReference)
+  const addImportedReferenceWithHistory = useAppStore(
+    (state) => state.addImportedReferenceWithHistory,
+  )
   const openStagedImportDraft = useAppStore((state) => state.openStagedImportDraft)
   const appendStagedImportDraftFiles = useAppStore(
     (state) => state.appendStagedImportDraftFiles,
@@ -207,19 +391,32 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
   const setHdriEnvironmentIntensity = useUiPrefsStore(
     (state) => state.setHdriEnvironmentIntensity,
   )
+  const cachedPubPartsPartSourceItems = useMemo(() => readCachedPubPartsFullPartSourceItems(), [])
+  const cachedPubPartsResourceSourceItems = useMemo(
+    () => readCachedPubPartsResourceSourceItems(),
+    [],
+  )
+  const [livePubPartsPartSourceItems, setLivePubPartsPartSourceItems] = useState<
+    typeof cachedPubPartsPartSourceItems | null
+  >(null)
+  const pubPartsSourceItems = useMemo(
+    () => [
+      ...(livePubPartsPartSourceItems ?? cachedPubPartsPartSourceItems),
+      ...cachedPubPartsResourceSourceItems,
+    ],
+    [
+      cachedPubPartsPartSourceItems,
+      cachedPubPartsResourceSourceItems,
+      livePubPartsPartSourceItems,
+    ],
+  )
   const catalogSnapshot = useMemo(
-    () => {
-      const pubPartsSourceItems = [
-        ...readCachedPubPartsFullPartSourceItems(),
-        ...readCachedPubPartsResourceSourceItems(),
-      ]
-
-      return createCatalogSourceSnapshot(
+    () =>
+      createCatalogSourceSnapshot(
         createCatalogImportsSourceSnapshotFromReferenceWorkspace(referenceWorkspace),
         { pubPartsSourceItems },
-      )
-    },
-    [referenceWorkspace],
+      ),
+    [pubPartsSourceItems, referenceWorkspace],
   )
   const validCatalogPreviewItemIds = useMemo(
     () =>
@@ -238,12 +435,50 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
   const [pubPartsDownloadsState, setPubPartsDownloadsState] = useState(() =>
     readPubPartsDownloadsStorage(),
   )
+  const [pubPartsLocalLibraryMirrorRead, setPubPartsLocalLibraryMirrorRead] =
+    useState<PubPartsLocalLibraryMirrorRead>(() =>
+      readPubPartsLocalLibraryMirrorStatus(readPubPartsDownloadsStorage().library),
+    )
   const [
     pubPartsDropboxChooserStatusByCatalogItemId,
     setPubPartsDropboxChooserStatusByCatalogItemId,
   ] = useState<Map<string, CatalogPubPartsDropboxChooserStatus>>(() => new Map())
-  const [pubPartsSourceOptionsDialog, setPubPartsSourceOptionsDialog] =
+  const [pubPartsSourceOptionsDialog, setPubPartsSourceOptionsDialogState] =
     useState<PubPartsSourceOptionsDialogState>(null)
+  const pubPartsSourceOptionsDialogRef = useRef<PubPartsSourceOptionsDialogState>(null)
+  const pubPartsSourceOptionsPreviewObjectUrlRef = useRef<string | null>(null)
+  const setPubPartsSourceOptionsDialog = (
+    nextState:
+      | PubPartsSourceOptionsDialogState
+      | ((currentDialog: PubPartsSourceOptionsDialogState) => PubPartsSourceOptionsDialogState),
+  ) => {
+    if (typeof nextState === 'function') {
+      setPubPartsSourceOptionsDialogState((currentDialog) => {
+        const resolvedState = nextState(currentDialog)
+        pubPartsSourceOptionsDialogRef.current = resolvedState
+        return resolvedState
+      })
+      return
+    }
+
+    pubPartsSourceOptionsDialogRef.current = nextState
+    setPubPartsSourceOptionsDialogState(nextState)
+  }
+  useEffect(() => {
+    let shouldIgnoreRead = false
+
+    void readLivePubPartsPartSourceItems().then((read) => {
+      if (shouldIgnoreRead || read.status !== 'ready') {
+        return
+      }
+
+      setLivePubPartsPartSourceItems(read.sourceItems)
+    })
+
+    return () => {
+      shouldIgnoreRead = true
+    }
+  }, [])
   const pubPartsStagedSourcesByCatalogItemId = useMemo(
     () =>
       new Map(
@@ -301,7 +536,7 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
       return
     }
 
-    addImportedReference({
+    addImportedReferenceWithHistory({
       catalogItemId: commitRequest.catalogItemId,
       catalogFamilyKey: commitRequest.catalogFamilyKey,
       fileName: commitRequest.fileName,
@@ -387,6 +622,151 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
     })
   }
 
+  const revokePubPartsSourceOptionsPreviewObjectUrl = () => {
+    const objectUrl = pubPartsSourceOptionsPreviewObjectUrlRef.current
+    if (objectUrl !== null && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(objectUrl)
+    }
+    pubPartsSourceOptionsPreviewObjectUrlRef.current = null
+  }
+
+  useEffect(
+    () => () => {
+      revokePubPartsSourceOptionsPreviewObjectUrl()
+    },
+    [],
+  )
+
+  useEffect(() => {
+    pubPartsSourceOptionsDialogRef.current = pubPartsSourceOptionsDialog
+  }, [pubPartsSourceOptionsDialog])
+
+  useEffect(() => {
+    setPubPartsLocalLibraryMirrorRead(
+      readPubPartsLocalLibraryMirrorStatus(pubPartsDownloadsState.library),
+    )
+  }, [pubPartsDownloadsState.library])
+
+  const refreshPubPartsLocalLibraryMirrorRead = () => {
+    setPubPartsLocalLibraryMirrorRead(
+      readPubPartsLocalLibraryMirrorStatus(readPubPartsDownloadsStorage().library),
+    )
+  }
+
+  const buildPubPartsLocalLibraryMirrorManifest = (
+    stagedRecord: PubPartsStagedSourceRecord,
+    options: {
+      archiveBlob?: Blob
+      sourceFileName?: string
+      extractedCandidates?: PubPartsInternalLibraryExtractedCandidate[]
+      importStatus?: PubPartsInternalLibraryManifest['importStatus']
+    } = {},
+  ): PubPartsInternalLibraryManifest =>
+    buildPubPartsInternalLibraryManifest({
+      catalogItemId: stagedRecord.catalogItemId,
+      catalogItemLabel: stagedRecord.catalogItemLabel,
+      sourceCandidateUrl: stagedRecord.sourceCandidateUrl,
+      linkedArchiveUrl: stagedRecord.linkedArchiveUrl,
+      sourcePageUrl: stagedRecord.sourcePageUrl,
+      sourceUrl: stagedRecord.sourceUrl,
+      sourceLastUpdated: stagedRecord.sourceLastUpdated,
+      archiveLastUpdated: stagedRecord.archiveLastUpdated,
+      sourceFileName: options.sourceFileName,
+      sourceByteSize: options.archiveBlob?.size,
+      inspectionStatus:
+        options.extractedCandidates !== undefined ? 'extracted-candidates' : 'metadata-inspected',
+      extractedCandidates: options.extractedCandidates,
+      importStatus: options.importStatus ?? 'not-imported',
+    })
+
+  const mirrorPubPartsArchiveToLocalLibrary = async (input: {
+    stagedRecord: PubPartsStagedSourceRecord
+    archiveBlob: Blob
+    manifest?: PubPartsInternalLibraryManifest
+    sourceFileName?: string
+  }): Promise<string> => {
+    const sessionRoot = getPubPartsLocalLibraryMirrorSessionRoot()
+    refreshPubPartsLocalLibraryMirrorRead()
+    if (sessionRoot === null) {
+      const read = readPubPartsLocalLibraryMirrorStatus(readPubPartsDownloadsStorage().library)
+      return read.status === 'permission-needed'
+        ? ' Local Library mirror needs reconnect; Internal Library cache remains available.'
+        : ''
+    }
+
+    const manifest =
+      input.manifest ??
+      buildPubPartsLocalLibraryMirrorManifest(input.stagedRecord, {
+        archiveBlob: input.archiveBlob,
+        sourceFileName: input.sourceFileName,
+      })
+    const plan = resolvePubPartsLocalLibraryMirrorPlan(manifest)
+    const [manifestResult, archiveResult] = await Promise.all([
+      writePubPartsLocalLibraryMirrorManifest(sessionRoot.directoryHandle, manifest),
+      writePubPartsLocalLibraryMirrorArchive(
+        sessionRoot.directoryHandle,
+        plan,
+        input.archiveBlob,
+      ),
+    ])
+    refreshPubPartsLocalLibraryMirrorRead()
+
+    return manifestResult.status === 'mirrored' && archiveResult.status === 'mirrored'
+      ? ' Mirrored to the visible Local Library folder.'
+      : ' Local Library mirror write failed; source options and Internal Library cache still work.'
+  }
+
+  const mirrorPubPartsExtractedEntriesToLocalLibrary = async (
+    stagedRecord: PubPartsStagedSourceRecord,
+    extractedEntries: Awaited<ReturnType<typeof extractPubPartsZipArchiveEntries>>,
+    archiveBlob?: Blob,
+    sourceFileName?: string,
+  ): Promise<void> => {
+    const sessionRoot = getPubPartsLocalLibraryMirrorSessionRoot()
+    if (sessionRoot === null) {
+      refreshPubPartsLocalLibraryMirrorRead()
+      return
+    }
+
+    const extractedCandidates: PubPartsInternalLibraryExtractedCandidate[] = extractedEntries.map(
+      (extractedEntry) => ({
+        archivePath: extractedEntry.archivePath,
+        normalizedPath: extractedEntry.normalizedPath,
+        fileName: extractedEntry.fileName,
+        fileType: extractedEntry.fileType,
+        fileSizeBytes: extractedEntry.blob.size,
+        extractedPath: '',
+        importablePath: '',
+      }),
+    )
+    if (extractedCandidates.length === 0) {
+      return
+    }
+    const manifest = buildPubPartsLocalLibraryMirrorManifest(stagedRecord, {
+      archiveBlob,
+      sourceFileName,
+      extractedCandidates,
+      importStatus: 'ready-for-import-review',
+    })
+
+    await writePubPartsLocalLibraryMirrorManifest(sessionRoot.directoryHandle, manifest)
+    await Promise.all(
+      extractedEntries.map((extractedEntry, index) => {
+        const candidate = extractedCandidates[index]
+        if (candidate === undefined) {
+          return Promise.resolve()
+        }
+        const candidatePath = readPubPartsLocalLibraryMirrorCandidatePath(manifest, candidate)
+        return writePubPartsLocalLibraryMirrorExtractedCandidate(
+          sessionRoot.directoryHandle,
+          candidatePath,
+          extractedEntry.blob,
+        )
+      }),
+    )
+    refreshPubPartsLocalLibraryMirrorRead()
+  }
+
   const handleAddPubPartsDropboxFileToProject = (
     item: (typeof catalogSnapshot.allItems)[number],
   ) => {
@@ -415,60 +795,98 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
     const needsArchiveInspection = candidates.some(
       (candidate) => candidate.kind === 'archive-needs-inspection',
     )
-    const cachedArchiveManifest =
-      needsArchiveInspection ? readPubPartsArchiveManifestCacheRecord(stagedRecord) : null
-    const dialogCandidates =
-      cachedArchiveManifest === null
-        ? candidates
-        : mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
-            stagedRecord,
-            cachedArchiveManifest.entries,
-          )
-    const selectedCandidateIds = dialogCandidates
-      .filter((candidate) => candidate.selectable)
-      .map((candidate) => candidate.candidateId)
-    const selectedCandidates = dialogCandidates.filter((candidate) =>
-      selectedCandidateIds.includes(candidate.candidateId),
-    )
-    const hasDirectStageableCandidates = selectedCandidates.some(
-      (candidate) => candidate.kind === 'supported-direct-file',
-    )
-    const hasArchiveMetadataCandidates = selectedCandidates.some(
-      (candidate) => candidate.kind === 'supported-archive-entry',
-    )
-
-    setPubPartsSourceOptionsDialog({
+    const browserFetchAttemptDecision = buildPubPartsSourceMaterializationDecisionForStagedRecord(
       stagedRecord,
-      candidates: dialogCandidates,
-      selectedCandidateIds:
-        needsArchiveInspection && cachedArchiveManifest === null ? [] : selectedCandidateIds,
-      statusMessage:
-        needsArchiveInspection && cachedArchiveManifest === null
-          ? 'Inspecting ZIP archive from the PubParts source...'
-          : needsArchiveInspection
-            ? resolvePubPartsArchiveManifestCacheHitStatus(dialogCandidates, selectedCandidateIds)
-          : selectedCandidateIds.length > 0
-          ? resolvePubPartsSourceOptionsSelectionStatus(selectedCandidates)
-          : 'No directly stageable files were found yet. Use Open Source or wait for archive and folder inspection support.',
-      isInspectingArchive: needsArchiveInspection && cachedArchiveManifest === null,
-      isStaging: false,
-    })
-    setPubPartsDropboxChooserStatus(item.itemId, {
-      state:
-        selectedCandidateIds.length > 0 || needsArchiveInspection
-          ? 'chooser-opening'
-          : 'chooser-unavailable',
-      label:
-        needsArchiveInspection && cachedArchiveManifest === null
-          ? 'Inspecting ZIP Archive'
-        : hasDirectStageableCandidates
-          ? 'Source Options Open'
+      { status: 'browser-fetch-readable' },
+    )
+    const openSourceOptionsFromCandidates = (
+      dialogCandidates: PubPartsSharedLinkCandidate[],
+      options: {
+        cachedArchiveManifest: boolean
+        internalLibraryCacheHit?: Awaited<
+          ReturnType<typeof readPubPartsInternalLibraryArchiveCache>
+        >
+        requireCurrentDialog?: boolean
+      },
+    ) => {
+      const selectedCandidateIds = dialogCandidates
+        .filter((candidate) => candidate.selectable)
+        .map((candidate) => candidate.candidateId)
+      const selectedCandidates = dialogCandidates.filter((candidate) =>
+        selectedCandidateIds.includes(candidate.candidateId),
+      )
+      const hasDirectStageableCandidates = selectedCandidates.some(
+        (candidate) => candidate.kind === 'supported-direct-file',
+      )
+      const hasArchiveMetadataCandidates = selectedCandidates.some(
+        (candidate) => candidate.kind === 'supported-archive-entry',
+      )
+      const internalLibraryCacheHit = options.internalLibraryCacheHit ?? null
+      const cacheHitStatus =
+        internalLibraryCacheHit === null
+          ? resolvePubPartsArchiveManifestCacheHitStatus(dialogCandidates, selectedCandidateIds)
+          : `Loaded PubParts Internal Library ZIP cache. ${selectedCandidateIds.length} supported archive candidate${
+              selectedCandidateIds.length === 1 ? '' : 's'
+            } selected for extraction into Import review from cached archive bytes.`
+
+      setPubPartsSourceOptionsDialog((currentDialog) => {
+        if (
+          options.requireCurrentDialog === true &&
+          (currentDialog === null ||
+            currentDialog.stagedRecord.stagedSourceId !== stagedRecord.stagedSourceId)
+        ) {
+          return currentDialog
+        }
+
+        revokePubPartsSourceOptionsPreviewObjectUrl()
+        return {
+          stagedRecord,
+          candidates: dialogCandidates,
+          selectedCandidateIds:
+            needsArchiveInspection && !options.cachedArchiveManifest && internalLibraryCacheHit === null
+              ? []
+              : selectedCandidateIds,
+          statusMessage:
+            needsArchiveInspection && !options.cachedArchiveManifest && internalLibraryCacheHit === null
+              ? resolvePubPartsBrowserFetchAttemptStatus(browserFetchAttemptDecision)
+              : needsArchiveInspection
+                ? cacheHitStatus
+              : selectedCandidateIds.length > 0
+              ? resolvePubPartsSourceOptionsSelectionStatus(selectedCandidates)
+              : 'No directly stageable files were found yet. Use Open Source or wait for archive and folder inspection support.',
+          isInspectingArchive:
+            needsArchiveInspection && !options.cachedArchiveManifest && internalLibraryCacheHit === null,
+          isStaging: false,
+          previewState: { status: 'idle' },
+          archiveBlob: internalLibraryCacheHit?.archiveBlob,
+          archiveBlobSourceUrl:
+            internalLibraryCacheHit === null ? undefined : stagedRecord.sourceCandidateUrl.trim(),
+          archiveBlobStagedSourceId:
+            internalLibraryCacheHit === null ? undefined : stagedRecord.stagedSourceId,
+          archiveBlobPreviewSource:
+            internalLibraryCacheHit === null ? undefined : 'internal-library-archive',
+        }
+      })
+      setPubPartsDropboxChooserStatus(item.itemId, {
+        state:
+          selectedCandidateIds.length > 0 || needsArchiveInspection
+            ? 'chooser-opening'
+            : 'chooser-unavailable',
+        label:
+          internalLibraryCacheHit !== null
+            ? 'Internal Library Cache Hit'
+          : needsArchiveInspection && !options.cachedArchiveManifest
+            ? 'Inspecting ZIP Archive'
+          : hasDirectStageableCandidates
+            ? 'Source Options Open'
           : hasArchiveMetadataCandidates
             ? 'Archive Candidates Found'
             : 'Inspection Needed',
-      description:
-        needsArchiveInspection && cachedArchiveManifest === null
-          ? 'Source options are open while ParaHook inspects this one PubParts ZIP archive.'
+        description:
+          internalLibraryCacheHit !== null
+            ? 'Source options are open with cached Internal Library archive bytes. Selected ZIP entries will be revalidated from cached bytes before Import review.'
+          : needsArchiveInspection && !options.cachedArchiveManifest
+            ? 'Source options are open while ParaHook inspects this one PubParts ZIP archive.'
           : needsArchiveInspection
             ? 'Source options are open with cached archive metadata. Selected ZIP entries will still be revalidated from real archive bytes before Import review.'
           : hasDirectStageableCandidates
@@ -476,53 +894,133 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
           : hasArchiveMetadataCandidates
           ? 'Source options are open with archive candidates that can be extracted into Import review.'
           : 'This shared source link needs archive or folder inspection before files can be selected automatically.',
-    })
+      })
+    }
 
-    if (needsArchiveInspection && cachedArchiveManifest === null) {
+    const isCurrentSourceOptionsDialog = (): boolean =>
+      pubPartsSourceOptionsDialogRef.current?.stagedRecord.stagedSourceId ===
+      stagedRecord.stagedSourceId
+
+    const applyMaterializedArchiveInspection = (archiveInspection: {
+      archiveBlob: Blob
+      candidates: PubPartsSharedLinkCandidate[]
+      entries: Awaited<ReturnType<typeof listPubPartsZipArchiveEntries>>
+      sourceUrl: string
+      materializedDecision: PubPartsSourceMaterializationDecision
+      statusMessage: string
+      chooserSuccessDescription: string
+      chooserUnavailableDescription: string
+    }) => {
+      assertPubPartsSourceMaterializationSamePath(archiveInspection.materializedDecision)
+      writePubPartsArchiveManifestCacheRecord(stagedRecord, archiveInspection.entries)
+      void mirrorPubPartsArchiveToLocalLibrary({
+        stagedRecord,
+        archiveBlob: archiveInspection.archiveBlob,
+      })
+        .then((mirrorStatus) => {
+          if (mirrorStatus.length === 0) {
+            return
+          }
+          setPubPartsSourceOptionsDialog((currentDialog) =>
+            currentDialog === null ||
+            currentDialog.stagedRecord.stagedSourceId !== stagedRecord.stagedSourceId
+              ? currentDialog
+              : {
+                  ...currentDialog,
+                  statusMessage:
+                    currentDialog.statusMessage === null
+                      ? mirrorStatus.trim()
+                      : `${currentDialog.statusMessage}${mirrorStatus}`,
+                },
+          )
+        })
+        .catch(() => undefined)
+      void writePubPartsInternalLibraryArchiveCache({
+        stagedRecord,
+        archiveBlob: archiveInspection.archiveBlob,
+        entries: archiveInspection.entries,
+      })
+        .catch((error: unknown) => {
+          console.warn('Failed to cache PubParts archive in Internal Library.', error)
+        })
+      const nextSelectedCandidateIds = archiveInspection.candidates
+        .filter((candidate) => candidate.selectable)
+        .map((candidate) => candidate.candidateId)
+      setPubPartsSourceOptionsDialog((currentDialog) => {
+        if (
+          currentDialog === null ||
+          currentDialog.stagedRecord.stagedSourceId !== stagedRecord.stagedSourceId
+        ) {
+          return currentDialog
+        }
+
+        return {
+          ...currentDialog,
+          candidates: archiveInspection.candidates,
+          selectedCandidateIds: nextSelectedCandidateIds,
+          statusMessage: archiveInspection.statusMessage,
+          isInspectingArchive: false,
+          isStaging: false,
+          previewState: { status: 'idle' },
+          archiveBlob: archiveInspection.archiveBlob,
+          archiveBlobSourceUrl: archiveInspection.sourceUrl,
+          archiveBlobStagedSourceId: stagedRecord.stagedSourceId,
+          archiveBlobPreviewSource: 'source-options-archive',
+        }
+      })
+      setPubPartsDropboxChooserStatus(item.itemId, {
+        state: nextSelectedCandidateIds.length > 0 ? 'chooser-opening' : 'chooser-unavailable',
+        label:
+          nextSelectedCandidateIds.length > 0
+            ? 'Archive Candidates Found'
+            : 'No Supported Archive Entries',
+        description:
+          nextSelectedCandidateIds.length > 0
+            ? archiveInspection.chooserSuccessDescription
+            : archiveInspection.chooserUnavailableDescription,
+      })
+    }
+
+    const inspectArchiveFromSource = () => {
       void inspectPubPartsSharedLinkArchive(stagedRecord)
         .then((archiveInspection) => {
-          writePubPartsArchiveManifestCacheRecord(stagedRecord, archiveInspection.entries)
-          const nextSelectedCandidateIds = archiveInspection.candidates
-            .filter((candidate) => candidate.selectable)
-            .map((candidate) => candidate.candidateId)
-          setPubPartsSourceOptionsDialog((currentDialog) => {
-            if (
-              currentDialog === null ||
-              currentDialog.stagedRecord.stagedSourceId !== stagedRecord.stagedSourceId
-            ) {
-              return currentDialog
-            }
-
-            return {
-              ...currentDialog,
-              candidates: archiveInspection.candidates,
-              selectedCandidateIds: nextSelectedCandidateIds,
-              statusMessage: resolvePubPartsArchiveInspectionSuccessStatus(
-                archiveInspection.candidates,
-                nextSelectedCandidateIds,
-              ),
-              isInspectingArchive: false,
-              isStaging: false,
-              archiveBlob: archiveInspection.archiveBlob,
-              archiveBlobSourceUrl: archiveInspection.sourceUrl,
-              archiveBlobStagedSourceId: stagedRecord.stagedSourceId,
-            }
-          })
-          setPubPartsDropboxChooserStatus(item.itemId, {
-            state:
-              nextSelectedCandidateIds.length > 0 ? 'chooser-opening' : 'chooser-unavailable',
-            label:
-              nextSelectedCandidateIds.length > 0
-                ? 'Archive Candidates Found'
-                : 'No Supported Archive Entries',
-            description:
-              nextSelectedCandidateIds.length > 0
-                ? 'Source options are open with real ZIP archive candidates ready for selected extraction into Import review.'
-                : 'The ZIP was inspected, but no supported archive entries are selectable. Use Open Source or the manual local import fallback.',
+          const materializedAt = new Date().toISOString()
+          const materializedDecision = buildPubPartsSourceMaterializationDecisionForStagedRecord(
+            stagedRecord,
+            {
+              status: 'materialized',
+              byteOrigin: 'browser-fetch',
+              byteSize: archiveInspection.archiveBlob.size,
+              materializedAt,
+            },
+          )
+          applyMaterializedArchiveInspection({
+            ...archiveInspection,
+            materializedDecision,
+            statusMessage: resolvePubPartsArchiveInspectionSuccessStatus(
+              archiveInspection.candidates,
+              archiveInspection.candidates
+                .filter((candidate) => candidate.selectable)
+                .map((candidate) => candidate.candidateId),
+            ),
+            chooserSuccessDescription:
+              'Source options are open with real ZIP archive candidates ready for selected extraction into Import review.',
+            chooserUnavailableDescription:
+              'The ZIP was inspected, but no supported archive entries are selectable. Use Open Source or the manual local import fallback.',
           })
         })
         .catch((error: unknown) => {
-          const statusMessage = resolvePubPartsArchiveInspectionFailureStatus(error)
+          const failureDecision = buildPubPartsSourceMaterializationDecisionForStagedRecord(
+            stagedRecord,
+            {
+              status: 'browser-fetch-blocked',
+              reason: 'Browser source fetch failed or was blocked for this PubParts ZIP source.',
+            },
+          )
+          const statusMessage = resolvePubPartsArchiveInspectionFailureStatus(
+            failureDecision,
+            error,
+          )
           setPubPartsSourceOptionsDialog((currentDialog) => {
             if (
               currentDialog === null ||
@@ -547,6 +1045,144 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
           })
         })
     }
+
+    const inspectArchiveFromTrustedProviderOrSource = () => {
+      const trustedProvider = getPubPartsTrustedSourceProvider()
+      const providerCapability = trustedProvider.getCapability()
+
+      if (providerCapability.status !== 'configured') {
+        inspectArchiveFromSource()
+        return
+      }
+
+      setPubPartsSourceOptionsDialog((currentDialog) =>
+        currentDialog === null ||
+        currentDialog.stagedRecord.stagedSourceId !== stagedRecord.stagedSourceId
+          ? currentDialog
+          : {
+              ...currentDialog,
+              statusMessage: `Trusted provider ${providerCapability.providerLabel} is materializing archive bytes after your Add To Project action. Browser fetch and Upload ZIP remain available if provider materialization fails.`,
+              isInspectingArchive: true,
+            },
+      )
+
+      void trustedProvider
+        .materializeArchiveBytes({
+          stagedRecord,
+          explicitUserAction: 'add-to-project-source-options',
+        })
+        .then(async (providerResult) => {
+          if (!isCurrentSourceOptionsDialog()) {
+            return
+          }
+
+          if (providerResult.status !== 'materialized') {
+            inspectArchiveFromSource()
+            return
+          }
+
+          const materializedDecision =
+            resolvePubPartsTrustedSourceProviderMaterializationDecision(
+              stagedRecord,
+              providerResult,
+            )
+          assertPubPartsTrustedSourceProviderSamePath(stagedRecord, providerResult)
+          const entries = await listPubPartsZipArchiveEntries(providerResult.archiveBlob)
+          const providerCandidates = mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
+            stagedRecord,
+            entries,
+          )
+          const providerSelectedCandidateIds = providerCandidates
+            .filter((candidate) => candidate.selectable)
+            .map((candidate) => candidate.candidateId)
+
+          applyMaterializedArchiveInspection({
+            archiveBlob: providerResult.archiveBlob,
+            candidates: providerCandidates,
+            entries,
+            sourceUrl: stagedRecord.sourceCandidateUrl.trim(),
+            materializedDecision,
+            statusMessage: resolvePubPartsProviderArchiveInspectionSuccessStatus(
+              providerCandidates,
+              providerSelectedCandidateIds,
+              providerResult.providerLabel,
+            ),
+            chooserSuccessDescription:
+              'Source options are open with trusted-provider ZIP archive candidates ready for selected extraction into Import review.',
+            chooserUnavailableDescription:
+              'The trusted provider materialized the ZIP, but no supported archive entries are selectable. Use Open Source or the manual local import fallback.',
+          })
+        })
+        .catch(() => {
+          if (isCurrentSourceOptionsDialog()) {
+            inspectArchiveFromSource()
+          }
+        })
+    }
+
+    if (!needsArchiveInspection) {
+      openSourceOptionsFromCandidates(candidates, { cachedArchiveManifest: false })
+      return
+    }
+
+    openSourceOptionsFromCandidates(candidates, { cachedArchiveManifest: false })
+
+    void readPubPartsInternalLibraryArchiveCache(stagedRecord)
+      .then((internalLibraryCacheHit) => {
+        if (internalLibraryCacheHit !== null) {
+          const cacheHitDecision = buildPubPartsSourceMaterializationDecisionForStagedRecord(
+            stagedRecord,
+            {
+              status: 'internal-library-cache-hit',
+              sourceKind: 'cached-archive',
+              byteSize: internalLibraryCacheHit.archiveBlob.size,
+              sourceIdentityMatches: true,
+            },
+          )
+          assertPubPartsSourceMaterializationSamePath(cacheHitDecision)
+          openSourceOptionsFromCandidates(
+            mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
+              stagedRecord,
+              internalLibraryCacheHit.entries,
+            ),
+            {
+              cachedArchiveManifest: true,
+              internalLibraryCacheHit,
+              requireCurrentDialog: true,
+            },
+          )
+          return
+        }
+
+        const cachedArchiveManifest = readPubPartsArchiveManifestCacheRecord(stagedRecord)
+        if (cachedArchiveManifest !== null) {
+          openSourceOptionsFromCandidates(
+            mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
+              stagedRecord,
+              cachedArchiveManifest.entries,
+            ),
+            { cachedArchiveManifest: true, requireCurrentDialog: true },
+          )
+          return
+        }
+
+        inspectArchiveFromTrustedProviderOrSource()
+      })
+      .catch(() => {
+        const cachedArchiveManifest = readPubPartsArchiveManifestCacheRecord(stagedRecord)
+        if (cachedArchiveManifest !== null) {
+          openSourceOptionsFromCandidates(
+            mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
+              stagedRecord,
+              cachedArchiveManifest.entries,
+            ),
+            { cachedArchiveManifest: true, requireCurrentDialog: true },
+          )
+          return
+        }
+
+        inspectArchiveFromTrustedProviderOrSource()
+      })
   }
 
   const handleTogglePubPartsSourceOption = (candidateId: string) => {
@@ -617,98 +1253,293 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
     })
   }
 
+  const inspectLocalPubPartsArchive = async (
+    dialog: Exclude<PubPartsSourceOptionsDialogState, null>,
+    archiveBlob: Blob,
+    inspectedStatusLabel: string,
+  ) => {
+    const entries = await listPubPartsZipArchiveEntries(archiveBlob)
+    const candidates = mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
+      dialog.stagedRecord,
+      entries,
+    )
+    const selectedCandidateIds = candidates
+      .filter((candidate) => candidate.selectable)
+      .map((candidate) => candidate.candidateId)
+    let internalLibraryCacheStatus = ''
+    let localLibraryMirrorStatus = ''
+    const sourceFileName =
+      typeof File !== 'undefined' && archiveBlob instanceof File ? archiveBlob.name : undefined
+    try {
+      await writePubPartsInternalLibraryArchiveCache({
+        stagedRecord: dialog.stagedRecord,
+        archiveBlob,
+        entries,
+        sourceFileName,
+      })
+      internalLibraryCacheStatus = ' Saved to the PubParts Internal Library.'
+    } catch {
+      internalLibraryCacheStatus =
+        ' Internal Library cache unavailable; this ZIP remains available for the current source-options session.'
+    }
+    localLibraryMirrorStatus = await mirrorPubPartsArchiveToLocalLibrary({
+      stagedRecord: dialog.stagedRecord,
+      archiveBlob,
+      sourceFileName,
+    })
+
+    setPubPartsSourceOptionsDialog((currentDialog) => {
+      if (
+        currentDialog === null ||
+        currentDialog.stagedRecord.stagedSourceId !== dialog.stagedRecord.stagedSourceId
+      ) {
+        return currentDialog
+      }
+
+      return {
+        ...currentDialog,
+        candidates,
+        selectedCandidateIds,
+        statusMessage: `${inspectedStatusLabel} ${selectedCandidateIds.length} supported archive candidate${
+          selectedCandidateIds.length === 1 ? '' : 's'
+        } selected for extraction into Import review.${internalLibraryCacheStatus}${localLibraryMirrorStatus}`,
+        isInspectingArchive: false,
+        previewState: { status: 'idle' },
+        archiveBlob,
+        archiveBlobSourceUrl: dialog.stagedRecord.sourceCandidateUrl.trim(),
+        archiveBlobStagedSourceId: dialog.stagedRecord.stagedSourceId,
+        archiveBlobPreviewSource: 'source-options-archive',
+      }
+    })
+    if (localLibraryMirrorStatus.length > 0 && selectedCandidateIds.length > 0) {
+      setPubPartsDropboxChooserStatus(dialog.stagedRecord.catalogItemId, {
+        state: 'chooser-opening',
+        label: 'Local ZIP Candidates Found',
+        description: `The selected local PubParts ZIP is ready for selected extraction into Import review.${internalLibraryCacheStatus}${localLibraryMirrorStatus}`,
+      })
+    } else if (selectedCandidateIds.length > 0) {
+      setPubPartsDropboxChooserStatus(dialog.stagedRecord.catalogItemId, {
+        state: 'chooser-opening',
+        label: 'Local ZIP Candidates Found',
+        description: `The selected local PubParts ZIP is ready for selected extraction into Import review.${internalLibraryCacheStatus}`,
+      })
+    } else {
+      setPubPartsDropboxChooserStatus(dialog.stagedRecord.catalogItemId, {
+        state: 'chooser-unavailable',
+        label: 'No Supported ZIP Entries',
+        description: 'The selected local PubParts ZIP did not contain supported import entries.',
+      })
+    }
+  }
+
+  const handleLocalPubPartsArchiveInspectionError = (
+    dialog: Exclude<PubPartsSourceOptionsDialogState, null>,
+    error: unknown,
+  ) => {
+    if (error instanceof Error && error.message === 'No PubParts ZIP file selected.') {
+      setPubPartsSourceOptionsDialog((currentDialog) =>
+        currentDialog === null ||
+        currentDialog.stagedRecord.stagedSourceId !== dialog.stagedRecord.stagedSourceId
+          ? currentDialog
+          : {
+              ...currentDialog,
+              isInspectingArchive: false,
+              statusMessage:
+                'Local ZIP selection canceled. Use Download ZIP to open or save the archive, then upload that ZIP here.',
+            },
+      )
+      return
+    }
+
+    const description =
+      error instanceof Error
+        ? `${error.message} Choose the downloaded PubParts ZIP or use Import Local Files for already extracted models.`
+        : 'Local ZIP inspection failed. Choose the downloaded PubParts ZIP or use Import Local Files for already extracted models.'
+
+    setPubPartsSourceOptionsDialog((currentDialog) =>
+      currentDialog === null ||
+      currentDialog.stagedRecord.stagedSourceId !== dialog.stagedRecord.stagedSourceId
+        ? currentDialog
+        : {
+            ...currentDialog,
+            isInspectingArchive: false,
+            statusMessage: description,
+          },
+    )
+    setPubPartsDropboxChooserStatus(dialog.stagedRecord.catalogItemId, {
+      state: 'fetch-failed',
+      label: 'Local ZIP Inspection Failed',
+      description,
+    })
+  }
+
   const handleChooseLocalPubPartsArchive = () => {
     const dialog = pubPartsSourceOptionsDialog
     if (dialog === null || dialog.isStaging || dialog.isInspectingArchive) {
       return
     }
 
+    revokePubPartsSourceOptionsPreviewObjectUrl()
     setPubPartsSourceOptionsDialog({
       ...dialog,
       isInspectingArchive: true,
+      previewState: { status: 'idle' },
       statusMessage: 'Waiting for the downloaded PubParts ZIP selection...',
     })
 
     void chooseLocalPubPartsZipArchive()
-      .then(async (archiveBlob) => {
-        const entries = await listPubPartsZipArchiveEntries(archiveBlob)
-        const candidates = mapPubPartsZipArchiveEntriesToSharedLinkCandidates(
-          dialog.stagedRecord,
-          entries,
-        )
-        const selectedCandidateIds = candidates
-          .filter((candidate) => candidate.selectable)
-          .map((candidate) => candidate.candidateId)
+      .then((archiveBlob) => inspectLocalPubPartsArchive(dialog, archiveBlob, 'Local ZIP inspected.'))
+      .catch((error: unknown) => handleLocalPubPartsArchiveInspectionError(dialog, error))
+  }
 
-        setPubPartsSourceOptionsDialog((currentDialog) => {
-          if (
-            currentDialog === null ||
-            currentDialog.stagedRecord.stagedSourceId !== dialog.stagedRecord.stagedSourceId
-          ) {
-            return currentDialog
-          }
+  const handleAcceptDroppedLocalPubPartsArchive = (archiveFile: File) => {
+    const dialog = pubPartsSourceOptionsDialog
+    if (dialog === null || dialog.isStaging || dialog.isInspectingArchive) {
+      return
+    }
 
-          return {
-            ...currentDialog,
-            candidates,
-            selectedCandidateIds,
-            statusMessage: `Local ZIP inspected. ${selectedCandidateIds.length} supported archive candidate${
-              selectedCandidateIds.length === 1 ? '' : 's'
-            } selected for extraction into Import review.`,
-            isInspectingArchive: false,
-            archiveBlob,
-            archiveBlobSourceUrl: dialog.stagedRecord.sourceCandidateUrl.trim(),
-            archiveBlobStagedSourceId: dialog.stagedRecord.stagedSourceId,
-          }
-        })
-        setPubPartsDropboxChooserStatus(dialog.stagedRecord.catalogItemId, {
-          state: selectedCandidateIds.length > 0 ? 'chooser-opening' : 'chooser-unavailable',
-          label: selectedCandidateIds.length > 0 ? 'Local ZIP Candidates Found' : 'No Supported ZIP Entries',
-          description:
-            selectedCandidateIds.length > 0
-              ? 'The selected local PubParts ZIP is ready for selected extraction into Import review.'
-              : 'The selected local PubParts ZIP did not contain supported import entries.',
-        })
+    revokePubPartsSourceOptionsPreviewObjectUrl()
+
+    if (!/\.zip$/iu.test(archiveFile.name.trim())) {
+      setPubPartsSourceOptionsDialog({
+        ...dialog,
+        previewState: { status: 'idle' },
+        statusMessage:
+          'Select the downloaded PubParts .zip archive. Drop a .zip file or use Upload ZIP.',
       })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.message === 'No PubParts ZIP file selected.') {
-          setPubPartsSourceOptionsDialog((currentDialog) =>
-            currentDialog === null
-              ? currentDialog
-              : {
-                  ...currentDialog,
-                  isInspectingArchive: false,
-                  statusMessage:
-                    'Local ZIP selection canceled. Use Download ZIP to open or save the archive, then upload that ZIP here.',
-                },
+      return
+    }
+
+    setPubPartsSourceOptionsDialog({
+      ...dialog,
+      isInspectingArchive: true,
+      previewState: { status: 'idle' },
+      statusMessage: `Inspecting dropped PubParts ZIP ${archiveFile.name}...`,
+    })
+
+    void inspectLocalPubPartsArchive(dialog, archiveFile, 'Dropped ZIP inspected.').catch(
+      (error: unknown) => handleLocalPubPartsArchiveInspectionError(dialog, error),
+    )
+  }
+
+  const pubPartsSourceOptionsPreviewActionStatesByCandidateId = useMemo(() => {
+    if (pubPartsSourceOptionsDialog === null) {
+      return {} as Record<string, PubPartsZipEntryPreviewActionState>
+    }
+
+    const archiveByteAvailability =
+      resolvePubPartsSourceOptionsArchiveByteAvailability(pubPartsSourceOptionsDialog)
+    return Object.fromEntries(
+      resolvePubPartsZipEntryPreviewActionStates(
+        pubPartsSourceOptionsDialog.candidates,
+        archiveByteAvailability,
+      ).map((previewActionState) => [previewActionState.candidateId, previewActionState]),
+    ) as Record<string, PubPartsZipEntryPreviewActionState>
+  }, [pubPartsSourceOptionsDialog])
+
+  const handlePreviewPubPartsSourceOption = (candidateId: string) => {
+    const dialog = pubPartsSourceOptionsDialog
+    if (dialog === null || dialog.isStaging || dialog.isInspectingArchive) {
+      return
+    }
+
+    const candidate = dialog.candidates.find(
+      (candidateRecord) => candidateRecord.candidateId === candidateId,
+    )
+    if (candidate === undefined || dialog.archiveBlob === undefined) {
+      return
+    }
+
+    const archiveByteAvailability = resolvePubPartsSourceOptionsArchiveByteAvailability(dialog)
+    const previewActionState = resolvePubPartsZipEntryPreviewActionState(
+      candidate,
+      archiveByteAvailability,
+    )
+    if (!previewActionState.canPreview) {
+      setPubPartsSourceOptionsDialog({
+        ...dialog,
+        previewState: {
+          status: 'error',
+          candidateId,
+          fileName: candidate.fileName,
+          message: previewActionState.description,
+        },
+      })
+      return
+    }
+
+    revokePubPartsSourceOptionsPreviewObjectUrl()
+    const previewArchiveBlob = dialog.archiveBlob
+    setPubPartsSourceOptionsDialog({
+      ...dialog,
+      previewState: {
+        status: 'loading',
+        candidateId,
+        fileName: previewActionState.fileName,
+      },
+    })
+
+    void extractPubPartsZipArchiveEntries(previewArchiveBlob, [
+      previewActionState.normalizedArchivePath,
+    ])
+      .then((extractedEntries) => {
+        const [extractedEntry] = extractedEntries
+        if (extractedEntry === undefined) {
+          throw new Error('This ZIP entry could not be prepared for preview.')
+        }
+
+        const latestDialog = pubPartsSourceOptionsDialogRef.current
+        if (
+          !isCurrentPubPartsSourceOptionsPreviewRequest(
+            latestDialog,
+            dialog.stagedRecord.stagedSourceId,
+            previewArchiveBlob,
+            candidateId,
           )
+        ) {
           return
         }
 
-        setPubPartsSourceOptionsDialog((currentDialog) =>
-          currentDialog === null
-            ? currentDialog
-            : {
-                ...currentDialog,
-                isInspectingArchive: false,
-                statusMessage:
-                  error instanceof Error
-                    ? `${error.message} Choose the downloaded PubParts ZIP or use Import Local Files for already extracted models.`
-                    : 'Local ZIP inspection failed. Choose the downloaded PubParts ZIP or use Import Local Files for already extracted models.',
-              },
-        )
-        setPubPartsDropboxChooserStatus(dialog.stagedRecord.catalogItemId, {
-          state: 'fetch-failed',
-          label: 'Local ZIP Inspection Failed',
-          description:
-            error instanceof Error
-              ? `${error.message} Choose the downloaded PubParts ZIP or use Import Local Files for already extracted models.`
-              : 'Local ZIP inspection failed. Choose the downloaded PubParts ZIP or use Import Local Files for already extracted models.',
+        const objectUrl = URL.createObjectURL(extractedEntry.blob)
+        pubPartsSourceOptionsPreviewObjectUrlRef.current = objectUrl
+        setPubPartsSourceOptionsDialog({
+          ...latestDialog,
+          previewState: {
+            status: 'ready',
+            candidateId,
+            fileName: extractedEntry.fileName,
+            fileType: extractedEntry.fileType,
+            objectUrl,
+          },
+        })
+      })
+      .catch((error: unknown) => {
+        const latestDialog = pubPartsSourceOptionsDialogRef.current
+        if (
+          !isCurrentPubPartsSourceOptionsPreviewRequest(
+            latestDialog,
+            dialog.stagedRecord.stagedSourceId,
+            previewArchiveBlob,
+            candidateId,
+          )
+        ) {
+          return
+        }
+
+        setPubPartsSourceOptionsDialog({
+          ...latestDialog,
+          previewState: {
+            status: 'error',
+            candidateId,
+            fileName: candidate.fileName,
+            message: buildPubPartsPreviewErrorMessage(error),
+          },
         })
       })
   }
 
   const handleClosePubPartsSourceOptionsDialog = () => {
+    revokePubPartsSourceOptionsPreviewObjectUrl()
     setPubPartsSourceOptionsDialog(null)
   }
 
@@ -781,6 +1612,24 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
               archiveEntryCandidates,
               {
                 archiveBlob: reusableArchiveBlob,
+                onExtractedEntries: async (extractedEntries) => {
+                  await Promise.all(
+                    extractedEntries.map((extractedEntry) =>
+                      writePubPartsInternalLibraryExtractedCandidate({
+                        stagedRecord: dialog.stagedRecord,
+                        extractedEntry,
+                      }),
+                    ),
+                  ).catch(() => undefined)
+                  await mirrorPubPartsExtractedEntriesToLocalLibrary(
+                    dialog.stagedRecord,
+                    extractedEntries,
+                    reusableArchiveBlob,
+                    typeof File !== 'undefined' && reusableArchiveBlob instanceof File
+                      ? reusableArchiveBlob.name
+                      : undefined,
+                  )
+                },
               },
             ).then((files) =>
               files.map((file, index) => ({
@@ -850,10 +1699,17 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
       return
     }
 
-    applyHdriEnvironment({
-      label: applyRequest.label,
-      assetPath: applyRequest.assetPath,
-    })
+    runEnvironmentLookHistoryAction(
+      () =>
+        applyHdriEnvironment({
+          label: applyRequest.label,
+          assetPath: applyRequest.assetPath,
+        }),
+      {
+        targetId: 'environment-source:catalog',
+        targetLabel: applyRequest.label,
+      },
+    )
   }
 
   const handleBrowseLocalEnvironment = (file: File) => {
@@ -866,10 +1722,17 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
       typeof URL.createObjectURL === 'function'
         ? URL.createObjectURL(file)
         : `local:${normalizedName}`
-    applyHdriEnvironment({
-      label: normalizedName,
-      assetPath: objectUrl,
-    })
+    runEnvironmentLookHistoryAction(
+      () =>
+        applyHdriEnvironment({
+          label: normalizedName,
+          assetPath: objectUrl,
+        }),
+      {
+        targetId: 'environment-source:local-file',
+        targetLabel: normalizedName,
+      },
+    )
   }
 
   return (
@@ -897,10 +1760,19 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
         pubPartsDropboxChooserStatusByCatalogItemId={
           pubPartsDropboxChooserStatusByCatalogItemId
         }
+        pubPartsLocalLibraryMirrorRead={pubPartsLocalLibraryMirrorRead}
         onApplyEnvironment={handleApplyEnvironment}
         onBrowseLocalEnvironment={handleBrowseLocalEnvironment}
         appliedEnvironmentSource={environmentSource}
-        onSetHdriBackgroundVisible={setHdriEnvironmentBackgroundVisible}
+        onSetHdriBackgroundVisible={(visible) =>
+          runEnvironmentLookHistoryAction(
+            () => setHdriEnvironmentBackgroundVisible(visible),
+            {
+              targetId: 'environment-source:background',
+              targetLabel: 'HDRI background',
+            },
+          )
+        }
         onSetHdriIntensity={setHdriEnvironmentIntensity}
         onUnloadAllPreviewItems={() => setPreviewSession(unloadAllCatalogPreviewItems())}
         onUnloadPreviewItem={(itemId) =>
@@ -919,10 +1791,14 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
           statusMessage={pubPartsSourceOptionsDialog.statusMessage}
           isInspectingArchive={pubPartsSourceOptionsDialog.isInspectingArchive}
           isStaging={pubPartsSourceOptionsDialog.isStaging}
+          previewActionStatesByCandidateId={pubPartsSourceOptionsPreviewActionStatesByCandidateId}
+          previewState={pubPartsSourceOptionsDialog.previewState}
           onToggleCandidate={handleTogglePubPartsSourceOption}
+          onPreviewCandidate={handlePreviewPubPartsSourceOption}
           onSelectAllSupported={handleSelectAllPubPartsSourceOptions}
           onClearSelection={handleClearPubPartsSourceOptionsSelection}
           onChooseLocalArchive={handleChooseLocalPubPartsArchive}
+          onAcceptLocalArchive={handleAcceptDroppedLocalPubPartsArchive}
           onStageSelected={handleStageSelectedPubPartsSourceOptions}
           onClose={handleClosePubPartsSourceOptionsDialog}
         />

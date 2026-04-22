@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useViewerCameraShortcuts } from './useViewerCameraShortcuts'
 import { useConsoleStore } from './console/useConsoleStore'
 import { useAppStore } from './store/useAppStore'
+import { editHistoryStore } from './store/editHistoryStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { setViewer } from './viewerBridge'
@@ -59,6 +60,7 @@ describe('useViewerCameraShortcuts', () => {
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+    editHistoryStore.clear()
     setViewer(viewportId, null)
   })
 
@@ -132,6 +134,58 @@ describe('useViewerCameraShortcuts', () => {
     })
     expect(frameSelectedCommandMock).not.toHaveBeenCalled()
     expect(frameReferenceCommandMock).not.toHaveBeenCalled()
+  })
+
+  it('routes Ctrl+Z through edit history before active viewer camera shortcuts', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as any)
+    useAppStore.setState((state) => ({
+      ...state,
+      selectedPartKey: 'part:object-1',
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+    const undo = vi.fn()
+    const redo = vi.fn()
+    editHistoryStore.commitEntry({
+      entryId: 'viewer-shortcut-undo-entry',
+      label: 'Draw sketch rectangle',
+      source: {
+        surface: 'spaghetti-graph',
+        sourceId: 'geometry-sketch-draw',
+        sourceLabel: 'Sketch Draw',
+      },
+      undo,
+      redo,
+    })
+
+    renderHarness()
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'z',
+      code: 'KeyZ',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    act(() => {
+      window.dispatchEvent(event)
+    })
+
+    expect(undo).toHaveBeenCalledTimes(1)
+    expect(redo).not.toHaveBeenCalled()
+    expect(event.defaultPrevented).toBe(true)
+    expect(editHistoryStore.getRedoEntries()).toHaveLength(1)
+    expect(frameSelectedCommandMock).not.toHaveBeenCalled()
+    expect(frameReferenceCommandMock).not.toHaveBeenCalled()
+    expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
   })
 
   it('routes Shift+Z through the shared selected-part framing seam for the active viewer', () => {

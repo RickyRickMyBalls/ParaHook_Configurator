@@ -240,4 +240,305 @@ describe('PortView primitive value rows', () => {
     expect(handleChange).toHaveBeenCalled()
     expect(handleEnd).toHaveBeenCalledTimes(1)
   })
+
+  it('wraps generic range slider edits in an interaction lifecycle', async () => {
+    const handleStart = vi.fn()
+    const handleChange = vi.fn()
+    const handleEnd = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <PortView
+          nodeId="node-baseplate-1"
+          direction="in"
+          port={{
+            portId: 'in:drv:widthMm',
+            label: 'Width',
+            type: { kind: 'number', unit: 'mm' },
+            optional: true,
+            maxConnectionsIn: 1,
+          }}
+          setPortElement={() => {}}
+          dropState={null}
+          valueInput={{
+            value: 40,
+            min: 0,
+            max: 100,
+            step: 1,
+            showSlider: true,
+            onChange: handleChange,
+            onInteractionStart: handleStart,
+            onInteractionEnd: handleEnd,
+          }}
+        />,
+      )
+    })
+
+    const rangeInput = container.querySelector('.SpaghettiPortRangeInput') as HTMLInputElement | null
+
+    expect(rangeInput).not.toBeNull()
+
+    await act(async () => {
+      rangeInput?.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    await act(async () => {
+      if (rangeInput !== null) {
+        const valueSetter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set
+        valueSetter?.call(rangeInput, '64')
+        rangeInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      rangeInput?.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(handleStart).toHaveBeenCalledTimes(1)
+    expect(handleChange).toHaveBeenCalledWith(64)
+    expect(handleEnd).toHaveBeenCalledTimes(1)
+    expect(handleStart.mock.invocationCallOrder[0]).toBeLessThan(handleChange.mock.invocationCallOrder[0])
+    expect(handleChange.mock.invocationCallOrder[0]).toBeLessThan(handleEnd.mock.invocationCallOrder[0])
+  })
+
+  it('wraps generic typed number commits in one interaction lifecycle on Enter', async () => {
+    const handleStart = vi.fn()
+    const handleChange = vi.fn()
+    const handleEnd = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    function ControlledNumberPortView() {
+      const [value, setValue] = useState(40)
+
+      return (
+        <PortView
+          nodeId="node-baseplate-1"
+          direction="in"
+          port={{
+            portId: 'in:drv:widthMm',
+            label: 'Width',
+            type: { kind: 'number', unit: 'mm' },
+            optional: true,
+            maxConnectionsIn: 1,
+          }}
+          setPortElement={() => {}}
+          dropState={null}
+          valueInput={{
+            value,
+            min: 0,
+            max: 100,
+            step: 1,
+            onChange: (nextValue) => {
+              setValue(nextValue)
+              handleChange(nextValue)
+            },
+            onInteractionStart: handleStart,
+            onInteractionEnd: handleEnd,
+          }}
+        />
+      )
+    }
+
+    await act(async () => {
+      root?.render(<ControlledNumberPortView />)
+    })
+
+    const input = container.querySelector('.SpNumberFieldInput') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    await act(async () => {
+      input?.focus()
+    })
+
+    await act(async () => {
+      if (input !== null) {
+        const valueSetter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set
+        valueSetter?.call(input, '52')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    expect(handleStart).toHaveBeenCalledTimes(1)
+    expect(handleChange).toHaveBeenCalledWith(52)
+    expect(handleEnd).toHaveBeenCalledTimes(0)
+
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      input?.dispatchEvent(new FocusEvent('blur', { bubbles: true }))
+    })
+
+    expect(handleEnd).toHaveBeenCalledTimes(1)
+    expect(handleStart.mock.invocationCallOrder[0]).toBeLessThan(handleChange.mock.invocationCallOrder[0])
+    expect(handleChange.mock.invocationCallOrder[0]).toBeLessThan(handleEnd.mock.invocationCallOrder[0])
+  })
+
+  it('wraps generic typed number commits on blur', async () => {
+    const handleStart = vi.fn()
+    const handleChange = vi.fn()
+    const handleEnd = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <PortView
+          nodeId="node-baseplate-1"
+          direction="in"
+          port={{
+            portId: 'in:drv:widthMm',
+            label: 'Width',
+            type: { kind: 'number', unit: 'mm' },
+            optional: true,
+            maxConnectionsIn: 1,
+          }}
+          setPortElement={() => {}}
+          dropState={null}
+          valueInput={{
+            value: 40,
+            min: 0,
+            max: 100,
+            step: 1,
+            onChange: handleChange,
+            onInteractionStart: handleStart,
+            onInteractionEnd: handleEnd,
+          }}
+        />,
+      )
+    })
+
+    const input = container.querySelector('.SpNumberFieldInput') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    await act(async () => {
+      input?.focus()
+    })
+
+    expect(handleStart).toHaveBeenCalledTimes(1)
+    expect(handleEnd).toHaveBeenCalledTimes(0)
+
+    await act(async () => {
+      input?.blur()
+    })
+
+    expect(handleEnd).toHaveBeenCalledTimes(1)
+    expect(handleChange).toHaveBeenCalledTimes(0)
+  })
+
+  it('does not start generic typed interactions for disabled number fields', async () => {
+    const handleStart = vi.fn()
+    const handleEnd = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <PortView
+          nodeId="node-baseplate-1"
+          direction="in"
+          port={{
+            portId: 'in:drv:widthMm',
+            label: 'Width',
+            type: { kind: 'number', unit: 'mm' },
+            optional: true,
+            maxConnectionsIn: 1,
+          }}
+          setPortElement={() => {}}
+          dropState={null}
+          valueInput={{
+            value: 40,
+            min: 0,
+            max: 100,
+            step: 1,
+            disabled: true,
+            onChange: () => {},
+            onInteractionStart: handleStart,
+            onInteractionEnd: handleEnd,
+          }}
+        />,
+      )
+    })
+
+    const input = container.querySelector('.SpNumberFieldInput') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(new FocusEvent('blur', { bubbles: true }))
+    })
+
+    expect(handleStart).toHaveBeenCalledTimes(0)
+    expect(handleEnd).toHaveBeenCalledTimes(0)
+  })
+
+  it('does not start generic typed interactions for driven number fields', async () => {
+    const handleStart = vi.fn()
+    const handleEnd = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <PortView
+          nodeId="node-baseplate-1"
+          direction="in"
+          port={{
+            portId: 'in:drv:widthMm',
+            label: 'Width',
+            type: { kind: 'number', unit: 'mm' },
+            optional: true,
+            maxConnectionsIn: 1,
+          }}
+          setPortElement={() => {}}
+          dropState={null}
+          valueInput={{
+            value: 40,
+            min: 0,
+            max: 100,
+            step: 1,
+            driven: true,
+            onChange: () => {},
+            onInteractionStart: handleStart,
+            onInteractionEnd: handleEnd,
+          }}
+        />,
+      )
+    })
+
+    const input = container.querySelector('.SpNumberFieldInput') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    await act(async () => {
+      input?.focus()
+      input?.dispatchEvent(new FocusEvent('blur', { bubbles: true }))
+    })
+
+    expect(handleStart).toHaveBeenCalledTimes(0)
+    expect(handleEnd).toHaveBeenCalledTimes(0)
+  })
 })

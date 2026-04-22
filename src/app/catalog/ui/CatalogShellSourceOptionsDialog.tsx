@@ -1,7 +1,23 @@
+import { useState, type DragEvent } from 'react'
 import type { PubPartsSharedLinkCandidate } from '../pubPartsSharedLinkResolver'
 import { resolvePubPartsSharedLinkDirectDownloadUrl } from '../pubPartsSharedLinkResolver'
 import type { PubPartsStagedSourceRecord } from '../pubPartsDownloadsStorage'
 import { SUPPORTED_REFERENCE_IMPORT_FILE_TYPES } from '../../references/importReferenceFile'
+import type { ReferenceFileType } from '../../references/referenceManifest'
+import type { PubPartsZipEntryPreviewActionState } from '../pubPartsZipEntryPreview'
+import { CatalogCardPreviewViewport } from './CatalogCardPreviewViewport'
+
+export type CatalogShellSourceOptionsPreviewState =
+  | { status: 'idle' }
+  | { status: 'loading'; candidateId: string; fileName: string }
+  | {
+      status: 'ready'
+      candidateId: string
+      fileName: string
+      fileType: ReferenceFileType
+      objectUrl: string
+    }
+  | { status: 'error'; candidateId: string; fileName: string; message: string }
 
 type CatalogShellSourceOptionsDialogProps = {
   stagedRecord: PubPartsStagedSourceRecord
@@ -10,10 +26,14 @@ type CatalogShellSourceOptionsDialogProps = {
   statusMessage: string | null
   isInspectingArchive: boolean
   isStaging: boolean
+  previewActionStatesByCandidateId: Record<string, PubPartsZipEntryPreviewActionState>
+  previewState: CatalogShellSourceOptionsPreviewState
   onToggleCandidate: (candidateId: string) => void
+  onPreviewCandidate: (candidateId: string) => void
   onSelectAllSupported: () => void
   onClearSelection: () => void
   onChooseLocalArchive: () => void
+  onAcceptLocalArchive: (archiveFile: File) => void
   onStageSelected: () => void
   onClose: () => void
 }
@@ -105,12 +125,22 @@ const formatArchiveEntrySupportState = (candidate: PubPartsSharedLinkCandidate):
 
 const PREVIEW_AFTER_STAGING_FILE_TYPES = new Set<string>(SUPPORTED_REFERENCE_IMPORT_FILE_TYPES)
 
-const formatArchiveEntryPreviewState = (candidate: PubPartsSharedLinkCandidate): string =>
-  candidate.selectable &&
-  candidate.fileType !== undefined &&
-  PREVIEW_AFTER_STAGING_FILE_TYPES.has(candidate.fileType)
+const formatArchiveEntryPreviewState = (
+  candidate: PubPartsSharedLinkCandidate,
+  previewActionState: PubPartsZipEntryPreviewActionState | undefined,
+): string => {
+  if (previewActionState !== undefined) {
+    return previewActionState.canPreview
+      ? 'Ready before staging'
+      : `Unavailable: ${previewActionState.unavailableReason}`
+  }
+
+  return candidate.selectable &&
+    candidate.fileType !== undefined &&
+    PREVIEW_AFTER_STAGING_FILE_TYPES.has(candidate.fileType)
     ? 'In Import review after staging'
     : 'Not available'
+}
 
 const isArchiveEntryCandidate = (candidate: PubPartsSharedLinkCandidate): boolean =>
   candidate.kind === 'supported-archive-entry' || candidate.kind === 'unsupported-archive-entry'
@@ -140,10 +170,14 @@ export function CatalogShellSourceOptionsDialog(
     statusMessage,
     isInspectingArchive,
     isStaging,
+    previewActionStatesByCandidateId,
+    previewState,
     onToggleCandidate,
+    onPreviewCandidate,
     onSelectAllSupported,
     onClearSelection,
     onChooseLocalArchive,
+    onAcceptLocalArchive,
     onStageSelected,
     onClose,
   } = props
@@ -158,9 +192,64 @@ export function CatalogShellSourceOptionsDialog(
   const showsStagedZipEntries = candidates.some((candidate) =>
     isArchiveEntryCandidate(candidate),
   )
+  const [isLocalArchiveDragActive, setIsLocalArchiveDragActive] = useState(false)
+
+  const handleLocalArchiveDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (isBusy) {
+      event.dataTransfer.dropEffect = 'none'
+      setIsLocalArchiveDragActive(false)
+      return
+    }
+
+    event.dataTransfer.dropEffect = 'copy'
+    setIsLocalArchiveDragActive(true)
+  }
+
+  const handleLocalArchiveDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const nextTarget = event.relatedTarget
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+      return
+    }
+
+    setIsLocalArchiveDragActive(false)
+  }
+
+  const handleLocalArchiveDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsLocalArchiveDragActive(false)
+
+    if (isBusy) {
+      return
+    }
+
+    const droppedFiles = Array.from(event.dataTransfer.files ?? [])
+    const archiveFile =
+      droppedFiles.find((file) => /\.zip$/iu.test(file.name.trim())) ?? droppedFiles[0]
+
+    if (archiveFile !== undefined) {
+      onAcceptLocalArchive(archiveFile)
+    }
+  }
 
   return (
-    <div className="CatalogSourceOptionsBackdrop" role="presentation">
+    <div
+      className={`CatalogSourceOptionsBackdrop ${
+        isLocalArchiveDragActive ? 'isLocalArchiveDragActive' : ''
+      }`}
+      role="presentation"
+      data-catalog-pubparts-local-zip-drop-zone
+      onDragEnter={handleLocalArchiveDragOver}
+      onDragOver={handleLocalArchiveDragOver}
+      onDragLeave={handleLocalArchiveDragLeave}
+      onDrop={handleLocalArchiveDrop}
+    >
       <section
         className="CatalogSourceOptionsDialog"
         role="dialog"
@@ -223,6 +312,10 @@ export function CatalogShellSourceOptionsDialog(
             const isSelected = selectedCandidateIds.includes(candidate.candidateId)
             const isArchiveEntry = isArchiveEntryCandidate(candidate)
             const blockedReason = formatArchiveEntryBlockedReason(candidate)
+            const previewActionState = previewActionStatesByCandidateId[candidate.candidateId]
+            const isPreviewLoading =
+              previewState.status === 'loading' &&
+              previewState.candidateId === candidate.candidateId
             return (
               <label
                 key={candidate.candidateId}
@@ -262,8 +355,23 @@ export function CatalogShellSourceOptionsDialog(
                           candidate.candidateId
                         }
                       >
-                        Preview: {formatArchiveEntryPreviewState(candidate)}
+                        Preview: {formatArchiveEntryPreviewState(candidate, previewActionState)}
                       </span>
+                      {previewActionState !== undefined ? (
+                        <button
+                          type="button"
+                          className="CatalogSourceOptionsPreviewAction"
+                          data-catalog-pubparts-preview-zip-entry={candidate.candidateId}
+                          disabled={!previewActionState.canPreview || isBusy || isPreviewLoading}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            onPreviewCandidate(candidate.candidateId)
+                          }}
+                        >
+                          {isPreviewLoading ? 'Loading Preview...' : previewActionState.actionLabel}
+                        </button>
+                      ) : null}
                       {blockedReason !== null ? (
                         <span>Blocked reason: {blockedReason}</span>
                       ) : null}
@@ -304,6 +412,38 @@ export function CatalogShellSourceOptionsDialog(
             )
           })}
         </div>
+
+        {showsStagedZipEntries ? (
+          <div
+            className={`CatalogSourceOptionsPreviewPanel CatalogSourceOptionsPreviewPanel--${previewState.status}`}
+            data-catalog-pubparts-source-options-preview-panel
+          >
+            <p
+              className="CatalogSourceOptionsPreviewStatus"
+              data-catalog-pubparts-source-options-preview-status
+            >
+              {previewState.status === 'idle'
+                ? '3D preview idle. Choose Preview 3D on a supported ZIP entry.'
+                : previewState.status === 'loading'
+                  ? `Loading 3D preview for ${previewState.fileName}...`
+                  : previewState.status === 'ready'
+                    ? `Preview ready for ${previewState.fileName}.`
+                    : `Preview failed for ${previewState.fileName}: ${previewState.message}`}
+            </p>
+            {previewState.status === 'ready' ? (
+              <CatalogCardPreviewViewport
+                itemId={`source-options-preview:${previewState.candidateId}`}
+                itemLabel={previewState.fileName}
+                previewSource={{
+                  fileType: previewState.fileType,
+                  objectUrl: previewState.objectUrl,
+                }}
+                fallbackPreviewMedia={null}
+                surfaceKind="source-options"
+              />
+            ) : null}
+          </div>
+        ) : null}
 
         {statusMessage !== null ? (
           <p className="CatalogSourceOptionsStatus" data-catalog-pubparts-source-options-status>

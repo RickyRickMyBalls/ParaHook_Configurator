@@ -7,11 +7,11 @@ import {
   type RefObject,
 } from 'react'
 import {
-  defaultLeftDockWidth,
   type LeftDockPanelId,
   type LeftDockResizeMenuState,
   type WorkspaceSplitMenuState,
 } from '../workspace/workspaceShellTypes'
+import { resetLeftDockWidthWithHistory } from '../store/workspaceLayoutEditHistory'
 
 const dockGhostHeight = 72
 const minLeftDockWidth = 260
@@ -270,9 +270,9 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
   )
 
   const handleResetLeftDockWidth = useCallback(() => {
-    setLeftDockWidth(defaultLeftDockWidth)
+    resetLeftDockWidthWithHistory()
     setLeftDockResizeMenu(null)
-  }, [setLeftDockResizeMenu, setLeftDockWidth])
+  }, [setLeftDockResizeMenu])
 
   return {
     resolveLeftDockPreviewPanelId,

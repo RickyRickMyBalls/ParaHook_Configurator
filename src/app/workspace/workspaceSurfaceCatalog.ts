@@ -12,6 +12,7 @@ export type WorkspaceSurfaceRenderFamily =
   | 'dashboard'
   | 'notepad'
   | 'homePage'
+  | 'editHistory'
 
 export type WorkspaceSurfaceScope = 'core' | 'optional'
 export type WorkspaceSurfaceCoordination =
@@ -41,7 +42,12 @@ export type CoreWorkspaceSurfaceKind =
   | 'console'
   | 'spaghettiEditor'
 
-export type OptionalWorkspaceSurfaceKind = 'catalog' | 'dashboard' | 'notepad' | 'homePage'
+export type OptionalWorkspaceSurfaceKind =
+  | 'catalog'
+  | 'dashboard'
+  | 'notepad'
+  | 'homePage'
+  | 'editHistory'
 
 const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = [
   {
@@ -146,6 +152,20 @@ const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = 
     kind: 'homePage',
     defaultLabel: 'Home Page',
     renderFamily: 'homePage',
+    scope: 'optional',
+    supports: {
+      slotted: true,
+      floating: true,
+      popout: true,
+      split: true,
+    },
+    participatesInPersistence: true,
+    coordination: 'plain',
+  },
+  {
+    kind: 'editHistory',
+    defaultLabel: 'Edit History',
+    renderFamily: 'editHistory',
     scope: 'optional',
     supports: {
       slotted: true,

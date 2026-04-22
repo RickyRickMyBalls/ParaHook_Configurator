@@ -1,6 +1,7 @@
 import { resolveViewerCameraShortcutAction } from './cameraShortcuts'
 
 export type InputRoutingOwner =
+  | 'edit-history'
   | 'text-field'
   | 'viewer-fly'
   | 'viewer-camera-shortcuts'
@@ -14,6 +15,8 @@ export type InputRoutingOwner =
 
 export type InputRoutingDecision = 'handle' | 'defer-native' | 'ignore'
 
+export type EditHistoryShortcutAction = 'undo' | 'redo'
+
 type KeyboardLikeEvent = {
   key: string
   code?: string
@@ -26,6 +29,10 @@ type KeyboardLikeEvent = {
 
 export type InputRoutingRequest = {
   event: KeyboardLikeEvent
+  editHistoryCanUndo?: boolean
+  editHistoryCanRedo?: boolean
+  consoleCommandSessionUndoOwner?: 'sketch-draw' | null
+  consoleInputAllowsCommandSessionUndo?: boolean
   viewerFlyActive?: boolean
   viewerCameraShortcutsEnabled?: boolean
   sketchPlanePickStage?: 'pick' | 'adjust' | null
@@ -42,6 +49,21 @@ export type InputRoutingRequest = {
 export type InputRoutingResult = {
   owner: InputRoutingOwner
   decision: InputRoutingDecision
+  editHistoryAction?: EditHistoryShortcutAction
+  sketchDrawAction?: EditHistoryShortcutAction
+}
+
+export type EditHistoryShortcutOwner = {
+  canUndo: () => boolean
+  canRedo: () => boolean
+  undo: () => unknown
+  redo: () => unknown
+}
+
+type PreventableKeyboardEvent = {
+  preventDefault: () => void
+  stopImmediatePropagation?: () => void
+  stopPropagation?: () => void
 }
 
 export const isEditableTarget = (target: EventTarget | null): boolean => {
@@ -52,9 +74,14 @@ export const isEditableTarget = (target: EventTarget | null): boolean => {
     target.tagName === 'INPUT' ||
     target.tagName === 'TEXTAREA' ||
     target.tagName === 'SELECT' ||
-    target.isContentEditable
+    target.isContentEditable ||
+    target.getAttribute('contenteditable') === 'true'
   )
 }
+
+const isConsoleInputTarget = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement &&
+  target.closest('[data-console-input="true"]') !== null
 
 const isPrintableKey = (event: KeyboardLikeEvent): boolean =>
   event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey
@@ -82,8 +109,53 @@ const isViewerFlyMovementKey = (event: KeyboardLikeEvent): boolean => {
   )
 }
 
+const isUndoShortcut = (event: KeyboardLikeEvent): boolean => {
+  const key = event.key.toLowerCase()
+  const modifierPressed = event.ctrlKey === true || event.metaKey === true
+  return modifierPressed && key === 'z' && event.shiftKey !== true && event.altKey !== true
+}
+
+const isRedoShortcut = (event: KeyboardLikeEvent): boolean => {
+  const key = event.key.toLowerCase()
+  const modifierPressed = event.ctrlKey === true || event.metaKey === true
+  if (!modifierPressed || event.altKey === true) {
+    return false
+  }
+  return key === 'y' || (key === 'z' && event.shiftKey === true)
+}
+
+export const dispatchEditHistoryShortcut = (
+  routing: InputRoutingResult,
+  event: PreventableKeyboardEvent,
+  owner: EditHistoryShortcutOwner,
+): boolean => {
+  if (routing.owner !== 'edit-history' || routing.decision !== 'handle') {
+    return false
+  }
+
+  if (routing.editHistoryAction === 'undo' && owner.canUndo()) {
+    event.preventDefault()
+    event.stopImmediatePropagation?.()
+    owner.undo()
+    return true
+  }
+
+  if (routing.editHistoryAction === 'redo' && owner.canRedo()) {
+    event.preventDefault()
+    event.stopImmediatePropagation?.()
+    owner.redo()
+    return true
+  }
+
+  return false
+}
+
 export const routeKeyboardInput = ({
   event,
+  editHistoryCanUndo = false,
+  editHistoryCanRedo = false,
+  consoleCommandSessionUndoOwner = null,
+  consoleInputAllowsCommandSessionUndo = false,
   viewerFlyActive = false,
   viewerCameraShortcutsEnabled = false,
   sketchPlanePickStage = null,
@@ -96,6 +168,19 @@ export const routeKeyboardInput = ({
   stagedConsoleActive = false,
   allowFlatConsoleCapture = false,
 }: InputRoutingRequest): InputRoutingResult => {
+  if (
+    consoleInputAllowsCommandSessionUndo &&
+    (geometrySketchMode === 'draw' || consoleCommandSessionUndoOwner === 'sketch-draw') &&
+    isConsoleInputTarget(event.target)
+  ) {
+    if (isUndoShortcut(event)) {
+      return { owner: 'sketch-draw', decision: 'handle', sketchDrawAction: 'undo' }
+    }
+    if (isRedoShortcut(event)) {
+      return { owner: 'sketch-draw', decision: 'handle', sketchDrawAction: 'redo' }
+    }
+  }
+
   if (isEditableTarget(event.target)) {
     return {
       owner: 'text-field',
@@ -111,6 +196,24 @@ export const routeKeyboardInput = ({
   }
 
   const key = event.key.toLowerCase()
+
+  if (isUndoShortcut(event)) {
+    if (geometrySketchMode === 'draw') {
+      return { owner: 'sketch-draw', decision: 'handle', sketchDrawAction: 'undo' }
+    }
+    return editHistoryCanUndo
+      ? { owner: 'edit-history', decision: 'handle', editHistoryAction: 'undo' }
+      : { owner: 'none', decision: 'ignore' }
+  }
+
+  if (isRedoShortcut(event)) {
+    if (geometrySketchMode === 'draw') {
+      return { owner: 'sketch-draw', decision: 'handle', sketchDrawAction: 'redo' }
+    }
+    return editHistoryCanRedo
+      ? { owner: 'edit-history', decision: 'handle', editHistoryAction: 'redo' }
+      : { owner: 'none', decision: 'ignore' }
+  }
 
   if (event.key === 'Escape') {
     if (sketchPlanePickStage !== null) {

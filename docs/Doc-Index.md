@@ -4,6 +4,18 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+279. 2026-04-22 17:56:30: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen5-Index.md` plus `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen5-1 - Durable CAD Local History Batches.md` to the docs map after user review promoted durable nested CAD-local undo/redo batches for Sketch Draw, Viewer Transform, and later CAD sessions.
+278. 2026-04-22 15:16:08: Added `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-3 - Console-Focused Sketch Draw Undo Ownership.md` to the docs map after focused-console research showed Sketch Draw undo/redo needs active command-session ownership even when the console input remains focused after submitted commands.
+277. 2026-04-22 12:12:20: Added `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-2 - Sketch Draw Staged Command Buffer.md` to the docs map after user review clarified completed Sketch Draw commands need in-session staged undo/redo before the final sketch commit reaches canonical app history.
+276. 2026-04-22 11:10:11: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen4-Index.md` plus `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-1 - Sketch Draw Authored Command Undo.md` to the docs map after Sketch Draw authored command undo was promoted into a new Edit-History HLG, CLG set, generation index, and Future plan.
+275. 2026-04-22 09:52:07: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen3-Index.md` plus three Gen 3 future planning docs for history reader UX and labels, checkpoints/snapshots/optional branching, and advanced Build Path comparison to the docs map after the Gen 2 closeout moved advanced history productization into its own planning surface.
+274. 2026-04-22 04:12:09: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen2-Index.md` plus four Gen 2 future planning docs for durable scene presentation, productivity content, workspace layout/preference, and sampler/import setting undo candidates to the docs map before any Gen 2 runtime implementation starts.
+273. 2026-04-22 00:11:26: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Vision.md` plus `Edit History 1` through `Edit History 6` future docs to the docs map and refreshed the Edit-History listing after the undoable-surface audit was converted into wishlist items, a filtered first-generation index ladder, and implementation-ready plans.
+272. 2026-04-22 00:00:54: Added `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History 0 - Undoable Surface Audit And First Coverage Recommendation.md` to the docs map and refreshed the Edit-History listing so the canonical undo/redo family now exposes its pre-implementation undoable-surface audit before `Edit History 1`.
+271. 2026-04-21 20:29:36: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-19 - Catalog Info Page And Rail Utility Cleanup.md` to the docs map and refreshed the Catalog listing after the source utility rail cleanup was routed into a small Catalog Gen2 follow-up phase.
+270. 2026-04-21 19:37:28: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-18 - PubParts Live Source Sync And Normalized Projection.md` to the docs map and refreshed the Catalog listing after the live PubParts metadata-refresh wishlist was routed into `Catalog-Gen2-18`.
+269. 2026-04-21 16:17:43: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Future/Pubwheel-Builder-1 - Workspace Foundation And Assembly Carousel.md` to the docs map and refreshed the Pubwheel Builder listing after Generation 1 gained the simple part-type attachment map and per-connection fastener naming lane.
+268. 2026-04-21 16:04:39: Added the new `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/` subtree to the docs map, listing the Pubwheel Builder vision, active Generation 1 index, and empty `Future/` holding lane so the assembly-carousel workspace family is discoverable beside Catalog, Home Page, and Model Viewport.
 267. 2026-04-20 12:27:46: Added the new `docs/Agents/Dispatch-4-simple/` subtree to the docs map, listing the simple Manager plus Worker overview, Manager role, Worker role, and run-state docs for the lighter two-step prep-and-implementation flow.
 266. 2026-04-19 17:32:30: Added the new `docs/Agents/Dispatch-3a/` subtree to the docs map, listing the persistent-lane Manager, Yap Intake, HLG > Spec, Worker, Explorer, flow, templates, run-state, and intake-log docs so the newer always-on dispatch model is discoverable beside Dispatch-2.
 265. 2026-04-19 14:30:18: Added `docs/Agents/Dispatch-2/Dispatch-2-Start-Command-Flow.md` to the Dispatch 2 docs map so broad commands such as `start Home Page Gen 1` have a discoverable flow from HLG through Guide-Rail descent and Worker handoff.
@@ -819,8 +831,16 @@ Rule notes:
 ###### -------------Catalog
             - `Workspaces/Catalog/Catalog-Vision.md`
             - `Workspaces/Catalog/Catalog-Index.md`
+            - `Workspaces/Catalog/Catalog-Gen2-Index.md`
 ####### --------------Future
             - `Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md`
+            - `Workspaces/Catalog/Future/Catalog-Gen2-18 - PubParts Live Source Sync And Normalized Projection.md`
+            - `Workspaces/Catalog/Future/Catalog-Gen2-19 - Catalog Info Page And Rail Utility Cleanup.md`
+###### -------------Pubwheel-Builder
+            - `Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md`
+            - `Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`
+####### --------------Future
+            - `Workspaces/Pubwheel-Builder/Future/Pubwheel-Builder-1 - Workspace Foundation And Assembly Carousel.md`
 ###### -------------Console
             - `Workspaces/Console/Console-Index.md`
 ###### -------------Dashboard
@@ -901,7 +921,31 @@ Rule notes:
             - `Shipped/Camera_Controls_Phase Camera-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
             - `Shipped/Camera_Controls_Phase Camera-4 - Camera Console Commands.md`
 #### -------Edit-History
+            - `Edit-History-Vision.md`
             - `Edit-History-Index.md`
+            - `Edit-History-Gen2-Index.md`
+            - `Edit-History-Gen3-Index.md`
+            - `Edit-History-Gen4-Index.md`
+            - `Edit-History-Gen5-Index.md`
+        ##### ------------Future
+            - `Future/Edit-History 0 - Undoable Surface Audit And First Coverage Recommendation.md`
+            - `Future/Edit-History-1 - Canonical Transaction Foundation.md`
+            - `Future/Edit-History-2 - Graph And Parameter Undo Coverage.md`
+            - `Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+            - `Future/Edit-History-4 - Browser Project Content And Accepted Import Undo Coverage.md`
+            - `Future/Edit-History-5 - Viewer Transform Commit Undo Integration.md`
+            - `Future/Edit-History-6 - Derived Readers And Later Coverage.md`
+            - `Future/Edit-History-Gen2-1 - Durable Scene Presentation Undo Candidates.md`
+            - `Future/Edit-History-Gen2-2 - Productivity Content Undo Candidates.md`
+            - `Future/Edit-History-Gen2-3 - Workspace Layout And Preference Undo Candidates.md`
+            - `Future/Edit-History-Gen2-4 - Sampler And Import Setting Undo Candidates.md`
+            - `Future/Edit-History-Gen3-1 - History Reader UX And Labels.md`
+            - `Future/Edit-History-Gen3-2 - Checkpoints Snapshots And Optional Branching.md`
+            - `Future/Edit-History-Gen3-3 - Advanced Build Path Comparison.md`
+            - `Future/Edit-History-Gen4-1 - Sketch Draw Authored Command Undo.md`
+            - `Future/Edit-History-Gen4-2 - Sketch Draw Staged Command Buffer.md`
+            - `Future/Edit-History-Gen4-3 - Console-Focused Sketch Draw Undo Ownership.md`
+            - `Future/Edit-History-Gen5-1 - Durable CAD Local History Batches.md`
 #### -------Import
             - `Import/Import-Vision.md`
             - `Import/Import-Index.md`

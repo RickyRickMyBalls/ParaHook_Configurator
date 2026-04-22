@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+94. 2026-04-21 16:04:39: Added the new workspace-family home `Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md` plus `Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`, refreshed this workspace umbrella so `Pubwheel Builder` now appears as a real workspace-global surface beside Catalog and Model Viewport, and routed its first Gen1 lane toward an assembly-carousel workspace foundation without moving Catalog source truth, Import ownership, heavy STEP preview, or compatibility checks into the builder.
 93. 2026-04-19 13:24:23: Updated the Home Page workspace-specific planning home after `Home-Page-Index.md` was renamed to `Home-Page-Gen1-Index.md`, keeping the workspace umbrella pointed at the active Generation 1 planning index.
 92. 2026-04-19 10:36:04: Added the `Workspaces/Home-Page/Home-Page-Index.md` umbrella family index plus the first standalone future phase doc `Home-Page-1`, and refreshed this workspace umbrella so `Home Page` now points at an index-owned implementation ladder for startup, zero-viewer return, and launch actions instead of only the vision note
 91. 2026-04-17 19:51:24: Added the new workspace-family home `Workspaces/Home-Page/Home-Page-Vision.md`, refreshed the umbrella workspace read so `Home Page` now appears as a real workspace-global surface beside the earlier families, and recorded one dedicated planning home for a zero-model-viewport landing surface that can expose launch, resume, and browser-storage transparency without becoming a second Browser or shell-only route hack
@@ -944,6 +945,7 @@ The right mental model is:
   - `Model Viewport`
   - `Browser`
   - `Catalog`
+  - `Pubwheel Builder`
   - `Console`
   - `Spaghetti Editor`
   - `Radio`
@@ -974,6 +976,10 @@ The right mental model is:
 - `Catalog`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
   - dedicated home for the curated repo-backed reusable-asset workspace direction, including hooks, shoes, footpads, HDRIs, and later explicit browse-and-load families without turning the catalog into a second Browser/content owner
+- `Pubwheel Builder`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md`
+  - dedicated home for the Tony Hawk-style full-assembly carousel workspace direction, including centered XR and ADV starting-assembly selection, idle turntable presentation, left/right assembly switching, and honest planned states for heavy preview, builder load, and compatibility behavior without turning Catalog or Model Viewport into the builder owner
 
 
 ## Phases

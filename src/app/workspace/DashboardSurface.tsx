@@ -21,6 +21,15 @@ import {
   minimumDashboardStickyNoteWidth,
 } from '../dashboard/dashboardTypes'
 import { useNotepadStore } from '../notepad/useNotepadStore'
+import { commitNoteTextFieldWithHistory } from '../store/notepadEditHistory'
+import {
+  commitDashboardBoardPlacementCommandWithHistory,
+  commitDashboardStickyNoteFrameWithHistory,
+  commitDashboardStickyNotePlacementsWithHistory,
+  createDashboardLaneAfterWithHistory,
+  removeDashboardLaneWithHistory,
+  renameDashboardLaneWithHistory,
+} from '../store/dashboardBoardEditHistory'
 import { useDashboardStore } from '../dashboard/useDashboardStore'
 import { DashboardStickyNoteCard } from './DashboardStickyNoteCard'
 
@@ -581,21 +590,13 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
   const noteOrder = useNotepadStore((state) => state.noteOrder)
   const notesById = useNotepadStore((state) => state.notesById)
   const createNote = useNotepadStore((state) => state.createNote)
-  const renameNote = useNotepadStore((state) => state.renameNote)
-  const updateNoteBody = useNotepadStore((state) => state.updateNoteBody)
   const setNotePinned = useNotepadStore((state) => state.setNotePinned)
   const setNoteColorPreset = useNotepadStore((state) => state.setNoteColorPreset)
   const lanes = useDashboardStore((state) => state.lanes)
   const stickyNoteLayoutsByNoteId = useDashboardStore((state) => state.stickyNoteLayoutsByNoteId)
   const reconcileStickyNoteLayouts = useDashboardStore((state) => state.reconcileStickyNoteLayouts)
-  const createLaneAfter = useDashboardStore((state) => state.createLaneAfter)
-  const renameLane = useDashboardStore((state) => state.renameLane)
-  const removeLane = useDashboardStore((state) => state.removeLane)
   const setAdjacentLaneWidths = useDashboardStore((state) => state.setAdjacentLaneWidths)
   const setStickyNotePlacement = useDashboardStore((state) => state.setStickyNotePlacement)
-  const setStickyNotePlacements = useDashboardStore((state) => state.setStickyNotePlacements)
-  const setStickyNoteFrame = useDashboardStore((state) => state.setStickyNoteFrame)
-  const setStickyNoteAttachmentParent = useDashboardStore((state) => state.setStickyNoteAttachmentParent)
   const pinnedNoteIds = useMemo(
     () => noteOrder.filter((noteId) => notesById[noteId]?.isPinned === true),
     [noteOrder, notesById],
@@ -993,7 +994,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
       if (resizeState !== null && resizeState.pointerId === event.pointerId) {
         const finalPreview = resizePreviewRef.current
         if (finalPreview !== null) {
-          setStickyNoteFrame(finalPreview.noteId, {
+          commitDashboardStickyNoteFrameWithHistory(finalPreview.noteId, {
             x: finalPreview.x,
             y: finalPreview.y,
             width: finalPreview.width ?? stickyNoteWidth,
@@ -1071,18 +1072,19 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
       }
       const finalPreview = dragPreviewRef.current
       if (finalPreview !== null) {
-        setStickyNotePlacements(Object.values(finalPreview.layoutsByNoteId))
-        setStickyNoteAttachmentParent(
-          dragState.noteId,
-          resolveDropAttachmentParentNoteId({
-            draggedNoteId: dragState.noteId,
-            draggedNoteIds: dragState.draggedNoteIds,
-            layoutsByNoteId: {
-              ...stickyNoteLayoutsRef.current,
-              ...finalPreview.layoutsByNoteId,
-            },
-          }),
-        )
+        commitDashboardStickyNotePlacementsWithHistory(Object.values(finalPreview.layoutsByNoteId), {
+          attachmentParentChange: {
+            noteId: dragState.noteId,
+            parentNoteId: resolveDropAttachmentParentNoteId({
+              draggedNoteId: dragState.noteId,
+              draggedNoteIds: dragState.draggedNoteIds,
+              layoutsByNoteId: {
+                ...stickyNoteLayoutsRef.current,
+                ...finalPreview.layoutsByNoteId,
+              },
+            }),
+          },
+        })
       }
       dragStateRef.current = null
       dragPreviewRef.current = null
@@ -1098,7 +1100,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
       window.removeEventListener('pointerup', handlePointerFinish)
       window.removeEventListener('pointercancel', handlePointerFinish)
     }
-  }, [lanes, setAdjacentLaneWidths, setStickyNoteAttachmentParent, setStickyNoteFrame, setStickyNotePlacements])
+  }, [lanes, setAdjacentLaneWidths])
 
   const effectiveStickyNoteLayoutsByNoteId = useMemo(() => {
     const nextLayoutsByNoteId =
@@ -1152,7 +1154,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
   const resolveLaneTitle = (laneId: DashboardLaneId): string => findLane(laneId)?.title ?? 'Lane'
 
   const handleCreateLaneAfter = (laneId: DashboardLaneId) => {
-    createLaneAfter(laneId, 'New lane')
+    createDashboardLaneAfterWithHistory(laneId, 'New lane')
   }
 
   const handleCreateStickyNoteInLane = (laneId: DashboardLaneId) => {
@@ -1168,6 +1170,26 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
     )
     setStickyNotePlacement(noteId, laneId, nextPlacement.x, nextPlacement.y)
     setPendingBodyFocusNoteId(noteId)
+  }
+
+  const handleRenameStickyNote = (noteId: string, title: string) => {
+    const currentNote = useNotepadStore.getState().notesById[noteId] ?? null
+    if (currentNote === null) {
+      return
+    }
+    commitNoteTextFieldWithHistory(noteId, 'title', currentNote.title, title, {
+      updatedAtBefore: currentNote.updatedAt,
+    })
+  }
+
+  const handleUpdateStickyNoteBody = (noteId: string, body: string) => {
+    const currentNote = useNotepadStore.getState().notesById[noteId] ?? null
+    if (currentNote === null) {
+      return
+    }
+    commitNoteTextFieldWithHistory(noteId, 'body', currentNote.body, body, {
+      updatedAtBefore: currentNote.updatedAt,
+    })
   }
 
   const handleStartLaneRename = (laneId: DashboardLaneId) => {
@@ -1191,7 +1213,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
       return
     }
     const trimmedTitle = (rawTitle ?? editingLaneTitleDraft).trim()
-    renameLane(laneId, trimmedTitle.length > 0 ? trimmedTitle : lane.title)
+    renameDashboardLaneWithHistory(laneId, trimmedTitle.length > 0 ? trimmedTitle : lane.title)
     handleCancelLaneRename()
   }
 
@@ -1212,24 +1234,29 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
     if (anchorLayout === undefined) {
       return
     }
+    const command = direction === 'vertical' ? 'align-vertical' : 'align-horizontal'
     if (smartAlignEnabledByLane[laneId] === true) {
-      setStickyNotePlacements(
+      commitDashboardBoardPlacementCommandWithHistory(
+        command,
         resolveSmartAlignedPlacements({
           laneId,
           direction,
           layouts: selectedLayouts,
         }),
+        { laneId },
       )
       return
     }
-    selectedLayouts.forEach((layout) => {
-      setStickyNotePlacement(
-        layout.noteId,
+    commitDashboardBoardPlacementCommandWithHistory(
+      command,
+      selectedLayouts.map((layout) => ({
+        noteId: layout.noteId,
         laneId,
-        direction === 'vertical' ? anchorLayout.x : layout.x,
-        direction === 'horizontal' ? anchorLayout.y : layout.y,
-      )
-    })
+        x: direction === 'vertical' ? anchorLayout.x : layout.x,
+        y: direction === 'horizontal' ? anchorLayout.y : layout.y,
+      })),
+      { laneId },
+    )
   }
 
   const handleArrangeLaneNotesIntoGrid = (laneId: DashboardLaneId) => {
@@ -1248,7 +1275,11 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
       return
     }
 
-    setStickyNotePlacements(resolveLaneGridPlacements(laneId, targetLayouts))
+    commitDashboardBoardPlacementCommandWithHistory(
+      'arrange-grid',
+      resolveLaneGridPlacements(laneId, targetLayouts),
+      { laneId },
+    )
   }
 
   const resolveMigrationDestination = (
@@ -1296,7 +1327,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
         return
       }
     }
-    removeLane(laneId, destinationLaneId)
+    removeDashboardLaneWithHistory(laneId, destinationLaneId)
   }
 
   const fitLaneToNotes = (laneId: DashboardLaneId) => {
@@ -1938,8 +1969,8 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
                         }}
                         onOpenInNotepad={onOpenNoteInNotepad}
                         onUnpin={(noteId) => setNotePinned(noteId, false)}
-                        onRenameNote={renameNote}
-                        onUpdateNoteBody={updateNoteBody}
+                        onRenameNote={handleRenameStickyNote}
+                        onUpdateNoteBody={handleUpdateStickyNoteBody}
                         onSetNoteColorPreset={setNoteColorPreset}
                       />
                     )

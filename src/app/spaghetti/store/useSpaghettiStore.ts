@@ -37,9 +37,12 @@ import { parseDriverVirtualInputPortId } from '../features/driverVirtualPorts'
 import {
   addNode as addNodeCommand,
   addEdge as addEdgeCommand,
+  connectEdgeWithAutoReplace,
   removeEdge as removeEdgeCommand,
+  removeNode as removeNodeCommand,
   type GraphCommand,
 } from '../graphCommands'
+import { editHistoryStore } from '../../store/editHistoryStore'
 import { isPartNodeType, normalizePartSlots } from '../parts/partSlots'
 import { buildNodeDriverVm, type OutputPinnedRowVm } from '../canvas/driverVm'
 import {
@@ -150,6 +153,62 @@ type EdgeWaypoint = {
   y: number
   flipSide1: boolean
   flipSide2: boolean
+}
+
+type AddGraphNodeHistoryOptions = {
+  node: SpaghettiNode
+  position?: GraphNodePos
+  nodeMode?: NodeRowMode
+}
+
+type ConnectGraphEdgeHistoryOptions = {
+  edgeId: string
+  from: EdgeEndpoint
+  to: EdgeEndpoint
+}
+
+type CommitGraphNodeMoveHistoryOptions = {
+  nodeId: string
+  from: GraphNodePos
+  to: GraphNodePos
+}
+
+type CommitGraphNodeParameterHistoryOptions = {
+  nodeId: string
+  beforeGraph: SpaghettiGraph
+  afterGraph?: SpaghettiGraph
+  targetId?: string
+  targetLabel?: string
+}
+
+type CommitPartFeatureParameterHistoryOptions = {
+  nodeId: string
+  featureId: string
+  beforeGraph: SpaghettiGraph
+  afterGraph?: SpaghettiGraph
+  targetId?: string
+  targetLabel?: string
+}
+
+type CommitPartSketchFeatureHistoryOptions = {
+  nodeId: string
+  featureId: string
+  beforeGraph: SpaghettiGraph
+  afterGraph?: SpaghettiGraph
+  label?: string
+  targetId?: string
+  targetLabel?: string
+}
+
+type CommitGeometrySketchFeatureHistoryOptions = {
+  nodeId: string
+  beforeGraph: SpaghettiGraph
+  afterGraph?: SpaghettiGraph
+  beforeLocalHistory?: GeometrySketchLocalHistoryState
+  afterLocalHistory?: GeometrySketchLocalHistoryState
+  label: string
+  targetId?: string
+  targetLabel?: string
 }
 
 export type GraphCompileBuildState = {
@@ -671,6 +730,44 @@ type GeometrySketchConsolePrompt = {
   lastUsedTool: GeometrySketchTool | null
 }
 
+type GeometrySketchStagedCommand = {
+  commandId: string
+  nodeId: string
+  label: string
+  kind: 'geometry'
+  beforeSessionState: GeometrySketchSessionSnapshot
+  afterSessionState: GeometrySketchSessionSnapshot
+  beforeParams: SpaghettiNode['params']
+  afterParams: SpaghettiNode['params']
+}
+
+type GeometrySketchSessionSnapshot = {
+  activeTool: GeometrySketchTool | null
+  lastUsedTool: GeometrySketchTool | null
+  drawStage: GeometrySketchDrawStage | null
+  drawDraft: GeometrySketchDrawDraft | null
+  selectedComponentIds: string[]
+  hoveredComponentId: string | null
+  selectionWindowDraft: GeometrySketchSelectionWindowDraft | null
+}
+
+type GeometrySketchToolSelectionCommand = {
+  commandId: string
+  label: string
+  kind: 'tool-selection'
+  beforeSessionState: GeometrySketchSessionSnapshot
+  afterSessionState: GeometrySketchSessionSnapshot
+}
+
+type GeometrySketchSessionHistoryCommand =
+  | GeometrySketchStagedCommand
+  | GeometrySketchToolSelectionCommand
+
+type GeometrySketchLocalHistoryState = {
+  undoCommands: GeometrySketchSessionHistoryCommand[]
+  redoCommands: GeometrySketchSessionHistoryCommand[]
+}
+
 export type GeometrySketchSession = {
   nodeId: string
   mode: 'draw' | 'review'
@@ -683,6 +780,12 @@ export type GeometrySketchSession = {
   selectedComponentIds: string[]
   hoveredComponentId: string | null
   selectionWindowDraft: GeometrySketchSelectionWindowDraft | null
+  stagedBaselineParams: SpaghettiNode['params'] | null
+  stagedBaselineHistory: GeometrySketchLocalHistoryState | null
+  stagedUndoCommands: GeometrySketchStagedCommand[]
+  stagedRedoCommands: GeometrySketchStagedCommand[]
+  sessionUndoCommands: GeometrySketchSessionHistoryCommand[]
+  sessionRedoCommands: GeometrySketchSessionHistoryCommand[]
 }
 
 export type SpaghettiStoreState = {
@@ -717,16 +820,31 @@ export type SpaghettiStoreState = {
   connectionDrag: ConnectionDragState | null
   sketchPlanePickSession: SketchPlanePickSession | null
   geometrySketchSession: GeometrySketchSession | null
+  geometrySketchLocalHistoryByTargetId: Record<string, GeometrySketchLocalHistoryState>
   uiMessage: CanvasUiMessage | null
   setGraph: (next: SpaghettiGraph) => void
   applyGraphCommand: (cmd: GraphCommand) => void
   applyGraphPatch: (patchFn: (prev: SpaghettiGraph) => SpaghettiGraph) => void
   setNodePos: (nodeId: string, x: number, y: number) => void
   setManyNodePos: (updates: NodePosUpdate[]) => void
+  commitGraphNodeMoveWithHistory: (options: CommitGraphNodeMoveHistoryOptions) => boolean
+  commitGraphNodeParameterWithHistory: (
+    options: CommitGraphNodeParameterHistoryOptions,
+  ) => boolean
+  commitPartFeatureParameterWithHistory: (
+    options: CommitPartFeatureParameterHistoryOptions,
+  ) => boolean
+  commitPartSketchFeatureWithHistory: (
+    options: CommitPartSketchFeatureHistoryOptions,
+  ) => boolean
   ensureNodePositions: () => void
   setNodeMode: (nodeId: string, mode: NodeRowMode) => void
   setNewNodeSpawnMode: (mode: NodeRowMode) => void
   cycleNewNodeSpawnMode: () => void
+  addGraphNodeWithHistory: (options: AddGraphNodeHistoryOptions) => boolean
+  removeGraphNodeWithHistory: (nodeId: string) => boolean
+  connectGraphEdgeWithHistory: (options: ConnectGraphEdgeHistoryOptions) => boolean
+  removeGraphEdgeWithHistory: (edgeId: string) => boolean
   addEdge: (edge: SpaghettiEdge) => void
   removeEdge: (edgeId: string) => void
   insertEdgeWaypoint: (edgeId: string, x: number, y: number, insertIndex?: number) => void
@@ -800,6 +918,8 @@ export type SpaghettiStoreState = {
     } | null,
   ) => void
   undoGeometrySketchDrawDraftPoint: () => void
+  undoGeometrySketchStagedCommand: () => boolean
+  redoGeometrySketchStagedCommand: () => boolean
   confirmGeometrySketchDrawPoint: (
     point: GeometrySketchDraftPoint,
     snapTarget: 'origin' | 'endpoint' | null,
@@ -1610,6 +1730,705 @@ export const normalizeGraphForStoreCommit = (graph: SpaghettiGraph): SpaghettiGr
   return normalizeGraphUiPositions(slotsRepaired)
 }
 
+const graphStructureHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'graph-structure',
+  sourceLabel: 'Graph Structure',
+}
+
+const graphNodeMoveHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'graph-node-position',
+  sourceLabel: 'Graph Node Position',
+}
+
+const graphNodeParameterHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'graph-node-parameter',
+  sourceLabel: 'Graph Node Parameter',
+}
+
+const graphFeatureStackHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'graph-feature-stack',
+  sourceLabel: 'Graph Feature Stack',
+}
+
+const graphFeatureParameterHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'graph-feature-parameter',
+  sourceLabel: 'Graph Feature Parameter',
+}
+
+const graphSketchFeatureHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'graph-sketch-feature',
+  sourceLabel: 'Graph Sketch Feature',
+}
+
+const geometrySketchDrawHistorySource = {
+  surface: 'spaghetti-graph',
+  sourceId: 'geometry-sketch-draw',
+  sourceLabel: 'Sketch Draw',
+}
+
+let graphStructureHistoryEntryCounter = 0
+
+const nextGraphStructureHistoryEntryId = (graphDocumentId: string): string => {
+  graphStructureHistoryEntryCounter += 1
+  return `graph-structure:${graphDocumentId}:${graphStructureHistoryEntryCounter}`
+}
+
+let geometrySketchStagedCommandCounter = 0
+
+const nextGeometrySketchStagedCommandId = (nodeId: string): string => {
+  geometrySketchStagedCommandCounter += 1
+  return `geometry-sketch-staged:${nodeId}:${geometrySketchStagedCommandCounter}`
+}
+
+let geometrySketchToolSelectionCommandCounter = 0
+
+const nextGeometrySketchToolSelectionCommandId = (tool: GeometrySketchTool): string => {
+  geometrySketchToolSelectionCommandCounter += 1
+  return `geometry-sketch-tool:${tool}:${geometrySketchToolSelectionCommandCounter}`
+}
+
+const getGeometrySketchToolSelectionHistoryLabel = (tool: GeometrySketchTool): string =>
+  `Select sketch ${tool} tool`
+
+const roundGraphNodePos = (pos: GraphNodePos): GraphNodePos => ({
+  x: roundPos(pos.x),
+  y: roundPos(pos.y),
+})
+
+const areGraphNodePositionsEqual = (left: GraphNodePos, right: GraphNodePos): boolean =>
+  left.x === right.x && left.y === right.y
+
+const areNormalizedGraphsEqual = (left: SpaghettiGraph, right: SpaghettiGraph): boolean =>
+  JSON.stringify(left) === JSON.stringify(right)
+
+const cloneNodeParams = (params: SpaghettiNode['params']): SpaghettiNode['params'] =>
+  JSON.parse(JSON.stringify(params)) as SpaghettiNode['params']
+
+const areNodeParamsEqual = (
+  left: SpaghettiNode['params'],
+  right: SpaghettiNode['params'],
+): boolean => JSON.stringify(left) === JSON.stringify(right)
+
+const cloneFeatureStack = (stack: FeatureStack): FeatureStack =>
+  readFeatureStack(JSON.parse(JSON.stringify(stack)))
+
+const areFeatureStacksEqual = (left: FeatureStack, right: FeatureStack): boolean =>
+  JSON.stringify(left) === JSON.stringify(right)
+
+const replaceGraphNodeParams = (
+  graph: SpaghettiGraph,
+  nodeId: string,
+  params: SpaghettiNode['params'],
+): SpaghettiGraph => {
+  const canonical = normalizeGraphForStoreCommit(graph)
+  let changed = false
+  const nodes = canonical.nodes.map((node) => {
+    if (node.nodeId !== nodeId) {
+      return node
+    }
+    changed = true
+    return {
+      ...node,
+      params: cloneNodeParams(params),
+    }
+  })
+  return changed ? normalizeGraphForStoreCommit({ ...canonical, nodes }) : canonical
+}
+
+const readGeometrySketchNodeParams = (
+  graph: SpaghettiGraph,
+  nodeId: string,
+): SpaghettiNode['params'] | null => {
+  const node = graph.nodes.find((candidate) => candidate.nodeId === nodeId)
+  return node !== undefined && isGeometrySketchNode(node) ? cloneNodeParams(node.params) : null
+}
+
+const restoreGraphHistorySnapshot = (
+  graphDocumentId: string,
+  graph: SpaghettiGraph,
+): void => {
+  const nextGraph = normalizeGraphForStoreCommit(graph)
+  const state = useSpaghettiStore.getState()
+  if (state.activeGraphDocumentId === graphDocumentId) {
+    applyGraphHistorySnapshotToActiveDocument(nextGraph)
+    return
+  }
+
+  useSpaghettiStore.setState((current) => {
+    const document = current.graphDocumentsById[graphDocumentId]
+    if (document === undefined) {
+      return current
+    }
+
+    return {
+      ...current,
+      graphDocumentsById: {
+        ...current.graphDocumentsById,
+        [graphDocumentId]: {
+          ...document,
+          graph: nextGraph,
+        },
+      },
+    }
+  })
+}
+
+const applyGraphHistorySnapshotToActiveDocument = (nextGraph: SpaghettiGraph): void => {
+  const normalizedGraph = normalizeGraphForStoreCommit(nextGraph)
+  useSpaghettiStore.setState((state) => ({
+    ...withUpdatedActiveGraphDocumentState(state, normalizedGraph),
+    sketchPlanePickSession: pruneSketchPlanePickSession(
+      normalizedGraph,
+      state.sketchPlanePickSession,
+    ),
+    edgeWaypoints: pruneEdgeWaypoints(normalizedGraph, state.edgeWaypoints),
+  }))
+}
+
+const restoreGraphNodePositionSnapshot = (
+  graphDocumentId: string,
+  nodeId: string,
+  position: GraphNodePos,
+): void => {
+  const roundedPosition = roundGraphNodePos(position)
+  const state = useSpaghettiStore.getState()
+  if (state.activeGraphDocumentId === graphDocumentId) {
+    useSpaghettiStore.setState((current) => {
+      const nextGraph = upsertNodePos(current.graph, {
+        [nodeId]: roundedPosition,
+      })
+      return {
+        ...withUpdatedActiveGraphDocumentState(current, nextGraph, 'document-only'),
+      }
+    })
+    return
+  }
+
+  useSpaghettiStore.setState((current) => {
+    const document = current.graphDocumentsById[graphDocumentId]
+    if (document === undefined) {
+      return current
+    }
+    const nextGraph = upsertNodePos(document.graph, {
+      [nodeId]: roundedPosition,
+    })
+    if (
+      areNormalizedGraphsEqual(
+        normalizeGraphForStoreCommit(document.graph),
+        normalizeGraphForStoreCommit(nextGraph),
+      )
+    ) {
+      return current
+    }
+
+    return {
+      ...current,
+      graphDocumentsById: {
+        ...current.graphDocumentsById,
+        [graphDocumentId]: {
+          ...document,
+          graph: nextGraph,
+        },
+      },
+    }
+  })
+}
+
+const restoreGraphNodeParameterSnapshot = (
+  graphDocumentId: string,
+  nodeId: string,
+  params: SpaghettiNode['params'],
+): void => {
+  const state = useSpaghettiStore.getState()
+  if (state.activeGraphDocumentId === graphDocumentId) {
+    useSpaghettiStore.setState((current) => {
+      const nextGraph = replaceGraphNodeParams(current.graph, nodeId, params)
+      return {
+        ...withUpdatedActiveGraphDocumentState(current, nextGraph),
+      }
+    })
+    return
+  }
+
+  useSpaghettiStore.setState((current) => {
+    const document = current.graphDocumentsById[graphDocumentId]
+    if (document === undefined) {
+      return current
+    }
+    const nextGraph = replaceGraphNodeParams(document.graph, nodeId, params)
+    if (
+      areNormalizedGraphsEqual(
+        normalizeGraphForStoreCommit(document.graph),
+        normalizeGraphForStoreCommit(nextGraph),
+      )
+    ) {
+      return current
+    }
+
+    return {
+      ...current,
+      graphDocumentsById: {
+        ...current.graphDocumentsById,
+        [graphDocumentId]: {
+          ...document,
+          graph: nextGraph,
+        },
+      },
+    }
+  })
+}
+
+const restoreGeometrySketchNodeParameterSnapshot = (
+  graphDocumentId: string,
+  nodeId: string,
+  params: SpaghettiNode['params'],
+  localHistory?: GeometrySketchLocalHistoryState,
+): void => {
+  const state = useSpaghettiStore.getState()
+  if (state.activeGraphDocumentId === graphDocumentId) {
+    useSpaghettiStore.setState((current) => {
+      const nextGraph = replaceGraphNodeParams(current.graph, nodeId, params)
+      const targetId = getGeometrySketchLocalHistoryTargetId(graphDocumentId, nodeId)
+      const nextHistoryByTargetId =
+        localHistory === undefined
+          ? current.geometrySketchLocalHistoryByTargetId
+          : withGeometrySketchLocalHistoryState(
+              current.geometrySketchLocalHistoryByTargetId,
+              targetId,
+              localHistory,
+            )
+      return {
+        ...withUpdatedActiveGraphDocumentState(current, nextGraph),
+        geometrySketchSession: pruneGeometrySketchSession(nextGraph, current.geometrySketchSession),
+        geometrySketchLocalHistoryByTargetId: nextHistoryByTargetId,
+      }
+    })
+    return
+  }
+
+  restoreGraphNodeParameterSnapshot(graphDocumentId, nodeId, params)
+}
+
+const restorePartNodeFeatureStackSnapshot = (
+  graphDocumentId: string,
+  nodeId: string,
+  stack: FeatureStack,
+): void => {
+  const state = useSpaghettiStore.getState()
+  if (state.activeGraphDocumentId === graphDocumentId) {
+    useSpaghettiStore.setState((current) => {
+      const nextGraph = replacePartNodeFeatureStack(current.graph, nodeId, stack)
+      return {
+        ...withUpdatedActiveGraphDocumentState(current, nextGraph),
+      }
+    })
+    return
+  }
+
+  useSpaghettiStore.setState((current) => {
+    const document = current.graphDocumentsById[graphDocumentId]
+    if (document === undefined) {
+      return current
+    }
+    const nextGraph = replacePartNodeFeatureStack(document.graph, nodeId, stack)
+    if (
+      areNormalizedGraphsEqual(
+        normalizeGraphForStoreCommit(document.graph),
+        normalizeGraphForStoreCommit(nextGraph),
+      )
+    ) {
+      return current
+    }
+
+    return {
+      ...current,
+      graphDocumentsById: {
+        ...current.graphDocumentsById,
+        [graphDocumentId]: {
+          ...document,
+          graph: nextGraph,
+        },
+      },
+    }
+  })
+}
+
+const commitGraphStructureHistoryCommand = (options: {
+  command: GraphCommand
+  label: string
+  targetId?: string
+  targetLabel?: string
+  applyGraph?: (afterGraph: SpaghettiGraph) => void
+}): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(state.graph)
+  const afterGraph = normalizeGraphForStoreCommit(options.command(beforeGraph))
+
+  if (areNormalizedGraphsEqual(beforeGraph, afterGraph)) {
+    return false
+  }
+
+  const applyGraph = options.applyGraph ?? applyGraphHistorySnapshotToActiveDocument
+  applyGraph(afterGraph)
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: options.label,
+    source: graphStructureHistorySource,
+    targetId: options.targetId ?? graphDocumentId,
+    targetLabel: options.targetLabel,
+    undo: () => restoreGraphHistorySnapshot(graphDocumentId, beforeGraph),
+    redo: () => restoreGraphHistorySnapshot(graphDocumentId, afterGraph),
+  })
+}
+
+const commitPartFeatureStackHistoryCommand = (options: {
+  nodeId: string
+  label: string
+  targetId?: string
+  targetLabel?: string
+  buildFeatureStack: (stack: FeatureStack) => FeatureStack
+}): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(state.graph)
+  const beforeNode = beforeGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  if (beforeNode === undefined || !isPartNode(beforeNode)) {
+    return false
+  }
+
+  const beforeStack = cloneFeatureStack(getPartFeatureStack(beforeNode))
+  const afterStack = recomputeCloseProfileOutputs(
+    cloneFeatureStack(options.buildFeatureStack(beforeStack)),
+  )
+  if (areFeatureStacksEqual(beforeStack, afterStack)) {
+    return false
+  }
+
+  const afterGraph = replacePartNodeFeatureStack(beforeGraph, options.nodeId, afterStack)
+  if (areNormalizedGraphsEqual(beforeGraph, afterGraph)) {
+    return false
+  }
+
+  applyGraphHistorySnapshotToActiveDocument(afterGraph)
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: options.label,
+    source: graphFeatureStackHistorySource,
+    targetId: options.targetId ?? options.nodeId,
+    targetLabel: options.targetLabel ?? options.nodeId,
+    undo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, beforeStack),
+    redo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, afterStack),
+  })
+}
+
+const findHistoryFeature = (
+  stack: FeatureStack,
+  featureId: string,
+): FeatureStack[number] | undefined =>
+  stack.find((feature) => feature.featureId === featureId)
+
+const isHistorySupportedFeatureParameterTarget = (
+  feature: FeatureStack[number],
+): boolean => feature.type === 'closeProfile' || feature.type === 'extrude'
+
+const commitPartSketchFeatureStackHistoryCommand = (options: {
+  nodeId: string
+  featureId: string
+  label: string
+  targetId?: string
+  targetLabel?: string
+  buildFeatureStack: (stack: FeatureStack) => FeatureStack
+}): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(state.graph)
+  const beforeNode = beforeGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  if (beforeNode === undefined || !isPartNode(beforeNode)) {
+    return false
+  }
+
+  const beforeStack = cloneFeatureStack(getPartFeatureStack(beforeNode))
+  const beforeFeature = findHistoryFeature(beforeStack, options.featureId)
+  if (beforeFeature === undefined || beforeFeature.type !== 'sketch') {
+    return false
+  }
+
+  const afterStack = recomputeCloseProfileOutputs(
+    cloneFeatureStack(options.buildFeatureStack(beforeStack)),
+  )
+  const afterFeature = findHistoryFeature(afterStack, options.featureId)
+  if (afterFeature === undefined || afterFeature.type !== 'sketch') {
+    return false
+  }
+  if (areFeatureStacksEqual(beforeStack, afterStack)) {
+    return false
+  }
+
+  const afterGraph = replacePartNodeFeatureStack(beforeGraph, options.nodeId, afterStack)
+  if (areNormalizedGraphsEqual(beforeGraph, afterGraph)) {
+    return false
+  }
+
+  applyGraphHistorySnapshotToActiveDocument(afterGraph)
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: options.label,
+    source: graphSketchFeatureHistorySource,
+    targetId: options.targetId ?? `${options.nodeId}:${options.featureId}`,
+    targetLabel: options.targetLabel ?? options.featureId,
+    undo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, beforeStack),
+    redo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, afterStack),
+  })
+}
+
+const commitPartSketchFeatureHistoryCommand = (
+  options: CommitPartSketchFeatureHistoryOptions,
+): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(options.beforeGraph)
+  const afterGraph = normalizeGraphForStoreCommit(options.afterGraph ?? state.graph)
+  const beforeNode = beforeGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  const afterNode = afterGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  if (
+    beforeNode === undefined ||
+    afterNode === undefined ||
+    !isPartNode(beforeNode) ||
+    !isPartNode(afterNode)
+  ) {
+    return false
+  }
+
+  const beforeStack = cloneFeatureStack(getPartFeatureStack(beforeNode))
+  const afterStack = cloneFeatureStack(getPartFeatureStack(afterNode))
+  const beforeFeature = findHistoryFeature(beforeStack, options.featureId)
+  const afterFeature = findHistoryFeature(afterStack, options.featureId)
+  if (
+    beforeFeature === undefined ||
+    afterFeature === undefined ||
+    beforeFeature.type !== 'sketch' ||
+    afterFeature.type !== 'sketch'
+  ) {
+    return false
+  }
+  if (areFeatureStacksEqual(beforeStack, afterStack)) {
+    return false
+  }
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: options.label ?? 'Change sketch component',
+    source: graphSketchFeatureHistorySource,
+    targetId: options.targetId ?? `${options.nodeId}:${options.featureId}`,
+    targetLabel: options.targetLabel ?? options.featureId,
+    undo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, beforeStack),
+    redo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, afterStack),
+  })
+}
+
+const commitGeometrySketchFeatureHistoryCommand = (
+  options: CommitGeometrySketchFeatureHistoryOptions,
+): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(options.beforeGraph)
+  const afterGraph = normalizeGraphForStoreCommit(options.afterGraph ?? state.graph)
+  const beforeNode = beforeGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  const afterNode = afterGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  if (
+    beforeNode === undefined ||
+    afterNode === undefined ||
+    !isGeometrySketchNode(beforeNode) ||
+    !isGeometrySketchNode(afterNode)
+  ) {
+    return false
+  }
+
+  const beforeParams = cloneNodeParams(beforeNode.params)
+  const afterParams = cloneNodeParams(afterNode.params)
+  if (areNodeParamsEqual(beforeParams, afterParams)) {
+    return false
+  }
+  const beforeLocalHistory = cloneGeometrySketchLocalHistoryState(options.beforeLocalHistory)
+  const afterLocalHistory = cloneGeometrySketchLocalHistoryState(options.afterLocalHistory)
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: options.label,
+    source: geometrySketchDrawHistorySource,
+    targetId: options.targetId ?? `${options.nodeId}:sketch`,
+    targetLabel: options.targetLabel ?? 'Sketch Draw',
+    undo: () =>
+      restoreGeometrySketchNodeParameterSnapshot(
+        graphDocumentId,
+        options.nodeId,
+        beforeParams,
+        beforeLocalHistory,
+      ),
+    redo: () =>
+      restoreGeometrySketchNodeParameterSnapshot(
+        graphDocumentId,
+        options.nodeId,
+        afterParams,
+        afterLocalHistory,
+      ),
+  })
+}
+
+const buildGeometrySketchStagedCommand = (options: {
+  nodeId: string
+  beforeGraph: SpaghettiGraph
+  afterGraph: SpaghettiGraph
+  label: string
+  beforeSessionState: GeometrySketchSessionSnapshot
+  afterSessionState: GeometrySketchSessionSnapshot
+}): GeometrySketchStagedCommand | null => {
+  const beforeParams = readGeometrySketchNodeParams(options.beforeGraph, options.nodeId)
+  const afterParams = readGeometrySketchNodeParams(options.afterGraph, options.nodeId)
+  if (beforeParams === null || afterParams === null || areNodeParamsEqual(beforeParams, afterParams)) {
+    return null
+  }
+
+  return {
+    commandId: nextGeometrySketchStagedCommandId(options.nodeId),
+    nodeId: options.nodeId,
+    label: options.label,
+    kind: 'geometry',
+    beforeSessionState: cloneGeometrySketchSessionSnapshot(options.beforeSessionState),
+    afterSessionState: cloneGeometrySketchSessionSnapshot(options.afterSessionState),
+    beforeParams,
+    afterParams,
+  }
+}
+
+const buildGeometrySketchToolSelectionCommand = (options: {
+  tool: GeometrySketchTool
+  beforeSessionState: GeometrySketchSessionSnapshot
+  afterSessionState: GeometrySketchSessionSnapshot
+}): GeometrySketchToolSelectionCommand => ({
+  commandId: nextGeometrySketchToolSelectionCommandId(options.tool),
+  label: getGeometrySketchToolSelectionHistoryLabel(options.tool),
+  kind: 'tool-selection',
+  beforeSessionState: cloneGeometrySketchSessionSnapshot(options.beforeSessionState),
+  afterSessionState: cloneGeometrySketchSessionSnapshot(options.afterSessionState),
+})
+
+const commitPartFeatureParameterHistoryCommand = (
+  options: CommitPartFeatureParameterHistoryOptions,
+): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(options.beforeGraph)
+  const afterGraph = normalizeGraphForStoreCommit(options.afterGraph ?? state.graph)
+  const beforeNode = beforeGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  const afterNode = afterGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  if (
+    beforeNode === undefined ||
+    afterNode === undefined ||
+    !isPartNode(beforeNode) ||
+    !isPartNode(afterNode)
+  ) {
+    return false
+  }
+
+  const beforeStack = cloneFeatureStack(getPartFeatureStack(beforeNode))
+  const afterStack = cloneFeatureStack(getPartFeatureStack(afterNode))
+  const beforeFeature = findHistoryFeature(beforeStack, options.featureId)
+  const afterFeature = findHistoryFeature(afterStack, options.featureId)
+  if (
+    beforeFeature === undefined ||
+    afterFeature === undefined ||
+    beforeFeature.type !== afterFeature.type ||
+    !isHistorySupportedFeatureParameterTarget(beforeFeature) ||
+    !isHistorySupportedFeatureParameterTarget(afterFeature)
+  ) {
+    return false
+  }
+
+  if (areFeatureStacksEqual(beforeStack, afterStack)) {
+    return false
+  }
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: 'Change feature parameter',
+    source: graphFeatureParameterHistorySource,
+    targetId: options.targetId ?? `${options.nodeId}:${options.featureId}`,
+    targetLabel: options.targetLabel ?? options.featureId,
+    undo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, beforeStack),
+    redo: () => restorePartNodeFeatureStackSnapshot(graphDocumentId, options.nodeId, afterStack),
+  })
+}
+
+const commitGraphNodeParameterHistoryCommand = (
+  options: CommitGraphNodeParameterHistoryOptions,
+): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(options.beforeGraph)
+  const afterGraph = normalizeGraphForStoreCommit(options.afterGraph ?? state.graph)
+  const beforeNode = beforeGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  const afterNode = afterGraph.nodes.find((node) => node.nodeId === options.nodeId)
+  if (beforeNode === undefined || afterNode === undefined) {
+    return false
+  }
+
+  const beforeParams = cloneNodeParams(beforeNode.params)
+  const afterParams = cloneNodeParams(afterNode.params)
+  if (areNodeParamsEqual(beforeParams, afterParams)) {
+    return false
+  }
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: 'Change graph parameter',
+    source: graphNodeParameterHistorySource,
+    targetId: options.targetId ?? options.nodeId,
+    targetLabel: options.targetLabel ?? options.nodeId,
+    undo: () => restoreGraphNodeParameterSnapshot(graphDocumentId, options.nodeId, beforeParams),
+    redo: () => restoreGraphNodeParameterSnapshot(graphDocumentId, options.nodeId, afterParams),
+  })
+}
+
+const commitGraphNodeMoveHistoryCommand = (
+  options: CommitGraphNodeMoveHistoryOptions,
+): boolean => {
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const graph = normalizeGraphForStoreCommit(state.graph)
+  if (!graph.nodes.some((node) => node.nodeId === options.nodeId)) {
+    return false
+  }
+
+  const from = roundGraphNodePos(options.from)
+  const to = roundGraphNodePos(options.to)
+  if (areGraphNodePositionsEqual(from, to)) {
+    return false
+  }
+
+  restoreGraphNodePositionSnapshot(graphDocumentId, options.nodeId, to)
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: 'Move graph node',
+    source: graphNodeMoveHistorySource,
+    targetId: options.nodeId,
+    targetLabel: options.nodeId,
+    undo: () => restoreGraphNodePositionSnapshot(graphDocumentId, options.nodeId, from),
+    redo: () => restoreGraphNodePositionSnapshot(graphDocumentId, options.nodeId, to),
+  })
+}
+
 const isPartNode = (node: SpaghettiNode): boolean => isPartNodeType(node.type)
 
 const getPartFeatureStack = (node: SpaghettiNode): FeatureStack =>
@@ -1622,6 +2441,24 @@ const setPartFeatureStack = (node: SpaghettiNode, stack: FeatureStack): Spaghett
     featureStack: readFeatureStack(stack),
   },
 })
+
+const replacePartNodeFeatureStack = (
+  graph: SpaghettiGraph,
+  nodeId: string,
+  stack: FeatureStack,
+): SpaghettiGraph => {
+  const canonical = normalizeGraphForStoreCommit(graph)
+  let changed = false
+  const nextStack = recomputeCloseProfileOutputs(cloneFeatureStack(stack))
+  const nodes = canonical.nodes.map((node) => {
+    if (node.nodeId !== nodeId || !isPartNode(node)) {
+      return node
+    }
+    changed = true
+    return setPartFeatureStack(node, nextStack)
+  })
+  return changed ? normalizeGraphForStoreCommit({ ...canonical, nodes }) : canonical
+}
 
 const reconcileSketchSelectionId = (
   selectedProfileId: string | undefined,
@@ -1750,6 +2587,19 @@ const isGeometrySketchDrawTool = (
 ): tool is PrimarySketchDrawTool =>
   isPrimarySketchDrawTool(tool)
 
+const getGeometrySketchDrawHistoryLabel = (tool: PrimarySketchDrawTool): string => {
+  switch (tool) {
+    case 'line':
+      return 'Draw sketch line'
+    case 'rectangle':
+      return 'Draw sketch rectangle'
+    case 'circle':
+      return 'Draw sketch circle'
+    case 'pline':
+      return 'Draw sketch polyline'
+  }
+}
+
 const getGeometrySketchConsoleToolLabel = (tool: GeometrySketchTool): string =>
   isGeometrySketchDrawTool(tool)
     ? getPrimarySketchDrawConsoleToolLabel(tool)
@@ -1780,6 +2630,185 @@ const createEmptyGeometrySketchDrawDraft = (): GeometrySketchDrawDraft => ({
   hoverPoint: null,
   hoverSnapTarget: null,
 })
+
+const cloneGeometrySketchDrawDraft = (
+  draft: GeometrySketchDrawDraft | null,
+): GeometrySketchDrawDraft | null =>
+  draft === null
+    ? null
+    : {
+        points: draft.points.map((point) => ({ ...point })),
+        hoverPoint: draft.hoverPoint === null ? null : { ...draft.hoverPoint },
+        hoverSnapTarget: draft.hoverSnapTarget,
+      }
+
+const cloneGeometrySketchSelectionWindowDraft = (
+  draft: GeometrySketchSelectionWindowDraft | null,
+): GeometrySketchSelectionWindowDraft | null =>
+  draft === null
+    ? null
+    : {
+        anchor: { ...draft.anchor },
+        current: { ...draft.current },
+        mode: draft.mode,
+      }
+
+const cloneGeometrySketchSessionSnapshot = (
+  snapshot: GeometrySketchSessionSnapshot,
+): GeometrySketchSessionSnapshot => ({
+  activeTool: snapshot.activeTool,
+  lastUsedTool: snapshot.lastUsedTool,
+  drawStage: snapshot.drawStage,
+  drawDraft: cloneGeometrySketchDrawDraft(snapshot.drawDraft),
+  selectedComponentIds: [...snapshot.selectedComponentIds],
+  hoveredComponentId: snapshot.hoveredComponentId,
+  selectionWindowDraft: cloneGeometrySketchSelectionWindowDraft(snapshot.selectionWindowDraft),
+})
+
+const buildGeometrySketchSessionSnapshot = (
+  session: Pick<
+    GeometrySketchSession,
+    | 'activeTool'
+    | 'lastUsedTool'
+    | 'drawStage'
+    | 'drawDraft'
+    | 'selectedComponentIds'
+    | 'hoveredComponentId'
+    | 'selectionWindowDraft'
+  >,
+): GeometrySketchSessionSnapshot => ({
+  activeTool: session.activeTool,
+  lastUsedTool: session.lastUsedTool,
+  drawStage: session.drawStage,
+  drawDraft: cloneGeometrySketchDrawDraft(session.drawDraft),
+  selectedComponentIds: [...session.selectedComponentIds],
+  hoveredComponentId: session.hoveredComponentId,
+  selectionWindowDraft: cloneGeometrySketchSelectionWindowDraft(session.selectionWindowDraft),
+})
+
+const applyGeometrySketchSessionSnapshot = (
+  session: GeometrySketchSession,
+  snapshot: GeometrySketchSessionSnapshot,
+): GeometrySketchSession => ({
+  ...session,
+  activeTool: snapshot.activeTool,
+  lastUsedTool: snapshot.lastUsedTool,
+  drawStage: snapshot.drawStage,
+  drawDraft: cloneGeometrySketchDrawDraft(snapshot.drawDraft),
+  selectedComponentIds: [...snapshot.selectedComponentIds],
+  hoveredComponentId: snapshot.hoveredComponentId,
+  selectionWindowDraft: cloneGeometrySketchSelectionWindowDraft(snapshot.selectionWindowDraft),
+})
+
+const buildGeometrySketchCommittedSessionSnapshot = (
+  session: Pick<GeometrySketchSession, 'lastUsedTool'>,
+): GeometrySketchSessionSnapshot => ({
+  activeTool: null,
+  lastUsedTool: session.lastUsedTool,
+  drawStage: 'sessionIdle',
+  drawDraft: null,
+  selectedComponentIds: [],
+  hoveredComponentId: null,
+  selectionWindowDraft: null,
+})
+
+const getGeometrySketchUndoHistoryCommands = (
+  commands: readonly GeometrySketchSessionHistoryCommand[],
+): GeometrySketchStagedCommand[] =>
+  commands.filter(
+    (command): command is GeometrySketchStagedCommand => command.kind === 'geometry',
+  )
+
+const getGeometrySketchLocalHistoryTargetId = (
+  graphDocumentId: string,
+  nodeId: string,
+): string => `${graphDocumentId}:${nodeId}:sketch:draw-local-history`
+
+const cloneGeometrySketchSessionHistoryCommand = (
+  command: GeometrySketchSessionHistoryCommand,
+): GeometrySketchSessionHistoryCommand => {
+  if (command.kind === 'geometry') {
+    return {
+      ...command,
+      beforeSessionState: cloneGeometrySketchSessionSnapshot(command.beforeSessionState),
+      afterSessionState: cloneGeometrySketchSessionSnapshot(command.afterSessionState),
+      beforeParams: cloneNodeParams(command.beforeParams),
+      afterParams: cloneNodeParams(command.afterParams),
+    }
+  }
+
+  return {
+    ...command,
+    beforeSessionState: cloneGeometrySketchSessionSnapshot(command.beforeSessionState),
+    afterSessionState: cloneGeometrySketchSessionSnapshot(command.afterSessionState),
+  }
+}
+
+const cloneGeometrySketchLocalHistoryState = (
+  history: GeometrySketchLocalHistoryState | null | undefined,
+): GeometrySketchLocalHistoryState => ({
+  undoCommands: history?.undoCommands.map(cloneGeometrySketchSessionHistoryCommand) ?? [],
+  redoCommands: history?.redoCommands.map(cloneGeometrySketchSessionHistoryCommand) ?? [],
+})
+
+const buildGeometrySketchLocalHistoryState = (
+  undoCommands: readonly GeometrySketchSessionHistoryCommand[],
+  redoCommands: readonly GeometrySketchSessionHistoryCommand[],
+): GeometrySketchLocalHistoryState => ({
+  undoCommands: undoCommands.map(cloneGeometrySketchSessionHistoryCommand),
+  redoCommands: redoCommands.map(cloneGeometrySketchSessionHistoryCommand),
+})
+
+const hasGeometrySketchLocalHistoryCommands = (
+  history: GeometrySketchLocalHistoryState,
+): boolean => history.undoCommands.length > 0 || history.redoCommands.length > 0
+
+const findPreferredGeometrySketchHistoryCommandIndex = (
+  commands: readonly GeometrySketchSessionHistoryCommand[],
+  preferGeometry: boolean,
+): number => {
+  if (!preferGeometry) {
+    return commands.length - 1
+  }
+  for (let index = commands.length - 1; index >= 0; index -= 1) {
+    if (commands[index]?.kind === 'geometry') {
+      return index
+    }
+  }
+  return commands.length - 1
+}
+
+const withGeometrySketchLocalHistoryState = (
+  historyByTargetId: Record<string, GeometrySketchLocalHistoryState>,
+  targetId: string,
+  history: GeometrySketchLocalHistoryState,
+): Record<string, GeometrySketchLocalHistoryState> => {
+  if (!hasGeometrySketchLocalHistoryCommands(history)) {
+    const { [targetId]: _removed, ...remaining } = historyByTargetId
+    return remaining
+  }
+
+  return {
+    ...historyByTargetId,
+    [targetId]: cloneGeometrySketchLocalHistoryState(history),
+  }
+}
+
+const buildGeometrySketchSessionWithHistory = (options: {
+  session: GeometrySketchSession
+  undoCommands: GeometrySketchSessionHistoryCommand[]
+  redoCommands: GeometrySketchSessionHistoryCommand[]
+}): GeometrySketchSession => {
+  const undoCommands = options.undoCommands.map(cloneGeometrySketchSessionHistoryCommand)
+  const redoCommands = options.redoCommands.map(cloneGeometrySketchSessionHistoryCommand)
+  return {
+    ...options.session,
+    sessionUndoCommands: undoCommands,
+    sessionRedoCommands: redoCommands,
+    stagedUndoCommands: getGeometrySketchUndoHistoryCommands(undoCommands),
+    stagedRedoCommands: getGeometrySketchUndoHistoryCommands(redoCommands),
+  }
+}
 
 const resolveGeometrySketchDrawStage = (
   mode: GeometrySketchSession['mode'],
@@ -3669,6 +4698,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   connectionDrag: null,
   sketchPlanePickSession: null,
   geometrySketchSession: null,
+  geometrySketchLocalHistoryByTargetId: {},
   uiMessage: null,
   setGraph: (next) => {
     const nextGraph = normalizeGraphForStoreCommit(next)
@@ -3700,6 +4730,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           nextGraph,
           state.geometrySketchSession,
         ),
+        geometrySketchLocalHistoryByTargetId: {},
         edgeWaypoints: {},
         uiMessage: null,
       }
@@ -3755,6 +4786,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
   },
+  commitGraphNodeMoveWithHistory: (options) => commitGraphNodeMoveHistoryCommand(options),
+  commitGraphNodeParameterWithHistory: (options) =>
+    commitGraphNodeParameterHistoryCommand(options),
+  commitPartFeatureParameterWithHistory: (options) =>
+    commitPartFeatureParameterHistoryCommand(options),
+  commitPartSketchFeatureWithHistory: (options) =>
+    commitPartSketchFeatureHistoryCommand(options),
   ensureNodePositions: () => {
     set((state) => {
       const nextGraph = normalizeGraphForStoreCommit(state.graph)
@@ -3782,34 +4820,79 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       newNodeSpawnMode: getNextViewMode(state.newNodeSpawnMode),
     }))
   },
+  addGraphNodeWithHistory: (options) =>
+    commitGraphStructureHistoryCommand({
+      command: addNodeCommand(options),
+      label: 'Add graph node',
+      targetId: options.node.nodeId,
+      targetLabel: options.node.type,
+    }),
+  removeGraphNodeWithHistory: (nodeId) =>
+    commitGraphStructureHistoryCommand({
+      command: removeNodeCommand(nodeId),
+      label: 'Remove graph node',
+      targetId: nodeId,
+      targetLabel: nodeId,
+    }),
+  connectGraphEdgeWithHistory: (options) =>
+    commitGraphStructureHistoryCommand({
+      command: connectEdgeWithAutoReplace(options),
+      label: 'Connect graph wire',
+      targetId: options.edgeId,
+      targetLabel: options.edgeId,
+    }),
+  removeGraphEdgeWithHistory: (edgeId) =>
+    commitGraphStructureHistoryCommand({
+      command: removeEdgeCommand(edgeId),
+      label: 'Remove graph wire',
+      targetId: edgeId,
+      targetLabel: edgeId,
+    }),
   addEdge: (edge) => {
-    get().applyGraphCommand(addEdgeCommand(edge))
+    commitGraphStructureHistoryCommand({
+      command: addEdgeCommand(edge),
+      label: 'Connect graph wire',
+      targetId: edge.edgeId,
+      targetLabel: edge.edgeId,
+    })
   },
   removeEdge: (edgeId) => {
-    set((state) => {
-      const nextGraph = normalizeGraphForStoreCommit(removeEdgeCommand(edgeId)(state.graph))
-      const nextWaypoints = { ...state.edgeWaypoints }
-      delete nextWaypoints[edgeId]
-      const nextState = {
-        ...state,
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
-      const activeSelectedEdgeId = selectEditorViewportSelectedEdgeId(
-        nextState,
-        nextState.activeEditorViewportId,
-      )
-      return {
-        ...nextState,
-        edgeWaypoints: nextWaypoints,
-        ...withBrowserViewportState(nextState, {
-          editorViewportSelectedEdgeIdById: {
-            ...nextState.editorViewportSelectedEdgeIdById,
-            [nextState.activeEditorViewportId]:
-              activeSelectedEdgeId === edgeId ? null : activeSelectedEdgeId,
-          },
-        }),
-        hoveredEdgeId: state.hoveredEdgeId === edgeId ? null : state.hoveredEdgeId,
-      }
+    commitGraphStructureHistoryCommand({
+      command: removeEdgeCommand(edgeId),
+      label: 'Remove graph wire',
+      targetId: edgeId,
+      targetLabel: edgeId,
+      applyGraph: (afterGraph) => {
+        set((state) => {
+          const nextGraph = normalizeGraphForStoreCommit(afterGraph)
+          const nextWaypoints = { ...state.edgeWaypoints }
+          delete nextWaypoints[edgeId]
+          const nextState = {
+            ...state,
+            ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+          }
+          const activeSelectedEdgeId = selectEditorViewportSelectedEdgeId(
+            nextState,
+            nextState.activeEditorViewportId,
+          )
+          return {
+            ...nextState,
+            sketchPlanePickSession: pruneSketchPlanePickSession(
+              nextGraph,
+              state.sketchPlanePickSession,
+            ),
+            edgeWaypoints: pruneEdgeWaypoints(nextGraph, nextWaypoints),
+            ...withBrowserViewportState(nextState, {
+              editorViewportSelectedEdgeIdById: {
+                ...nextState.editorViewportSelectedEdgeIdById,
+                [nextState.activeEditorViewportId]:
+                  activeSelectedEdgeId === edgeId ? null : activeSelectedEdgeId,
+              },
+            }),
+            hoveredEdgeId: state.hoveredEdgeId === edgeId ? null : state.hoveredEdgeId,
+          }
+        })
+      },
     })
   },
   insertEdgeWaypoint: (edgeId, x, y, insertIndex) => {
@@ -5097,6 +6180,18 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           ? current.lastUsedTool
           : null
       const drawDraft = buildGeometrySketchSessionDraft(mode, activeTool)
+      const stagedBaselineParams =
+        mode === 'draw' ? readGeometrySketchNodeParams(state.graph, nodeId) : null
+      const localHistoryTargetId = getGeometrySketchLocalHistoryTargetId(
+        state.activeGraphDocumentId,
+        nodeId,
+      )
+      const stagedBaselineHistory =
+        mode === 'draw'
+          ? cloneGeometrySketchLocalHistoryState(
+              state.geometrySketchLocalHistoryByTargetId[localHistoryTargetId],
+            )
+          : null
       if (mode === 'draw') {
         nextPromptRef.current = {
           tool: activeTool,
@@ -5104,26 +6199,40 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           lastUsedTool,
         }
       }
+      const nextSession: GeometrySketchSession = {
+        nodeId,
+        mode,
+        activeTool,
+        lastUsedTool,
+        drawStage: resolveGeometrySketchDrawStage(mode, activeTool, drawDraft),
+        editorViewportId,
+        shouldRestoreViewportWindowMode:
+          current?.nodeId === nodeId
+            ? current.shouldRestoreViewportWindowMode || shouldRestoreViewportWindowMode
+            : shouldRestoreViewportWindowMode,
+        drawDraft,
+        selectedComponentIds: [],
+        hoveredComponentId: null,
+        selectionWindowDraft: null,
+        stagedBaselineParams,
+        stagedBaselineHistory,
+        stagedUndoCommands: [],
+        stagedRedoCommands: [],
+        sessionUndoCommands: [],
+        sessionRedoCommands: [],
+      }
       return {
         ...(nextEditorViewportsById === state.editorViewportsById
           ? {}
           : { editorViewportsById: nextEditorViewportsById }),
-        geometrySketchSession: {
-          nodeId,
-          mode,
-          activeTool,
-          lastUsedTool,
-          drawStage: resolveGeometrySketchDrawStage(mode, activeTool, drawDraft),
-          editorViewportId,
-          shouldRestoreViewportWindowMode:
-            current?.nodeId === nodeId
-              ? current.shouldRestoreViewportWindowMode || shouldRestoreViewportWindowMode
-              : shouldRestoreViewportWindowMode,
-          drawDraft,
-          selectedComponentIds: [],
-          hoveredComponentId: null,
-          selectionWindowDraft: null,
-        },
+        geometrySketchSession:
+          stagedBaselineHistory === null
+            ? nextSession
+            : buildGeometrySketchSessionWithHistory({
+                session: nextSession,
+                undoCommands: stagedBaselineHistory.undoCommands,
+                redoCommands: stagedBaselineHistory.redoCommands,
+              }),
         sketchPlanePickSession: null,
       }
     })
@@ -5146,6 +6255,46 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   closeGeometrySketchSession: () => {
     const session = get().geometrySketchSession
+    if (
+      session?.mode === 'draw' &&
+      session.stagedBaselineParams !== null &&
+      session.stagedBaselineHistory !== null
+    ) {
+      const afterParams = readGeometrySketchNodeParams(get().graph, session.nodeId)
+      const beforeGraph = replaceGraphNodeParams(
+        get().graph,
+        session.nodeId,
+        session.stagedBaselineParams,
+      )
+      const hasAcceptedParamChange =
+        afterParams !== null && !areNodeParamsEqual(session.stagedBaselineParams, afterParams)
+      const localHistoryTargetId = getGeometrySketchLocalHistoryTargetId(
+        get().activeGraphDocumentId,
+        session.nodeId,
+      )
+      const acceptedLocalHistory = hasAcceptedParamChange
+        ? buildGeometrySketchLocalHistoryState(session.sessionUndoCommands, [])
+        : cloneGeometrySketchLocalHistoryState(session.stagedBaselineHistory)
+      set((state) => ({
+        geometrySketchLocalHistoryByTargetId: withGeometrySketchLocalHistoryState(
+          state.geometrySketchLocalHistoryByTargetId,
+          localHistoryTargetId,
+          acceptedLocalHistory,
+        ),
+      }))
+      if (hasAcceptedParamChange) {
+        commitGeometrySketchFeatureHistoryCommand({
+          nodeId: session.nodeId,
+          beforeGraph,
+          afterGraph: get().graph,
+          beforeLocalHistory: session.stagedBaselineHistory,
+          afterLocalHistory: acceptedLocalHistory,
+          label: 'Commit sketch draw changes',
+          targetId: `${session.nodeId}:sketch:components`,
+          targetLabel: 'Sketch Draw changes',
+        })
+      }
+    }
     set({ geometrySketchSession: null })
     if (
       session?.shouldRestoreViewportWindowMode === true &&
@@ -5315,10 +6464,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       if (state.geometrySketchSession === null) {
         return state
       }
+      const currentSession = state.geometrySketchSession
       if (state.geometrySketchSession.mode === 'draw') {
         const nextDraft =
-          state.geometrySketchSession.activeTool === tool
-            ? state.geometrySketchSession.drawDraft
+          currentSession.activeTool === tool
+            ? currentSession.drawDraft
             : buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool)
         nextPromptRef.current = {
           tool,
@@ -5326,26 +6476,42 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           lastUsedTool: tool,
         }
       }
-      if (state.geometrySketchSession.activeTool === tool) {
+      if (currentSession.activeTool === tool) {
         return state
       }
+      const nextDrawDraft = buildGeometrySketchSessionDraft(currentSession.mode, tool)
+      const nextSessionState = {
+        ...currentSession,
+        activeTool: tool,
+        lastUsedTool: isGeometrySketchDrawTool(tool)
+          ? tool
+          : currentSession.lastUsedTool,
+        drawStage: resolveGeometrySketchDrawStage(
+          currentSession.mode,
+          tool,
+          nextDrawDraft,
+        ),
+        drawDraft: nextDrawDraft,
+        selectedComponentIds: [],
+        hoveredComponentId: null,
+        selectionWindowDraft: null,
+      }
+      if (currentSession.mode !== 'draw') {
+        return {
+          geometrySketchSession: nextSessionState,
+        }
+      }
+      const historyEntry = buildGeometrySketchToolSelectionCommand({
+        tool,
+        beforeSessionState: buildGeometrySketchSessionSnapshot(currentSession),
+        afterSessionState: buildGeometrySketchSessionSnapshot(nextSessionState),
+      })
       return {
-        geometrySketchSession: {
-          ...state.geometrySketchSession,
-          activeTool: tool,
-          lastUsedTool: isGeometrySketchDrawTool(tool)
-            ? tool
-            : state.geometrySketchSession.lastUsedTool,
-          drawStage: resolveGeometrySketchDrawStage(
-            state.geometrySketchSession.mode,
-            tool,
-            buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
-          ),
-          drawDraft: buildGeometrySketchSessionDraft(state.geometrySketchSession.mode, tool),
-          selectedComponentIds: [],
-          hoveredComponentId: null,
-          selectionWindowDraft: null,
-        },
+        geometrySketchSession: buildGeometrySketchSessionWithHistory({
+          session: nextSessionState,
+          undoCommands: [...currentSession.sessionUndoCommands, historyEntry],
+          redoCommands: [],
+        }),
       }
     })
     if (nextPromptRef.current !== null) {
@@ -5516,6 +6682,93 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       )
     }
   },
+  undoGeometrySketchStagedCommand: () => {
+    let didUndo = false
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.sessionUndoCommands.length === 0
+      ) {
+        return state
+      }
+      const commandIndex = findPreferredGeometrySketchHistoryCommandIndex(
+        session.sessionUndoCommands,
+        session.stagedUndoCommands.length > 1 ||
+          (session.stagedUndoCommands.length === 1 &&
+            (session.activeTool === null ||
+              session.activeTool === session.stagedUndoCommands[0]?.beforeSessionState.activeTool)),
+      )
+      const command = session.sessionUndoCommands[commandIndex]
+      const nextUndoCommands = session.sessionUndoCommands.filter(
+        (_candidate, index) => index !== commandIndex,
+      )
+      const nextRedoCommands = [...session.sessionRedoCommands, command]
+      const nextSessionBase = buildGeometrySketchSessionWithHistory({
+        session: applyGeometrySketchSessionSnapshot(
+          session,
+          cloneGeometrySketchSessionSnapshot(command.beforeSessionState),
+        ),
+        undoCommands: nextUndoCommands,
+        redoCommands: nextRedoCommands,
+      })
+      didUndo = true
+      if (command.kind === 'geometry') {
+        const nextGraph = replaceGraphNodeParams(state.graph, command.nodeId, command.beforeParams)
+        return {
+          ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+          geometrySketchSession: pruneGeometrySketchSession(nextGraph, nextSessionBase),
+        }
+      }
+      return {
+        geometrySketchSession: nextSessionBase,
+      }
+    })
+    return didUndo
+  },
+  redoGeometrySketchStagedCommand: () => {
+    let didRedo = false
+    set((state) => {
+      const session = state.geometrySketchSession
+      if (
+        session === null ||
+        session.mode !== 'draw' ||
+        session.sessionRedoCommands.length === 0
+      ) {
+        return state
+      }
+      const commandIndex = findPreferredGeometrySketchHistoryCommandIndex(
+        session.sessionRedoCommands,
+        session.stagedRedoCommands.length > 0,
+      )
+      const command = session.sessionRedoCommands[commandIndex]
+      const nextUndoCommands = [...session.sessionUndoCommands, command]
+      const nextRedoCommands = session.sessionRedoCommands.filter(
+        (_candidate, index) => index !== commandIndex,
+      )
+      const nextSessionBase = buildGeometrySketchSessionWithHistory({
+        session: applyGeometrySketchSessionSnapshot(
+          session,
+          cloneGeometrySketchSessionSnapshot(command.afterSessionState),
+        ),
+        undoCommands: nextUndoCommands,
+        redoCommands: nextRedoCommands,
+      })
+      didRedo = true
+      if (command.kind === 'geometry') {
+        const nextGraph = replaceGraphNodeParams(state.graph, command.nodeId, command.afterParams)
+        return {
+          ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+          geometrySketchSession: pruneGeometrySketchSession(nextGraph, nextSessionBase),
+        }
+      }
+      return {
+        geometrySketchSession: nextSessionBase,
+      }
+    })
+    return didRedo
+  },
   confirmGeometrySketchDrawPoint: (point, snapTarget) => {
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
     set((state) => {
@@ -5535,6 +6788,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         session.activeTool === 'rectangle' ||
         session.activeTool === 'circle'
       ) {
+        const beforeSessionState = buildGeometrySketchSessionSnapshot(session)
         const startPoint = session.drawDraft.points[0] ?? null
         if (startPoint === null) {
           const nextDraft = {
@@ -5574,6 +6828,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         if (nextGraph === state.graph) {
           return state
         }
+        const stagedCommand = buildGeometrySketchStagedCommand({
+          nodeId: session.nodeId,
+          beforeGraph: state.graph,
+          afterGraph: nextGraph,
+          label: getGeometrySketchDrawHistoryLabel(session.activeTool),
+          beforeSessionState,
+          afterSessionState: buildGeometrySketchCommittedSessionSnapshot(session),
+        })
+        if (stagedCommand === null) {
+          return state
+        }
         nextPromptRef.current = {
           tool: null,
           draft: null,
@@ -5581,15 +6846,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         }
         return {
           ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-          geometrySketchSession: {
-            ...session,
-            activeTool: null,
-            drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
-            drawDraft: null,
-            selectedComponentIds: [],
-            hoveredComponentId: null,
-            selectionWindowDraft: null,
-          },
+          geometrySketchSession: buildGeometrySketchSessionWithHistory({
+            session: applyGeometrySketchSessionSnapshot(
+              session,
+              buildGeometrySketchCommittedSessionSnapshot(session),
+            ),
+            undoCommands: [...session.sessionUndoCommands, stagedCommand],
+            redoCommands: [],
+          }),
         }
       }
 
@@ -5655,6 +6919,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       if (nextGraph === state.graph) {
         return state
       }
+      const stagedCommand = buildGeometrySketchStagedCommand({
+        nodeId: session.nodeId,
+        beforeGraph: state.graph,
+        afterGraph: nextGraph,
+        label: 'Draw sketch circle',
+        beforeSessionState: buildGeometrySketchSessionSnapshot(session),
+        afterSessionState: buildGeometrySketchCommittedSessionSnapshot(session),
+      })
+      if (stagedCommand === null) {
+        return state
+      }
       nextPromptRef.current = {
         tool: null,
         draft: null,
@@ -5662,15 +6937,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-        geometrySketchSession: {
-          ...session,
-          activeTool: null,
-          drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
-          drawDraft: null,
-          selectedComponentIds: [],
-          hoveredComponentId: null,
-          selectionWindowDraft: null,
-        },
+        geometrySketchSession: buildGeometrySketchSessionWithHistory({
+          session: applyGeometrySketchSessionSnapshot(
+            session,
+            buildGeometrySketchCommittedSessionSnapshot(session),
+          ),
+          undoCommands: [...session.sessionUndoCommands, stagedCommand],
+          redoCommands: [],
+        }),
       }
     })
     if (nextPromptRef.current !== null) {
@@ -5724,6 +6998,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         if (nextGraph === state.graph) {
           return state
         }
+        const stagedCommand = buildGeometrySketchStagedCommand({
+          nodeId: session.nodeId,
+          beforeGraph: state.graph,
+          afterGraph: nextGraph,
+          label: getGeometrySketchDrawHistoryLabel(session.activeTool),
+          beforeSessionState: buildGeometrySketchSessionSnapshot(session),
+          afterSessionState: buildGeometrySketchCommittedSessionSnapshot(session),
+        })
+        if (stagedCommand === null) {
+          return state
+        }
         nextPromptRef.current = {
           tool: null,
           draft: null,
@@ -5731,15 +7016,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         }
         return {
           ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-          geometrySketchSession: {
-            ...session,
-            activeTool: null,
-            drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
-            drawDraft: null,
-            selectedComponentIds: [],
-            hoveredComponentId: null,
-            selectionWindowDraft: null,
-          },
+          geometrySketchSession: buildGeometrySketchSessionWithHistory({
+            session: applyGeometrySketchSessionSnapshot(
+              session,
+              buildGeometrySketchCommittedSessionSnapshot(session),
+            ),
+            undoCommands: [...session.sessionUndoCommands, stagedCommand],
+            redoCommands: [],
+          }),
         }
       }
 
@@ -5764,6 +7048,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       if (nextGraph === state.graph) {
         return state
       }
+      const stagedCommand = buildGeometrySketchStagedCommand({
+        nodeId: session.nodeId,
+        beforeGraph: state.graph,
+        afterGraph: nextGraph,
+        label: 'Draw sketch polyline',
+        beforeSessionState: buildGeometrySketchSessionSnapshot(session),
+        afterSessionState: buildGeometrySketchCommittedSessionSnapshot(session),
+      })
+      if (stagedCommand === null) {
+        return state
+      }
       nextPromptRef.current = {
         tool: null,
         draft: null,
@@ -5771,15 +7066,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-        geometrySketchSession: {
-          ...session,
-          activeTool: null,
-          drawStage: resolveGeometrySketchDrawStage(session.mode, null, null),
-          drawDraft: null,
-          selectedComponentIds: [],
-          hoveredComponentId: null,
-          selectionWindowDraft: null,
-        },
+        geometrySketchSession: buildGeometrySketchSessionWithHistory({
+          session: applyGeometrySketchSessionSnapshot(
+            session,
+            buildGeometrySketchCommittedSessionSnapshot(session),
+          ),
+          undoCommands: [...session.sessionUndoCommands, stagedCommand],
+          redoCommands: [],
+        }),
       }
     })
     if (nextPromptRef.current !== null) {
@@ -5796,6 +7090,47 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return
     }
     if (currentSession.activeTool === null) {
+      const hasStagedCommands =
+        currentSession.stagedUndoCommands.length > 0 ||
+        currentSession.stagedRedoCommands.length > 0
+      if (
+        !hasStagedCommands ||
+        currentSession.stagedBaselineParams === null ||
+        currentSession.stagedBaselineHistory === null
+      ) {
+        return
+      }
+      set((state) => {
+        const session = state.geometrySketchSession
+        if (session === null || session.nodeId !== currentSession.nodeId) {
+          return state
+        }
+        const nextGraph = replaceGraphNodeParams(
+          state.graph,
+          session.nodeId,
+          currentSession.stagedBaselineParams!,
+        )
+        const localHistoryTargetId = getGeometrySketchLocalHistoryTargetId(
+          state.activeGraphDocumentId,
+          session.nodeId,
+        )
+        return {
+          ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+          geometrySketchSession: null,
+          geometrySketchLocalHistoryByTargetId: withGeometrySketchLocalHistoryState(
+            state.geometrySketchLocalHistoryByTargetId,
+            localHistoryTargetId,
+            currentSession.stagedBaselineHistory!,
+          ),
+        }
+      })
+      if (
+        currentSession.shouldRestoreViewportWindowMode &&
+        currentSession.editorViewportId !== null &&
+        selectEditorViewportById(get(), currentSession.editorViewportId)?.windowMode === 'collapsed'
+      ) {
+        get().setEditorViewportWindowMode(currentSession.editorViewportId, 'collapsed')
+      }
       return
     }
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
@@ -5841,10 +7176,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         return state
       }
       const selectedIds = new Set(session.selectedComponentIds)
+      let deletedCount = 0
       const nextGraph = updateGeometrySketchNode(state.graph, session.nodeId, (feature) => {
         const nextComponents = feature.components.filter(
           (component) => !selectedIds.has(component.rowId),
         )
+        deletedCount = feature.components.length - nextComponents.length
         if (nextComponents.length === feature.components.length) {
           return feature
         }
@@ -5856,14 +7193,27 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       if (nextGraph === state.graph) {
         return state
       }
+      const stagedCommand = buildGeometrySketchStagedCommand({
+        nodeId: session.nodeId,
+        beforeGraph: state.graph,
+        afterGraph: nextGraph,
+        label: deletedCount === 1 ? 'Delete sketch component' : 'Delete sketch components',
+        beforeSessionState: buildGeometrySketchSessionSnapshot(session),
+        afterSessionState: buildGeometrySketchCommittedSessionSnapshot(session),
+      })
+      if (stagedCommand === null) {
+        return state
+      }
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-        geometrySketchSession: {
-          ...session,
-          selectedComponentIds: [],
-          hoveredComponentId: null,
-          selectionWindowDraft: null,
-        },
+        geometrySketchSession: buildGeometrySketchSessionWithHistory({
+          session: applyGeometrySketchSessionSnapshot(
+            session,
+            buildGeometrySketchCommittedSessionSnapshot(session),
+          ),
+          undoCommands: [...session.sessionUndoCommands, stagedCommand],
+          redoCommands: [],
+        }),
       }
     })
   },
@@ -6737,16 +8087,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
 
     const existingNodeCount = targetDocument.graph.nodes.filter((node) => node.type === nodeType).length
     const nodeId = generateUniqueCreatedGraphNodeId(targetDocument.graph)
-    targetState.applyGraphCommand(
-      addNodeCommand({
-        node: {
-          nodeId,
-          type: nodeType,
-          params: getDefaultNodeParams(nodeType),
-        },
-        position: buildDefaultCreatedGraphNodePosition(targetDocument.graph),
-      }),
-    )
+    targetState.addGraphNodeWithHistory({
+      node: {
+        nodeId,
+        type: nodeType,
+        params: getDefaultNodeParams(nodeType),
+      },
+      position: buildDefaultCreatedGraphNodePosition(targetDocument.graph),
+    })
     get().setSelectedNodeId(nodeId)
     return {
       nodeId,
@@ -7626,30 +8974,33 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     }
   },
   addSketchFeature: (nodeId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) => [
+    commitPartFeatureStackHistoryCommand({
+      nodeId,
+      label: 'Add feature',
+      targetLabel: 'Sketch feature',
+      buildFeatureStack: (stack) => [
         ...stack,
         createSketchFeature(),
-      ])
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
+      ],
     })
   },
   addCloseProfileFeature: (nodeId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) => [
+    commitPartFeatureStackHistoryCommand({
+      nodeId,
+      label: 'Add feature',
+      targetLabel: 'Close profile feature',
+      buildFeatureStack: (stack) => [
         ...stack,
         createCloseProfileFeature(),
-      ])
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
+      ],
     })
   },
   addExtrudeFeature: (nodeId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) => {
+    commitPartFeatureStackHistoryCommand({
+      nodeId,
+      label: 'Add feature',
+      targetLabel: 'Extrude feature',
+      buildFeatureStack: (stack) => {
         const profileRef = pickDefaultProfileRef(stack, stack.length)
         return [
           ...stack,
@@ -7681,9 +9032,6 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             },
           },
         ]
-      })
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
       }
     })
   },
@@ -7708,8 +9056,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
   },
   addSketchComponent: (nodeId, featureId, componentType) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+    commitPartSketchFeatureStackHistoryCommand({
+      nodeId,
+      featureId,
+      label: 'Add sketch component',
+      targetId: `${nodeId}:${featureId}:components`,
+      targetLabel: 'Sketch component',
+      buildFeatureStack: (stack) =>
         stack.map((feature) => {
           if (feature.featureId !== featureId || feature.type !== 'sketch') {
             return feature
@@ -7719,30 +9072,24 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             components: [...feature.components, createDefaultComponent(componentType)],
           })
         }),
-      )
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
     })
   },
   moveFeatureUp: (nodeId, featureId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
-        moveFeatureInStack(stack, featureId, 'up'),
-      )
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
+    commitPartFeatureStackHistoryCommand({
+      nodeId,
+      label: 'Reorder feature',
+      targetId: featureId,
+      targetLabel: featureId,
+      buildFeatureStack: (stack) => moveFeatureInStack(stack, featureId, 'up'),
     })
   },
   moveFeatureDown: (nodeId, featureId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
-        moveFeatureInStack(stack, featureId, 'down'),
-      )
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
+    commitPartFeatureStackHistoryCommand({
+      nodeId,
+      label: 'Reorder feature',
+      targetId: featureId,
+      targetLabel: featureId,
+      buildFeatureStack: (stack) => moveFeatureInStack(stack, featureId, 'down'),
     })
   },
   setFeatureEnabled: (nodeId, featureId, enabled) => {
@@ -7795,8 +9142,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
   },
   moveSketchComponentUp: (nodeId, featureId, rowId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+    commitPartSketchFeatureStackHistoryCommand({
+      nodeId,
+      featureId,
+      label: 'Reorder sketch component',
+      targetId: `${nodeId}:${featureId}:${rowId}`,
+      targetLabel: 'Sketch component',
+      buildFeatureStack: (stack) =>
         stack.map((feature) => {
           if (feature.featureId !== featureId || feature.type !== 'sketch') {
             return feature
@@ -7812,15 +9164,16 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             components: next,
           })
         }),
-      )
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
     })
   },
   moveSketchComponentDown: (nodeId, featureId, rowId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+    commitPartSketchFeatureStackHistoryCommand({
+      nodeId,
+      featureId,
+      label: 'Reorder sketch component',
+      targetId: `${nodeId}:${featureId}:${rowId}`,
+      targetLabel: 'Sketch component',
+      buildFeatureStack: (stack) =>
         stack.map((feature) => {
           if (feature.featureId !== featureId || feature.type !== 'sketch') {
             return feature
@@ -7836,15 +9189,16 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             components: next,
           })
         }),
-      )
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
     })
   },
   removeSketchComponent: (nodeId, featureId, rowId) => {
-    set((state) => {
-      const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
+    commitPartSketchFeatureStackHistoryCommand({
+      nodeId,
+      featureId,
+      label: 'Remove sketch component',
+      targetId: `${nodeId}:${featureId}:${rowId}`,
+      targetLabel: 'Sketch component',
+      buildFeatureStack: (stack) =>
         stack.map((feature) => {
           if (feature.featureId !== featureId || feature.type !== 'sketch') {
             return feature
@@ -7856,10 +9210,6 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             components,
           })
         }),
-      )
-      return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-      }
     })
   },
   setSketchRectangleDimensions: (nodeId, featureId, dimensions) => {
@@ -7877,6 +9227,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
   },
   setCloseProfileSource: (nodeId, featureId, sourceSketchFeatureId) => {
+    const beforeGraph = get().graph
     set((state) => {
       const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
         stack.map((feature) =>
@@ -7894,6 +9245,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
       }
+    })
+    commitPartFeatureParameterHistoryCommand({
+      nodeId,
+      featureId,
+      beforeGraph,
+      targetId: `${nodeId}:${featureId}:source`,
+      targetLabel: 'Close profile source',
     })
   },
   // Legacy compatibility wrappers.
@@ -7965,6 +9323,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
   },
   setExtrudeProfileRef: (nodeId, featureId, ref) => {
+    const beforeGraph = get().graph
     set((state) => {
       const nextGraph = updatePartNodeFeatureStack(state.graph, nodeId, (stack) =>
         stack.map((feature) =>
@@ -7982,6 +9341,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
       }
+    })
+    commitPartFeatureParameterHistoryCommand({
+      nodeId,
+      featureId,
+      beforeGraph,
+      targetId: `${nodeId}:${featureId}:profileRef`,
+      targetLabel: 'Extrude profile',
     })
   },
   getPartFeatureStackIrForNode: (nodeId) => {

@@ -226,6 +226,7 @@ export function PortView({
   const primitivePrecision = useMemo(() => getStepPrecision(primitiveStep), [primitiveStep])
   const [primitiveEditorValue, setPrimitiveEditorValue] = useState('')
   const primitiveLaneRef = useRef<HTMLDivElement | null>(null)
+  const rangeInteractionActiveRef = useRef(false)
 
   const beginPrimitiveInteraction = () => {
     if (!rendersPrimitiveValueRow || valueInput === undefined || valueInput.disabled === true) {
@@ -240,6 +241,39 @@ export function PortView({
     }
     valueInput.onInteractionEnd?.()
   }
+
+  const beginRangeInteraction = () => {
+    if (
+      valueInput === undefined ||
+      valueInput.disabled === true ||
+      valueInput.driven === true
+    ) {
+      return
+    }
+    if (rangeInteractionActiveRef.current) {
+      return
+    }
+    rangeInteractionActiveRef.current = true
+    valueInput.onInteractionStart?.()
+  }
+
+  const endRangeInteraction = () => {
+    if (!rangeInteractionActiveRef.current) {
+      return
+    }
+    rangeInteractionActiveRef.current = false
+    valueInput?.onInteractionEnd?.()
+  }
+
+  const isRangeCommitKey = (key: string): boolean =>
+    key === 'ArrowLeft' ||
+    key === 'ArrowRight' ||
+    key === 'ArrowUp' ||
+    key === 'ArrowDown' ||
+    key === 'Home' ||
+    key === 'End' ||
+    key === 'PageUp' ||
+    key === 'PageDown'
 
   useEffect(() => {
     if (!rendersPrimitiveValueRow || valueInput === undefined) {
@@ -650,7 +684,15 @@ export function PortView({
                 max={valueInput.max ?? 100}
                 step={valueInput.step ?? 0.1}
                 disabled={valueInput.disabled === true}
+                onActivate={
+                  valueInput.driven === true ? undefined : valueInput.onInteractionStart
+                }
                 onChange={valueInput.onChange}
+                onChangeEnd={
+                  valueInput.driven === true
+                    ? undefined
+                    : () => valueInput.onInteractionEnd?.()
+                }
                 formatValue={valueInput.formatValue}
                 displayValue={valueInput.displayValue}
                 hideCaps={valueInput.hideSliderCaps === true}
@@ -666,6 +708,8 @@ export function PortView({
                   disabled={valueInput.disabled}
                   driven={valueInput.driven}
                   onChange={valueInput.onChange}
+                  onInteractionStart={valueInput.onInteractionStart}
+                  onInteractionEnd={valueInput.onInteractionEnd}
                   scrubSpeed={scrubSpeed}
                   tone={valueBarTone}
                   scrubLabel={labelOverride ?? port.label}
@@ -680,6 +724,13 @@ export function PortView({
                     step={valueInput.step ?? 0.1}
                     value={valueInput.value}
                     disabled={valueInput.disabled === true}
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                      if (event.button !== 0) {
+                        return
+                      }
+                      beginRangeInteraction()
+                    }}
                     onChange={(event) => {
                       if (valueInput.disabled === true) {
                         return
@@ -690,6 +741,27 @@ export function PortView({
                       }
                       valueInput.onChange(nextValue)
                     }}
+                    onPointerUp={(event) => {
+                      event.stopPropagation()
+                      endRangeInteraction()
+                    }}
+                    onPointerCancel={(event) => {
+                      event.stopPropagation()
+                      endRangeInteraction()
+                    }}
+                    onKeyDown={(event) => {
+                      event.stopPropagation()
+                      if (isRangeCommitKey(event.key)) {
+                        beginRangeInteraction()
+                      }
+                    }}
+                    onKeyUp={(event) => {
+                      event.stopPropagation()
+                      if (isRangeCommitKey(event.key)) {
+                        endRangeInteraction()
+                      }
+                    }}
+                    onBlur={endRangeInteraction}
                     onClick={(event) => event.stopPropagation()}
                   />
                 ) : null}

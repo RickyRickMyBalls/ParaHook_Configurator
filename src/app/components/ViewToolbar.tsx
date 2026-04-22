@@ -17,6 +17,7 @@ import {
 import type {
   EnvPreset,
   EnvironmentGradeSettings,
+  EnvironmentLookSnapshot,
   GroundMaterialPresetId,
   LightSpec,
   LightType,
@@ -30,6 +31,31 @@ import {
 } from '../parts/partKeyResolver'
 import { useConsoleStore } from '../console/useConsoleStore'
 import { useAppStore } from '../store/useAppStore'
+import {
+  captureEnvironmentLookHistorySnapshot,
+  commitEnvironmentLookHistory,
+  runEnvironmentLookHistoryAction,
+} from '../store/environmentLookEditHistory'
+import {
+  captureGroundHistorySnapshot,
+  commitGroundHistory,
+  setGroundEnabledWithHistory,
+  setGroundMaterialPresetWithHistory,
+  type GroundHistorySnapshot,
+} from '../store/groundEditHistory'
+import {
+  addMaterialPresetWithHistory,
+  assignPartMaterialWithHistory,
+  captureMaterialHistorySnapshot,
+  clearPartMaterialWithHistory,
+  commitMaterialHistory,
+  deleteMaterialPresetWithHistory,
+  restoreMaterialHistorySnapshot,
+  selectMaterialPresetWithHistory,
+  setMaterialPresetTransparentWithHistory,
+  setUsePerPartMaterialWithHistory,
+  type MaterialHistorySnapshot,
+} from '../store/materialEditHistory'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
@@ -152,6 +178,8 @@ const VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS = 6
 const VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE = 14
 
 type ViewToolbarFloatingResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+type MaterialNumericField = 'emissiveIntensity' | 'opacity'
+type MaterialRangeField = 'metalness' | 'roughness'
 
 const viewToolbarFloatingResizeDirections: ViewToolbarFloatingResizeDirection[] = [
   'n',
@@ -224,6 +252,42 @@ const formatLightPenumbraValue = (value: number): string =>
 
 const formatLightShadowBiasValue = (value: number): string =>
   value.toFixed(4)
+
+const materialNumericMetadataByField: Record<
+  MaterialNumericField,
+  { targetSuffix: string; targetLabel: string }
+> = {
+  emissiveIntensity: {
+    targetSuffix: 'emissiveIntensity',
+    targetLabel: 'Material emissive intensity',
+  },
+  opacity: {
+    targetSuffix: 'opacity',
+    targetLabel: 'Material opacity',
+  },
+}
+
+const materialRangeMetadataByField: Record<
+  MaterialRangeField,
+  { targetSuffix: string; targetLabel: string }
+> = {
+  metalness: {
+    targetSuffix: 'metalness',
+    targetLabel: 'Material metalness',
+  },
+  roughness: {
+    targetSuffix: 'roughness',
+    targetLabel: 'Material roughness',
+  },
+}
+
+const parseMaterialNumericInput = (value: string): number | null => {
+  if (value.trim() === '') {
+    return null
+  }
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
 
 const updateVec3Axis = (
   value: Vec3 | undefined,
@@ -726,13 +790,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   )
   const addLight = useUiPrefsStore((state) => state.addLight)
   const updateLight = useUiPrefsStore((state) => state.updateLight)
-  const selectMaterialPreset = useUiPrefsStore((state) => state.selectMaterialPreset)
   const updateMaterialPreset = useUiPrefsStore((state) => state.updateMaterialPreset)
-  const addMaterialPreset = useUiPrefsStore((state) => state.addMaterialPreset)
-  const deleteMaterialPreset = useUiPrefsStore((state) => state.deleteMaterialPreset)
-  const setUsePerPartMaterial = useUiPrefsStore((state) => state.setUsePerPartMaterial)
-  const assignPartMaterial = useUiPrefsStore((state) => state.assignPartMaterial)
-  const clearPartMaterial = useUiPrefsStore((state) => state.clearPartMaterial)
   const consoleWindowMode = useConsoleStore((state) => state.windowMode)
   const consoleIsExpanded = useConsoleStore((state) => state.isExpanded)
   const consoleExpandedHeight = useConsoleStore((state) => state.expandedHeight)
@@ -779,6 +837,23 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const [cameraProjectionFramingOpen, setCameraProjectionFramingOpen] = useState(true)
   const [addLightType, setAddLightType] = useState<LightType>('point')
   const [addLightName, setAddLightName] = useState('')
+  const environmentLookDraftRef = useRef<EnvironmentLookSnapshot | null>(null)
+  const selectedLightNameDraftRef = useRef<EnvironmentLookSnapshot | null>(null)
+  const groundHeightDraftRef = useRef<GroundHistorySnapshot | null>(null)
+  const materialNameDraftRef = useRef<{
+    presetId: MaterialPresetId
+    beforeSnapshot: MaterialHistorySnapshot
+  } | null>(null)
+  const materialNumericDraftRef = useRef<{
+    presetId: MaterialPresetId
+    field: MaterialNumericField
+    beforeSnapshot: MaterialHistorySnapshot
+  } | null>(null)
+  const materialRangeDraftRef = useRef<{
+    presetId: MaterialPresetId
+    field: MaterialRangeField
+    beforeSnapshot: MaterialHistorySnapshot
+  } | null>(null)
   const [viewToolbarMaxHeight, setViewToolbarMaxHeight] = useState<number | null>(null)
   const [viewToolbarUsedHeight, setViewToolbarUsedHeight] = useState<number | null>(null)
   const [viewToolbarHasOverflow, setViewToolbarHasOverflow] = useState(false)
@@ -802,8 +877,257 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     })
   }
 
+  const beginGroundHeightDraft = () => {
+    if (groundHeightDraftRef.current !== null) {
+      return
+    }
+    groundHeightDraftRef.current = captureGroundHistorySnapshot()
+  }
+
+  const updateGroundHeight = (value: number) => {
+    beginGroundHeightDraft()
+    setGround({ height: value })
+  }
+
+  const commitGroundHeightDraft = () => {
+    const beforeSnapshot = groundHeightDraftRef.current
+    groundHeightDraftRef.current = null
+    if (beforeSnapshot === null) {
+      return
+    }
+    commitGroundHistory(beforeSnapshot, {
+      targetId: 'ground:height',
+      targetLabel: 'Ground height',
+    })
+  }
+
   const updateEnvironmentGrade = (patch: Partial<EnvironmentGradeSettings>) => {
+    beginEnvironmentLookDraft()
     setEnvironmentGrade(patch)
+  }
+
+  const updateHdriIntensity = (value: number) => {
+    beginEnvironmentLookDraft()
+    setHdriEnvironmentIntensity(value)
+  }
+
+  const updateHdriBackgroundIntensity = (value: number) => {
+    beginEnvironmentLookDraft()
+    setHdriEnvironmentBackgroundIntensity(value)
+  }
+
+  const updateHdriRotation = (value: number) => {
+    beginEnvironmentLookDraft()
+    setHdriEnvironmentRotation(value)
+  }
+
+  const beginEnvironmentLookDraft = () => {
+    if (environmentLookDraftRef.current === null) {
+      environmentLookDraftRef.current = captureEnvironmentLookHistorySnapshot()
+    }
+  }
+
+  const commitEnvironmentLookDraft = (options: {
+    targetId: string
+    targetLabel: string
+  }) => {
+    const beforeSnapshot = environmentLookDraftRef.current
+    environmentLookDraftRef.current = null
+    if (beforeSnapshot === null) {
+      return
+    }
+    commitEnvironmentLookHistory(beforeSnapshot, options)
+  }
+
+  const runEnvironmentLookCommit = (action: () => void, options: {
+    targetId: string
+    targetLabel: string
+  }) => {
+    runEnvironmentLookHistoryAction(action, options)
+  }
+
+  const selectedLightHistoryTarget = (lightId: string, field: string) =>
+    `environment-light:${lightId}:${field}`
+
+  const selectedLightHistoryLabel = (fieldLabel: string) =>
+    `Environment light ${fieldLabel}`
+
+  const updateSelectedLightLive = (
+    lightId: string,
+    patch: Partial<LightSpec>,
+  ) => {
+    beginEnvironmentLookDraft()
+    updateLight(lightId, patch)
+  }
+
+  const commitSelectedLightDraft = (
+    lightId: string,
+    field: string,
+    fieldLabel: string,
+  ) => {
+    commitEnvironmentLookDraft({
+      targetId: selectedLightHistoryTarget(lightId, field),
+      targetLabel: selectedLightHistoryLabel(fieldLabel),
+    })
+  }
+
+  const runSelectedLightCommit = (
+    lightId: string,
+    field: string,
+    fieldLabel: string,
+    action: () => void,
+  ) => {
+    runEnvironmentLookCommit(action, {
+      targetId: selectedLightHistoryTarget(lightId, field),
+      targetLabel: selectedLightHistoryLabel(fieldLabel),
+    })
+  }
+
+  const beginSelectedLightNameDraft = () => {
+    if (selectedLightNameDraftRef.current === null) {
+      selectedLightNameDraftRef.current = captureEnvironmentLookHistorySnapshot()
+    }
+  }
+
+  const commitSelectedLightNameDraft = (lightId: string) => {
+    const beforeSnapshot = selectedLightNameDraftRef.current
+    selectedLightNameDraftRef.current = null
+    if (beforeSnapshot === null) {
+      return
+    }
+    commitEnvironmentLookHistory(beforeSnapshot, {
+      targetId: selectedLightHistoryTarget(lightId, 'name'),
+      targetLabel: selectedLightHistoryLabel('name'),
+    })
+  }
+
+  const beginMaterialNameDraft = (presetId: MaterialPresetId) => {
+    if (materialNameDraftRef.current?.presetId === presetId) {
+      return
+    }
+    materialNameDraftRef.current = {
+      presetId,
+      beforeSnapshot: captureMaterialHistorySnapshot(),
+    }
+  }
+
+  const hasMaterialPreset = (presetId: MaterialPresetId) =>
+    useUiPrefsStore.getState().view.materials.presets.some((preset) => preset.id === presetId)
+
+  const commitMaterialNameDraft = (presetId: MaterialPresetId) => {
+    const draft = materialNameDraftRef.current
+    materialNameDraftRef.current = null
+    if (draft === null || draft.presetId !== presetId || !hasMaterialPreset(presetId)) {
+      return
+    }
+    commitMaterialHistory(draft.beforeSnapshot, {
+      targetId: `material-preset:${presetId}:name`,
+      targetLabel: 'Material preset name',
+    })
+  }
+
+  const cancelMaterialNameDraft = (presetId: MaterialPresetId) => {
+    const draft = materialNameDraftRef.current
+    materialNameDraftRef.current = null
+    if (draft === null || draft.presetId !== presetId || !hasMaterialPreset(presetId)) {
+      return
+    }
+    restoreMaterialHistorySnapshot(draft.beforeSnapshot)
+  }
+
+  const beginMaterialNumericDraft = (presetId: MaterialPresetId, field: MaterialNumericField) => {
+    const draft = materialNumericDraftRef.current
+    if (draft?.presetId === presetId && draft.field === field) {
+      return
+    }
+    materialNumericDraftRef.current = {
+      presetId,
+      field,
+      beforeSnapshot: captureMaterialHistorySnapshot(),
+    }
+  }
+
+  const commitMaterialNumericDraft = (presetId: MaterialPresetId, field: MaterialNumericField) => {
+    const draft = materialNumericDraftRef.current
+    materialNumericDraftRef.current = null
+    if (
+      draft === null ||
+      draft.presetId !== presetId ||
+      draft.field !== field ||
+      !hasMaterialPreset(presetId)
+    ) {
+      return
+    }
+    const metadata = materialNumericMetadataByField[field]
+    commitMaterialHistory(draft.beforeSnapshot, {
+      targetId: `material-preset:${presetId}:${metadata.targetSuffix}`,
+      targetLabel: metadata.targetLabel,
+    })
+  }
+
+  const cancelMaterialNumericDraft = (presetId: MaterialPresetId, field: MaterialNumericField) => {
+    const draft = materialNumericDraftRef.current
+    materialNumericDraftRef.current = null
+    if (
+      draft === null ||
+      draft.presetId !== presetId ||
+      draft.field !== field ||
+      !hasMaterialPreset(presetId)
+    ) {
+      return
+    }
+    restoreMaterialHistorySnapshot(draft.beforeSnapshot)
+  }
+
+  const updateMaterialNumericDraft = (
+    presetId: MaterialPresetId,
+    field: MaterialNumericField,
+    value: string,
+  ) => {
+    const parsed = parseMaterialNumericInput(value)
+    if (parsed === null) {
+      return
+    }
+    updateMaterialPreset(presetId, { [field]: parsed })
+  }
+
+  const beginMaterialRangeDraft = (presetId: MaterialPresetId, field: MaterialRangeField) => {
+    const draft = materialRangeDraftRef.current
+    if (draft?.presetId === presetId && draft.field === field) {
+      return
+    }
+    materialRangeDraftRef.current = {
+      presetId,
+      field,
+      beforeSnapshot: captureMaterialHistorySnapshot(),
+    }
+  }
+
+  const updateMaterialRangeDraft = (
+    presetId: MaterialPresetId,
+    field: MaterialRangeField,
+    value: number,
+  ) => {
+    beginMaterialRangeDraft(presetId, field)
+    updateMaterialPreset(presetId, { [field]: value })
+  }
+
+  const commitMaterialRangeDraft = (presetId: MaterialPresetId, field: MaterialRangeField) => {
+    const draft = materialRangeDraftRef.current
+    materialRangeDraftRef.current = null
+    if (
+      draft === null ||
+      draft.presetId !== presetId ||
+      draft.field !== field ||
+      !hasMaterialPreset(presetId)
+    ) {
+      return
+    }
+    const metadata = materialRangeMetadataByField[field]
+    commitMaterialHistory(draft.beforeSnapshot, {
+      targetId: `material-preset:${presetId}:${metadata.targetSuffix}`,
+      targetLabel: metadata.targetLabel,
+    })
   }
 
   const selectedPreset = useMemo<MaterialPreset | null>(() => {
@@ -2080,7 +2404,15 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             label="Preset"
             value={view.envPreset}
             options={environmentPresetOptions}
-            onChange={(value) => applyEnvironmentPreset(value as EnvPreset)}
+            onChange={(value) =>
+              runEnvironmentLookCommit(
+                () => applyEnvironmentPreset(value as EnvPreset),
+                {
+                  targetId: 'environment-preset',
+                  targetLabel: 'Environment preset',
+                },
+              )
+            }
           />
           <div className="V15Meta">
             {environmentPresetRead.isDiverged
@@ -2094,7 +2426,18 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             active scene or HDRI source.
           </div>
           <div className="InlineButtonRow">
-            <button type="button" onClick={() => applyEnvironmentPreset(view.envPreset)}>
+            <button
+              type="button"
+              onClick={() =>
+                runEnvironmentLookCommit(
+                  () => applyEnvironmentPreset(view.envPreset),
+                  {
+                    targetId: 'environment-preset',
+                    targetLabel: 'Environment preset',
+                  },
+                )
+              }
+            >
               Reapply Selected Preset
             </button>
           </div>
@@ -2139,6 +2482,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={0.01}
               formatValue={formatEnvironmentGradeMultiplierValue}
               onChange={(value) => updateEnvironmentGrade({ exposure: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:exposure',
+                  targetLabel: 'Exposure',
+                })
+              }
             />
             <ParaSlider
               label="Contrast"
@@ -2148,6 +2497,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={0.01}
               formatValue={formatEnvironmentGradeMultiplierValue}
               onChange={(value) => updateEnvironmentGrade({ contrast: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:contrast',
+                  targetLabel: 'Contrast',
+                })
+              }
             />
             <ParaSlider
               label="Highlights"
@@ -2157,6 +2512,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={1}
               formatValue={formatEnvironmentGradeOffsetValue}
               onChange={(value) => updateEnvironmentGrade({ highlights: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:highlights',
+                  targetLabel: 'Highlights',
+                })
+              }
             />
             <ParaSlider
               label="Shadows"
@@ -2166,6 +2527,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={1}
               formatValue={formatEnvironmentGradeOffsetValue}
               onChange={(value) => updateEnvironmentGrade({ shadows: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:shadows',
+                  targetLabel: 'Shadows',
+                })
+              }
             />
             <ParaSlider
               label="Whites"
@@ -2175,6 +2542,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={1}
               formatValue={formatEnvironmentGradeOffsetValue}
               onChange={(value) => updateEnvironmentGrade({ whites: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:whites',
+                  targetLabel: 'Whites',
+                })
+              }
             />
             <ParaSlider
               label="Blacks"
@@ -2184,6 +2557,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={1}
               formatValue={formatEnvironmentGradeOffsetValue}
               onChange={(value) => updateEnvironmentGrade({ blacks: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:blacks',
+                  targetLabel: 'Blacks',
+                })
+              }
             />
             <ParaSlider
               label="Temperature"
@@ -2193,6 +2572,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={1}
               formatValue={formatEnvironmentGradeOffsetValue}
               onChange={(value) => updateEnvironmentGrade({ temperature: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:temperature',
+                  targetLabel: 'Temperature',
+                })
+              }
             />
             <ParaSlider
               label="Tint"
@@ -2202,6 +2587,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={1}
               formatValue={formatEnvironmentGradeOffsetValue}
               onChange={(value) => updateEnvironmentGrade({ tint: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:tint',
+                  targetLabel: 'Tint',
+                })
+              }
             />
             <ParaSlider
               label="Saturation"
@@ -2211,6 +2602,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               step={0.01}
               formatValue={formatEnvironmentGradeMultiplierValue}
               onChange={(value) => updateEnvironmentGrade({ saturation: value })}
+              onChangeEnd={() =>
+                commitEnvironmentLookDraft({
+                  targetId: 'environment-grade:saturation',
+                  targetLabel: 'Saturation',
+                })
+              }
             />
           </div>
 
@@ -2231,13 +2628,27 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 max={5}
                 step={0.05}
                 formatValue={formatEnvironmentIntensityValue}
-                onChange={setHdriEnvironmentIntensity}
+                onChange={updateHdriIntensity}
+                onChangeEnd={() =>
+                  commitEnvironmentLookDraft({
+                    targetId: 'environment-source:intensity',
+                    targetLabel: 'HDRI lighting intensity',
+                  })
+                }
               />
               <ParaSelect
                 label="Background"
                 value={view.environmentSource.backgroundVisible === false ? 'hidden' : 'visible'}
                 options={hdriBackgroundOptions}
-                onChange={(value) => setHdriEnvironmentBackgroundVisible(value === 'visible')}
+                onChange={(value) =>
+                  runEnvironmentLookCommit(
+                    () => setHdriEnvironmentBackgroundVisible(value === 'visible'),
+                    {
+                      targetId: 'environment-source:background',
+                      targetLabel: 'HDRI background',
+                    },
+                  )
+                }
               />
               <ParaSlider
                 label="Background Intensity"
@@ -2251,7 +2662,13 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 step={0.05}
                 formatValue={formatEnvironmentIntensityValue}
                 disabled={view.environmentSource.backgroundVisible === false}
-                onChange={setHdriEnvironmentBackgroundIntensity}
+                onChange={updateHdriBackgroundIntensity}
+                onChangeEnd={() =>
+                  commitEnvironmentLookDraft({
+                    targetId: 'environment-source:background-intensity',
+                    targetLabel: 'HDRI background intensity',
+                  })
+                }
               />
               <ParaSlider
                 label="Orientation"
@@ -2260,7 +2677,13 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 max={360}
                 step={1}
                 formatValue={formatEnvironmentRotationValue}
-                onChange={setHdriEnvironmentRotation}
+                onChange={updateHdriRotation}
+                onChangeEnd={() =>
+                  commitEnvironmentLookDraft({
+                    targetId: 'environment-source:orientation',
+                    targetLabel: 'HDRI orientation',
+                  })
+                }
               />
             </>
           )}
@@ -2286,10 +2709,17 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               type="button"
               onClick={() => {
                 const name = addLightName.trim()
-                addLight({
-                  type: addLightType,
-                  name: name.length > 0 ? name : undefined,
-                })
+                runEnvironmentLookCommit(
+                  () =>
+                    addLight({
+                      type: addLightType,
+                      name: name.length > 0 ? name : undefined,
+                    }),
+                  {
+                    targetId: 'environment-light',
+                    targetLabel: 'Environment light',
+                  },
+                )
                 setAddLightName('')
               }}
             >
@@ -2311,7 +2741,16 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   <input
                     type="text"
                     value={selectedLight.name}
+                    onFocus={beginSelectedLightNameDraft}
                     onChange={(event) => updateLight(selectedLight.id, { name: event.target.value })}
+                    onBlur={() => commitSelectedLightNameDraft(selectedLight.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        commitSelectedLightNameDraft(selectedLight.id)
+                        event.currentTarget.blur()
+                        return
+                      }
+                    }}
                   />
                 </label>
                 <ParaSelect
@@ -2323,10 +2762,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   }))}
                   onChange={(value) => {
                     const type = value as LightType
-                    updateLight(selectedLight.id, {
-                      type,
-                      ...getLightTypeDefaults(type),
-                    })
+                    runSelectedLightCommit(selectedLight.id, 'type', 'type', () =>
+                      updateLight(selectedLight.id, {
+                        type,
+                        ...getLightTypeDefaults(type),
+                      }),
+                    )
                   }}
                 />
                 <label>
@@ -2343,7 +2784,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   max={8}
                   step={0.05}
                   value={selectedLight.intensity}
-                  onChange={(value) => updateLight(selectedLight.id, { intensity: value })}
+                  onChange={(value) =>
+                    updateSelectedLightLive(selectedLight.id, { intensity: value })
+                  }
+                  onChangeEnd={() =>
+                    commitSelectedLightDraft(selectedLight.id, 'intensity', 'intensity')
+                  }
                   formatValue={formatLightIntensityValue}
                 />
               </div>
@@ -2357,9 +2803,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   max={300}
                   step={0.1}
                   onChangeAxis={(axis, value) =>
-                    updateLight(selectedLight.id, {
+                    updateSelectedLightLive(selectedLight.id, {
                       position: updateVec3Axis(selectedLight.position, axis, value),
                     })
+                  }
+                  onChangeEndAxis={(axis) =>
+                    commitSelectedLightDraft(selectedLight.id, `position:${axis}`, `position ${axis.toUpperCase()}`)
                   }
                   formatValue={(_axis, value) => value.toFixed(1)}
                   displayValue={(_axis, value) => value.toFixed(1)}
@@ -2375,9 +2824,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   max={300}
                   step={0.1}
                   onChangeAxis={(axis, value) =>
-                    updateLight(selectedLight.id, {
+                    updateSelectedLightLive(selectedLight.id, {
                       target: updateVec3Axis(selectedLight.target, axis, value),
                     })
+                  }
+                  onChangeEndAxis={(axis) =>
+                    commitSelectedLightDraft(selectedLight.id, `target:${axis}`, `target ${axis.toUpperCase()}`)
                   }
                   formatValue={(_axis, value) => value.toFixed(1)}
                   displayValue={(_axis, value) => value.toFixed(1)}
@@ -2392,7 +2844,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     max={50}
                     step={0.1}
                     value={selectedLight.distance ?? 0}
-                    onChange={(value) => updateLight(selectedLight.id, { distance: value })}
+                    onChange={(value) =>
+                      updateSelectedLightLive(selectedLight.id, { distance: value })
+                    }
+                    onChangeEnd={() =>
+                      commitSelectedLightDraft(selectedLight.id, 'distance', 'distance')
+                    }
                     formatValue={formatLightDistanceValue}
                   />
                   <ParaSlider
@@ -2401,7 +2858,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     max={8}
                     step={0.1}
                     value={selectedLight.decay ?? 2}
-                    onChange={(value) => updateLight(selectedLight.id, { decay: value })}
+                    onChange={(value) =>
+                      updateSelectedLightLive(selectedLight.id, { decay: value })
+                    }
+                    onChangeEnd={() =>
+                      commitSelectedLightDraft(selectedLight.id, 'decay', 'decay')
+                    }
                     formatValue={formatLightDecayValue}
                   />
                 </div>
@@ -2415,7 +2877,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     max={89}
                     step={1}
                     value={selectedLight.angleDeg ?? 35}
-                    onChange={(value) => updateLight(selectedLight.id, { angleDeg: value })}
+                    onChange={(value) =>
+                      updateSelectedLightLive(selectedLight.id, { angleDeg: value })
+                    }
+                    onChangeEnd={() =>
+                      commitSelectedLightDraft(selectedLight.id, 'angleDeg', 'angle')
+                    }
                     formatValue={formatLightAngleValue}
                   />
                   <ParaSlider
@@ -2424,7 +2891,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     max={1}
                     step={0.05}
                     value={selectedLight.penumbra ?? 0.2}
-                    onChange={(value) => updateLight(selectedLight.id, { penumbra: value })}
+                    onChange={(value) =>
+                      updateSelectedLightLive(selectedLight.id, { penumbra: value })
+                    }
+                    onChangeEnd={() =>
+                      commitSelectedLightDraft(selectedLight.id, 'penumbra', 'penumbra')
+                    }
                     formatValue={formatLightPenumbraValue}
                   />
                 </div>
@@ -2462,7 +2934,9 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   value={selectedLight.castShadow ? 'on' : 'off'}
                   options={enabledOptions}
                   onChange={(value) =>
-                    updateLight(selectedLight.id, { castShadow: value === 'on' })
+                    runSelectedLightCommit(selectedLight.id, 'castShadow', 'cast shadow', () =>
+                      updateLight(selectedLight.id, { castShadow: value === 'on' }),
+                    )
                   }
                 />
                 <ParaSlider
@@ -2471,7 +2945,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   max={0.01}
                   step={0.0001}
                   value={selectedLight.shadowBias ?? -0.0003}
-                  onChange={(value) => updateLight(selectedLight.id, { shadowBias: value })}
+                  onChange={(value) =>
+                    updateSelectedLightLive(selectedLight.id, { shadowBias: value })
+                  }
+                  onChangeEnd={() =>
+                    commitSelectedLightDraft(selectedLight.id, 'shadowBias', 'shadow bias')
+                  }
                   formatValue={formatLightShadowBiasValue}
                 />
                 <ParaSelect
@@ -2479,7 +2958,9 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   value={`${selectedLight.shadowMapSize ?? 1024}`}
                   options={shadowMapOptions}
                   onChange={(value) =>
-                    updateLight(selectedLight.id, { shadowMapSize: Number(value) })
+                    runSelectedLightCommit(selectedLight.id, 'shadowMapSize', 'shadow map', () =>
+                      updateLight(selectedLight.id, { shadowMapSize: Number(value) }),
+                    )
                   }
                 />
               </div>
@@ -2497,7 +2978,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             label="Ground"
             value={view.ground.enabled ? 'on' : 'off'}
             options={groundEnabledOptions}
-            onChange={(value) => setGround({ enabled: value === 'on' })}
+            onChange={(value) => setGroundEnabledWithHistory(value === 'on')}
           />
           <ParaSlider
             label="Ground Height"
@@ -2506,13 +2987,16 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             max={25}
             step={0.5}
             formatValue={(value) => value.toFixed(1)}
-            onChange={(value) => setGround({ height: value })}
+            onChange={updateGroundHeight}
+            onChangeEnd={commitGroundHeightDraft}
           />
           <ParaSelect
             label="Material"
             value={view.ground.materialPresetId}
             options={groundMaterialOptions}
-            onChange={(value) => setGround({ materialPresetId: value as GroundMaterialPresetId })}
+            onChange={(value) =>
+              setGroundMaterialPresetWithHistory(value as GroundMaterialPresetId)
+            }
           />
         </>
       ),
@@ -2529,7 +3013,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 <div
                   key={preset.id}
                   className={`ListRow ${selected ? 'isSelected' : ''}`}
-                  onClick={() => selectMaterialPreset(preset.id)}
+                  onClick={() => selectMaterialPresetWithHistory(preset.id)}
                 >
                   <span className="Swatch" style={{ backgroundColor: preset.color }} />
                   <span className="ListRowName">{preset.name}</span>
@@ -2538,7 +3022,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     className="IconButton"
                     onClick={(event) => {
                       event.stopPropagation()
-                      deleteMaterialPreset(preset.id)
+                      deleteMaterialPresetWithHistory(preset.id)
                     }}
                     disabled={view.materials.presets.length <= 1}
                   >
@@ -2549,7 +3033,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             })}
           </div>
 
-          <button type="button" onClick={() => addMaterialPreset()}>
+          <button type="button" onClick={() => addMaterialPresetWithHistory()}>
             Add Preset
           </button>
 
@@ -2561,9 +3045,22 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   <input
                     type="text"
                     value={selectedPreset.name}
+                    onFocus={() => beginMaterialNameDraft(selectedPreset.id)}
                     onChange={(event) =>
                       updateMaterialPreset(selectedPreset.id, { name: event.target.value })
                     }
+                    onBlur={() => commitMaterialNameDraft(selectedPreset.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        commitMaterialNameDraft(selectedPreset.id)
+                        event.currentTarget.blur()
+                        return
+                      }
+                      if (event.key === 'Escape') {
+                        cancelMaterialNameDraft(selectedPreset.id)
+                        event.currentTarget.blur()
+                      }
+                    }}
                   />
                 </label>
                 <label>
@@ -2576,36 +3073,28 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     }
                   />
                 </label>
-                <label>
-                  Metalness
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedPreset.metalness}
-                    onChange={(event) =>
-                      updateMaterialPreset(selectedPreset.id, {
-                        metalness: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Roughness
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedPreset.roughness}
-                    onChange={(event) =>
-                      updateMaterialPreset(selectedPreset.id, {
-                        roughness: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
+                <ParaSlider
+                  label="Metalness"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedPreset.metalness}
+                  onChange={(value) =>
+                    updateMaterialRangeDraft(selectedPreset.id, 'metalness', value)
+                  }
+                  onChangeEnd={() => commitMaterialRangeDraft(selectedPreset.id, 'metalness')}
+                />
+                <ParaSlider
+                  label="Roughness"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={selectedPreset.roughness}
+                  onChange={(value) =>
+                    updateMaterialRangeDraft(selectedPreset.id, 'roughness', value)
+                  }
+                  onChangeEnd={() => commitMaterialRangeDraft(selectedPreset.id, 'roughness')}
+                />
                 <label>
                   Emissive
                   <input
@@ -2624,11 +3113,30 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     max={2}
                     step={0.05}
                     value={selectedPreset.emissiveIntensity}
-                    onChange={(event) =>
-                      updateMaterialPreset(selectedPreset.id, {
-                        emissiveIntensity: Number(event.target.value),
-                      })
+                    onFocus={() =>
+                      beginMaterialNumericDraft(selectedPreset.id, 'emissiveIntensity')
                     }
+                    onChange={(event) =>
+                      updateMaterialNumericDraft(
+                        selectedPreset.id,
+                        'emissiveIntensity',
+                        event.target.value,
+                      )
+                    }
+                    onBlur={() =>
+                      commitMaterialNumericDraft(selectedPreset.id, 'emissiveIntensity')
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        commitMaterialNumericDraft(selectedPreset.id, 'emissiveIntensity')
+                        event.currentTarget.blur()
+                        return
+                      }
+                      if (event.key === 'Escape') {
+                        cancelMaterialNumericDraft(selectedPreset.id, 'emissiveIntensity')
+                        event.currentTarget.blur()
+                      }
+                    }}
                   />
                 </label>
                 <label>
@@ -2639,9 +3147,22 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     max={1}
                     step={0.05}
                     value={selectedPreset.opacity}
+                    onFocus={() => beginMaterialNumericDraft(selectedPreset.id, 'opacity')}
                     onChange={(event) =>
-                      updateMaterialPreset(selectedPreset.id, { opacity: Number(event.target.value) })
+                      updateMaterialNumericDraft(selectedPreset.id, 'opacity', event.target.value)
                     }
+                    onBlur={() => commitMaterialNumericDraft(selectedPreset.id, 'opacity')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        commitMaterialNumericDraft(selectedPreset.id, 'opacity')
+                        event.currentTarget.blur()
+                        return
+                      }
+                      if (event.key === 'Escape') {
+                        cancelMaterialNumericDraft(selectedPreset.id, 'opacity')
+                        event.currentTarget.blur()
+                      }
+                    }}
                   />
                 </label>
                 <label>
@@ -2650,7 +3171,10 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     type="checkbox"
                     checked={selectedPreset.transparent}
                     onChange={(event) =>
-                      updateMaterialPreset(selectedPreset.id, { transparent: event.target.checked })
+                      setMaterialPresetTransparentWithHistory(
+                        selectedPreset.id,
+                        event.target.checked,
+                      )
                     }
                   />
                 </label>
@@ -2663,7 +3187,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             <input
               type="checkbox"
               checked={view.materials.usePerPart}
-              onChange={(event) => setUsePerPartMaterial(event.target.checked)}
+              onChange={(event) => setUsePerPartMaterialWithHistory(event.target.checked)}
             />
             Use per-part material map
           </label>
@@ -2683,10 +3207,10 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                       onChange={(event) => {
                         const value = event.target.value as MaterialPresetId
                         if (value === '') {
-                          clearPartMaterial(partKeyStr)
+                          clearPartMaterialWithHistory(partKeyStr)
                           return
                         }
-                        assignPartMaterial(partKeyStr, value)
+                        assignPartMaterialWithHistory(partKeyStr, value)
                       }}
                     >
                       <option value="">Selected default</option>
@@ -2699,7 +3223,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     <button
                       type="button"
                       className="IconButton"
-                      onClick={() => clearPartMaterial(partKeyStr)}
+                      onClick={() => clearPartMaterialWithHistory(partKeyStr)}
                     >
                       Clear
                     </button>

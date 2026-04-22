@@ -490,6 +490,9 @@ export function SpaghettiCanvas({
   const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
   const applyGraphPatch = useSpaghettiStore((state) => state.applyGraphPatch)
   const setManyNodePos = useSpaghettiStore((state) => state.setManyNodePos)
+  const commitGraphNodeMoveWithHistory = useSpaghettiStore(
+    (state) => state.commitGraphNodeMoveWithHistory,
+  )
   const insertEdgeWaypoint = useSpaghettiStore((state) => state.insertEdgeWaypoint)
   const setEdgeWaypointPos = useSpaghettiStore((state) => state.setEdgeWaypointPos)
   const removeEdgeWaypoint = useSpaghettiStore((state) => state.removeEdgeWaypoint)
@@ -1265,8 +1268,22 @@ export function SpaghettiCanvas({
       }
 
       const handleUp = () => {
+        const dragState = dragStateRef.current
         dragStateRef.current = null
         flushQueuedNodePos()
+        if (dragState !== null) {
+          const finalPos = useSpaghettiStore.getState().graph.ui?.nodes?.[dragState.nodeId]
+          if (finalPos !== undefined) {
+            commitGraphNodeMoveWithHistory({
+              nodeId: dragState.nodeId,
+              from: {
+                x: dragState.startNodeX,
+                y: dragState.startNodeY,
+              },
+              to: finalPos,
+            })
+          }
+        }
         canvasWindow.removeEventListener('pointermove', handleMove)
         canvasWindow.removeEventListener('pointerup', handleUp)
       }
@@ -1278,6 +1295,7 @@ export function SpaghettiCanvas({
     },
     [
       clearUiMessage,
+      commitGraphNodeMoveWithHistory,
       flushQueuedNodePos,
       getCanvasWindow,
       graph.nodes,

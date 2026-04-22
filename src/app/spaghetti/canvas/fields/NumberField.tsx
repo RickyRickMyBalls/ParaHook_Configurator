@@ -1,6 +1,7 @@
 import {
   useCallback,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -25,6 +26,8 @@ type NumberFieldProps = {
   tone?: NumberFieldTone
   scrubLabel?: string
   className?: string
+  onInteractionStart?: () => void
+  onInteractionEnd?: () => void
   onChange: (value: number) => void
 }
 
@@ -77,10 +80,29 @@ export function NumberField({
   tone = 'blue',
   scrubLabel = 'Value',
   className,
+  onInteractionStart,
+  onInteractionEnd,
   onChange,
 }: NumberFieldProps) {
   const [isScrubbing, setIsScrubbing] = useState(false)
+  const typedInteractionActiveRef = useRef(false)
   const canStep = !disabled
+
+  const beginTypedInteraction = useCallback(() => {
+    if (disabled || driven || typedInteractionActiveRef.current) {
+      return
+    }
+    typedInteractionActiveRef.current = true
+    onInteractionStart?.()
+  }, [disabled, driven, onInteractionStart])
+
+  const endTypedInteraction = useCallback(() => {
+    if (!typedInteractionActiveRef.current) {
+      return
+    }
+    typedInteractionActiveRef.current = false
+    onInteractionEnd?.()
+  }, [onInteractionEnd])
 
   const startScrubDrag = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
@@ -220,6 +242,7 @@ export function NumberField({
           value={value}
           disabled={disabled}
           onClick={(event) => event.stopPropagation()}
+          onFocus={beginTypedInteraction}
           onChange={(event) => {
             if (disabled) {
               return
@@ -231,6 +254,14 @@ export function NumberField({
             const rounded = Number(nextValue.toFixed(precision))
             onChange(clampNumber(rounded, min, max))
           }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.stopPropagation()
+              endTypedInteraction()
+              event.currentTarget.blur()
+            }
+          }}
+          onBlur={endTypedInteraction}
         />
       </div>
     </div>

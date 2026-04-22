@@ -49,10 +49,9 @@ import {
 } from '../store/workspaceIntents'
 import {
   commitWorkspaceTargetSelection,
-  deleteWorkspaceSelectedEnvironmentLight,
+  deleteWorkspaceSelectedEnvironmentLightWithHistory,
 } from '../store/workspaceSelectionCommands'
 import { getLatestViewerCameraPose, getViewer, restoreViewerCameraPose } from '../viewerBridge'
-import { removeNode as removeNodeCommand } from '../spaghetti/graphCommands'
 import type { EditorViewportWindowMode } from '../spaghetti/schema/spaghettiTypes'
 import {
   type GeometrySketchDrawStage,
@@ -134,7 +133,13 @@ import {
   type ConsolePromptSession,
   useConsoleStore,
 } from './useConsoleStore'
-import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
+import {
+  dispatchEditHistoryShortcut,
+  isEditableTarget,
+  routeKeyboardInput,
+  type InputRoutingResult,
+} from '../inputRouting'
+import { editHistoryStore } from '../store/editHistoryStore'
 import {
   frameAllCommand,
   frameEnvironmentLightCommand,
@@ -869,6 +874,7 @@ export function useConsoleInteraction(
   const routeConsoleGlobalKey = useCallback((event: KeyboardEvent) => {
     const spaghettiState = useSpaghettiStore.getState()
     const appState = useAppStore.getState()
+    const consoleState = useConsoleStore.getState()
     const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
     const selectedReferenceDeleteAvailable =
       (selectedConsoleTarget?.kind === 'object' &&
@@ -891,12 +897,26 @@ export function useConsoleInteraction(
     )
     return routeKeyboardInput({
       event,
+      editHistoryCanUndo: editHistoryStore.canUndo(),
+      editHistoryCanRedo: editHistoryStore.canRedo(),
+      consoleCommandSessionUndoOwner:
+        spaghettiState.geometrySketchSession?.mode === 'draw' ? 'sketch-draw' : null,
+      consoleInputAllowsCommandSessionUndo:
+        consoleState.inputText.trim().length === 0 ||
+        (
+          consoleState.isStagedChoiceManualOverride !== true &&
+          (
+            consoleState.stagedNavigationSession !== null ||
+            consoleState.consolePromptSession !== null ||
+            consoleState.featureAssistDescriptor !== null
+          )
+        ),
       viewerFlyActive: getViewer()?.isFlyModeActive?.() === true,
       viewerCameraShortcutsEnabled:
         appState.workspaceSelection.activeSurface === 'viewer' && getViewer() !== null,
       sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
       geometrySketchMode:
-        useConsoleStore.getState().featureAssistDescriptor !== null
+        consoleState.featureAssistDescriptor !== null
           ? null
           : spaghettiState.geometrySketchSession?.mode ?? null,
       selectedReferenceDeleteAvailable,
@@ -906,11 +926,32 @@ export function useConsoleInteraction(
         appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
         appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true,
       stagedConsoleActive:
-        useConsoleStore.getState().stagedNavigationSession !== null ||
-        useConsoleStore.getState().consolePromptSession !== null ||
-        useConsoleStore.getState().featureAssistDescriptor !== null,
+        consoleState.stagedNavigationSession !== null ||
+        consoleState.consolePromptSession !== null ||
+        consoleState.featureAssistDescriptor !== null,
       allowFlatConsoleCapture: true,
     })
+  }, [])
+
+  const dispatchSketchDrawShortcut = useCallback((
+    routing: InputRoutingResult,
+    event: KeyboardEvent,
+  ): boolean => {
+    if (routing.owner !== 'sketch-draw' || routing.decision !== 'handle') {
+      return false
+    }
+    const spaghettiState = useSpaghettiStore.getState()
+    if (routing.sketchDrawAction === 'undo') {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return spaghettiState.undoGeometrySketchStagedCommand()
+    }
+    if (routing.sketchDrawAction === 'redo') {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return spaghettiState.redoGeometrySketchStagedCommand()
+    }
+    return false
   }, [])
 
   const resolveWorkspaceModeRuntimeGuard = useCallback(
@@ -3154,7 +3195,7 @@ export function useConsoleInteraction(
                   .getState()
                   .view.lighting.lights.find((light) => light.id === environmentLightId)?.name ??
                 environmentLightId
-              const deletedTarget = deleteWorkspaceSelectedEnvironmentLight(
+              const deletedTarget = deleteWorkspaceSelectedEnvironmentLightWithHistory(
                 {
                   setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
                   selectLight: useUiPrefsStore.getState().selectLight,
@@ -3780,7 +3821,7 @@ export function useConsoleInteraction(
             const deletedNodeLabel = stagedResult.session.breadcrumb.at(-1) ?? 'node'
             useSpaghettiStore
               .getState()
-              .applyGraphCommand(removeNodeCommand(stagedResult.selections.selectedNodeId))
+              .removeGraphNodeWithHistory(stagedResult.selections.selectedNodeId)
             activateConsoleGraphTarget(stagedResult.selections.graphDocumentId, null, {
               strategy: 'open-or-focus',
             })
@@ -5078,7 +5119,12 @@ export function useConsoleInteraction(
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isEditableTarget(event.target)) {
+      if (event.defaultPrevented) {
+        return
+      }
+      if (isEditableTarget(event.target)) {
+        const routing = routeConsoleGlobalKey(event)
+        dispatchSketchDrawShortcut(routing, event)
         return
       }
       if (getViewer()?.isFlyModeActive?.() === true) {
@@ -5118,6 +5164,9 @@ export function useConsoleInteraction(
       }
       const routing = routeConsoleGlobalKey(event)
       if (routing.owner === 'viewer-fly') {
+        return
+      }
+      if (dispatchEditHistoryShortcut(routing, event, editHistoryStore)) {
         return
       }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {
@@ -5228,6 +5277,7 @@ export function useConsoleInteraction(
     cycleActiveReferenceTransformModeWithTab,
     cycleStagedChoiceWithRadioBurst,
     deleteSelectedReferenceTargets,
+    dispatchSketchDrawShortcut,
     hideSelectedReferenceTargets,
     unhideAllReferenceTargets,
     featureAssistDescriptor,
@@ -5248,7 +5298,12 @@ export function useConsoleInteraction(
     }
 
     const handlePopoutKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isEditableTarget(event.target)) {
+      if (event.defaultPrevented) {
+        return
+      }
+      if (isEditableTarget(event.target)) {
+        const routing = routeConsoleGlobalKey(event)
+        dispatchSketchDrawShortcut(routing, event)
         return
       }
       if (event.key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) {
@@ -5284,6 +5339,9 @@ export function useConsoleInteraction(
         return
       }
       const routing = routeConsoleGlobalKey(event)
+      if (dispatchEditHistoryShortcut(routing, event, editHistoryStore)) {
+        return
+      }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -5392,6 +5450,7 @@ export function useConsoleInteraction(
     cycleActiveReferenceTransformModeWithTab,
     cycleStagedChoiceWithRadioBurst,
     deleteSelectedReferenceTargets,
+    dispatchSketchDrawShortcut,
     hideSelectedReferenceTargets,
     unhideAllReferenceTargets,
     featureAssistDescriptor,

@@ -50,6 +50,7 @@ import { useUiPrefsStore } from './store/uiPrefsStore'
 import { CatalogSurface } from './workspace/CatalogSurface'
 import { useWorkspaceChildWindow } from './workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
+import { cycleBrowserPresentationModeWithHistory } from './store/workspaceLayoutEditHistory'
 import { WorkspaceViewportTree } from './workspace/WorkspaceViewportTree'
 import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
 import {
@@ -310,7 +311,6 @@ export function AppShell() {
   )
   const setIsBrowserPoppedOut = useWorkspaceStore((state) => state.setBrowserPoppedOut)
   const setIsBrowserViewportSplit = useWorkspaceStore((state) => state.setBrowserViewportSplit)
-  const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
   const setBrowserFloating = useWorkspaceStore((state) => state.setBrowserFloating)
   const setBrowserFloatingPosition = useWorkspaceStore((state) => state.setBrowserFloatingPosition)
   const setBrowserFloatingSize = useWorkspaceStore((state) => state.setBrowserFloatingSize)
@@ -972,13 +972,7 @@ export function AppShell() {
       onActivateViewerSurface={handleActivateViewerSurface}
       onOpenViewportSpawnMenu={handleOpenViewportSpawnMenu}
       onCycleBrowserPresentationMode={() =>
-        setBrowserPresentationMode(
-          browserPresentationMode === 'expanded'
-            ? 'essentials'
-            : browserPresentationMode === 'essentials'
-              ? 'collapsed'
-              : 'expanded',
-        )
+        cycleBrowserPresentationModeWithHistory(browserPresentationMode)
       }
       onRequestViewportSlotSurfaceKind={handleViewportSlotSurfaceKindChange}
       onOpenDashboardNoteInNotepad={handleOpenDashboardNoteInNotepad}

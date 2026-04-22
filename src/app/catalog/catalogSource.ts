@@ -48,6 +48,312 @@ export type CatalogExternalTypeClassification = {
   partGroups?: CatalogItemPartGroup[]
 }
 
+const CATALOG_EXTERNAL_TYPE_CLASSIFICATIONS = new Map<
+  string,
+  CatalogExternalTypeClassification
+>([
+  [
+    'adapter',
+    {
+      systemKey: 'Hardware',
+      partType: 'Adapter',
+      partGroups: ['Adapters'],
+    },
+  ],
+  [
+    'axle block',
+    {
+      systemKey: 'Hardware',
+      partType: 'Axle Block',
+      partGroups: ['Axle Blocks'],
+    },
+  ],
+  [
+    'battery assembly',
+    {
+      systemKey: 'Platform',
+      partType: 'Battery Assembly',
+      partGroups: ['Battery Boxes'],
+    },
+  ],
+  [
+    'battery box',
+    {
+      systemKey: 'Platform',
+      partType: 'Battery Box',
+      partGroups: ['Battery Boxes'],
+    },
+  ],
+  [
+    'bearing cover',
+    {
+      systemKey: 'Wheel',
+      partType: 'Bearing Cover',
+      partGroups: ['Bearings'],
+    },
+  ],
+  [
+    'bms',
+    {
+      systemKey: 'Platform',
+      partType: 'BMS',
+      partGroups: ['Electronics'],
+    },
+  ],
+  [
+    'bracket',
+    {
+      systemKey: 'Hardware',
+      partType: 'Bracket',
+      partGroups: ['Brackets'],
+    },
+  ],
+  [
+    'breakout board',
+    {
+      systemKey: 'Hardware',
+      partType: 'Breakout Board',
+      partGroups: ['Electronics'],
+    },
+  ],
+  [
+    'bumper',
+    {
+      systemKey: 'Platform',
+      partType: 'Bumper',
+      partGroups: ['Bumpers'],
+    },
+  ],
+  [
+    'connector cover',
+    {
+      systemKey: 'Hardware',
+      partType: 'Connector Cover',
+      partGroups: ['Guards'],
+    },
+  ],
+  [
+    'controller',
+    {
+      systemKey: 'Platform',
+      partType: 'Controller',
+      partGroups: ['Controllers'],
+    },
+  ],
+  [
+    'controller box',
+    {
+      systemKey: 'Platform',
+      partType: 'Controller Box',
+      partGroups: ['Boxes', 'Controllers'],
+    },
+  ],
+  [
+    'fender',
+    {
+      systemKey: 'Platform',
+      partType: 'Fender',
+      partGroups: ['Fenders'],
+    },
+  ],
+  [
+    'fender attachment',
+    {
+      systemKey: 'Platform',
+      partType: 'Fender Attachment',
+      partGroups: ['Fenders'],
+    },
+  ],
+  [
+    'fender delete',
+    {
+      systemKey: 'Platform',
+      partType: 'Fender Delete',
+      partGroups: ['Fenders'],
+    },
+  ],
+  [
+    'footpad',
+    {
+      systemKey: 'Platform',
+      partType: 'Footpad',
+      partGroups: ['Footpads'],
+    },
+  ],
+  [
+    'footpad attachment',
+    {
+      systemKey: 'Platform',
+      partType: 'Footpad Attachment',
+      partGroups: ['Footpads'],
+    },
+  ],
+  [
+    'gasket',
+    {
+      systemKey: 'Hardware',
+      partType: 'Gasket',
+      partGroups: ['Screw & Nuts'],
+    },
+  ],
+  [
+    'hall sensor',
+    {
+      systemKey: 'Hardware',
+      partType: 'Hall Sensor',
+      partGroups: ['Electronics'],
+    },
+  ],
+  [
+    'led',
+    {
+      systemKey: 'Hardware',
+      partType: 'LED',
+      partGroups: ['Lights', 'Electronics'],
+    },
+  ],
+  [
+    'miscellaneous',
+    {
+      systemKey: 'Hardware',
+      partType: 'Miscellaneous',
+      partGroups: ['Miscellaneous'],
+    },
+  ],
+  [
+    'miscellaneous items',
+    {
+      systemKey: 'Hardware',
+      partType: 'Miscellaneous Items',
+      partGroups: ['Miscellaneous'],
+    },
+  ],
+  [
+    'plug',
+    {
+      systemKey: 'Hardware',
+      partType: 'Plug',
+      partGroups: ['Guards'],
+    },
+  ],
+  [
+    'port cover',
+    {
+      systemKey: 'Hardware',
+      partType: 'Port Cover',
+      partGroups: ['Guards'],
+    },
+  ],
+  [
+    'rail attachment',
+    {
+      systemKey: 'Platform',
+      partType: 'Rail Attachment',
+      partGroups: ['Rails', 'Guards'],
+    },
+  ],
+  [
+    'rails',
+    {
+      systemKey: 'Platform',
+      partType: 'Rails',
+      partGroups: ['Rails'],
+    },
+  ],
+  [
+    'remote',
+    {
+      systemKey: 'Hardware',
+      partType: 'Remote',
+      partGroups: ['Remotes'],
+    },
+  ],
+  [
+    'rim saver',
+    {
+      systemKey: 'Wheel',
+      partType: 'Rim Saver',
+      partGroups: ['Rim Savers', 'Guards'],
+    },
+  ],
+  [
+    'stand',
+    {
+      systemKey: 'Hardware',
+      partType: 'Stand',
+      partGroups: ['Stands'],
+    },
+  ],
+  [
+    'tire',
+    {
+      systemKey: 'Wheel',
+      partType: 'Tire',
+      partGroups: ['Tires'],
+    },
+  ],
+  [
+    'tool',
+    {
+      systemKey: 'Hardware',
+      partType: 'Tool',
+      partGroups: ['Tools'],
+    },
+  ],
+])
+
+const CATALOG_EXTERNAL_PRIMARY_TYPE_PRIORITY = [
+  'rim saver',
+  'controller box',
+  'controller',
+  'battery box',
+  'battery assembly',
+  'footpad attachment',
+  'footpad',
+  'rails',
+  'rail attachment',
+  'tire',
+  'fender',
+  'fender delete',
+  'fender attachment',
+  'bumper',
+  'axle block',
+  'bearing cover',
+  'breakout board',
+  'bms',
+  'hall sensor',
+  'led',
+  'connector cover',
+  'port cover',
+  'plug',
+  'adapter',
+  'bracket',
+  'tool',
+  'remote',
+  'stand',
+  'gasket',
+  'miscellaneous',
+  'miscellaneous items',
+] as const
+
+function mergeCatalogExternalTypeClassifications(
+  classifications: CatalogExternalTypeClassification[],
+): CatalogExternalTypeClassification {
+  if (classifications.length === 0) {
+    return {}
+  }
+
+  const primaryClassification = classifications[0]
+  const partGroups = Array.from(
+    new Set(classifications.flatMap((classification) => classification.partGroups ?? [])),
+  )
+
+  return {
+    ...primaryClassification,
+    ...(partGroups.length === 0 ? {} : { partGroups }),
+  }
+}
+
 function buildCatalogRepoItem(seedItem: CatalogRepoSeedItem): CatalogItemRecord {
   return {
     itemId: seedItem.itemId,
@@ -242,6 +548,28 @@ function slugifyCatalogExternalItemId(value: string): string {
   return slug.length > 0 ? slug : 'untitled'
 }
 
+function readCatalogExternalStableIdentityValue(sourceItem: PubPartsNormalizedSourceItem): string {
+  return (
+    sourceItem.sourceMetadata.sourceIdentityKey?.trim() ||
+    sourceItem.externalItemUrl?.trim() ||
+    sourceItem.sourceUrl?.trim() ||
+    sourceItem.linkedArchiveUrl?.trim() ||
+    [
+      sourceItem.sourceRecordKind,
+      sourceItem.sourceTitle,
+      sourceItem.sourceMetadata.typeOfPart ?? '',
+      sourceItem.sourceMetadata.platform ?? '',
+      sourceItem.sourceMetadata.typeOfResource ?? '',
+    ].join(':')
+  )
+}
+
+function buildCatalogExternalPubPartsItemId(sourceItem: PubPartsNormalizedSourceItem): string {
+  return `external:pubparts:${sourceItem.sourceRecordKind}:${slugifyCatalogExternalItemId(
+    readCatalogExternalStableIdentityValue(sourceItem),
+  )}`
+}
+
 function buildExternalMetadataRows(sourceItem: PubPartsNormalizedSourceItem) {
   return [
     { label: 'Source', value: sourceItem.providerName },
@@ -277,29 +605,26 @@ export function buildCatalogExternalTypeClassification(
   sourceTypeOfPart: string | readonly string[] | null | undefined,
 ): CatalogExternalTypeClassification {
   const sourceLabels = readCatalogExternalSourceLabels(sourceTypeOfPart)
-  for (const sourceLabel of sourceLabels) {
-    switch (sourceLabel.toLowerCase()) {
-      case 'footpad attachment':
-        return {
-          systemKey: 'Platform',
-          partType: 'Footpad Attachment',
-          partGroups: ['Footpads'],
-        }
-      case 'controller box':
-        return {
-          systemKey: 'Platform',
-          partType: 'Controller Box',
-          partGroups: ['Boxes'],
-        }
-      case 'rim saver':
-        return {
-          systemKey: 'Wheel',
-          partType: 'Rim Saver',
-        }
+  const sourceLabelSet = new Set(sourceLabels.map((sourceLabel) => sourceLabel.toLowerCase()))
+  const classifications = CATALOG_EXTERNAL_PRIMARY_TYPE_PRIORITY.flatMap((sourceLabel) => {
+    if (!sourceLabelSet.has(sourceLabel)) {
+      return []
     }
-  }
 
-  return {}
+    const classification = CATALOG_EXTERNAL_TYPE_CLASSIFICATIONS.get(sourceLabel)
+
+    if (classification !== undefined) {
+      return [{
+        ...classification,
+        partGroups:
+          classification.partGroups === undefined ? undefined : [...classification.partGroups],
+      }]
+    }
+
+    return []
+  })
+
+  return mergeCatalogExternalTypeClassifications(classifications)
 }
 
 const CATALOG_EXTERNAL_PLATFORM_COMPATIBILITY_MAP = new Map<
@@ -356,13 +681,9 @@ export function buildCatalogExternalPlatformFitmentMetadataRows(
     : []
 }
 
-function buildCatalogExternalPubPartsItem(
-  sourceItem: PubPartsNormalizedSourceItem,
-  itemIndex: number,
-): CatalogItemRecord {
+function buildCatalogExternalPubPartsItem(sourceItem: PubPartsNormalizedSourceItem): CatalogItemRecord {
   const sourceCollectionTag =
     sourceItem.sourceCollectionKey ?? sourceItem.sourceCollectionLabel ?? sourceItem.sourceRecordKind
-  const itemSlug = slugifyCatalogExternalItemId(sourceItem.sourceTitle)
   const platformCompatibility = normalizeCatalogExternalPlatformCompatibility(
     sourceItem.sourceMetadata.platform,
   )
@@ -371,7 +692,7 @@ function buildCatalogExternalPubPartsItem(
   )
 
   return {
-    itemId: `external:pubparts:${itemSlug}-${itemIndex + 1}`,
+    itemId: buildCatalogExternalPubPartsItemId(sourceItem),
     label: sourceItem.sourceTitle,
     familyKey: 'external-pubparts',
     sectionKey:

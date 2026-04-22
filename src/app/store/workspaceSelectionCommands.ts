@@ -4,6 +4,10 @@ import type {
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from './useAppStore'
+import {
+  captureEnvironmentLookHistorySnapshot,
+  commitEnvironmentLookHistory,
+} from './environmentLookEditHistory'
 import { useUiPrefsStore } from './uiPrefsStore'
 
 export type WorkspaceTargetSelectionCommandDeps = {
@@ -142,4 +146,21 @@ export const deleteWorkspaceSelectedEnvironmentLight = (
     deletedTarget: target,
     nextSelectedTarget,
   }
+}
+
+export const deleteWorkspaceSelectedEnvironmentLightWithHistory = (
+  deps: WorkspaceSelectedEnvironmentLightDeleteCommandDeps,
+  target: Extract<WorkspaceSelectedTarget, { kind: 'environment-light' }>,
+  options: WorkspaceSelectionCommandOptions = {},
+): WorkspaceSelectedEnvironmentLightDeleteResult | null => {
+  const beforeSnapshot = captureEnvironmentLookHistorySnapshot()
+  const result = deleteWorkspaceSelectedEnvironmentLight(deps, target, options)
+  if (result === null) {
+    return null
+  }
+  commitEnvironmentLookHistory(beforeSnapshot, {
+    targetId: `environment-light:${target.lightId}:delete`,
+    targetLabel: 'Environment light delete',
+  })
+  return result
 }

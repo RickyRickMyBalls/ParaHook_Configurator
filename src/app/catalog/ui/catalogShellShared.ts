@@ -1,6 +1,12 @@
-import { isCatalogStartingAssemblyItem, type CatalogItemRecord } from '../catalogItemContract'
+import {
+  CATALOG_ITEM_PART_GROUPS,
+  isCatalogStartingAssemblyItem,
+  type CatalogItemRecord,
+} from '../catalogItemContract'
+import { resolveCatalogActionPlan } from '../catalogActionPlan'
 import type { CatalogSourceSnapshot } from '../catalogSource'
 import type {
+  PubPartsLocalSourceRecord,
   PubPartsSelectedSupportedFile,
   PubPartsSourceInspectionResult,
   PubPartsStagedSourceRecord,
@@ -9,6 +15,9 @@ import type { ReferenceFileType } from '../../references/referenceManifest'
 import type { ImportedReferenceSourceAttribution } from '../../references/importReferenceFile'
 
 export type CatalogBrowseMode = 'part' | 'platform'
+
+export type CatalogFacetSelections = Record<CatalogBrowseMode, string[]>
+export type CatalogFacetSelectionMode = 'add' | 'switch'
 
 export type CatalogSectionOption = {
   sectionKey: string
@@ -25,10 +34,16 @@ export type CatalogBrowseModeOption = {
 
 export type CatalogFilterGroupKey =
   | 'systemKey'
-  | 'platformCompatibility'
   | 'partType'
-  | 'partGroups'
   | 'brand'
+  | 'source'
+  | 'availability'
+  | 'resourceType'
+  | 'localStatus'
+  | 'previewStatus'
+  | 'fileType'
+  | 'position'
+  | 'wheelFitment'
 
 export type CatalogSelectedFilters = Partial<Record<CatalogFilterGroupKey, string[]>>
 
@@ -48,28 +63,165 @@ type CatalogFilterGroupDefinition = {
   groupKey: CatalogFilterGroupKey
   label: string
   description: string
-  resolveValues: (item: CatalogItemRecord) => string[]
+  resolveValues: (item: CatalogItemRecord, context: CatalogFilterContext) => string[]
+}
+
+export type CatalogFilterContext = {
+  previewLoadedItemIds?: readonly string[]
+  pubPartsStagedSourcesByCatalogItemId?: ReadonlyMap<string, PubPartsStagedSourceRecord>
+  pubPartsLocalSourcesByCatalogItemId?: ReadonlyMap<string, PubPartsLocalSourceRecord>
+}
+
+const CATALOG_SUPPORTED_FILTER_FILE_TYPES = new Set([
+  'STEP',
+  'STP',
+  'GLB',
+  'OBJ',
+  'STL',
+  'HDR',
+  'EXR',
+])
+
+function readCatalogKnownFileType(value: string | null | undefined): string[] {
+  const normalizedValue = value?.trim() ?? ''
+  if (normalizedValue.length === 0) {
+    return []
+  }
+
+  const match = normalizedValue
+    .split('?')[0]
+    .match(/\.([a-z0-9]+)$/i)
+  const fileType = match?.[1]?.toUpperCase() ?? ''
+
+  return CATALOG_SUPPORTED_FILTER_FILE_TYPES.has(fileType) ? [fileType] : []
+}
+
+function resolveCatalogSourceFilterValues(item: CatalogItemRecord): string[] {
+  switch (item.source.sourceKind) {
+    case 'repo':
+      return ['ParaHook']
+    case 'imports':
+      return ['Imported']
+    case 'external':
+      return [item.source.provider.providerName]
+    case 'planned':
+      return ['Planned']
+  }
+}
+
+function resolveCatalogAvailabilityFilterValues(item: CatalogItemRecord): string[] {
+  const actionPlan = resolveCatalogActionPlan(item)
+
+  return Array.from(
+    new Set(
+      [actionPlan.primaryAction, actionPlan.secondaryAction]
+        .flatMap((action) => (action === null ? [] : [action.label]))
+        .filter((label) => label.trim().length > 0),
+    ),
+  )
+}
+
+function resolveCatalogResourceTypeFilterValues(item: CatalogItemRecord): string[] {
+  if (isCatalogStartingAssemblyItem(item)) {
+    return ['Starting Assembly']
+  }
+
+  if (item.assetKind === 'environment') {
+    return ['Environment']
+  }
+
+  if (item.source.sourceKind === 'imports') {
+    return ['Imported Reuse']
+  }
+
+  if (item.source.sourceKind === 'external') {
+    return ['External Source']
+  }
+
+  return ['Part']
+}
+
+function resolveCatalogLocalStatusFilterValues(
+  item: CatalogItemRecord,
+  context: CatalogFilterContext,
+): string[] {
+  const localStatuses: string[] = []
+
+  if (context.pubPartsLocalSourcesByCatalogItemId?.has(item.itemId)) {
+    localStatuses.push('Local Prepared')
+  }
+
+  if (context.pubPartsStagedSourcesByCatalogItemId?.has(item.itemId)) {
+    localStatuses.push('Source Staged')
+  }
+
+  return localStatuses.length > 0 ? localStatuses : ['Not Local']
+}
+
+function resolveCatalogPreviewStatusFilterValues(
+  item: CatalogItemRecord,
+  context: CatalogFilterContext,
+): string[] {
+  if (context.previewLoadedItemIds?.includes(item.itemId)) {
+    return ['Preview Loaded']
+  }
+
+  return resolveCatalogActionPlan(item).allowsTemporaryPreview
+    ? ['Previewable']
+    : ['Not Previewable']
+}
+
+function resolveCatalogFileTypeFilterValues(item: CatalogItemRecord): string[] {
+  const sourceFileTypes =
+    item.source.sourceKind === 'repo'
+      ? readCatalogKnownFileType(item.source.assetPath)
+      : item.source.sourceKind === 'imports'
+        ? readCatalogKnownFileType(item.source.assetPath)
+        : item.source.sourceKind === 'external'
+          ? [
+              ...readCatalogKnownFileType(item.source.linkedArchiveUrl),
+              ...readCatalogKnownFileType(item.source.sourceUrl),
+              ...readCatalogKnownFileType(item.source.externalItemUrl),
+              ...readCatalogKnownFileType(item.source.previewImageUrl),
+            ]
+          : [
+              ...readCatalogKnownFileType(item.source.sourceAssetPath),
+              ...(item.source.sourceAssetFormat === 'step-or-stp' ? ['STEP', 'STP'] : []),
+              ...(item.source.sourceAssetSet?.versions.flatMap((version) =>
+                version.variants.map((variant) => variant.format.toUpperCase()),
+              ) ?? []),
+            ]
+
+  return Array.from(
+    new Set(sourceFileTypes.filter((fileType) => CATALOG_SUPPORTED_FILTER_FILE_TYPES.has(fileType))),
+  )
+}
+
+function resolveCatalogWheelFitmentFilterValues(item: CatalogItemRecord): string[] {
+  if (item.wheelFitment === undefined) {
+    return []
+  }
+
+  return [
+    item.wheelFitment.motorVersion === undefined
+      ? ''
+      : `Motor: ${item.wheelFitment.motorVersion}`,
+    item.wheelFitment.hubSizeInches === undefined
+      ? ''
+      : `Hub: ${item.wheelFitment.hubSizeInches}`,
+    item.wheelFitment.tireSize === undefined ? '' : `Tire: ${item.wheelFitment.tireSize}`,
+    item.wheelFitment.tireCompound === undefined
+      ? ''
+      : `Compound: ${item.wheelFitment.tireCompound}`,
+  ].filter((value) => value.trim().length > 0)
 }
 
 const CATALOG_FILTER_GROUP_DEFINITIONS: CatalogFilterGroupDefinition[] = [
-  {
-    groupKey: 'platformCompatibility',
-    label: 'Platform Compatibility',
-    description:
-      'Canonical ADV, XR, GT, Pint, XR Classic, and Other families from the shared item contract.',
-    resolveValues: (item) => item.platformCompatibility ?? [],
-  },
   {
     groupKey: 'partType',
     label: 'Part Type',
     description: 'Local part type metadata from the shared item contract.',
     resolveValues: (item) => (item.partType === undefined ? [] : [item.partType]),
-  },
-  {
-    groupKey: 'partGroups',
-    label: 'Part Groups',
-    description: 'First-pass part groups such as Footpads, FootHolds, and Shoes.',
-    resolveValues: (item) => item.partGroups ?? [],
   },
   {
     groupKey: 'systemKey',
@@ -83,17 +235,175 @@ const CATALOG_FILTER_GROUP_DEFINITIONS: CatalogFilterGroupDefinition[] = [
     description: 'Brand metadata kept on the shared catalog item contract.',
     resolveValues: (item) => (item.brand === undefined ? [] : [item.brand]),
   },
+  {
+    groupKey: 'source',
+    label: 'Source',
+    description: 'Catalog ownership such as ParaHook, PubParts, Imported, and Planned.',
+    resolveValues: (item) => resolveCatalogSourceFilterValues(item),
+  },
+  {
+    groupKey: 'availability',
+    label: 'Availability',
+    description: 'Available and planned actions such as Add To Project or Load Preview.',
+    resolveValues: (item) => resolveCatalogAvailabilityFilterValues(item),
+  },
+  {
+    groupKey: 'resourceType',
+    label: 'Resource Type',
+    description: 'Part, starting assembly, environment, imported reuse, or external source.',
+    resolveValues: (item) => resolveCatalogResourceTypeFilterValues(item),
+  },
+  {
+    groupKey: 'localStatus',
+    label: 'Local Status',
+    description: 'Local-library and staged-source status for Catalog entries.',
+    resolveValues: (item, context) => resolveCatalogLocalStatusFilterValues(item, context),
+  },
+  {
+    groupKey: 'previewStatus',
+    label: 'Preview Status',
+    description: 'Preview-loaded, previewable, or not-previewable Catalog entries.',
+    resolveValues: (item, context) => resolveCatalogPreviewStatusFilterValues(item, context),
+  },
+  {
+    groupKey: 'fileType',
+    label: 'File Type',
+    description: 'Known source and asset formats such as STEP, GLB, STL, HDR, and EXR.',
+    resolveValues: (item) => resolveCatalogFileTypeFilterValues(item),
+  },
+  {
+    groupKey: 'position',
+    label: 'Position',
+    description: 'Catalog position metadata such as Front, Rear, Pair, and Universal.',
+    resolveValues: (item) => (item.position === undefined ? [] : [item.position]),
+  },
+  {
+    groupKey: 'wheelFitment',
+    label: 'Wheel Fitment',
+    description: 'Wheel-specific motor, hub, tire, and compound values where known.',
+    resolveValues: (item) => resolveCatalogWheelFitmentFilterValues(item),
+  },
 ]
 
-export type CatalogContentMode = 'grid' | 'item-page'
+export type CatalogContentMode = 'grid' | 'item-page' | 'catalog-info'
+
+export type CatalogNavigationSnapshot = {
+  contentMode: CatalogContentMode
+  selectedItemId: string | null
+  selectedItemIds: string[]
+  browseMode: CatalogBrowseMode
+  facetSelections: CatalogFacetSelections
+  facetSelectionMode: CatalogFacetSelectionMode
+  searchText: string
+  selectedFilters: CatalogSelectedFilters
+}
+
+export type CatalogNavigationHistoryState = {
+  entries: CatalogNavigationSnapshot[]
+  activeIndex: number
+}
+
+const areCatalogStringArraysEqual = (first: readonly string[], second: readonly string[]) =>
+  first.length === second.length && first.every((value, index) => value === second[index])
+
+function areCatalogSelectedFiltersEqual(
+  first: CatalogSelectedFilters,
+  second: CatalogSelectedFilters,
+): boolean {
+  const firstKeys = Object.keys(first).sort() as CatalogFilterGroupKey[]
+  const secondKeys = Object.keys(second).sort() as CatalogFilterGroupKey[]
+
+  return (
+    areCatalogStringArraysEqual(firstKeys, secondKeys) &&
+    firstKeys.every((groupKey) =>
+      areCatalogStringArraysEqual(first[groupKey] ?? [], second[groupKey] ?? []),
+    )
+  )
+}
+
+export function areCatalogNavigationSnapshotsEqual(
+  first: CatalogNavigationSnapshot,
+  second: CatalogNavigationSnapshot,
+): boolean {
+  return (
+    first.contentMode === second.contentMode &&
+    first.selectedItemId === second.selectedItemId &&
+    first.browseMode === second.browseMode &&
+    first.facetSelectionMode === second.facetSelectionMode &&
+    first.searchText === second.searchText &&
+    areCatalogStringArraysEqual(first.selectedItemIds, second.selectedItemIds) &&
+    areCatalogStringArraysEqual(first.facetSelections.platform, second.facetSelections.platform) &&
+    areCatalogStringArraysEqual(first.facetSelections.part, second.facetSelections.part) &&
+    areCatalogSelectedFiltersEqual(first.selectedFilters, second.selectedFilters)
+  )
+}
+
+export function createCatalogNavigationHistory(
+  initialSnapshot: CatalogNavigationSnapshot,
+): CatalogNavigationHistoryState {
+  return {
+    entries: [initialSnapshot],
+    activeIndex: 0,
+  }
+}
+
+export function commitCatalogNavigationSnapshot(
+  currentHistory: CatalogNavigationHistoryState,
+  nextSnapshot: CatalogNavigationSnapshot,
+  mode: 'push' | 'replace',
+): CatalogNavigationHistoryState {
+  const currentSnapshot = currentHistory.entries[currentHistory.activeIndex]
+  if (
+    currentSnapshot !== undefined &&
+    areCatalogNavigationSnapshotsEqual(currentSnapshot, nextSnapshot)
+  ) {
+    return currentHistory
+  }
+
+  if (mode === 'replace') {
+    return {
+      entries: [...currentHistory.entries.slice(0, currentHistory.activeIndex), nextSnapshot],
+      activeIndex: currentHistory.activeIndex,
+    }
+  }
+
+  return {
+    entries: [...currentHistory.entries.slice(0, currentHistory.activeIndex + 1), nextSnapshot],
+    activeIndex: currentHistory.activeIndex + 1,
+  }
+}
+
+export function stepCatalogNavigationHistory(
+  currentHistory: CatalogNavigationHistoryState,
+  direction: 'back' | 'forward',
+): {
+  history: CatalogNavigationHistoryState
+  snapshot: CatalogNavigationSnapshot
+} | null {
+  const nextIndex =
+    direction === 'back' ? currentHistory.activeIndex - 1 : currentHistory.activeIndex + 1
+  const snapshot = currentHistory.entries[nextIndex]
+
+  if (snapshot === undefined) {
+    return null
+  }
+
+  return {
+    history: {
+      ...currentHistory,
+      activeIndex: nextIndex,
+    },
+    snapshot,
+  }
+}
 
 export const resolveCatalogBrowseModeLabel = (browseMode: CatalogBrowseMode): string =>
   browseMode === 'part' ? 'Part' : 'Platform'
 
 export const resolveCatalogBrowseModeDescription = (browseMode: CatalogBrowseMode): string =>
   browseMode === 'part'
-    ? 'Part read centers part type, product name, position, and local part-group metadata.'
-    : 'Platform read centers system ownership and platform compatibility metadata.'
+    ? 'Part facet filters by part family, part type, position, and local part-group metadata.'
+    : 'Platform facet filters by system ownership and platform compatibility metadata.'
 
 export function buildCatalogBrowseModeOptions(): CatalogBrowseModeOption[] {
   return (['part', 'platform'] as const).map((browseMode) => ({
@@ -127,25 +437,51 @@ function resolveCatalogBrowseSectionKeys(
   return Array.from(new Set(browseSectionKeys))
 }
 
+function normalizeCatalogFacetSelections(
+  activeSectionOrSelections: string | CatalogFacetSelections,
+  browseMode: CatalogBrowseMode,
+): CatalogFacetSelections {
+  if (typeof activeSectionOrSelections !== 'string') {
+    return activeSectionOrSelections
+  }
+
+  return {
+    part: browseMode === 'part' ? [activeSectionOrSelections] : ['all'],
+    platform: browseMode === 'platform' ? [activeSectionOrSelections] : ['all'],
+  }
+}
+
+function matchesCatalogFacetSelections(
+  item: CatalogItemRecord,
+  facetSelections: CatalogFacetSelections,
+): boolean {
+  return (['platform', 'part'] as const).every((browseMode) => {
+    const selectedSectionKeys = facetSelections[browseMode] ?? []
+    const concreteSelectedSectionKeys = selectedSectionKeys.filter(
+      (sectionKey) => sectionKey !== 'all',
+    )
+
+    if (selectedSectionKeys.includes('all') || concreteSelectedSectionKeys.length === 0) {
+      return true
+    }
+
+    const itemSectionKeys = resolveCatalogBrowseSectionKeys(item, browseMode)
+    return concreteSelectedSectionKeys.some((sectionKey) => itemSectionKeys.includes(sectionKey))
+  })
+}
+
 function resolveCatalogBaseItems(
   snapshot: CatalogSourceSnapshot,
-  activeSection: string,
+  activeSectionOrSelections: string | CatalogFacetSelections,
   browseMode: CatalogBrowseMode,
 ): CatalogItemRecord[] {
-  if (activeSection === 'all') {
-    return snapshot.allItems
-  }
-
-  if (activeSection === 'imports') {
-    return snapshot.importsItems
-  }
-
-  if (activeSection === 'hdris') {
-    return snapshot.repoItems.filter((item) => item.assetKind === 'environment')
-  }
+  const facetSelections = normalizeCatalogFacetSelections(
+    activeSectionOrSelections,
+    browseMode,
+  )
 
   return snapshot.allItems.filter((item) =>
-    resolveCatalogBrowseSectionKeys(item, browseMode).includes(activeSection),
+    matchesCatalogFacetSelections(item, facetSelections),
   )
 }
 
@@ -180,18 +516,25 @@ function resolveCatalogSearchFilteredItems(
 
 function resolveCatalogItemFilterValues(
   item: CatalogItemRecord,
+  context: CatalogFilterContext = {},
 ): Record<CatalogFilterGroupKey, string[]> {
   return CATALOG_FILTER_GROUP_DEFINITIONS.reduce<Record<CatalogFilterGroupKey, string[]>>(
     (valuesByGroup, definition) => {
-      valuesByGroup[definition.groupKey] = definition.resolveValues(item)
+      valuesByGroup[definition.groupKey] = definition.resolveValues(item, context)
       return valuesByGroup
     },
     {
       systemKey: [],
-      platformCompatibility: [],
       partType: [],
-      partGroups: [],
       brand: [],
+      source: [],
+      availability: [],
+      resourceType: [],
+      localStatus: [],
+      previewStatus: [],
+      fileType: [],
+      position: [],
+      wheelFitment: [],
     },
   )
 }
@@ -199,15 +542,16 @@ function resolveCatalogItemFilterValues(
 function matchesCatalogSelectedFilters(
   item: CatalogItemRecord,
   selectedFilters: CatalogSelectedFilters,
+  context: CatalogFilterContext = {},
 ): boolean {
-  const valuesByGroup = resolveCatalogItemFilterValues(item)
+  const valuesByGroup = resolveCatalogItemFilterValues(item, context)
 
   return Object.entries(selectedFilters).every(([groupKey, selectedValues]) => {
     if (selectedValues === undefined || selectedValues.length === 0) {
       return true
     }
 
-    const candidateValues = valuesByGroup[groupKey as CatalogFilterGroupKey]
+    const candidateValues = valuesByGroup[groupKey as CatalogFilterGroupKey] ?? []
     return selectedValues.some((selectedValue) => candidateValues.includes(selectedValue))
   })
 }
@@ -1129,22 +1473,23 @@ export const resolveCatalogSectionBrowseDescription = (
   browseMode: CatalogBrowseMode = 'part',
 ): string => {
   const browseModeLabel = resolveCatalogBrowseModeLabel(browseMode)
+  const facetLabel = `${browseModeLabel} facet`
 
   switch (sectionKey) {
     case 'all':
-      return `${browseModeLabel} read keeps the curated reference families visible without changing the shared Catalog truth.`
+      return `${facetLabel} is not narrowing the shared Catalog results.`
     case 'foothooks':
-      return `${browseModeLabel} read keeps Foothooks browsing through the shared metadata contract instead of arriving as default Browser content.`
+      return `${facetLabel} narrows results to Foothooks through the shared metadata contract.`
     case 'shoes':
-      return `${browseModeLabel} read keeps Shoes browsing through the shared metadata contract instead of arriving as default Browser content.`
+      return `${facetLabel} narrows results to Shoes through the shared metadata contract.`
     case 'footpads':
-      return `${browseModeLabel} read keeps Footpads browsing through the shared metadata contract instead of arriving as default Browser content.`
+      return `${facetLabel} narrows results to Footpads through the shared metadata contract.`
     case 'imports':
-      return `Imports reuse stays separate from intake ownership while the ${browseModeLabel.toLowerCase()} read keeps previously uploaded items browsable without becoming Browser preload.`
+      return `Imports reuse stays separate from intake ownership while the ${facetLabel.toLowerCase()} keeps previously uploaded items browsable without becoming Browser preload.`
     case 'hdris':
       return 'HDRI and EXR environments stay on their own viewer-owned apply path instead of pretending to be reference content.'
     default:
-      return `${formatCatalogSectionLabel(sectionKey)} now browses here through the shared Catalog shell in ${browseModeLabel.toLowerCase()} read.`
+      return `${formatCatalogSectionLabel(sectionKey)} narrows the shared Catalog shell through the ${facetLabel.toLowerCase()}.`
   }
 }
 
@@ -1153,13 +1498,13 @@ export const resolveCatalogGridIntroCopy = (
   browseMode: CatalogBrowseMode = 'part',
 ): string => {
   if (activeSection === 'imports') {
-    return `${resolveCatalogBrowseModeLabel(browseMode)} read keeps imports in the same shared content area as the curated catalog.`
+    return 'Imports reuse stays in the same shared content area as the curated catalog.'
   }
 
   return `${resolveCatalogSectionBrowseDescription(
     activeSection,
     browseMode,
-  )} Click cards to build a selection. Double-click a card to open its full item page. Nothing auto-loads just because it is visible in the grid.`
+  )} Facet rows use OR within Platform or Part, and Platform plus Part combine together. Click cards to build a selection. Double-click a card to open its full item page.`
 }
 
 export const resolveCatalogCardBrowseMeta = (
@@ -1206,7 +1551,7 @@ export const resolveCatalogCardBrowseMeta = (
       item.platformCompatibility?.join(', ') ?? 'local platform compatibility'
     const brandText = item.brand ?? 'Catalog'
     const productText = item.productName ?? item.label
-    return `Platform read - ${systemText} - ${platformCompatibilityText} - ${brandText} - ${productText} - ${previewSourceText}`
+    return `Platform facet - ${systemText} - ${platformCompatibilityText} - ${brandText} - ${productText} - ${previewSourceText}`
   }
 
   const partTypeText = item.partType ?? formatCatalogFamilyLabel(item.familyKey)
@@ -1214,7 +1559,7 @@ export const resolveCatalogCardBrowseMeta = (
   const partGroupsText = item.partGroups?.join(', ') ?? 'local part groups'
   const productText = item.productName ?? item.label
 
-  return `Part read - ${partTypeText} - ${positionText} - ${partGroupsText} - ${productText} - ${previewSourceText}`
+  return `Part facet - ${partTypeText} - ${positionText} - ${partGroupsText} - ${productText} - ${previewSourceText}`
 }
 
 export const resolveCatalogItemPageFamilyLabel = (item: CatalogItemRecord): string => {
@@ -1302,6 +1647,15 @@ export function buildCatalogSectionOptions(
     countsBySectionKey.set(sectionKey, (countsBySectionKey.get(sectionKey) ?? 0) + 1)
   }
 
+  if (browseMode === 'part') {
+    CATALOG_ITEM_PART_GROUPS.forEach((partGroup) => {
+      if (!countsBySectionKey.has(partGroup)) {
+        orderedSectionKeys.push(partGroup)
+      }
+      countsBySectionKey.set(partGroup, 0)
+    })
+  }
+
   snapshot.repoItems.forEach((item) => {
     resolveCatalogBrowseSectionKeys(item, browseMode).forEach(incrementSectionCount)
   })
@@ -1328,12 +1682,13 @@ export function buildCatalogSectionOptions(
 
 export function buildCatalogFilterGroups(
   snapshot: CatalogSourceSnapshot,
-  activeSection: string,
+  activeSectionOrSelections: string | CatalogFacetSelections,
   searchText: string,
   browseMode: CatalogBrowseMode = 'part',
+  context: CatalogFilterContext = {},
 ): CatalogFilterGroup[] {
   const searchFilteredItems = resolveCatalogSearchFilteredItems(
-    resolveCatalogBaseItems(snapshot, activeSection, browseMode),
+    resolveCatalogBaseItems(snapshot, activeSectionOrSelections, browseMode),
     searchText,
   )
 
@@ -1342,7 +1697,7 @@ export function buildCatalogFilterGroups(
     const orderedValues: string[] = []
 
     searchFilteredItems.forEach((item) => {
-      definition.resolveValues(item).forEach((value) => {
+      definition.resolveValues(item, context).forEach((value) => {
         if (!countsByValue.has(value)) {
           orderedValues.push(value)
         }
@@ -1368,12 +1723,110 @@ export function buildCatalogFilterGroups(
   })
 }
 
+export function toggleCatalogFacetSelection(
+  currentSelections: CatalogFacetSelections,
+  browseMode: CatalogBrowseMode,
+  sectionKey: string,
+  selectionMode: CatalogFacetSelectionMode = 'add',
+): CatalogFacetSelections {
+  if (sectionKey === 'all') {
+    return {
+      ...currentSelections,
+      [browseMode]: ['all'],
+    }
+  }
+
+  const currentModeSelections = currentSelections[browseMode] ?? ['all']
+  const concreteModeSelections = currentModeSelections.filter(
+    (candidateSectionKey) => candidateSectionKey !== 'all',
+  )
+
+  if (selectionMode === 'switch') {
+    const isOnlySelected =
+      concreteModeSelections.length === 1 && concreteModeSelections[0] === sectionKey
+
+    return {
+      ...currentSelections,
+      [browseMode]: isOnlySelected ? [] : [sectionKey],
+    }
+  }
+
+  const nextModeSelections = concreteModeSelections.includes(sectionKey)
+    ? concreteModeSelections.filter((candidateSectionKey) => candidateSectionKey !== sectionKey)
+    : [...concreteModeSelections, sectionKey]
+
+  return {
+    ...currentSelections,
+    [browseMode]: nextModeSelections,
+  }
+}
+
+export function pruneCatalogFacetSelections(
+  currentSelections: CatalogFacetSelections,
+  sectionOptionsByMode: Record<CatalogBrowseMode, CatalogSectionOption[]>,
+): CatalogFacetSelections {
+  let hasChanges = false
+  const nextSelections = (['platform', 'part'] as const).reduce<CatalogFacetSelections>(
+    (workingSelections, browseMode) => {
+      const currentModeSelections = currentSelections[browseMode] ?? ['all']
+
+      if (currentModeSelections.includes('all')) {
+        workingSelections[browseMode] = ['all']
+        if (currentModeSelections.length !== 1 || currentModeSelections[0] !== 'all') {
+          hasChanges = true
+        }
+        return workingSelections
+      }
+
+      const availableSectionKeys = new Set(
+        sectionOptionsByMode[browseMode].map((option) => option.sectionKey),
+      )
+      const nextModeSelections = currentModeSelections.filter((sectionKey) =>
+        availableSectionKeys.has(sectionKey),
+      )
+
+      if (
+        nextModeSelections.length !== currentModeSelections.length ||
+        nextModeSelections.some((sectionKey, index) => sectionKey !== currentModeSelections[index])
+      ) {
+        hasChanges = true
+      }
+
+      workingSelections[browseMode] = nextModeSelections
+      return workingSelections
+    },
+    {
+      platform: [],
+      part: [],
+    },
+  )
+
+  return hasChanges ? nextSelections : currentSelections
+}
+
 export function toggleCatalogFilterSelection(
   currentSelectedFilters: CatalogSelectedFilters,
   groupKey: CatalogFilterGroupKey,
   value: string,
+  selectionMode: CatalogFacetSelectionMode = 'add',
 ): CatalogSelectedFilters {
   const currentGroupSelections = currentSelectedFilters[groupKey] ?? []
+  if (selectionMode === 'switch') {
+    const isOnlySelected =
+      currentGroupSelections.length === 1 && currentGroupSelections[0] === value
+
+    if (isOnlySelected) {
+      const { [groupKey]: _removedGroupSelections, ...nextSelectedFilters } =
+        currentSelectedFilters
+      return nextSelectedFilters
+    }
+
+    return {
+      ...currentSelectedFilters,
+      [groupKey]: [value],
+    }
+  }
+
   const nextGroupSelections = currentGroupSelections.includes(value)
     ? currentGroupSelections.filter((candidateValue) => candidateValue !== value)
     : [...currentGroupSelections, value]
@@ -1387,6 +1840,14 @@ export function toggleCatalogFilterSelection(
     ...currentSelectedFilters,
     [groupKey]: nextGroupSelections,
   }
+}
+
+export function resetCatalogFilterSelection(
+  currentSelectedFilters: CatalogSelectedFilters,
+  groupKey: CatalogFilterGroupKey,
+): CatalogSelectedFilters {
+  const { [groupKey]: _removedGroupSelections, ...nextSelectedFilters } = currentSelectedFilters
+  return nextSelectedFilters
 }
 
 export function pruneCatalogFilterSelections(
@@ -1457,14 +1918,15 @@ export function resolveCatalogSelectedFilterCount(selectedFilters: CatalogSelect
 
 export function getCatalogVisibleItems(
   snapshot: CatalogSourceSnapshot,
-  activeSection: string,
+  activeSectionOrSelections: string | CatalogFacetSelections,
   searchText: string = '',
   selectedFilters: CatalogSelectedFilters = {},
   browseMode: CatalogBrowseMode = 'part',
+  context: CatalogFilterContext = {},
 ): CatalogItemRecord[] {
   return resolveCatalogSearchFilteredItems(
-    resolveCatalogBaseItems(snapshot, activeSection, browseMode).filter((item) =>
-      matchesCatalogSelectedFilters(item, selectedFilters),
+    resolveCatalogBaseItems(snapshot, activeSectionOrSelections, browseMode).filter((item) =>
+      matchesCatalogSelectedFilters(item, selectedFilters, context),
     ),
     searchText,
   )
@@ -1472,11 +1934,12 @@ export function getCatalogVisibleItems(
 
 export function buildCatalogTagOptions(
   snapshot: CatalogSourceSnapshot,
-  activeSection: string,
+  activeSectionOrSelections: string | CatalogFacetSelections,
   searchText: string,
   browseMode: CatalogBrowseMode = 'part',
+  context: CatalogFilterContext = {},
 ): CatalogFilterGroup[] {
-  return buildCatalogFilterGroups(snapshot, activeSection, searchText, browseMode)
+  return buildCatalogFilterGroups(snapshot, activeSectionOrSelections, searchText, browseMode, context)
 }
 
 export function resolveCatalogSearchPlaceholder(
@@ -1492,10 +1955,10 @@ export function resolveCatalogSearchPlaceholder(
   }
 
   if (browseMode === 'platform') {
-    return 'Search systems, compatibility, notes, and metadata'
+    return 'Search platforms, parts, notes, and metadata'
   }
 
-  return 'Search part types, product names, groups, notes, and metadata'
+  return 'Search parts, platforms, groups, notes, and metadata'
 }
 
 export function resolveCatalogResultsSummary(
@@ -1514,5 +1977,5 @@ export function resolveCatalogResultsSummary(
       : `${selectedFilterCount} local taxonomy filter${selectedFilterCount === 1 ? '' : 's'} active.`
   const browseLabel = resolveCatalogBrowseModeLabel(browseMode)
 
-  return `${visibleCount} visible result${visibleCount === 1 ? '' : 's'} in ${browseLabel} read for ${sectionLabel}. ${searchState} ${filterState}`
+  return `${visibleCount} visible result${visibleCount === 1 ? '' : 's'} in the filtered catalog, last adjusted by the ${browseLabel} facet for ${sectionLabel}. ${searchState} ${filterState}`
 }

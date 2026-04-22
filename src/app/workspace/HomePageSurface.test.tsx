@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { editHistoryStore } from '../store/editHistoryStore'
 import { readPersistedUiPrefs } from '../store/uiPrefsPersistence'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useUiPrefsPersistenceBridge } from '../store/useUiPrefsPersistenceBridge'
@@ -23,7 +24,9 @@ import {
   pubPartsDownloadsStorageKey,
   pubPartsLocalLibraryFolderPath,
   readPubPartsDownloadsStorage,
+  writePubPartsDownloadsStorage,
 } from '../catalog/pubPartsDownloadsStorage'
+import { clearPubPartsLocalLibraryMirrorSessionRoot } from '../catalog/pubPartsLocalLibraryMirror'
 import { HomePageSurface } from './HomePageSurface'
 import { homePageDocsUrl, homePageGithubUrl, homePageWhatIsNewSummary, homePageVersionLabel } from './homePageOrientation'
 import { uiPrefsStorageKey } from '../store/uiPrefsPersistence'
@@ -60,12 +63,15 @@ describe('HomePageSurface', () => {
   let root: Root | null = null
 
   beforeEach(() => {
+    editHistoryStore.clear()
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     window.localStorage.clear()
   })
 
   afterEach(async () => {
     Reflect.deleteProperty(navigator, 'storage')
+    Reflect.deleteProperty(window, 'showDirectoryPicker')
+    clearPubPartsLocalLibraryMirrorSessionRoot()
     if (root !== null) {
       await act(async () => {
         root?.unmount()
@@ -100,6 +106,16 @@ describe('HomePageSurface', () => {
 
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('modelViewer')
     expect(readPersistedUiPrefs()?.workspaceStartupSurface).toBe('modelViewer')
+    expect(editHistoryStore.getUndoEntries().at(-1)).toEqual(expect.objectContaining({
+      label: 'Change startup preference',
+      source: {
+        surface: 'home-page',
+        sourceId: 'startup-preferences',
+        sourceLabel: 'Startup preferences',
+      },
+      targetId: 'ui-pref:workspaceStartupSurface',
+      targetLabel: 'Startup surface',
+    }))
 
     expect(modelViewerToggle?.checked).toBe(true)
 
@@ -110,6 +126,41 @@ describe('HomePageSurface', () => {
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
     expect(readPersistedUiPrefs()?.workspaceStartupSurface).toBe('homePage')
     expect(modelViewerToggle?.checked).toBe(false)
+  })
+
+  it('routes startup preference toggles through canonical undo and redo', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<HomePageSurfaceHarness />)
+    })
+
+    const modelViewerToggle = container?.querySelector(
+      'input[aria-label="Start in Model Viewport"]',
+    ) as HTMLInputElement | null
+
+    await act(async () => {
+      modelViewerToggle?.click()
+    })
+
+    expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('modelViewer')
+    expect(readPersistedUiPrefs()?.workspaceStartupSurface).toBe('modelViewer')
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+
+    expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
+    expect(readPersistedUiPrefs()?.workspaceStartupSurface).toBe('homePage')
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+
+    expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('modelViewer')
+    expect(readPersistedUiPrefs()?.workspaceStartupSurface).toBe('modelViewer')
   })
 
   it('renders the Home Page control deck with a left rail and main region', async () => {
@@ -166,29 +217,28 @@ describe('HomePageSurface', () => {
     const persistenceLabels = Array.from(
       container?.querySelectorAll('.HomePageSurfaceStoragePolicyToggle') ?? [],
     )
-    expect(persistenceLabels.map((label) => label.textContent)).toEqual(
+    const persistenceLabelText = persistenceLabels.map((label) => label.textContent)
+    expect(persistenceLabelText).toEqual(
       expect.arrayContaining([
         'Workspace restore',
         'View settings',
         'Environment',
         'Graph working set',
         'Recent items',
-        'PubParts Library',
       ]),
     )
+    expect(persistenceLabelText.some((label) => label?.includes('PubParts Library'))).toBe(true)
 
     const checkboxes = Array.from(
       container?.querySelectorAll('.HomePageSurfaceStoragePolicyToggle input[type="checkbox"]') ??
         [],
     ) as HTMLInputElement[]
 
-    expect(checkboxes).toHaveLength(8)
+    expect(checkboxes).toHaveLength(7)
     expect(
       checkboxes
-        .filter((checkbox) => checkbox !== findStoragePolicyToggle(container, 'PubParts Library'))
         .every((checkbox) => checkbox.checked),
     ).toBe(true)
-    expect(findStoragePolicyToggle(container, 'PubParts Library')?.checked).toBe(false)
 
     const workspaceRestoreToggle = findStoragePolicyToggle(container, 'Workspace restore')
     const viewSettingsToggle = findStoragePolicyToggle(container, 'View settings')
@@ -203,6 +253,11 @@ describe('HomePageSurface', () => {
     expect(useUiPrefsStore.getState().workspaceRestorePersistence).toBe(false)
     expect(useUiPrefsStore.getState().viewSettingsPersistence).toBe(false)
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(false)
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.targetId)).toEqual([
+      'ui-pref:workspaceRestorePersistence',
+      'ui-pref:viewSettingsPersistence',
+      'ui-pref:environmentPersistence',
+    ])
 
     expect(readPersistedUiPrefs()).toMatchObject({
       version: 2,
@@ -240,7 +295,7 @@ describe('HomePageSurface', () => {
       container?.querySelectorAll('.HomePageSurfaceStoragePolicyToggle input[type="checkbox"]') ??
         [],
     ) as HTMLInputElement[]
-    expect(checkboxes).toHaveLength(8)
+    expect(checkboxes).toHaveLength(7)
 
     const dashboardToggle = findStoragePolicyToggle(container, 'Dashboard')
     const notepadToggle = findStoragePolicyToggle(container, 'Notepad')
@@ -252,6 +307,10 @@ describe('HomePageSurface', () => {
 
     expect(useUiPrefsStore.getState().dashboardPersistence).toBe(false)
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.targetId)).toEqual([
+      'ui-pref:dashboardPersistence',
+      'ui-pref:notepadPersistence',
+    ])
     expect(readPersistedUiPrefs()).toMatchObject({
       dashboardPersistence: false,
       notepadPersistence: false,
@@ -406,6 +465,7 @@ describe('HomePageSurface', () => {
       'Spaghetti Editor',
       'Dashboard',
       'Notepad',
+      'Edit History',
     ])
     expect(launchButtons.map((button) => button.textContent)).not.toEqual(
       expect.arrayContaining(['Docker', 'Scratchpad', 'Hotspot']),
@@ -426,6 +486,9 @@ describe('HomePageSurface', () => {
     )
     const openDashboardButton = launchButtons.find((button) => button.textContent === 'Dashboard')
     const openNotepadButton = launchButtons.find((button) => button.textContent === 'Notepad')
+    const openEditHistoryButton = launchButtons.find(
+      (button) => button.textContent === 'Edit History',
+    )
 
     await act(async () => {
       openBrowserButton?.click()
@@ -434,6 +497,7 @@ describe('HomePageSurface', () => {
       openSpaghettiEditorButton?.click()
       openDashboardButton?.click()
       openNotepadButton?.click()
+      openEditHistoryButton?.click()
     })
 
     expect(onOpenSurface.mock.calls).toEqual([
@@ -444,6 +508,7 @@ describe('HomePageSurface', () => {
       ['spaghettiEditor'],
       ['dashboard'],
       ['notepad'],
+      ['editHistory'],
     ])
   })
 
@@ -536,7 +601,18 @@ describe('HomePageSurface', () => {
     expect(workspaceLayoutRow?.textContent).toContain('0 B stored')
   })
 
-  it('toggles the PubParts Library status through the PubParts storage owner seam', async () => {
+  it('connects and disables the PubParts Local Library mirror through the explicit folder picker', async () => {
+    const directoryHandle = {
+      name: 'Visible PubParts Library',
+      getDirectoryHandle: vi.fn(),
+      getFileHandle: vi.fn(),
+    }
+    const showDirectoryPicker = vi.fn(async () => directoryHandle)
+    Object.defineProperty(window, 'showDirectoryPicker', {
+      configurable: true,
+      value: showDirectoryPicker,
+    })
+
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -545,30 +621,84 @@ describe('HomePageSurface', () => {
       root?.render(<HomePageSurfaceHarness />)
     })
 
-    const pubPartsLibraryToggle = findStoragePolicyToggle(container, 'PubParts Library')
-    expect(pubPartsLibraryToggle).not.toBeNull()
-    expect(pubPartsLibraryToggle?.checked).toBe(false)
+    const localLibraryStatus = container?.querySelector(
+      '[data-home-page-pubparts-local-library-status]',
+    ) as HTMLElement | null
+    const connectButton = container?.querySelector(
+      '[data-home-page-pubparts-local-library-connect]',
+    ) as HTMLButtonElement | null
+    const disableButton = container?.querySelector(
+      '[data-home-page-pubparts-local-library-disable]',
+    ) as HTMLButtonElement | null
+
+    expect(localLibraryStatus?.getAttribute('data-home-page-pubparts-local-library-status')).toBe(
+      'not-configured',
+    )
     expect(readPubPartsDownloadsStorage(window.localStorage).library.status).toBe(
       'not-configured',
     )
 
     await act(async () => {
-      pubPartsLibraryToggle?.click()
+      connectButton?.click()
+      await Promise.resolve()
     })
 
-    expect(pubPartsLibraryToggle?.checked).toBe(true)
-    expect(readPubPartsDownloadsStorage(window.localStorage).library).toEqual(
-      expect.objectContaining({
-        status: 'permission-needed',
-        rootFolderPath: pubPartsLocalLibraryFolderPath,
-      }),
+    expect(showDirectoryPicker).toHaveBeenCalledTimes(1)
+    expect(showDirectoryPicker).toHaveBeenCalledWith({ mode: 'readwrite' })
+    expect(localLibraryStatus?.textContent).toContain('Visible PubParts Library connected')
+    expect(readPubPartsDownloadsStorage(window.localStorage).library).toMatchObject({
+      status: 'enabled',
+      rootLabel: 'Visible PubParts Library',
+      rootFolderPath: pubPartsLocalLibraryFolderPath,
+    })
+    expect(window.localStorage.getItem(pubPartsDownloadsStorageKey)).not.toContain(
+      'getDirectoryHandle',
     )
 
     await act(async () => {
-      pubPartsLibraryToggle?.click()
+      disableButton?.click()
     })
 
-    expect(pubPartsLibraryToggle?.checked).toBe(false)
     expect(readPubPartsDownloadsStorage(window.localStorage).library.status).toBe('disabled')
+  })
+
+  it('shows reconnect needed when Local Library metadata is enabled but no session handle exists', async () => {
+    writePubPartsDownloadsStorage({
+      ...readPubPartsDownloadsStorage(window.localStorage),
+      library: {
+        status: 'enabled',
+        rootLabel: 'Previous PubParts Library',
+        rootFolderPath: pubPartsLocalLibraryFolderPath,
+        updatedAt: '2026-04-21T15:26:20.000Z',
+      },
+    })
+    Object.defineProperty(window, 'showDirectoryPicker', {
+      configurable: true,
+      value: vi.fn(),
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<HomePageSurfaceHarness />)
+    })
+
+    const localLibraryStatus = container?.querySelector(
+      '[data-home-page-pubparts-local-library-status]',
+    ) as HTMLElement | null
+    const connectButton = container?.querySelector(
+      '[data-home-page-pubparts-local-library-connect]',
+    ) as HTMLButtonElement | null
+
+    expect(localLibraryStatus?.getAttribute('data-home-page-pubparts-local-library-status')).toBe(
+      'permission-needed',
+    )
+    expect(localLibraryStatus?.textContent).toContain('Reconnect')
+    expect(localLibraryStatus?.textContent).toContain(
+      'Reconnect the Local Library folder before ParaHook can mirror visible files.',
+    )
+    expect(connectButton?.textContent).toBe('Reconnect')
   })
 })

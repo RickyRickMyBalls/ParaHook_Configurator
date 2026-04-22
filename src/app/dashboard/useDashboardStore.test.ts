@@ -175,12 +175,34 @@ describe('useDashboardStore', () => {
   })
 
   it('updates adjacent lane widths and persists them with the lane records', () => {
-    useDashboardStore.getState().setAdjacentLaneWidths('todo', 'completed', 1.45, 0.55)
+    const reviewLaneId = useDashboardStore.getState().createLaneAfter('todo', 'Review')
 
-    const state = useDashboardStore.getState()
+    useDashboardStore.getState().setAdjacentLaneWidths('todo', reviewLaneId, 1.45, 0.55)
+
+    let state = useDashboardStore.getState()
     expect(state.lanes).toEqual([
       expect.objectContaining({ id: 'todo', width: 1.45 }),
-      expect.objectContaining({ id: 'completed', width: 0.55 }),
+      expect.objectContaining({ id: reviewLaneId, width: 0.55 }),
+      expect.objectContaining({ id: 'completed', width: 1 }),
+    ])
+
+    useDashboardStore.getState().setAdjacentLaneWidths('missing-lane', reviewLaneId, 2, 0.5)
+    useDashboardStore.getState().setAdjacentLaneWidths('todo', 'completed', 2, 0.5)
+
+    state = useDashboardStore.getState()
+    expect(state.lanes).toEqual([
+      expect.objectContaining({ id: 'todo', width: 1.45 }),
+      expect.objectContaining({ id: reviewLaneId, width: 0.55 }),
+      expect.objectContaining({ id: 'completed', width: 1 }),
+    ])
+
+    useDashboardStore.getState().setAdjacentLaneWidths(reviewLaneId, 'completed', Number.NaN, 0.05)
+
+    state = useDashboardStore.getState()
+    expect(state.lanes).toEqual([
+      expect.objectContaining({ id: 'todo', width: 1.45 }),
+      expect.objectContaining({ id: reviewLaneId, width: 1 }),
+      expect.objectContaining({ id: 'completed', width: 1 }),
     ])
 
     const serialized = serializePersistedDashboardState(
@@ -190,7 +212,8 @@ describe('useDashboardStore', () => {
 
     expect(normalized?.lanes).toEqual([
       expect.objectContaining({ id: 'todo', width: 1.45 }),
-      expect.objectContaining({ id: 'completed', width: 0.55 }),
+      expect.objectContaining({ id: reviewLaneId, width: 1 }),
+      expect.objectContaining({ id: 'completed', width: 1 }),
     ])
   })
 

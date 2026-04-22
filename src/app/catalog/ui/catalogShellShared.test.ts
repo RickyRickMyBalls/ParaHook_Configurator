@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { CatalogItemRecord } from '../catalogItemContract'
 import { createCatalogSourceSnapshot } from '../catalogSource'
-import type { PubPartsStagedSourceRecord } from '../pubPartsDownloadsStorage'
+import type {
+  PubPartsLocalSourceRecord,
+  PubPartsStagedSourceRecord,
+} from '../pubPartsDownloadsStorage'
 import {
   readCachedPubPartsAllPartSourceItems,
   readCachedPubPartsFullPartSourceItems,
@@ -14,7 +17,14 @@ import {
   buildCatalogStartingAssemblyDetails,
   buildCatalogWheelFitmentDetails,
   buildCatalogFilterGroups,
+  commitCatalogNavigationSnapshot,
+  createCatalogNavigationHistory,
   getCatalogVisibleItems,
+  pruneCatalogFilterSelections,
+  stepCatalogNavigationHistory,
+  toggleCatalogFacetSelection,
+  toggleCatalogFilterSelection,
+  resetCatalogFilterSelection,
   resolveCatalogCardBrowseMeta,
   resolveCatalogExternalSourceActionBoundary,
   resolveCatalogExternalSourcePageUrl,
@@ -32,6 +42,7 @@ import {
   resolveCatalogPubPartsSupportedFileChooserRead,
   resolveCatalogSelectedPubPartsImportHandoff,
   shouldRenderCatalogPreviewMediaEagerly,
+  type CatalogFacetSelections,
   type CatalogSelectedFilters,
 } from './catalogShellShared'
 
@@ -62,42 +73,141 @@ describe('catalogShellShared grouped filter semantics', () => {
   })
 
   it('builds grouped local taxonomy filter options from the live catalog snapshot', () => {
-    const snapshot = createCatalogSourceSnapshot()
+    const snapshot = createCatalogSourceSnapshot({
+      importedReferencesById: {
+        'imported-reference-1': {
+          referenceId: 'imported-reference-1',
+          categoryId: 'user-references',
+          label: 'Imported Reference 1',
+          assetPath: 'blob:imported-reference-1.glb',
+          catalogItemId: null,
+        },
+      },
+      importedReferenceOrder: ['imported-reference-1'],
+    })
 
     const filterGroups = buildCatalogFilterGroups(snapshot, 'all', '', 'part')
+    const groupLabels = filterGroups.map((group) => group.label)
+    const groupKeys = filterGroups.map((group) => group.groupKey)
 
-    expect(filterGroups.map((group) => group.label)).toEqual(
+    expect(groupLabels).toEqual(
       expect.arrayContaining([
-        'Platform Compatibility',
         'Part Type',
-        'Part Groups',
         'System',
         'Brand',
+        'Source',
+        'Availability',
+        'Resource Type',
+        'Local Status',
+        'Preview Status',
+        'File Type',
+        'Position',
       ]),
     )
+    expect(groupKeys).not.toContain('platformCompatibility')
+    expect(groupKeys).not.toContain('partGroups')
 
     expect(
-      filterGroups.find((group) => group.groupKey === 'platformCompatibility')?.options.map((option) => option.value),
-    ).toEqual(expect.arrayContaining(['ADV', 'XR', 'GT', 'Pint', 'XR Classic']))
+      filterGroups.find((group) => group.groupKey === 'source')?.options.map((option) => option.value),
+    ).toEqual(expect.arrayContaining(['ParaHook', 'Imported', 'Planned']))
     expect(
-      filterGroups.find((group) => group.groupKey === 'partGroups')?.options.map((option) => option.value),
-    ).toEqual(expect.arrayContaining(['Shoes', 'FootHolds', 'Footpads']))
+      filterGroups.find((group) => group.groupKey === 'availability')?.options.map((option) => option.value),
+    ).toEqual(expect.arrayContaining(['Add To Project', 'Load Preview', 'Preview Planned']))
+    expect(
+      filterGroups.find((group) => group.groupKey === 'resourceType')?.options.map((option) => option.value),
+    ).toEqual(expect.arrayContaining(['Part', 'Starting Assembly', 'Environment', 'Imported Reuse']))
+    expect(
+      filterGroups.find((group) => group.groupKey === 'previewStatus')?.options.map((option) => option.value),
+    ).toEqual(expect.arrayContaining(['Previewable', 'Not Previewable']))
+  })
+
+  it('pushes, replaces, and steps Catalog navigation snapshots without browser history', () => {
+    const initialSnapshot = {
+      contentMode: 'grid' as const,
+      selectedItemId: null,
+      selectedItemIds: [],
+      browseMode: 'part' as const,
+      facetSelections: {
+        platform: ['all'],
+        part: ['all'],
+      },
+      facetSelectionMode: 'add' as const,
+      searchText: '',
+      selectedFilters: {},
+    }
+    let history = createCatalogNavigationHistory(initialSnapshot)
+
+    history = commitCatalogNavigationSnapshot(
+      history,
+      {
+        ...initialSnapshot,
+        searchText: 'Shoe',
+      },
+      'replace',
+    )
+    expect(history.entries).toHaveLength(1)
+    expect(history.entries[0]?.searchText).toBe('Shoe')
+
+    history = commitCatalogNavigationSnapshot(
+      history,
+      {
+        ...history.entries[history.activeIndex]!,
+        contentMode: 'item-page',
+        selectedItemId: 'reference:shoe-1',
+        selectedItemIds: ['reference:shoe-1'],
+      },
+      'push',
+    )
+    expect(history.entries).toHaveLength(2)
+    expect(history.activeIndex).toBe(1)
+
+    const backStep = stepCatalogNavigationHistory(history, 'back')
+    expect(backStep?.snapshot.contentMode).toBe('grid')
+    expect(backStep?.snapshot.searchText).toBe('Shoe')
+
+    const forwardStep = backStep === null ? null : stepCatalogNavigationHistory(backStep.history, 'forward')
+    expect(forwardStep?.snapshot.contentMode).toBe('item-page')
+    expect(forwardStep?.snapshot.selectedItemId).toBe('reference:shoe-1')
+
+    const replacedBackHistory = commitCatalogNavigationSnapshot(
+      backStep!.history,
+      {
+        ...backStep!.snapshot,
+        searchText: 'Footpad',
+      },
+      'replace',
+    )
+    expect(replacedBackHistory.entries).toHaveLength(1)
+    expect(stepCatalogNavigationHistory(replacedBackHistory, 'forward')).toBeNull()
+
+    const branchedHistory = commitCatalogNavigationSnapshot(
+      backStep!.history,
+      {
+        ...backStep!.snapshot,
+        selectedFilters: {
+          source: ['ParaHook'],
+        },
+      },
+      'push',
+    )
+    expect(branchedHistory.entries).toHaveLength(2)
+    expect(stepCatalogNavigationHistory(branchedHistory, 'forward')).toBeNull()
   })
 
   it('keeps OR inside one group and AND across groups while leaving search as a separate gate', () => {
     const snapshot = createCatalogSourceSnapshot()
 
     const orWithinOneGroup: CatalogSelectedFilters = {
-      partGroups: ['Shoes', 'FootHolds'],
+      source: ['ParaHook', 'Imported'],
     }
     const andAcrossGroups: CatalogSelectedFilters = {
-      platformCompatibility: ['XR'],
       partType: ['Shoe'],
       brand: ['Vans'],
+      source: ['ParaHook'],
     }
     const impossibleFilters: CatalogSelectedFilters = {
       ...andAcrossGroups,
-      partGroups: ['FootHolds'],
+      systemKey: ['Wheel'],
     }
 
     expect(resolveCatalogSelectedFilterCount(orWithinOneGroup)).toBe(2)
@@ -115,7 +225,6 @@ describe('catalogShellShared grouped filter semantics', () => {
         'XL Foothook',
       ]),
     )
-    expect(getCatalogVisibleItems(snapshot, 'all', '', orWithinOneGroup, 'part')).toHaveLength(8)
 
     expect(resolveCatalogSelectedFilterCount(andAcrossGroups)).toBe(3)
     expect(getCatalogVisibleItems(snapshot, 'all', '', andAcrossGroups, 'part')).toEqual([
@@ -130,6 +239,193 @@ describe('catalogShellShared grouped filter semantics', () => {
       getCatalogVisibleItems(snapshot, 'all', 'High Top', andAcrossGroups, 'part').map((item) => item.label),
     ).toEqual(['Vans High Top Low'])
     expect(getCatalogVisibleItems(snapshot, 'all', 'Shoe 1', andAcrossGroups, 'part')).toHaveLength(0)
+  })
+
+  it('lets left-rail filter facets add, switch, reset, and prune unavailable values', () => {
+    const snapshot = createCatalogSourceSnapshot()
+    const sourceGroups = buildCatalogFilterGroups(snapshot, 'all', '', 'part')
+    let selectedFilters: CatalogSelectedFilters = {}
+
+    selectedFilters = toggleCatalogFilterSelection(selectedFilters, 'source', 'ParaHook')
+    expect(selectedFilters.source).toEqual(['ParaHook'])
+
+    selectedFilters = toggleCatalogFilterSelection(selectedFilters, 'source', 'Imported')
+    expect(selectedFilters.source).toEqual(['ParaHook', 'Imported'])
+
+    selectedFilters = toggleCatalogFilterSelection(selectedFilters, 'source', 'Imported')
+    expect(selectedFilters.source).toEqual(['ParaHook'])
+
+    selectedFilters = toggleCatalogFilterSelection(selectedFilters, 'source', 'Planned', 'switch')
+    expect(selectedFilters.source).toEqual(['Planned'])
+
+    selectedFilters = toggleCatalogFilterSelection(selectedFilters, 'source', 'Planned', 'switch')
+    expect(selectedFilters.source).toBeUndefined()
+
+    selectedFilters = resetCatalogFilterSelection(
+      {
+        source: ['ParaHook'],
+        availability: ['Load Preview'],
+      },
+      'source',
+    )
+    expect(selectedFilters).toEqual({ availability: ['Load Preview'] })
+    expect(
+      getCatalogVisibleItems(snapshot, 'all', '', { availability: ['Load Preview'] }, 'part').map(
+        (item) => item.label,
+      ),
+    ).toContain('Shoe 1')
+    expect(sourceGroups.find((group) => group.groupKey === 'source')?.options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ value: 'ParaHook' }),
+        expect.objectContaining({ value: 'Planned' }),
+      ]),
+    )
+    expect(
+      pruneCatalogFilterSelections(
+        {
+          source: ['ParaHook', 'No Longer Available'],
+          availability: ['Load Preview'],
+        },
+        sourceGroups,
+      ),
+    ).toEqual({
+      source: ['ParaHook'],
+      availability: ['Load Preview'],
+    })
+  })
+
+  it('builds derived rail facet options from catalog state context', () => {
+    const snapshot = createCatalogSourceSnapshot(undefined, {
+      pubPartsSourceItems: readCachedPubPartsAllPartSourceItems(),
+    })
+    const previewLoadedItem = snapshot.repoItems[0]
+    const stagedExternalItem = snapshot.externalItems[0]
+    const localPreparedItem = snapshot.plannedItems.find(
+      (item) => item.source.sourceKind === 'planned',
+    )
+
+    expect(previewLoadedItem).toBeDefined()
+    expect(stagedExternalItem).toBeDefined()
+    expect(localPreparedItem).toBeDefined()
+
+    const filterGroups = buildCatalogFilterGroups(snapshot, 'all', '', 'part', {
+      previewLoadedItemIds: [previewLoadedItem!.itemId],
+      pubPartsStagedSourcesByCatalogItemId: new Map([
+        [stagedExternalItem!.itemId, {} as PubPartsStagedSourceRecord],
+      ]),
+      pubPartsLocalSourcesByCatalogItemId: new Map([
+        [localPreparedItem!.itemId, {} as PubPartsLocalSourceRecord],
+      ]),
+    })
+    const optionValues = (groupKey: string) =>
+      filterGroups.find((group) => group.groupKey === groupKey)?.options.map(
+        (option) => option.value,
+      ) ?? []
+
+    expect(optionValues('source')).toEqual(
+      expect.arrayContaining(['ParaHook', 'PubParts', 'Planned']),
+    )
+    expect(optionValues('availability')).toEqual(
+      expect.arrayContaining(['Add To Project', 'Load Preview', 'Preview Planned']),
+    )
+    expect(optionValues('resourceType')).toEqual(
+      expect.arrayContaining(['Part', 'Starting Assembly', 'Environment', 'External Source']),
+    )
+    expect(optionValues('localStatus')).toEqual(
+      expect.arrayContaining(['Local Prepared', 'Source Staged', 'Not Local']),
+    )
+    expect(optionValues('previewStatus')).toEqual(
+      expect.arrayContaining(['Preview Loaded', 'Previewable', 'Not Previewable']),
+    )
+    expect(optionValues('fileType')).toEqual(expect.arrayContaining(['STEP', 'STP', 'GLB']))
+  })
+
+  it('lets facet selections toggle independently from the left rail filters', () => {
+    const snapshot = createCatalogSourceSnapshot()
+    let facetSelections: CatalogFacetSelections = {
+      platform: ['all'],
+      part: ['all'],
+    }
+
+    facetSelections = toggleCatalogFacetSelection(
+      facetSelections,
+      'platform',
+      'ADV',
+    )
+    expect(facetSelections.platform).toEqual(['ADV'])
+
+    facetSelections = toggleCatalogFacetSelection(
+      facetSelections,
+      'platform',
+      'XR',
+    )
+    expect(facetSelections.platform).toEqual(['ADV', 'XR'])
+
+    facetSelections = toggleCatalogFacetSelection(
+      facetSelections,
+      'platform',
+      'ADV',
+    )
+    expect(facetSelections.platform).toEqual(['XR'])
+
+    facetSelections = toggleCatalogFacetSelection(
+      facetSelections,
+      'platform',
+      'XR',
+    )
+    expect(facetSelections.platform).toEqual([])
+
+    facetSelections = toggleCatalogFacetSelection(
+      facetSelections,
+      'platform',
+      'all',
+    )
+    expect(facetSelections.platform).toEqual(['all'])
+
+    expect(
+      toggleCatalogFacetSelection(
+        {
+          platform: ['ADV', 'XR'],
+          part: ['all'],
+        },
+        'platform',
+        'GT',
+        'switch',
+      ).platform,
+    ).toEqual(['GT'])
+    expect(
+      toggleCatalogFacetSelection(
+        {
+          platform: ['GT'],
+          part: ['all'],
+        },
+        'platform',
+        'GT',
+        'switch',
+      ).platform,
+    ).toEqual([])
+    expect(
+      toggleCatalogFacetSelection(
+        {
+          platform: ['GT'],
+          part: ['all'],
+        },
+        'platform',
+        'all',
+        'switch',
+      ).platform,
+    ).toEqual(['all'])
+
+    const xrShoeSelections: CatalogFacetSelections = {
+      platform: ['XR'],
+      part: ['Shoes'],
+    }
+    const visibleLabels = getCatalogVisibleItems(snapshot, xrShoeSelections, '', {}, 'platform').map(
+      (item) => item.label,
+    )
+
+    expect(visibleLabels).toContain('Shoe 1')
+    expect(visibleLabels).not.toContain('Large Foothook')
   })
 
   it('labels external PubParts entries without falling through to repo or imports copy', () => {
@@ -226,18 +522,19 @@ describe('catalogShellShared grouped filter semantics', () => {
       ],
     })
 
-    const filterGroups = buildCatalogFilterGroups(snapshot, 'all', '', 'platform')
-    expect(
-      filterGroups.find((group) => group.groupKey === 'platformCompatibility')?.options.map(
-        (option) => option.value,
-      ),
-    ).toEqual(expect.arrayContaining(['ADV', 'GT', 'Pint', 'XR Classic', 'XR', 'Other']))
+    const platformSections = buildCatalogSectionOptions(snapshot, 'platform')
+    expect(platformSections.map((section) => section.sectionKey)).toEqual(
+      expect.arrayContaining(['ADV', 'GT', 'Pint', 'XR Classic', 'XR', 'Other']),
+    )
     expect(
       getCatalogVisibleItems(
         snapshot,
-        'all',
+        {
+          platform: ['ADV'],
+          part: ['all'],
+        },
         '',
-        { platformCompatibility: ['ADV'] },
+        {},
         'platform',
       ).map((item) => item.label),
     ).toEqual(
@@ -277,10 +574,31 @@ describe('catalogShellShared grouped filter semantics', () => {
     const platformSections = buildCatalogSectionOptions(snapshot, 'platform')
 
     expect(externalPartItems).toHaveLength(319)
+    expect(partSections.map((section) => section.sectionKey)).toEqual(
+      expect.arrayContaining([
+        'Tires',
+        'Battery Boxes',
+        'Controllers',
+        'Fenders',
+        'Rim Savers',
+        'Guards',
+        'Tools',
+        'Electronics',
+      ]),
+    )
     expect(partSections.find((section) => section.sectionKey === 'Footpads')?.count).toBeGreaterThan(
       0,
     )
     expect(partSections.find((section) => section.sectionKey === 'Boxes')?.count).toBeGreaterThan(
+      0,
+    )
+    expect(
+      partSections.find((section) => section.sectionKey === 'Controllers')?.count,
+    ).toBeGreaterThan(0)
+    expect(
+      partSections.find((section) => section.sectionKey === 'Rim Savers')?.count,
+    ).toBeGreaterThan(0)
+    expect(partSections.find((section) => section.sectionKey === 'Guards')?.count).toBeGreaterThan(
       0,
     )
     expect(
@@ -317,11 +635,9 @@ describe('catalogShellShared grouped filter semantics', () => {
     ).toEqual(
       expect.arrayContaining(['Footpad Attachment', 'Controller Box', 'Rim Saver']),
     )
-    expect(
-      filterGroups.find((group) => group.groupKey === 'partGroups')?.options.map(
-        (option) => option.value,
-      ),
-    ).toEqual(expect.arrayContaining(['Footpads', 'Boxes']))
+    expect(buildCatalogSectionOptions(snapshot, 'part').map((section) => section.sectionKey)).toEqual(
+      expect.arrayContaining(['Footpads', 'Boxes', 'Controllers', 'Rim Savers', 'Guards']),
+    )
 
     expect(
       getCatalogVisibleItems(
@@ -335,18 +651,24 @@ describe('catalogShellShared grouped filter semantics', () => {
     expect(
       getCatalogVisibleItems(
         snapshot,
-        'all',
+        {
+          platform: ['all'],
+          part: ['Boxes'],
+        },
         '',
-        { partGroups: ['Boxes'] },
+        {},
         'part',
       ).map((item) => item.label),
     ).toEqual(expect.arrayContaining(['Celeste: Stock Controller Box Gasket']))
     expect(
       getCatalogVisibleItems(
         snapshot,
-        'all',
+        {
+          platform: ['all'],
+          part: ['Boxes'],
+        },
         '',
-        { partGroups: ['Boxes'] },
+        {},
         'part',
       ).map((item) => item.label),
     ).not.toContain('FloatNLC: Rimmy OneWheel Rim Protection for 6" and 6.5" hubs')

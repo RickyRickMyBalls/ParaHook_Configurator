@@ -5,11 +5,13 @@ import { selectEditorViewportById, useSpaghettiStore } from '../spaghetti/store/
 import { NotepadSurface } from '../notepad/NotepadSurface'
 import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
+import { EditHistoryReaderSurface } from './EditHistoryReaderSurface'
 import { HomePageSurface } from './HomePageSurface'
 import {
   getWorkspaceSurfaceRenderFamily,
 } from './workspaceSurfaceCatalog'
 import { useWorkspaceStore } from './useWorkspaceStore'
+import { cycleBrowserPresentationModeWithHistory } from '../store/workspaceLayoutEditHistory'
 import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
 
 type ViewportSurfaceRegistryProps = {
@@ -43,7 +45,6 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     selectEditorViewportById(state, surfaceInstanceId),
   )
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
-  const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
   const renderFamily = getWorkspaceSurfaceRenderFamily(surfaceKind)
 
   if (renderFamily === 'browser') {
@@ -56,13 +57,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         <BrowserPanel
           presentationMode={browserPresentationMode}
           onCyclePresentationMode={() =>
-            setBrowserPresentationMode(
-              browserPresentationMode === 'expanded'
-                ? 'essentials'
-                : browserPresentationMode === 'essentials'
-                  ? 'collapsed'
-                  : 'expanded',
-            )
+            cycleBrowserPresentationModeWithHistory(browserPresentationMode)
           }
           showTitleBar={false}
         />
@@ -129,6 +124,10 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         onOpenSurface={onOpenHomePageSurface}
       />
     )
+  }
+
+  if (renderFamily === 'editHistory') {
+    return <EditHistoryReaderSurface surfaceInstanceId={surfaceInstanceId} />
   }
 
   return (

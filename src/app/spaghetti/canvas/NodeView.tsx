@@ -7,7 +7,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react'
-import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
+import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import type { SketchComponent, SketchFeature } from '../features/featureTypes'
 import type { PartRowOrderSection } from '../parts/partRowOrder'
 import {
@@ -527,6 +527,9 @@ function NodeViewComponent({
   )
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
+  const commitGraphNodeParameterWithHistory = useSpaghettiStore(
+    (state) => state.commitGraphNodeParameterWithHistory,
+  )
   const beginInteraction = useAppStore((state) => state.beginInteraction)
   const endInteraction = useAppStore((state) => state.endInteraction)
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
@@ -546,6 +549,35 @@ function NodeViewComponent({
     }
     endInteraction()
     endBrowserBuildInteraction(activeGraphDocumentId)
+  }
+
+  const graphNodeParameterHistoryDraftRef = useRef<{
+    nodeId: string
+    beforeGraph: SpaghettiGraph
+    targetId: string
+    targetLabel: string
+  } | null>(null)
+
+  const beginGenericGraphParameterInteraction = (targetId: string, targetLabel: string) => {
+    if (activeGraphDocumentId.length === 0) {
+      return
+    }
+    graphNodeParameterHistoryDraftRef.current = {
+      nodeId: node.nodeId,
+      beforeGraph: useSpaghettiStore.getState().graph,
+      targetId,
+      targetLabel,
+    }
+    beginGraphParameterInteraction()
+  }
+
+  const endGenericGraphParameterInteraction = () => {
+    const draft = graphNodeParameterHistoryDraftRef.current
+    graphNodeParameterHistoryDraftRef.current = null
+    if (draft !== null) {
+      commitGraphNodeParameterWithHistory(draft)
+    }
+    endGraphParameterInteraction()
   }
 
   const sectionKey = (sectionId: string): string =>
@@ -993,6 +1025,8 @@ function NodeViewComponent({
         displayedTrackValue?: number
         className?: string
         hideSliderCaps?: boolean
+        onInteractionStart?: () => void
+        onInteractionEnd?: () => void
         onChange: (value: number) => void
       }
     },
@@ -1096,6 +1130,8 @@ function NodeViewComponent({
         displayedTrackValue?: number
         className?: string
         hideSliderCaps?: boolean
+        onInteractionStart?: () => void
+        onInteractionEnd?: () => void
         onChange: (value: number) => void
       }
     },
@@ -1269,6 +1305,8 @@ function NodeViewComponent({
         displayedTrackValue?: number
         className?: string
         hideSliderCaps?: boolean
+        onInteractionStart?: () => void
+        onInteractionEnd?: () => void
         onChange: (value: number) => void
       }
     },
@@ -1555,6 +1593,8 @@ function NodeViewComponent({
         displayedTrackValue?: number
         className?: string
         hideSliderCaps?: boolean
+        onInteractionStart?: () => void
+        onInteractionEnd?: () => void
         onChange: (value: number) => void
       }
     },
@@ -2038,6 +2078,12 @@ function NodeViewComponent({
               showSlider: driver.numberInput.showSlider,
               disabled: driver.numberInput.disabled,
               driven: driver.numberInput.driven,
+              onInteractionStart: () =>
+                beginGenericGraphParameterInteraction(
+                  `${node.nodeId}:${driver.endpointPortId}`,
+                  driver.labelOverride ?? driver.port.label,
+                ),
+              onInteractionEnd: endGenericGraphParameterInteraction,
               onChange: (value: number) =>
                 onDriverNumberChange(node.nodeId, driver.numberInput!.change, value),
             },

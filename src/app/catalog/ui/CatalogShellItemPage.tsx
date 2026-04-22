@@ -4,6 +4,7 @@ import type {
   PubPartsLocalSourceRecord,
   PubPartsStagedSourceRecord,
 } from '../pubPartsDownloadsStorage'
+import type { PubPartsLocalLibraryMirrorRead } from '../pubPartsLocalLibraryMirror'
 import {
   getCatalogItemPrimaryPreviewMedia,
   isCatalogStartingAssemblyItem,
@@ -43,6 +44,7 @@ type CatalogShellItemPageProps = {
   pubPartsStagedSourceRecord: PubPartsStagedSourceRecord | null
   pubPartsLocalSourceRecord: PubPartsLocalSourceRecord | null
   pubPartsDropboxChooserStatus: CatalogPubPartsDropboxChooserStatus | null
+  pubPartsLocalLibraryMirrorRead: PubPartsLocalLibraryMirrorRead
   isPreviewLoaded: boolean
   previewTargetCount: number
   onLoadPreview: () => void
@@ -476,6 +478,23 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
                   {dropboxChooserStatusRead.label}
                   {' - '}
                   {localLibraryAction.description}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {item.source.sourceKind === 'external' && item.source.provider.providerId === 'pubparts' ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-pubparts-local-library-mirror={item.itemId}
+              data-catalog-pubparts-local-library-mirror-status={
+                props.pubPartsLocalLibraryMirrorRead.status
+              }
+            >
+              <dt>Local Library Mirror</dt>
+              <dd>
+                <span className="CatalogShellSourceHandoffState">
+                  {props.pubPartsLocalLibraryMirrorRead.status} -{' '}
+                  {props.pubPartsLocalLibraryMirrorRead.message}
                 </span>
               </dd>
             </div>

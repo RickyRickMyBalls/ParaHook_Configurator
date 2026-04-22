@@ -16,6 +16,7 @@ import {
 import type { ReferenceFileType } from '../references/referenceManifest'
 import { getViewer } from '../viewerBridge'
 import { inspectImportedReferenceFileStructure } from '../../viewer/referenceStructureInspection'
+import { runEnvironmentLookHistoryAction } from '../store/environmentLookEditHistory'
 import {
   defaultViewportPosition,
   selectSharedViewerComposition,
@@ -51,7 +52,7 @@ import {
   activateObjectIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
-import { deleteWorkspaceSelectedEnvironmentLight } from '../store/workspaceSelectionCommands'
+import { deleteWorkspaceSelectedEnvironmentLightWithHistory } from '../store/workspaceSelectionCommands'
 import { buildBrowserContextMenuItems } from './browserContextMenu'
 import {
   createBrowserContentDragSession,
@@ -349,7 +350,9 @@ export function useBrowserPanelController(
   const setStagedImportPutAcceptedInNewAssembly = useAppStore(
     (state) => state.setStagedImportPutAcceptedInNewAssembly,
   )
-  const commitStagedImportDraft = useAppStore((state) => state.commitStagedImportDraft)
+  const commitStagedImportDraftWithHistory = useAppStore(
+    (state) => state.commitStagedImportDraftWithHistory,
+  )
   const beginStagedImportFileStructureInspection = useAppStore(
     (state) => state.beginStagedImportFileStructureInspection,
   )
@@ -368,12 +371,18 @@ export function useBrowserPanelController(
   )
   const explodeImportedReference = useAppStore((state) => state.explodeImportedReference)
   const removeImportedReference = useAppStore((state) => state.removeImportedReference)
-  const createProjectAssembly = useAppStore((state) => state.createProjectAssembly)
-  const createProjectComponent = useAppStore((state) => state.createProjectComponent)
+  const createProjectAssembly = useAppStore((state) => state.createProjectAssemblyWithHistory)
+  const createProjectComponent = useAppStore((state) => state.createProjectComponentWithHistory)
   const moveProjectContentOwner = useAppStore((state) => state.moveProjectContentOwner)
   const moveProjectContentOwnersBatch = useAppStore((state) => state.moveProjectContentOwnersBatch)
-  const renameProjectContentOwner = useAppStore((state) => state.renameProjectContentOwner)
-  const deleteProjectContentOwner = useAppStore((state) => state.deleteProjectContentOwner)
+  const captureProjectContentOrganizationHistorySnapshot = useAppStore(
+    (state) => state.captureProjectContentOrganizationHistorySnapshot,
+  )
+  const commitProjectContentOrganizationMoveHistory = useAppStore(
+    (state) => state.commitProjectContentOrganizationMoveHistory,
+  )
+  const renameProjectContentOwner = useAppStore((state) => state.renameProjectContentOwnerWithHistory)
+  const deleteProjectContentOwner = useAppStore((state) => state.deleteProjectContentOwnerWithHistory)
   const beginReferenceTransformShell = useAppStore((state) => state.beginReferenceTransformShell)
   const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
   const setWorkspaceExplicitSelection = useAppStore((state) => state.setWorkspaceExplicitSelection)
@@ -1123,7 +1132,7 @@ export function useBrowserPanelController(
         useUiPrefsStore
           .getState()
           .view.lighting.lights.find((light) => light.id === target.lightId)?.name ?? target.lightId
-      const deletedTarget = deleteWorkspaceSelectedEnvironmentLight(
+      const deletedTarget = deleteWorkspaceSelectedEnvironmentLightWithHistory(
         {
           setWorkspaceSelectedTarget,
           selectLight,
@@ -1557,7 +1566,7 @@ export function useBrowserPanelController(
     if (stagedImportDraft === null || stagedImportDraft.stagedFiles.length === 0) {
       return
     }
-    const commitResult = commitStagedImportDraft()
+    const commitResult = commitStagedImportDraftWithHistory()
     if (commitResult === null) {
       return
     }
@@ -1569,7 +1578,7 @@ export function useBrowserPanelController(
       setStagedImportCommitResult(null)
       closeStagedImportDraft()
     }
-  }, [closeStagedImportDraft, commitStagedImportDraft, stagedImportDraft])
+  }, [closeStagedImportDraft, commitStagedImportDraftWithHistory, stagedImportDraft])
 
   const handleCloseImportDialog = useCallback(() => {
     setStagedImportCommitResult(null)
@@ -1978,6 +1987,7 @@ export function useBrowserPanelController(
             ? resolvedCurrent.draggedTargets
             : [resolvedCurrent.draggedTarget]
         const isGroupedDrag = draggedTargets.length > 1
+        const beforeMoveSnapshot = captureProjectContentOrganizationHistorySnapshot()
         let moved = isGroupedDrag
           ? moveProjectContentOwnersBatch(draggedTargets, resolvedDropTarget)
           : moveProjectContentOwner(resolvedCurrent.draggedTarget, resolvedDropTarget)
@@ -2013,6 +2023,15 @@ export function useBrowserPanelController(
           const movedRow =
             browserTreeRows.contentRows.find((row) => row.rowId === resolvedCurrent.draggedRowId) ??
             null
+          commitProjectContentOrganizationMoveHistory(beforeMoveSnapshot, {
+            targetId: resolvedCurrent.draggedRowIds.join(','),
+            targetLabel:
+              resolvedCurrent.draggedRowIds.length > 1
+                ? `${resolvedCurrent.draggedRowIds.length} Browser items`
+                : movedRow === null
+                  ? resolvedCurrent.draggedRowId
+                  : describeBrowserRow(movedRow),
+          })
           appendBrowserEntry(
             isGroupedDrag
               ? `Move: ${draggedTargets.length} reference objects`
@@ -2108,6 +2127,8 @@ export function useBrowserPanelController(
     browserTreeRows.contentRows,
     buildVisibleContentRowMetrics,
     contentDragState,
+    captureProjectContentOrganizationHistorySnapshot,
+    commitProjectContentOrganizationMoveHistory,
     moveProjectContentOwner,
     moveProjectContentOwnersBatch,
     projectContent,
@@ -2201,8 +2222,22 @@ export function useBrowserPanelController(
         setReferenceItemVisibility,
         toggleReferenceCategoryVisibility,
         toggleSketchVisibility,
-        setEnvironmentSourceBackgroundVisible: setHdriEnvironmentBackgroundVisible,
-        setEnvironmentLightEnabled: (lightId, enabled) => updateLight(lightId, { enabled }),
+        setEnvironmentSourceBackgroundVisible: (visible) =>
+          runEnvironmentLookHistoryAction(
+            () => setHdriEnvironmentBackgroundVisible(visible),
+            {
+              targetId: 'environment-source:background',
+              targetLabel: 'HDRI background',
+            },
+          ),
+        setEnvironmentLightEnabled: (lightId, enabled) =>
+          runEnvironmentLookHistoryAction(
+            () => updateLight(lightId, { enabled }),
+            {
+              targetId: `environment-light:${lightId}`,
+              targetLabel: 'Environment light',
+            },
+          ),
         setPartVisibility,
         setExpandedGraphDocumentIds,
         setGraphSectionExpandedByRowId,

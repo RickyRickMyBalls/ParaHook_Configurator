@@ -1607,6 +1607,7 @@ describe('BrowserPanel', () => {
       },
       projectContent: null,
       projectContentRows: [],
+      runtimeContentPlacementByRowId: {},
       browserGraphBuildPolicyByGraphDocumentId: {},
       browserContentBuildPolicyByRowId: {},
       partsVisibility: {},
@@ -2441,6 +2442,12 @@ describe('BrowserPanel', () => {
         }
         return true
       }),
+      captureProjectContentOrganizationHistorySnapshot: vi.fn(() => ({
+        projectContent: currentAppState.projectContent,
+        contentOrderByParentKey: currentAppState.referenceWorkspace.contentOrderByParentKey,
+        runtimeContentPlacementByRowId: currentAppState.runtimeContentPlacementByRowId,
+      })),
+      commitProjectContentOrganizationMoveHistory: vi.fn(() => true),
       renameProjectContentOwner: vi.fn(() => true),
       deleteProjectContentOwner: vi.fn(() => true),
       beginReferenceTransform: vi.fn(),

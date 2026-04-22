@@ -58,6 +58,7 @@ export type WorkspaceSurfaceKind =
   | 'notepad'
   | 'dashboard'
   | 'homePage'
+  | 'editHistory'
 
 export type WorkspaceSurfaceInstanceId = string
 export type WorkspaceViewportId = WorkspaceSurfaceInstanceId
@@ -401,6 +402,9 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   if (surfaceKind === 'homePage') {
     return `home-page-${slotId}`
   }
+  if (surfaceKind === 'editHistory') {
+    return `edit-history-${slotId}`
+  }
   return `spaghetti-${slotId}`
 }
 
@@ -414,7 +418,8 @@ export const workspacePrimarySlotSupportsSurfaceKind = (
   surfaceKind === 'spaghettiEditor' ||
   surfaceKind === 'notepad' ||
   surfaceKind === 'dashboard' ||
-  surfaceKind === 'homePage'
+  surfaceKind === 'homePage' ||
+  surfaceKind === 'editHistory'
 
 export const resolveWorkspaceActiveSurfaceInstanceId = ({
   preferredSurfaceInstanceId,

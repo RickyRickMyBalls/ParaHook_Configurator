@@ -3,6 +3,19 @@
 ## Doc Header
 
 ### Doc History
+102. 2026-04-21 20:29:36: Added and closed `Catalog-Gen2-19 - Catalog Info Page And Rail Utility Cleanup`, `Catalog-Gen2-HLG-24`, and `Catalog-Gen2-CLG-46` after the Catalog left browse rail was refocused on browse navigation, a single top-right `Catalog Info` action opened a combined content page for Staged Sources and Local Downloads, focused CatalogShell tests passed, and production build verification passed.
+101. 2026-04-21 19:58:57: Closed `Catalog-Gen2-18`, `Catalog-Gen2-HLG-23`, `Catalog-Gen2-CLG-44`, and `Catalog-Gen2-CLG-45` after the live PubParts projection audit confirmed ParaHook-owned taxonomy mapping remains in `catalogSource.ts`, unknown PubParts labels stay raw metadata plus canonical `Other`, external PubParts item IDs now derive from stable source identity instead of list index, duplicate cached-source IDs remain unique with scoped identity metadata, focused Catalog source/live-source tests passed, and focused CatalogSurface live/source-options tests passed.
+100. 2026-04-21 19:45:47: Marked `Catalog-Gen2-18 / Phase 1 - Runtime PubParts Metadata Refresh` complete in the Gen2 scan surface after the live PubParts metadata source owner, direct-then-same-origin Vite dev proxy metadata request fallback, baked-cache-first CatalogSurface live-swap wiring, upstream-only live part proof, failed-refresh baked-cache fallback proof, focused Catalog source tests, full CatalogSurface tests, and production build verification passed; marked `Catalog-Gen2-CLG-43` complete and moved dispatch to `Catalog-Gen2-18 / Phase 2 - Live Source Projection Taxonomy Audit` while keeping HLG 23 open for the taxonomy and source-update preservation audits.
+99. 2026-04-21 19:37:28: Added `Catalog-Gen2-HLG-23`, `Catalog-Gen2-CLG-43` through `Catalog-Gen2-CLG-45`, and `Catalog-Gen2-18 - PubParts Live Source Sync And Normalized Projection` after the live PubParts `.json` endpoint discussion and the user's wishlist that Zinc-added PubParts entries should automatically appear in ParaHook on app refresh while ParaHook keeps normalized filters, source-options, local library, and Import/project ownership.
+98. 2026-04-21 17:45:20: Closed `Catalog-Gen2-17 / Phase 5 - Final Audit And Follow-Ups`, `Catalog-Gen2-17`, and `Catalog-Gen2-HLG-22` after focused materialization, trusted-provider, source-library metadata index, Catalog source-options, and production build verification passed, confirming direct materialization status, Add To Project-triggered browser ZIP attempt, trusted-provider boundary, OPFS/Internal Library large-byte ownership, Upload ZIP fallback, metadata-only indexing, and Import review ownership are complete for the current lane while persistent IndexedDB/SQLite storage, real provider/native/API deployment, richer metadata UI, live end-to-end provider proof, Import/project, STEP, builder, compatibility, eager scan, and bulk archive import remain future-owner work.
+97. 2026-04-21 17:42:01: Marked `Catalog-Gen2-17 / Phase 4 - Source-Library Metadata Index` complete in the Gen2 scan surface after the pure metadata-only PubParts source-library index/query owner passed focused source-library, materialization, provider, ZIP-preview, and production build verification; marked `Catalog-Gen2-CLG-42` complete and moved dispatch to `Catalog-Gen2-17 / Phase 5 - Final Audit And Follow-Ups` while keeping HLG 22 open until final audit confirms direct fetch, provider boundary, OPFS ownership, metadata indexing, Upload ZIP fallback, and Import ownership together.
+96. 2026-04-21 17:31:25: Marked `Catalog-Gen2-17 / Phase 3 - Trusted Provider Boundary` complete in the Gen2 scan surface after the trusted source-byte provider boundary owner, default unavailable adapter, fake/injected provider tests, Phase 1 provider-materialized mapping, and same-path Catalog source-options proof passed focused and build verification; moved dispatch to `Catalog-Gen2-17 / Phase 4 - Source-Library Metadata Index` while keeping HLG 22 / CLG 42 open until metadata indexing and final audit phases land.
+95. 2026-04-21 17:21:12: Marked `Catalog-Gen2-17 / Phase 2 - Browser Fetch Attempt And Fallback Status` complete in the Gen2 scan surface after the existing Add To Project-triggered PubParts ZIP browser attempt began reading through the Phase 1 materialization contract, same-path assertions covered browser-fetched and Internal Library cached archive bytes, focused Catalog/source materialization tests passed, and production build verification passed; moved dispatch to `Catalog-Gen2-17 / Phase 3 - Trusted Provider Boundary` while keeping HLG 22 / CLG 41-42 open until provider boundary, metadata indexing, and final audit phases land.
+94. 2026-04-21 17:11:01: Marked `Catalog-Gen2-17 / Phase 1 - Direct Source Byte Materialization Contract` complete in the Gen2 scan surface after the pure PubParts source materialization contract/helper owner, focused contract tests, nearest PubParts source/downloads owner tests, and build verification passed; moved dispatch to `Catalog-Gen2-17 / Phase 2 - Browser Fetch Attempt And Fallback Status` while keeping HLG 22 / CLG 40-42 open until direct browser fetch, provider boundary, metadata indexing, and final audit phases land.
+93. 2026-04-21 16:14:22: Added `Catalog-Gen2-HLG-22`, `Catalog-Gen2-CLG-40` through `Catalog-Gen2-CLG-42`, and `Catalog-Gen2-17 - Direct Source Byte Materialization And Library Metadata Index` after the PubParts/Dropbox buffer-streaming discussion, routing direct in-memory ZIP fetch, trusted source-byte provider/proxy/native boundaries, OPFS-first binary storage, and SQLite/IndexedDB metadata indexing into a new follow-up without rewriting completed Gen2 history.
+92. 2026-04-21 15:49:20: Marked `Catalog-Gen2-HLG-19`, `Catalog-Gen2-CLG-35`, `Catalog-Gen2-CLG-36`, and `Catalog-Gen2-15` complete after the OPFS Internal Library and optional Local Library folder mirror work landed through Phase 3.1, including source-options reopen from OPFS, Home Page folder connect/reconnect/disable status, Catalog mirror status, best-effort visible-folder mirror writes from explicit app-owned archive/extracted bytes, OPFS-unavailable mirror proof, and no Dropbox bypass or Import/project auto-commit.
+91. 2026-04-21 15:21:03: Marked `Catalog-Gen2-16`, `Catalog-Gen2-HLG-21`, `Catalog-Gen2-CLG-38`, and `Catalog-Gen2-CLG-39` complete after source-options gained uploaded/Internal Library cached PubParts ZIP entry `3D` preview with one-entry extraction, existing Catalog preview viewport reuse, object URL cleanup proof, metadata-only/no-byte/unsupported disabled states, no silent Dropbox fetch, and no Import/project/builder/compatibility side effects.
+90. 2026-04-21 14:52:29: Added `Catalog-Gen2-HLG-21`, `Catalog-Gen2-CLG-38`, `Catalog-Gen2-CLG-39`, and `Catalog-Gen2-16 - Uploaded ZIP Entry 3D Preview` as the next staged importer preview lane, routing one explicit source-options `3D` preview action for supported uploaded or OPFS-cached PubParts ZIP entries through the existing Catalog preview viewport/reference loader path with object URL cleanup and no Import/project auto-commit.
 89. 2026-04-21 12:12:03: Added and closed `Catalog-Gen2-HLG-20`, `Catalog-Gen2-CLG-37`, and `Catalog-Gen2-5 / Phase 3.1 - Verified Full Assembly Add To Project Activation` after the verified ADV and XR full assembly source entries gained available source-reference `Add To Project` behavior while temporary preview, Import-5 STEP fidelity, and load-as-starting-configuration runtime stayed planned.
 88. 2026-04-21 11:55:57: Added `Catalog-Gen2-HLG-19`, `Catalog-Gen2-CLG-35`, `Catalog-Gen2-CLG-36`, and `Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror` as the next PubParts source-library direction, making OPFS the default ParaHook Internal Library for cached source bytes/extracted files/manifests/inspection results and the user-selected Local Library folder an optional visible mirror.
 87. 2026-04-21 11:36:42: Marked `Catalog-Gen2-14`, `Catalog-Gen2-HLG-18`, `Catalog-Gen2-CLG-33`, and `Catalog-Gen2-CLG-34` complete after the imported-reference ownership/rehydration closeout passed focused ViewerHost remount proof and build while preserving full UI click-through and direct split/exploded hardening as optional follow-up surfaces.
@@ -120,6 +133,7 @@ This doc covers:
 - user-triggered PubParts download staging and supported-file import handoff from curated external PubParts entries
 - user-granted local PubParts library folder organization and auto-discovery handoff for user-downloaded PubParts files
 - Catalog local-downloads browse/status section and Home Page local-library toggle coordination
+- source-options `3D` preview for one supported uploaded or cached PubParts ZIP entry before Import review staging
 
 This doc does not cover:
 - `Generation 1` local repo-backed taxonomy completion
@@ -130,6 +144,7 @@ This doc does not cover:
 - silent browser access to arbitrary local folders without explicit user permission
 - owning local filesystem file handles, archive extraction, or staged file-object creation when that belongs to the Import family
 - STEP loader fidelity details that belong to the Import family
+- treating uploaded/cached ZIP entry preview as Import review staging, project acceptance, builder load, or compatibility proof
 
 ## Doc Body
 
@@ -188,7 +203,11 @@ The first concrete XR handoff is now present: `Catalog/assemblies/xr/Assembly_XR
 
 `Catalog-Gen2-10` is complete for Dropbox Chooser, but Chooser is not enough for PubParts-owned Dropbox links because it asks the user to pick files from a Dropbox account they control. `Catalog-Gen2-11` is now the forward heavier lane: `Add To Project` should start from the PubParts `dropboxUrl` or linked archive URL already on the item, resolve direct shared-file URLs where possible, and stage the selected result through Import with PubParts attribution. Direct shared-file resolution and the first manifest-backed ZIP/archive candidate-choice proof are complete; shared-folder listing remains the next sub-phase because it needs Dropbox shared-link API/helper behavior or another honest listing owner.
 
-`Catalog-Gen2-15` is the next source-library direction after the browser-honest ZIP/import flow and viewer rehydration closeout: use OPFS as ParaHook's default Internal Library so `Add To Project` can cache source bytes, extracted files, manifests, and inspection results inside the app after an explicit user action, then add an optional Local Library folder mirror for users who want those PubParts files visible in the normal filesystem. This does not bypass Dropbox/CORS; remote-byte fetch, user-selected local ZIP, helper/API, or native materialization still owns how bytes enter the library.
+`Catalog-Gen2-15` is complete for the scoped source-library direction after the browser-honest ZIP/import flow and viewer rehydration closeout: OPFS is ParaHook's default Internal Library for explicit user-action source bytes, extracted files, manifests, and inspection results, and the optional Local Library folder mirror can copy uploaded/fetched archive bytes and selected extracted candidates into a user-selected visible folder. This does not bypass Dropbox/CORS; remote-byte fetch, user-selected local ZIP, helper/API, or native materialization still owns how bytes enter the library.
+
+`Catalog-Gen2-16` is complete for the source-options-first uploaded/cached PubParts ZIP entry preview lane. Source options now let the user explicitly preview one supported `step`, `stl`, `obj`, or `glb` entry from the current uploaded ZIP or a same-source-version OPFS archive cache before staging files into Import review. The path reuses the existing Catalog preview viewport/reference asset loader, owns object URL cleanup, and keeps image/source metadata as the default browse read.
+
+`Catalog-Gen2-17` is open as the next source-library smoothness lane. The goal is to try direct in-memory PubParts/Dropbox ZIP byte materialization when browser fetch, a trusted PubParts proxy, helper, or native bridge can legally provide bytes after explicit user action, then cache successful archive bytes in OPFS/Internal Library, reuse the source-options preview/staged Import review flow, and fall back to `Open Source` plus `Upload ZIP` when access is blocked. This lane should also plan the metadata index split: large ZIP/model blobs stay in OPFS or real mirror files, while SQLite/IndexedDB-style storage indexes source identity, archive manifests, source versions, preview/importable status, and local mirror state.
 
 ## Vision
 
@@ -207,6 +226,8 @@ The first concrete XR handoff is now present: `Catalog/assemblies/xr/Assembly_XR
 - let the user start a supported-file import from an external PubParts entry through explicit source/archive inspection and choice
 - organize PubParts downloads through a user-granted local library folder so known local files can be found again and handed to Import
 - resolve PubParts-owned Dropbox shared links without requiring the user to own the Dropbox files, starting with direct shared files and planning ZIP/archive or folder candidates as inspected follow-ups
+- preview one user-selected supported entry from an uploaded or cached PubParts ZIP in source options before Import review staging
+- try direct in-memory PubParts ZIP byte materialization when browser-readable source URLs or trusted providers can legally provide bytes, then cache successful archives in the Internal Library and fall back to user-uploaded ZIPs when blocked
 
 PubParts is the first source proof target.
 
@@ -255,6 +276,8 @@ Gen2 owns:
 - a one-primary-action item-page flow that advances through setup, source opening, scanning, import, and later preview states without presenting every internal step as a separate button
 - Dropbox Chooser as the first direct Dropbox bridge for user-selected files
 - Dropbox shared-link direct-file resolution as the next PubParts-owned source-link bridge, with archive/folder candidate inspection split into later phases
+- direct in-memory source-byte materialization for PubParts archive/source links when browser fetch, trusted PubParts proxy, helper, or native bridge can provide bytes after explicit user action
+- a source-library metadata index plan that keeps large ZIP/model blobs in OPFS/Internal Library while indexing item, source version, archive manifest, preview/importable status, and local mirror state in SQLite/IndexedDB-style metadata storage
 - mapping PubParts `Floatwheel`-style source naming into ParaHook platform vocabulary such as `ADV`
 - pre-built PubWheel starting-assembly entries as curated full-build assembly/start records
 - metadata groundwork that later builder and compatibility systems can read
@@ -264,6 +287,8 @@ Gen2 does not own:
 - open-ended internet search
 - arbitrary web browsing inside Catalog
 - Dropbox account-wide OAuth browsing or access outside the PubParts source link being resolved
+- bypassing CORS, Dropbox API rules, or browser source restrictions just because the workflow streams bytes into memory
+- storing large model/archive binaries in `localStorage` or making a SQLite database the hidden primary owner of model blobs without a measured later storage decision
 - replacing the normal user import path
 - pretending linked files are local files before handoff/import has happened
 - silently scanning arbitrary local downloads folders or assuming a browser download path without explicit user permission
@@ -292,6 +317,9 @@ Create `Generation 2` family phases when work is about:
 - supported-file chooser and selected-file import handoff
 - accepted imported-reference ownership and viewer-runtime rehydration after Catalog or workspace layout changes
 - Dropbox shared-link direct-file resolution and later ZIP/archive or folder candidate inspection
+- direct in-memory source-byte materialization for PubParts archives when browser fetch, trusted PubParts proxy, helper, or native bridge can legally provide bytes
+- runtime PubParts structured metadata refresh from the live upstream `.json` source with baked-cache fallback
+- source-library metadata indexing across OPFS/Internal Library, optional Local Library mirror, source version, archive manifest, preview/importable status, and provider materialization state
 - source attribution
 - platform and system normalization for external records
 - pre-built PubWheel entries
@@ -321,8 +349,12 @@ If a phase changes the local part/platform taxonomy, it should explain whether i
 - [x] `Catalog-Gen2-HLG-16. make PubParts ZIP links usable efficiently by inspecting one user-selected ZIP on demand, listing supported and unsupported entries, extracting only selected supported files, and staging those files into Import review with PubParts attribution instead of eagerly downloading or importing every archive` - complete with the Phase 5.1 browser-honest fallback: readable remote ZIP blobs still inspect directly, and browser-blocked PubParts Dropbox archives can be downloaded/opened by the user, chosen as a local `.zip`, listed, selected, and staged into Import review with PubParts attribution.
 - [x] `Catalog-Gen2-HLG-17. make the PubParts ZIP path feel like a real staged importer flow where Add To Project opens source options, ParaHook uses PubParts source metadata, the user downloads or opens the ZIP through normal browser behavior, explicitly uploads the saved ZIP back into ParaHook, reviews staged ZIP entries with preview affordances where feasible, and sends only selected supported files toward Import/project/model-viewport ownership` - complete for the browser-owned Gen2 flow after scoped Catalog/Import handoff proof passed.
 - [x] `Catalog-Gen2-HLG-18. keep accepted imported references visible across Catalog close, model-viewport split, and viewer remounts by making the store-owned reference workspace the canonical object truth and rehydrating each disposable viewer runtime from that truth` - complete at the store-to-current-viewer remount seam with focused PubParts ZIP-attributed and normal `.obj` accepted-reference proof; full UI click-through and direct split/exploded hardening remain optional future QA surfaces.
-- [ ] `Catalog-Gen2-HLG-19. make PubParts Add To Project feel like an app-managed parts library by using OPFS as ParaHook's default Internal Library for cached source bytes, extracted files, manifests, and inspection results, with an optional one-time user-selected Local Library folder mirror for visible files`
+- [x] `Catalog-Gen2-HLG-19. make PubParts Add To Project feel like an app-managed parts library by using OPFS as ParaHook's default Internal Library for cached source bytes, extracted files, manifests, and inspection results, with an optional one-time user-selected Local Library folder mirror for visible files` - complete for explicit user-action archive/extracted-byte ownership: source options can cache/reopen from OPFS, Home can connect/reconnect/disable a visible folder handle for the current session, Catalog shows mirror status, mirror writes remain best-effort from app-owned blobs even when OPFS is unavailable, and Import/project ownership stays unchanged.
 - [x] `Catalog-Gen2-HLG-20. let the verified ADV and XR full assembly Catalog entries use Add To Project as a source-reference handoff while heavy preview and load-as-starting-configuration stay planned`
+- [x] `Catalog-Gen2-HLG-21. let users preview one supported 3D entry from an uploaded or cached PubParts ZIP inside source options before staging it into Import review, using only user-granted or app-cached archive bytes and without auto-importing or creating project assets` - complete for the source-options-first lane with uploaded and same-source-version OPFS archive cache bytes, one-entry extraction, Catalog preview viewport reuse, object URL cleanup proof, metadata-only/no-byte/unsupported disabled states, and no Import/project/builder/compatibility side effects.
+- [x] `Catalog-Gen2-HLG-22. make PubParts Add To Project try direct in-memory source-byte materialization when a source URL, trusted PubParts proxy, helper, or native bridge can legally provide ZIP bytes, then store successful archives in the Internal Library and fall back to Upload ZIP when browser access is blocked` - complete for the Phase 1-5 stack: materialization status/fallback reads are truthful, Add To Project triggers the browser ZIP attempt and Internal Library cache reuse, the trusted-provider boundary exists without browser secrets or mandatory infrastructure, successful bytes use the existing archive list/preview/select/stage path and OPFS/Internal Library ownership, Upload ZIP fallback remains available, and the metadata index stays metadata-only.
+- [x] `Catalog-Gen2-HLG-23. make PubParts structured metadata the live upstream source of truth so new PubParts parts added by Zinc can appear in ParaHook after app refresh without requiring a developer to regenerate ParaHook's baked cache, while ParaHook still owns normalized filters, source options, local library state, and Import/project handoff`
+- [x] `Catalog-Gen2-HLG-24. keep the Catalog left browse rail focused on browse navigation by moving source utility/status reads into a dedicated Catalog Info page reached from the content title bar`
 
 ### Codex Level Goals
 
@@ -361,9 +393,18 @@ If a phase changes the local part/platform taxonomy, it should explain whether i
 - [x] Catalog-Gen2-CLG-32. Route the final staged importer `Add To Project` action through Import review and then existing project/model-viewport handoff ownership without letting Catalog own accepted assets.
 - [x] Catalog-Gen2-CLG-33. Make the imported-reference store-to-viewer contract explicit: `referenceWorkspace` owns accepted imported reference identity and visibility while `Viewer.referenceObjects` is only a disposable per-instance runtime cache.
 - [x] Catalog-Gen2-CLG-34. Rehydrate visible accepted imported references into a newly mounted model viewer when global state says the reference is loaded but the current viewer runtime does not actually have the object.
-- [ ] Catalog-Gen2-CLG-35. Add an OPFS-backed Internal Library owner for PubParts source bytes, ZIPs, extracted candidates, source manifests, and inspection results that only caches files after an explicit user action.
-- [ ] Catalog-Gen2-CLG-36. Add an optional user-selected Local Library folder mirror that can copy OPFS-managed PubParts source/extracted/importable files into a visible filesystem folder when permission is available.
+- [x] Catalog-Gen2-CLG-35. Add an OPFS-backed Internal Library owner for PubParts source bytes, ZIPs, extracted candidates, source manifests, and inspection results that only caches files after an explicit user action.
+- [x] Catalog-Gen2-CLG-36. Add an optional user-selected Local Library folder mirror that can copy app-owned PubParts source/extracted/importable files into a visible filesystem folder when permission is available.
 - [x] Catalog-Gen2-CLG-37. Route planned ADV and XR full assembly source paths through the same browser-project reference commit handoff used by repo-backed Add To Project items without enabling temporary preview or builder starting-configuration load.
+- [x] Catalog-Gen2-CLG-38. Add a source-options ZIP entry preview contract that identifies one selected supported uploaded or cached archive entry, materializes only that entry for preview, renders it through the existing Catalog preview viewport/reference loader path where possible, and never stages Import review or creates project assets.
+- [x] Catalog-Gen2-CLG-39. Prove uploaded/cached ZIP entry preview cleanup and boundary behavior, including object URL revocation, disabled states for metadata-only or stale/no-byte cache records, unsupported-entry blocking, no silent blocked-Dropbox fetch, and no auto-import/project commit.
+- [x] Catalog-Gen2-CLG-40. Add a direct source-byte materialization attempt that fetches readable PubParts/Dropbox ZIP bytes into memory after user action, writes successful archives to OPFS/Internal Library, and falls back to Upload ZIP when browser fetch, CORS, or provider access fails. Complete for the existing Add To Project-triggered browser ZIP inspection path: readable archive bytes are represented through the Phase 1 materialization contract, assert the same archive list/preview/select/stage path, write through Internal Library when available, and keep browser-honest Upload ZIP fallback when access fails.
+- [x] Catalog-Gen2-CLG-41. Add a trusted source-byte provider boundary for PubParts proxy, native, helper, or API materialization so ParaHook can receive ZIP bytes without exposing Dropbox secrets in browser code or scraping blocked Dropbox pages. Complete for the boundary seam: the app now has a default-unavailable trusted provider owner, fake/injected provider tests, provider-result-to-Phase-1 materialization mapping, and Catalog source-options proof that successful trusted-provider bytes reuse the same Internal Library and ZIP list/preview/select/stage path while blocked/unavailable provider states preserve browser fetch and Upload ZIP fallback.
+- [x] Catalog-Gen2-CLG-42. Add a source-library metadata index plan, preferring OPFS file blobs for large archives/models and a SQLite/IndexedDB-style metadata database for item, source, version, file-candidate, manifest, preview/importable, and local mirror status records rather than storing large binaries in localStorage. Complete for the pure metadata-index/query owner: `pubPartsSourceLibraryMetadataIndex.ts` maps staged source, Phase 1 materialization, provider capability, archive manifest, Internal Library, Local Library mirror, stale, blocked, previewable, importable, source-version, and catalog-item reads without storing blobs, file handles, object URLs, or adding SQLite/IndexedDB persistence.
+- [x] Catalog-Gen2-CLG-43. Add a runtime PubParts metadata refresh path that reads the live parts JSON endpoint, normalizes successful records through the existing PubParts adapter, composes Catalog from live records when available, and falls back to the baked generated cache when live refresh fails. Complete for Phase 1: `pubPartsLiveSource.ts` reads and validates `parts.json` metadata through an injectable fetch owner, tries direct PubParts metadata then the same-origin Vite dev proxy route when direct browser fetch is blocked, `CatalogSurface` renders baked cache first and swaps in live part records on success, focused tests prove upstream-only live parts appear, and failed live refresh preserves baked PubParts cards/resources.
+- [x] Catalog-Gen2-CLG-44. Audit the live source projection so PubParts-owned labels continue to map into ParaHook-owned platform, system, part type, part group, search, and filter fields instead of replacing ParaHook's catalog taxonomy. Complete for the live metadata lane: live records still normalize through PubParts source ownership and project through `catalogSource.ts`, known labels map into ParaHook canonical fields, unknown PubParts labels stay raw metadata with canonical `Other` platform compatibility, and no upstream label automatically creates a new ParaHook system/type/group.
+- [x] Catalog-Gen2-CLG-45. Add a source-update preservation audit so live PubParts additions, removals, renames, and reorderings do not silently delete user-granted ZIP bytes, Internal Library entries, staged source records, local mirror state, or accepted imported project assets. Complete for the current lane: external PubParts item IDs now derive from stable source identity rather than list index, duplicate cached-source rows get scoped identity metadata only where required, live additions/reorderings/renames preserve unchanged item IDs, and Catalog source composition does not auto-prune staged/local/Internal Library/Import/project state.
+- [x] Catalog-Gen2-CLG-46. Add one Catalog Info title-bar action that opens a combined content page for Staged Sources and Local Downloads, remove those sections from the left rail, and preserve existing staged-source clear plus local-library status behavior. Complete for the current UI cleanup: `CatalogShell` routes a `catalog-info` content mode from one top-right action, `CatalogShellInfoPage` renders the existing utility reads, `CatalogShellBrowseRail` keeps browse navigation plus Preview Session only, and focused CatalogShell tests prove the utility sections moved out of the rail.
 
 ### `Catalog-Gen2-0` - Generation 2 Intake Readiness And Source Mapping Baseline
 
@@ -1561,14 +1602,15 @@ Focused verification passed:
 
 Full UI click-through for Catalog close/model viewport split and direct split/import-explosion runtime-possession hardening are not claimed by this closeout and remain optional future QA/hardening surfaces.
 
-Dispatch next:
-- `Catalog-Gen2-15 / Phase 1 - OPFS Capability And Internal Library Boundary`
+Status:
+- Phases 1, 2, 2.1, 3, and 3.1 are complete for the scoped Internal Library plus optional Local Library mirror lane.
+- Persistent cross-session File System Access handles remain intentionally unclaimed; reconnect-needed status is truthful after reload.
 
 ### Family Phase Doc
 
 - [x] created and closed for [Future/Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration.md](./Future/Catalog-Gen2-14%20-%20Imported%20Reference%20Ownership%20And%20Viewport%20Rehydration.md); Phases 1, 2, 3, and 4 are complete for the scoped imported-reference ownership and ViewerHost rehydration fix
 
-## [ ] `Catalog-Gen2-15` - `OPFS Internal Library And Local Folder Mirror`
+## [x] `Catalog-Gen2-15` - `OPFS Internal Library And Local Folder Mirror`
 
 ### Family Phase Summary
 
@@ -1576,7 +1618,7 @@ Make the PubParts `Add To Project` path feel like an app-managed parts library a
 
 The default storage owner should be an OPFS-backed ParaHook Internal Library. After explicit user action, ParaHook can cache source bytes, ZIPs, extracted candidates, source manifests, and inspection results inside browser-private origin storage. This gives Catalog fast repeat source-options reads without forcing the user to choose a folder for every part.
 
-The optional storage owner should be a user-selected Local Library folder mirror. When permission exists, ParaHook can mirror OPFS-managed PubParts source/extracted/importable files into a normal filesystem folder so the user can inspect, back up, and share those files outside the app.
+The optional storage owner is a user-selected Local Library folder mirror. When permission exists for the current session, ParaHook can mirror app-owned PubParts source/extracted/importable files into a normal filesystem folder so the user can inspect, back up, and share those files outside the app.
 
 ### HLG / CLG Coverage
 
@@ -1627,4 +1669,210 @@ Dispatch next:
 
 ### Family Phase Doc
 
-- [x] created [Future/Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror.md](./Future/Catalog-Gen2-15%20-%20OPFS%20Internal%20Library%20And%20Local%20Folder%20Mirror.md)
+- [x] created and closed [Future/Catalog-Gen2-15 - OPFS Internal Library And Local Folder Mirror.md](./Future/Catalog-Gen2-15%20-%20OPFS%20Internal%20Library%20And%20Local%20Folder%20Mirror.md); Phases 1, 2, 2.1, 3, and 3.1 are complete for the scoped Internal Library plus optional Local Library mirror lane
+
+## [x] `Catalog-Gen2-16` - `Uploaded ZIP Entry 3D Preview`
+
+### Family Phase Summary
+
+Make the PubParts staged importer preview affordance real after the browser-honest ZIP upload path and OPFS Internal Library cache/reopen loop.
+
+The first user-visible preview should live in the source-options dialog, not the item page. Image/source metadata remains the default Catalog and item-page read. When the source-options dialog has a current uploaded archive blob or a same-source-version OPFS archive cache hit, the user can explicitly preview one supported ZIP entry as `3D` before staging any file into Import review.
+
+The preview path should reuse `CatalogCardPreviewViewport` and the existing reference asset loader where possible. It should not create a second Three.js viewer unless the existing preview viewport cannot support a source-options surface after a small prop/surface widening.
+
+### HLG / CLG Coverage
+
+- HLG: `Catalog-Gen2-HLG-21`
+- CLG: `Catalog-Gen2-CLG-38`, `Catalog-Gen2-CLG-39`
+
+### Owns
+
+- source-options preview candidate contract for uploaded or OPFS-cached PubParts ZIP entries
+- explicit row-level or selected-entry `3D` preview action/toggle for one supported entry at a time
+- preview materialization from the current dialog `archiveBlob` or same-source-version Internal Library archive bytes
+- reuse of the existing Catalog preview viewport/reference asset loader when it can support `step`, `stl`, `obj`, and `glb`
+- preview loading, unavailable, unsupported, stale/no-byte, and error states in source options
+- object URL creation and revocation for preview-only extracted entry blobs
+- tests proving preview does not stage Import review, commit project assets, mutate builder state, or fetch blocked Dropbox bytes silently
+
+### Does Not Own
+
+- source-options default image/source metadata replacement
+- item-page preview as the first surface
+- multiple simultaneous ZIP entry previews
+- auto-staging files into Import review
+- accepted project asset creation
+- builder/load-as-starting-configuration behavior
+- compatibility verdicts
+- ZIP/source resolver rewrites
+- OPFS byte caching behavior beyond consuming already-available archive bytes
+- silent Dropbox fetch/proxy/helper behavior
+- STEP loader fidelity or `.stp` support expansion beyond existing renderable preview/import constraints
+
+### Planning Read
+
+`CatalogSurface` already owns the source-options dialog state, including staged candidates, selected candidate ids, status copy, and the Phase 2 OPFS archive cache reopen path. A cache hit hydrates `archiveBlob`, so uploaded ZIPs and Internal Library archive hits can share the same preview byte input.
+
+`CatalogShellSourceOptionsDialog.tsx` already renders one row per staged ZIP entry with support, selection, and preview-state text. This is the smallest honest UI seam for a preview action because it is where the user can see the exact archive entry before staging.
+
+`CatalogCardPreviewViewport.tsx` already loads `step`, `stl`, `obj`, and `glb` object URLs through `loadReferenceAssetObject` and cleans up Three.js resources. It does not own object URL revocation, so the source-options caller must own preview object URL lifecycle.
+
+`CatalogShellItemPage.tsx` should stay out of the first phase. Item-page preview is tied to the Catalog item/default preview session, while uploaded ZIP entry preview is a per-dialog, per-archive-entry decision after a user byte grant.
+
+Dispatch next:
+- complete; no next Gen2-16 dispatch is required unless Manager wants a separate item-page preview, multi-preview, or full UI click-through follow-up.
+
+### Family Phase Doc
+
+- [x] created [Future/Catalog-Gen2-16 - Uploaded ZIP Entry 3D Preview.md](./Future/Catalog-Gen2-16%20-%20Uploaded%20ZIP%20Entry%203D%20Preview.md)
+
+## [x] `Catalog-Gen2-17` - `Direct Source Byte Materialization And Library Metadata Index`
+
+### Family Phase Summary
+
+Make the PubParts `Add To Project` path attempt the smoothest honest byte path before asking the user to manually download and upload a ZIP.
+
+The first read is browser-owned: after explicit user action, ParaHook may try to fetch the current PubParts/Dropbox ZIP source into memory. If that works, the archive should be written into OPFS/Internal Library, inspected through the existing ZIP/source-options flow, previewed when supported, and staged into Import review only after user choice.
+
+The second read is provider-owned: when browser fetch is blocked by CORS, Dropbox rules, or missing API permission, ParaHook should have a clear trusted provider boundary for a PubParts proxy, helper, native bridge, or later API materializer. That provider may deliver bytes to the browser/app, but browser code must not contain Dropbox secrets or scrape blocked Dropbox pages.
+
+The third read is storage-owned: OPFS/Internal Library and optional Local Library mirror remain the owners for big ZIP/model blobs. SQLite/IndexedDB-style storage may index source metadata, archive manifests, source versions, preview/importable status, and mirror state, but it should not become the hidden primary model-blob owner without a later measured storage decision.
+
+### HLG / CLG Coverage
+
+- HLG: `Catalog-Gen2-HLG-22`
+- CLG: `Catalog-Gen2-CLG-40`, `Catalog-Gen2-CLG-41`, `Catalog-Gen2-CLG-42`
+
+### Owns
+
+- direct in-memory PubParts source-byte materialization attempt after explicit user action
+- readable, blocked-by-cors, requires-upload, requires-provider, and materialized status states
+- OPFS/Internal Library archive write after successful materialization
+- reuse of existing ZIP listing, ZIP entry preview, source-options candidate choice, and Import review staging paths
+- trusted PubParts proxy/helper/native/API byte-provider boundary
+- source-library metadata index plan for item identity, source URL, source version, archive manifest, preview/importable status, Internal Library state, and Local Library mirror status
+
+### Does Not Own
+
+- eager downloading every PubParts archive on Catalog load
+- bypassing CORS, Dropbox rules, or browser source restrictions
+- putting Dropbox secrets or API tokens in browser code
+- scraping blocked Dropbox pages to infer bytes or folder contents
+- replacing the Upload ZIP fallback
+- storing large ZIP/model binaries in `localStorage`
+- making SQLite the unreviewed primary owner of model/archive blobs
+- changing Import review acceptance or project asset ownership
+- STEP loader fidelity, builder load behavior, or compatibility verdicts
+
+### Planning Read
+
+This phase is not a contradiction of `Catalog-Gen2-13`, `Catalog-Gen2-15`, or `Catalog-Gen2-16`. Those phases made the browser-honest upload/cache/preview path work. This phase adds a smoother first attempt before the upload fallback: if the bytes are readable or a trusted provider can legally deliver them, ParaHook should not force the user through manual download/upload.
+
+The user-facing flow should read:
+
+```text
+Add To Project
+-> Source Options opens
+-> Try Direct Source Fetch for this item
+-> if readable: save archive to Internal Library, inspect ZIP, preview/select supported entries
+-> if blocked: show why and keep Open Source + Upload ZIP fallback
+-> if provider available: request bytes through trusted provider boundary
+-> selected supported entries still stage into Import review
+```
+
+Dispatch next:
+- none for `Catalog-Gen2-17`; persistent metadata storage, real provider/native/API deployment, richer metadata-index UI, live end-to-end provider proof, Import/project, STEP, builder, compatibility, eager scan, and bulk archive import belong to future owner phases if Manager wants them.
+
+### Family Phase Doc
+
+- [x] created and closed for [Future/Catalog-Gen2-17 - Direct Source Byte Materialization And Library Metadata Index.md](./Future/Catalog-Gen2-17%20-%20Direct%20Source%20Byte%20Materialization%20And%20Library%20Metadata%20Index.md); Phases 1, 2, 3, 4, and 5 are complete for the scoped direct source-byte materialization, trusted provider boundary, OPFS/Internal Library ownership, metadata-only index, Upload ZIP fallback, and final audit lane
+
+## [x] `Catalog-Gen2-18` - `PubParts Live Source Sync And Normalized Projection`
+
+### Family Phase Summary
+
+Make PubParts structured metadata the live upstream source for external PubParts Catalog entries.
+
+The practical wishlist read is that if Zinc adds a part to PubParts, the user should be able to refresh or reopen ParaHook and see that part without waiting for a developer to regenerate `pubpartsSourceData/fullParts.ts`.
+
+The implementation must keep the distinction between metadata and bytes. Reading `https://pubparts.xyz/parts.json` can update cards, source links, preview images, type labels, platform labels, source freshness, and archive links. It must not automatically download Dropbox ZIPs, extract archives, stage Import review files, or create project assets.
+
+### HLG / CLG Coverage
+
+- HLG: `Catalog-Gen2-HLG-23`
+- CLG: `Catalog-Gen2-CLG-43`, `Catalog-Gen2-CLG-44`, `Catalog-Gen2-CLG-45`
+
+### Owns
+
+- runtime read of live PubParts part metadata
+- generated/baked cache fallback when the live endpoint is unavailable
+- reuse of the existing PubParts source normalizer and Catalog external projection
+- proof that an upstream-only part can appear in Catalog after live refresh
+- audit that ParaHook-owned filters/platform/system/type/group mapping still owns the runtime taxonomy
+- audit that source-update churn does not silently delete user-granted local/library/import state
+
+### Does Not Own
+
+- eager PubParts archive downloads
+- Dropbox ZIP byte CORS fixes
+- trusted provider/proxy/native byte deployment
+- replacing Upload ZIP or source-options staging
+- turning PubParts browse categories into ParaHook filter truth
+- deleting Internal Library, staged-source, local mirror, or accepted project state because upstream metadata changes
+- compatibility, builder, STEP loader, or project acceptance behavior
+
+### Planning Read
+
+`scripts/catalog/refreshPubPartsCache.mjs` is still useful as a developer refresh and fallback generation tool, but it should not be the only way a newly added PubParts record reaches a user's running app.
+
+`src/app/catalog/pubPartsSource.ts` already owns raw PubParts field normalization. `src/app/catalog/catalogSource.ts` already owns the ParaHook projection from normalized PubParts source records into Catalog items and filters. Phase 1 should feed live records into those existing owners instead of creating a new live-only mapper inside `CatalogSurface`.
+
+Dispatch next:
+- none for `Catalog-Gen2-18`; production hosting still needs either a same-origin metadata proxy equivalent or PubParts CORS headers, and resource endpoint widening can be planned later if Manager wants live `resources.json`.
+
+`Catalog-Gen2-18` is complete for the wishlist lane: live PubParts part metadata reads now have a pure source owner with direct PubParts plus same-origin Vite dev proxy request fallback, Catalog renders from baked cache immediately, successful live reads replace only the PubParts part lane, failed live reads keep baked parts/resources visible, ParaHook-owned taxonomy projection remains in Catalog source code, external PubParts item identity is source-key stable across additions/reorderings/renames, focused source/live/source-options tests passed, and ZIP/source-options/Import/project/builder/compatibility behavior stayed unchanged.
+
+### Family Phase Doc
+
+- [x] created and closed [Future/Catalog-Gen2-18 - PubParts Live Source Sync And Normalized Projection.md](./Future/Catalog-Gen2-18%20-%20PubParts%20Live%20Source%20Sync%20And%20Normalized%20Projection.md)
+
+## [x] `Catalog-Gen2-19` - `Catalog Info Page And Rail Utility Cleanup`
+
+### Family Phase Summary
+
+Move Catalog source utility/status reads out of the left browse rail and into one content page.
+
+The user first considered two title-bar buttons, one for Local Downloads and one for Staged Sources, then narrowed the preferred UX to one `Catalog Info` button. This keeps the title bar compact and makes the left rail read as browse navigation rather than mixed navigation plus source lifecycle status.
+
+### HLG / CLG Coverage
+
+- HLG: `Catalog-Gen2-HLG-24`
+- CLG: `Catalog-Gen2-CLG-46`
+
+### Owns
+
+- one top-right `Catalog Info` content-header action
+- a combined content page for Staged Sources and Local Downloads
+- removing those utility sections from the left browse rail
+- preserving staged-source clear controls and local-library mirror status reads
+
+### Does Not Own
+
+- PubParts source staging behavior
+- Local Library mirror writes or folder grants
+- source-options, ZIP inspection, Import review, or project acceptance behavior
+- preview, builder, or compatibility behavior
+
+### Planning Read
+
+The source utility blocks already existed as Catalog UI reads. The cleanup is not a new storage or source lifecycle owner; it is a placement correction so the browse rail stays focused on navigation while the source utility read gets enough content space.
+
+Dispatch next:
+- none for `Catalog-Gen2-19`; add a follow-up only if the Catalog Info page later needs richer metadata-index controls or a broader source-library dashboard.
+
+`Catalog-Gen2-19` is complete for this UI cleanup: the top-right `Catalog Info` action opens a combined content page, Staged Sources and Local Downloads no longer render in the left browse rail, Preview Session remains in the rail, existing staged-source clear/local-library mirror reads are preserved, focused CatalogShell tests passed, and production build verification passed.
+
+### Family Phase Doc
+
+- [x] created and closed [Future/Catalog-Gen2-19 - Catalog Info Page And Rail Utility Cleanup.md](./Future/Catalog-Gen2-19%20-%20Catalog%20Info%20Page%20And%20Rail%20Utility%20Cleanup.md)

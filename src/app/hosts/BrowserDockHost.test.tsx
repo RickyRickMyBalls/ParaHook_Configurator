@@ -12,6 +12,7 @@ import {
 import { BrowserDockHost } from './BrowserDockHost'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { defaultPrimaryViewportSlotId } from '../workspace/workspaceShellTypes'
+import { editHistoryStore } from '../store/editHistoryStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -244,6 +245,7 @@ describe('BrowserDockHost', () => {
   const originalElementsFromPoint = document.elementsFromPoint
 
   beforeEach(() => {
+    editHistoryStore.clear()
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     window.open = originalWindowOpen
     document.elementsFromPoint =
@@ -349,6 +351,28 @@ describe('BrowserDockHost', () => {
 
     const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
     expect(browserShell?.style.width).toBe('840px')
+  })
+
+  it('routes docked Browser presentation cycling through canonical workspace layout history', async () => {
+    await renderHarness()
+
+    const cycleButton = container?.querySelector(
+      'button[aria-label="Mock browser toggle collapse"]',
+    ) as HTMLButtonElement | null
+
+    expect(cycleButton).not.toBeNull()
+
+    await act(async () => {
+      cycleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('essentials')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toEqual(expect.objectContaining({
+      label: 'Change Browser presentation',
+      targetId: 'workspace:browser-shell:presentation',
+      targetLabel: 'Browser presentation',
+    }))
   })
 
   it('undocks the browser into a floating window when the docked titlebar is dragged', async () => {

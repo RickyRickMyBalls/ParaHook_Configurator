@@ -14,8 +14,12 @@ type ExtrudeFeatureViewProps = {
   feature: ExtrudeFeature
   stack: FeatureStack
   featureIndex: number
-  onBeginInteraction?: () => void
-  onEndInteraction?: () => void
+  onBeginParameterInteraction?: (options: {
+    featureId: string
+    parameterId: string
+    targetLabel: string
+  }) => void
+  onEndParameterInteraction?: () => void
   previewProfilesBySketchId: ReadonlyMap<string, PreviewProfileWithLabel[]>
   closeProfileResolvedByFeatureId: ReadonlyMap<
     string,
@@ -48,8 +52,8 @@ export function ExtrudeFeatureView({
   feature,
   stack,
   featureIndex,
-  onBeginInteraction,
-  onEndInteraction,
+  onBeginParameterInteraction,
+  onEndParameterInteraction,
   previewProfilesBySketchId,
   closeProfileResolvedByFeatureId,
   depthVirtualInputState,
@@ -171,8 +175,14 @@ export function ExtrudeFeatureView({
         max={500}
         step={0.1}
         disabled={depthDriven}
-        onInteractionStart={onBeginInteraction}
-        onInteractionEnd={onEndInteraction}
+        onInteractionStart={() =>
+          onBeginParameterInteraction?.({
+            featureId: feature.featureId,
+            parameterId: 'depth',
+            targetLabel: 'Extrude depth',
+          })
+        }
+        onInteractionEnd={onEndParameterInteraction}
         onChange={(value) =>
           setExtrudeDepth(nodeId, feature.featureId, {
             kind: 'lit',
@@ -192,8 +202,14 @@ export function ExtrudeFeatureView({
         max={45}
         step={0.1}
         disabled={taperDriven}
-        onInteractionStart={onBeginInteraction}
-        onInteractionEnd={onEndInteraction}
+        onInteractionStart={() =>
+          onBeginParameterInteraction?.({
+            featureId: feature.featureId,
+            parameterId: 'taper',
+            targetLabel: 'Extrude taper',
+          })
+        }
+        onInteractionEnd={onEndParameterInteraction}
         onChange={(value) =>
           setExtrudeTaper(nodeId, feature.featureId, {
             kind: 'lit',
@@ -213,8 +229,14 @@ export function ExtrudeFeatureView({
         max={500}
         step={0.1}
         disabled={offsetDriven}
-        onInteractionStart={onBeginInteraction}
-        onInteractionEnd={onEndInteraction}
+        onInteractionStart={() =>
+          onBeginParameterInteraction?.({
+            featureId: feature.featureId,
+            parameterId: 'offset',
+            targetLabel: 'Extrude offset',
+          })
+        }
+        onInteractionEnd={onEndParameterInteraction}
         onChange={(value) =>
           setExtrudeOffset(nodeId, feature.featureId, {
             kind: 'lit',

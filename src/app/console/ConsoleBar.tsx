@@ -671,6 +671,7 @@ export function ConsoleBar({
         <input
           ref={inputRef}
           className="ConsoleInput"
+          data-console-input="true"
           aria-label="Console input"
           value={inputText}
           onChange={(event) => setInputText(event.target.value)}

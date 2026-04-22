@@ -52,6 +52,9 @@ type InspectSharedLinkArchiveEnv = {
 
 type MaterializeSharedLinkArchiveEnv = FetchSharedLinkCandidateEnv & {
   archiveBlob?: Blob
+  onExtractedEntries?: (
+    entries: Awaited<ReturnType<typeof extractPubPartsZipArchiveEntries>>,
+  ) => Promise<void> | void
 }
 
 export type PubPartsSharedLinkArchiveInspectionResult = {
@@ -455,6 +458,13 @@ export async function materializePubPartsSharedLinkArchiveCandidateFiles(
     throw error instanceof Error
       ? new PubPartsSharedLinkArchiveExtractionError(error.message)
       : new PubPartsSharedLinkArchiveExtractionError()
+  }
+  if (env.onExtractedEntries !== undefined) {
+    try {
+      await env.onExtractedEntries(extractedEntries)
+    } catch {
+      // Cache writes must never block selected-entry materialization into Import review.
+    }
   }
 
   const extractedEntriesByPath = new Map(

@@ -398,6 +398,85 @@ describe('pubPartsSharedLinkResolver', () => {
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(File))
   })
 
+  it('passes extracted archive entries to the optional cache callback while preserving imported file materialization', async () => {
+    const archiveBlob = await createFixtureZipBlob([
+      { path: 'gripple_standard.stl', content: 'stl bytes' },
+    ])
+    const stagedRecord = buildStagedRecord(
+      'https://www.dropbox.com/scl/fi/source/model_files.zip?dl=0',
+    )
+    const [candidate] = await inspectPubPartsSharedLinkArchiveCandidates(stagedRecord, {
+      fetchRef: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => archiveBlob,
+      }),
+    })
+    const createObjectURL = vi.fn(() => 'blob:archive-file')
+    const onExtractedEntries = vi.fn()
+
+    await expect(
+      materializePubPartsSharedLinkArchiveCandidateFiles(stagedRecord, [candidate!], {
+        archiveBlob,
+        urlRef: {
+          createObjectURL,
+        },
+        fileCtor: File,
+        onExtractedEntries,
+      }),
+    ).resolves.toEqual([
+      {
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+        objectUrl: 'blob:archive-file',
+      },
+    ])
+    expect(onExtractedEntries).toHaveBeenCalledWith([
+      expect.objectContaining({
+        archivePath: 'gripple_standard.stl',
+        normalizedPath: 'gripple_standard.stl',
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+        blob: expect.any(Blob),
+      }),
+    ])
+  })
+
+  it('stages selected archive entries when the optional cache callback fails', async () => {
+    const archiveBlob = await createFixtureZipBlob([
+      { path: 'gripple_standard.stl', content: 'stl bytes' },
+    ])
+    const stagedRecord = buildStagedRecord(
+      'https://www.dropbox.com/scl/fi/source/model_files.zip?dl=0',
+    )
+    const [candidate] = await inspectPubPartsSharedLinkArchiveCandidates(stagedRecord, {
+      fetchRef: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => archiveBlob,
+      }),
+    })
+    const createObjectURL = vi.fn(() => 'blob:archive-file')
+
+    await expect(
+      materializePubPartsSharedLinkArchiveCandidateFiles(stagedRecord, [candidate!], {
+        archiveBlob,
+        urlRef: {
+          createObjectURL,
+        },
+        onExtractedEntries: () => {
+          throw new Error('cache write failed')
+        },
+      }),
+    ).resolves.toEqual([
+      {
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+        objectUrl: 'blob:archive-file',
+      },
+    ])
+  })
+
   it('refetches one ZIP for archive materialization when no reusable blob is provided', async () => {
     const archiveBlob = await createFixtureZipBlob([
       { path: 'models/source.step', content: 'step bytes' },

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_ENVIRONMENT_GRADE,
   DEFAULT_VIEW_SETTINGS,
@@ -11,6 +11,7 @@ import { useUiPrefsStore } from './uiPrefsStore'
 
 describe('uiPrefsStore environment source state', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
   })
 
@@ -270,5 +271,101 @@ describe('uiPrefsStore environment source state', () => {
     })
     expect(useUiPrefsStore.getState().view.projectionMode).toBe('perspective')
     expect(useUiPrefsStore.getState().view.gridVisible).toBe(true)
+  })
+
+  it('keeps material presets and per-part material state in the view settings seam', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
+
+    useUiPrefsStore.getState().selectMaterialPreset('brushed_metal')
+    expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('brushed_metal')
+
+    useUiPrefsStore.getState().updateMaterialPreset('brushed_metal', {
+      name: 'Proof Brushed',
+      color: '#aabbcc',
+      metalness: 3,
+      roughness: -2,
+      emissive: '#010203',
+      emissiveIntensity: 5,
+      opacity: 2,
+      transparent: true,
+    })
+
+    expect(
+      useUiPrefsStore.getState().view.materials.presets.find((preset) => preset.id === 'brushed_metal'),
+    ).toMatchObject({
+      id: 'brushed_metal',
+      name: 'Proof Brushed',
+      color: '#aabbcc',
+      metalness: 1,
+      roughness: 0,
+      emissive: '#010203',
+      emissiveIntensity: 2,
+      opacity: 1,
+      transparent: true,
+    })
+
+    useUiPrefsStore.getState().addMaterialPreset({
+      name: '',
+      color: '#445566',
+      metalness: 0.24,
+      roughness: 0.64,
+    })
+
+    expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('mat_1700000000000')
+    expect(
+      useUiPrefsStore.getState().view.materials.presets.find(
+        (preset) => preset.id === 'mat_1700000000000',
+      ),
+    ).toMatchObject({
+      id: 'mat_1700000000000',
+      name: 'Preset 5',
+      color: '#445566',
+      metalness: 0.24,
+      roughness: 0.64,
+    })
+
+    useUiPrefsStore.getState().setUsePerPartMaterial(true)
+    useUiPrefsStore.getState().assignPartMaterial('part:door', 'mat_1700000000000')
+    useUiPrefsStore.getState().assignPartMaterial('part:invalid', 'missing_preset')
+
+    expect(useUiPrefsStore.getState().view.materials.usePerPart).toBe(true)
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      'part:door': 'mat_1700000000000',
+    })
+
+    useUiPrefsStore.getState().clearPartMaterial('part:missing')
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      'part:door': 'mat_1700000000000',
+    })
+
+    useUiPrefsStore.getState().deleteMaterialPreset('mat_1700000000000')
+
+    expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('default_matte')
+    expect(
+      useUiPrefsStore.getState().view.materials.presets.some(
+        (preset) => preset.id === 'mat_1700000000000',
+      ),
+    ).toBe(false)
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({})
+  })
+
+  it('keeps one-preset material delete and missing material operations as no-ops', () => {
+    useUiPrefsStore.getState().setView({
+      materials: {
+        presets: [DEFAULT_VIEW_SETTINGS.materials.presets[0]],
+        selectedPresetId: DEFAULT_VIEW_SETTINGS.materials.presets[0].id,
+        usePerPart: false,
+        perPart: {},
+      },
+    })
+
+    const onePresetMaterials = structuredClone(useUiPrefsStore.getState().view.materials)
+
+    useUiPrefsStore.getState().deleteMaterialPreset(onePresetMaterials.selectedPresetId)
+    useUiPrefsStore.getState().selectMaterialPreset('missing_preset')
+    useUiPrefsStore.getState().assignPartMaterial('part:door', 'missing_preset')
+    useUiPrefsStore.getState().clearPartMaterial('part:door')
+
+    expect(useUiPrefsStore.getState().view.materials).toEqual(onePresetMaterials)
   })
 })

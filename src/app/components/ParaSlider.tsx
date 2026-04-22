@@ -575,10 +575,12 @@ export function ParaSlider({
         return
       case 'Home':
         onChange(effectiveClampMin)
+        onChangeEnd?.(effectiveClampMin)
         event.preventDefault()
         return
       case 'End':
         onChange(effectiveClampMax)
+        onChangeEnd?.(effectiveClampMax)
         event.preventDefault()
         return
       default:

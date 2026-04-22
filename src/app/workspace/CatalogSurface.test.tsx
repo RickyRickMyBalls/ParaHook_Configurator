@@ -11,15 +11,52 @@ import {
 } from '../catalog/pubPartsArchiveManifestCache'
 import {
   pubPartsDownloadsStorageKey,
+  pubPartsLocalLibraryFolderPath,
   readPubPartsDownloadsStorage,
+  writePubPartsDownloadsStorage,
 } from '../catalog/pubPartsDownloadsStorage'
 import type { PubPartsStagedSourceRecord } from '../catalog/pubPartsDownloadsStorage'
+import {
+  readPubPartsInternalLibraryArchiveCache,
+  writePubPartsInternalLibraryArchiveCache,
+  type PubPartsInternalLibraryDirectoryHandleLike,
+  type PubPartsInternalLibraryFileHandleLike,
+  type PubPartsInternalLibraryStorageManager,
+  type PubPartsInternalLibraryWritableFileLike,
+} from '../catalog/pubPartsInternalLibrary'
+import {
+  clearPubPartsLocalLibraryMirrorSessionRoot,
+  resolvePubPartsLocalLibraryMirrorPlan,
+  setPubPartsLocalLibraryMirrorSessionRoot,
+} from '../catalog/pubPartsLocalLibraryMirror'
+import {
+  resetPubPartsTrustedSourceProviderForTests,
+  setPubPartsTrustedSourceProviderForTests,
+  type PubPartsTrustedSourceProvider,
+} from '../catalog/pubPartsTrustedSourceProvider'
+import {
+  disablePubPartsLiveSourceForTests,
+  resetPubPartsLiveSourceForTests,
+  setPubPartsLiveSourceFetchForTests,
+  type PubPartsLiveSourceFetch,
+} from '../catalog/pubPartsLiveSource'
 import type { ImportedReferenceFile } from '../references/importReferenceFile'
 import type { ReferenceFileType } from '../references/referenceManifest'
+import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { CatalogSurface } from './CatalogSurface'
 import type { AppState } from '../store/useAppStore'
 import { DEFAULT_VIEW_SETTINGS } from '../../shared/viewSettingsTypes'
+
+type CatalogSurfaceAddImportedReference = (reference: {
+  catalogItemId?: string | null
+  catalogFamilyKey?: string | null
+  fileName: string
+  fileType: ReferenceFileType
+  objectUrl: string
+  parentAssemblyId?: string | null
+  parentComponentId?: string | null
+}) => string
 
 type CatalogSurfaceTestState = {
   referenceWorkspace: {
@@ -38,15 +75,8 @@ type CatalogSurfaceTestState = {
     >
     importedReferenceOrder: string[]
   }
-  addImportedReference: (reference: {
-    catalogItemId?: string | null
-    catalogFamilyKey?: string | null
-    fileName: string
-    fileType: ReferenceFileType
-    objectUrl: string
-    parentAssemblyId?: string | null
-    parentComponentId?: string | null
-  }) => string
+  addImportedReference: CatalogSurfaceAddImportedReference
+  addImportedReferenceWithHistory: CatalogSurfaceAddImportedReference
   openStagedImportDraft: (draft: {
     parentAssemblyId?: string | null
     parentComponentId?: string | null
@@ -63,11 +93,186 @@ let fetchDropboxChooserSelectedReferenceFileMock: ReturnType<typeof vi.fn>
 let preloadDropboxChooserBridgeMock: ReturnType<typeof vi.fn>
 let isDropboxChooserAppKeyConfiguredMock: ReturnType<typeof vi.fn>
 let createObjectURLMock: ReturnType<typeof vi.fn>
+let revokeObjectURLMock: ReturnType<typeof vi.fn>
 
 type FixtureZipEntry = {
   path: string
   content?: string
   directory?: boolean
+}
+
+class FakeOpfsFileHandle implements PubPartsInternalLibraryFileHandleLike {
+  private blob = new Blob([])
+
+  async getFile(): Promise<Blob> {
+    return this.blob
+  }
+
+  async createWritable(): Promise<PubPartsInternalLibraryWritableFileLike> {
+    const chunks: BlobPart[] = []
+    return {
+      write: (data) => {
+        chunks.push(data as BlobPart)
+      },
+      close: () => {
+        this.blob = new Blob(chunks)
+      },
+    }
+  }
+
+  async text(): Promise<string> {
+    return this.blob.text()
+  }
+}
+
+class FakeOpfsDirectoryHandle implements PubPartsInternalLibraryDirectoryHandleLike {
+  readonly name: string
+  private readonly directories = new Map<string, FakeOpfsDirectoryHandle>()
+  private readonly files = new Map<string, FakeOpfsFileHandle>()
+
+  constructor(name = 'Fake PubParts Directory') {
+    this.name = name
+  }
+
+  async getDirectoryHandle(
+    name: string,
+    options: { create?: boolean } = {},
+  ): Promise<PubPartsInternalLibraryDirectoryHandleLike> {
+    const existingDirectory = this.directories.get(name)
+    if (existingDirectory !== undefined) {
+      return existingDirectory
+    }
+    if (options.create !== true) {
+      throw new Error(`Missing directory: ${name}`)
+    }
+
+    const nextDirectory = new FakeOpfsDirectoryHandle()
+    this.directories.set(name, nextDirectory)
+    return nextDirectory
+  }
+
+  async getFileHandle(
+    name: string,
+    options: { create?: boolean } = {},
+  ): Promise<PubPartsInternalLibraryFileHandleLike> {
+    const existingFile = this.files.get(name)
+    if (existingFile !== undefined) {
+      return existingFile
+    }
+    if (options.create !== true) {
+      throw new Error(`Missing file: ${name}`)
+    }
+
+    const nextFile = new FakeOpfsFileHandle()
+    this.files.set(name, nextFile)
+    return nextFile
+  }
+
+  async readText(path: string): Promise<string | null> {
+    const segments = path.split('/').filter((segment) => segment.length > 0)
+    const fileName = segments.at(-1)
+    if (fileName === undefined) {
+      return null
+    }
+
+    let directory: FakeOpfsDirectoryHandle = this
+    for (const segment of segments.slice(0, -1)) {
+      const nextDirectory = directory.directories.get(segment)
+      if (nextDirectory === undefined) {
+        return null
+      }
+      directory = nextDirectory
+    }
+
+    return (await directory.files.get(fileName)?.text()) ?? null
+  }
+
+  listFilePaths(prefix = ''): string[] {
+    const currentFilePaths = Array.from(this.files.keys()).map((fileName) =>
+      prefix.length > 0 ? `${prefix}/${fileName}` : fileName,
+    )
+    const childFilePaths = Array.from(this.directories.entries()).flatMap(
+      ([directoryName, directory]) =>
+        directory.listFilePaths(prefix.length > 0 ? `${prefix}/${directoryName}` : directoryName),
+    )
+    return [...currentFilePaths, ...childFilePaths].sort()
+  }
+}
+
+class FailingLocalLibraryDirectoryHandle extends FakeOpfsDirectoryHandle {
+  constructor() {
+    super('Read Only PubParts Library')
+  }
+
+  async getDirectoryHandle(): Promise<PubPartsInternalLibraryDirectoryHandleLike> {
+    throw new Error('permission denied')
+  }
+
+  async getFileHandle(): Promise<PubPartsInternalLibraryFileHandleLike> {
+    throw new Error('permission denied')
+  }
+}
+
+const installFakePubPartsInternalLibrary = (): {
+  rootDirectory: FakeOpfsDirectoryHandle
+  storageManager: PubPartsInternalLibraryStorageManager
+} => {
+  const rootDirectory = new FakeOpfsDirectoryHandle()
+  const storageManager: PubPartsInternalLibraryStorageManager = {
+    getDirectory: vi.fn(async () => rootDirectory),
+    estimate: vi.fn(async () => ({ usage: 0, quota: 1024 * 1024 })),
+  }
+  Object.defineProperty(navigator, 'storage', {
+    configurable: true,
+    value: storageManager,
+  })
+  return { rootDirectory, storageManager }
+}
+
+const installDelayedFakePubPartsInternalLibrary = (): {
+  rootDirectory: FakeOpfsDirectoryHandle
+  storageManager: PubPartsInternalLibraryStorageManager
+  resolveGetDirectory: () => void
+} => {
+  const rootDirectory = new FakeOpfsDirectoryHandle()
+  let resolveGetDirectory: () => void = () => undefined
+  const getDirectoryReady = new Promise<void>((resolve) => {
+    resolveGetDirectory = resolve
+  })
+  const storageManager: PubPartsInternalLibraryStorageManager = {
+    getDirectory: vi.fn(async () => {
+      await getDirectoryReady
+      return rootDirectory
+    }),
+    estimate: vi.fn(async () => ({ usage: 0, quota: 1024 * 1024 })),
+  }
+  Object.defineProperty(navigator, 'storage', {
+    configurable: true,
+    value: storageManager,
+  })
+  return { rootDirectory, storageManager, resolveGetDirectory }
+}
+
+const connectFakePubPartsLocalLibraryMirror = (
+  rootDirectory = new FakeOpfsDirectoryHandle('Visible PubParts Library'),
+): FakeOpfsDirectoryHandle => {
+  writePubPartsDownloadsStorage({
+    ...readPubPartsDownloadsStorage(window.localStorage),
+    library: {
+      status: 'enabled',
+      rootLabel: rootDirectory.name,
+      rootFolderPath: pubPartsLocalLibraryFolderPath,
+      updatedAt: '2026-04-21T15:26:20.000Z',
+    },
+  })
+  setPubPartsLocalLibraryMirrorSessionRoot({
+    status: 'enabled',
+    directoryHandle: rootDirectory,
+    rootLabel: rootDirectory.name,
+    rootFolderPath: pubPartsLocalLibraryFolderPath,
+    message: 'Local Library mirror folder is connected for this browser session.',
+  })
+  return rootDirectory
 }
 
 const createFixtureZipBlob = async (entries: FixtureZipEntry[]): Promise<Blob> => {
@@ -129,9 +334,84 @@ describe('CatalogSurface', () => {
     })
   }
 
+  const renderCatalogSurface = async (surfaceInstanceId: string) => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    await act(async () => {
+      root?.render(<CatalogSurface surfaceInstanceId={surfaceInstanceId} />)
+    })
+  }
+
+  const openGrippleItemPage = async () => {
+    const externalCard = Array.from(container?.querySelectorAll('.CatalogShellCard') ?? []).find(
+      (element) => element.textContent?.includes('3d Printed Gripples'),
+    ) as HTMLElement | undefined
+    expect(externalCard).toBeDefined()
+
+    await act(async () => {
+      externalCard?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+    })
+
+    const itemPageRegion = container?.querySelector(
+      '[data-catalog-region="item-page"]',
+    ) as HTMLDivElement | null
+    const externalPreviewItemId = itemPageRegion
+      ?.querySelector('[data-catalog-source-page-link]')
+      ?.getAttribute('data-catalog-source-page-link')
+    const addToProjectButton = itemPageRegion?.querySelector(
+      '[data-catalog-pubparts-add-to-project-action]',
+    ) as HTMLButtonElement | null
+    expect(externalPreviewItemId).toBe('external:pubparts:part:https-www-printables-com-model-598759')
+    expect(addToProjectButton).not.toBeNull()
+
+    return {
+      itemPageRegion,
+      externalPreviewItemId: externalPreviewItemId ?? '',
+      addToProjectButton,
+    }
+  }
+
+  const chooseLocalZipFile = async (archiveBlob: Blob, fileName: string) => {
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const chooseLocalZipButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-choose-local-zip]',
+    ) as HTMLButtonElement | null
+    expect(chooseLocalZipButton).not.toBeNull()
+
+    await act(async () => {
+      chooseLocalZipButton?.click()
+      await Promise.resolve()
+    })
+
+    const localZipInput = document.body.querySelector(
+      'input[type="file"][accept=".zip,application/zip"]',
+    ) as HTMLInputElement | null
+    expect(localZipInput).not.toBeNull()
+    Object.defineProperty(localZipInput, 'files', {
+      configurable: true,
+      value: [
+        new File([archiveBlob], fileName, {
+          type: 'application/zip',
+        }),
+      ],
+    })
+
+    await act(async () => {
+      localZipInput?.dispatchEvent(new Event('change'))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
   beforeEach(() => {
     window.localStorage.clear()
+    editHistoryStore.clear()
     resetCatalogPreviewSessionsForTests()
+    disablePubPartsLiveSourceForTests()
     useUiPrefsStore.setState({
       view: structuredClone(DEFAULT_VIEW_SETTINGS),
     })
@@ -165,9 +445,14 @@ describe('CatalogSurface', () => {
     appendStagedImportDraftFilesSpy = vi.fn()
     importSupportedReferenceFilesFromDiskMock = vi.fn()
     createObjectURLMock = vi.fn(() => 'blob:catalog-surface-pubparts-source')
+    revokeObjectURLMock = vi.fn()
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
       value: createObjectURLMock,
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURLMock,
     })
     isDropboxChooserAppKeyConfiguredMock = vi.fn(() => true)
     preloadDropboxChooserBridgeMock = vi.fn().mockResolvedValue({ status: 'ready' })
@@ -190,6 +475,7 @@ describe('CatalogSurface', () => {
         importedReferenceOrder: ['imported-reference-1'],
       },
       addImportedReference: addImportedReferenceSpy,
+      addImportedReferenceWithHistory: addImportedReferenceSpy,
       openStagedImportDraft: openStagedImportDraftSpy,
       appendStagedImportDraftFiles: appendStagedImportDraftFilesSpy,
     }
@@ -206,9 +492,17 @@ describe('CatalogSurface', () => {
     container = null
     document.body.innerHTML = ''
     resetCatalogPreviewSessionsForTests()
+    editHistoryStore.clear()
     useUiPrefsStore.setState({
       view: structuredClone(DEFAULT_VIEW_SETTINGS),
     })
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: undefined,
+    })
+    clearPubPartsLocalLibraryMirrorSessionRoot()
+    resetPubPartsTrustedSourceProviderForTests()
+    resetPubPartsLiveSourceForTests()
     vi.unstubAllGlobals()
   })
 
@@ -273,6 +567,84 @@ describe('CatalogSurface', () => {
     ) as HTMLDivElement | null
     expect(stagedSourcesRegion).not.toBeNull()
     expect(stagedSourcesRegion?.textContent).toContain('No staged PubParts source links yet.')
+  })
+
+  it('refreshes PubParts part records from the live metadata endpoint after initial render', async () => {
+    const fetchRef = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => [
+        {
+          title: 'Zinc Live Metadata Footpad',
+          fabricationMethod: '3d Printed',
+          typeOfPart: 'Footpad Attachment',
+          imageSrc: '/images/parts/live-footpad.png',
+          platform: 'Floatwheel',
+          externalUrl: 'https://pubparts.xyz/parts/zinc-live-metadata-footpad',
+          dropboxUrl: 'https://www.dropbox.com/scl/fi/live/live-footpad.zip?dl=0',
+          dropboxZipLastUpdated: '2026-04-21',
+        },
+      ],
+    })) satisfies PubPartsLiveSourceFetch
+    setPubPartsLiveSourceFetchForTests(fetchRef)
+
+    await renderCatalogSurface('catalog-surface-live-pubparts-refresh')
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(fetchRef).toHaveBeenCalledTimes(1)
+    expect(container?.textContent).toContain('Zinc Live Metadata Footpad')
+    expect(container?.textContent).toContain('ADV 3d Printed List')
+
+    const liveCard = Array.from(container?.querySelectorAll('.CatalogShellCard') ?? []).find(
+      (element) => element.textContent?.includes('Zinc Live Metadata Footpad'),
+    ) as HTMLElement | undefined
+    expect(liveCard).toBeDefined()
+
+    await act(async () => {
+      liveCard?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+    })
+
+    const itemPageRegion = container?.querySelector(
+      '[data-catalog-region="item-page"]',
+    ) as HTMLDivElement | null
+    const addToProjectButton = itemPageRegion?.querySelector(
+      '[data-catalog-pubparts-add-to-project-action]',
+    ) as HTMLButtonElement | null
+    const sourcePageLink = itemPageRegion?.querySelector(
+      '[data-catalog-source-page-link]',
+    ) as HTMLAnchorElement | null
+
+    expect(itemPageRegion?.textContent).toContain('Live PubParts Parts')
+    expect(itemPageRegion?.textContent).toContain('Footpad Attachment')
+    expect(itemPageRegion?.textContent).toContain('Floatwheel')
+    expect(sourcePageLink?.href).toBe('https://pubparts.xyz/parts/zinc-live-metadata-footpad')
+    expect(addToProjectButton).not.toBeNull()
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps the baked PubParts cache visible when live metadata refresh falls back', async () => {
+    const fetchRef = vi.fn(async () => ({
+      ok: false,
+      status: 503,
+      json: async () => [],
+    })) satisfies PubPartsLiveSourceFetch
+    setPubPartsLiveSourceFetchForTests(fetchRef)
+
+    await renderCatalogSurface('catalog-surface-live-pubparts-fallback')
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(fetchRef).toHaveBeenCalledTimes(2)
+    expect(container?.textContent).toContain('3d Printed Gripples')
+    expect(container?.textContent).toContain('ADV 3d Printed List')
   })
 
   it('surfaces the verified starting assemblies as planned sources with add-to-project enabled', async () => {
@@ -471,7 +843,7 @@ describe('CatalogSurface', () => {
     ) as HTMLButtonElement | null
     expect(externalPreviewBox).not.toBeNull()
     const externalPreviewItemId = externalPreviewBox?.getAttribute('data-catalog-preview-box')
-    expect(externalPreviewItemId).toMatch(/^external:pubparts:3d-printed-gripples-/u)
+    expect(externalPreviewItemId).toBe('external:pubparts:part:https-www-printables-com-model-598759')
     expect(externalPreviewBox?.querySelector('img')?.getAttribute('alt')).toBe(
       '3d Printed Gripples preview',
     )
@@ -832,7 +1204,7 @@ describe('CatalogSurface', () => {
     ) as HTMLButtonElement | null
     const externalPreviewItemId = externalPreviewBox?.getAttribute('data-catalog-preview-box')
 
-    expect(externalPreviewItemId).toMatch(/^external:pubparts:3d-printed-gripples-/u)
+    expect(externalPreviewItemId).toBe('external:pubparts:part:https-www-printables-com-model-598759')
 
     await act(async () => {
       root?.unmount()
@@ -1016,7 +1388,7 @@ describe('CatalogSurface', () => {
     const externalPreviewItemId = itemPageRegion
       ?.querySelector('[data-catalog-source-page-link]')
       ?.getAttribute('data-catalog-source-page-link')
-    expect(externalPreviewItemId).toMatch(/^external:pubparts:3d-printed-gripples-/u)
+    expect(externalPreviewItemId).toBe('external:pubparts:part:https-www-printables-com-model-598759')
 
     const firstLocalAction = itemPageRegion?.querySelector(
       '[data-catalog-pubparts-local-library-primary-action]',
@@ -1078,6 +1450,7 @@ describe('CatalogSurface', () => {
   })
 
   it('opens real ZIP-inspected PubParts archive source options and stages selected entries', async () => {
+    const { storageManager } = installFakePubPartsInternalLibrary()
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -1117,7 +1490,7 @@ describe('CatalogSurface', () => {
     const externalPreviewItemId = itemPageRegion
       ?.querySelector('[data-catalog-source-page-link]')
       ?.getAttribute('data-catalog-source-page-link')
-    expect(externalPreviewItemId).toMatch(/^external:pubparts:3d-printed-gripples-/u)
+    expect(externalPreviewItemId).toBe('external:pubparts:part:https-www-printables-com-model-598759')
     const addToProjectButton = itemPageRegion?.querySelector(
       '[data-catalog-pubparts-add-to-project-action]',
     ) as HTMLButtonElement | null
@@ -1146,6 +1519,9 @@ describe('CatalogSurface', () => {
     expect(sourceOptionsDialog?.textContent).toContain(
       'Inspecting ZIP archive from the PubParts source',
     )
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Direct browser source fetch is being attempted',
+    )
     expect(fetchMock).toHaveBeenCalledWith(
       'https://www.dropbox.com/scl/fi/8y9sup2xbsc98hlq8hong/standard-gripples-for-onewheel-model_files.zip?rlkey=qw8jvfrcs5i4f4t7ukwu6y856&st=rp5mc7yj&dl=1',
     )
@@ -1172,6 +1548,8 @@ describe('CatalogSurface', () => {
       await fetchPromise
       await Promise.resolve()
       await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
     })
 
     expect(sourceOptionsDialog?.textContent).toContain('gripple_standard.stl')
@@ -1202,22 +1580,37 @@ describe('CatalogSurface', () => {
     expect(stagedZipEntryRows[0]?.textContent).toContain('Type: STL')
     expect(stagedZipEntryRows[0]?.textContent).toContain('Size: 41.7 KB')
     expect(stagedZipEntryRows[0]?.textContent).toContain('Support state: Supported')
-    expect(stagedZipEntryRows[0]?.textContent).toContain(
-      'Preview: In Import review after staging',
-    )
+    expect(stagedZipEntryRows[0]?.textContent).toContain('Preview: Ready before staging')
     expect(stagedZipEntryRows[0]?.textContent).toContain('Selected: Yes')
     expect(stagedZipEntryRows[1]?.textContent).toContain('Archive path: gripple_standard.3mf')
     expect(stagedZipEntryRows[1]?.textContent).toContain('Type: 3MF')
     expect(stagedZipEntryRows[1]?.textContent).toContain('Size: 27.9 KB')
     expect(stagedZipEntryRows[1]?.textContent).toContain('Support state: Unsupported')
-    expect(stagedZipEntryRows[1]?.textContent).toContain('Preview: Not available')
+    expect(stagedZipEntryRows[1]?.textContent).toContain(
+      'Preview: Unavailable: unsupported-file-type',
+    )
     expect(stagedZipEntryRows[1]?.textContent).toContain('Selected: No')
     expect(stagedZipEntryRows[2]?.textContent).toContain('Support state: Unsupported')
-    expect(stagedZipEntryRows[2]?.textContent).toContain('Preview: Not available')
+    expect(stagedZipEntryRows[2]?.textContent).toContain(
+      'Preview: Unavailable: unsupported-file-type',
+    )
     expect(stagedZipEntryRows[2]?.textContent).toContain('Size: 135.6 KB')
     expect(sourceOptionsDialog?.textContent).toContain(
       'ZIP inspected. 1 supported archive candidate selected for extraction into Import review',
     )
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Direct browser source fetch materialized archive bytes for the existing ZIP list/preview/select/stage path.',
+    )
+    const stagedRecord = Object.values(
+      readPubPartsDownloadsStorage(window.localStorage).stagedSourcesById,
+    )[0]
+    expect(stagedRecord).toBeDefined()
+    const internalLibraryCacheHit = await readPubPartsInternalLibraryArchiveCache(
+      stagedRecord!,
+      { storageManager },
+    )
+    expect(internalLibraryCacheHit?.entries).toHaveLength(3)
+    expect(internalLibraryCacheHit?.archiveBlob.size).toBe(archiveBlob.size)
     candidateCheckboxes = Array.from(
       sourceOptionsDialog?.querySelectorAll(
         '[data-catalog-pubparts-staged-zip-entry-checkbox]',
@@ -1285,6 +1678,151 @@ describe('CatalogSurface', () => {
       }),
     ])
     expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+  })
+
+  it('uses injected trusted provider ZIP bytes through the existing source-options archive path', async () => {
+    const { storageManager } = installFakePubPartsInternalLibrary()
+    const archiveBlob = await createFixtureZipBlob([
+      { path: 'provider/gripple_provider.stl', content: 'trusted provider stl bytes' },
+      { path: 'provider/gripple_notes.pdf', content: 'trusted provider pdf bytes' },
+    ])
+    const materializeArchiveBytes = vi.fn(async () => ({
+      status: 'materialized' as const,
+      archiveBlob,
+      sourceUrl: 'trusted-provider://fixture/gripples.zip',
+      contentHash: 'trusted-provider-fixture-hash',
+      materializedAt: '2026-04-21T17:22:15.000Z',
+      providerLabel: 'Fixture Trusted Provider',
+    }))
+    const fakeProvider: PubPartsTrustedSourceProvider = {
+      getCapability: () => ({
+        status: 'configured',
+        providerLabel: 'Fixture Trusted Provider',
+      }),
+      materializeArchiveBytes,
+    }
+    setPubPartsTrustedSourceProviderForTests(fakeProvider)
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-trusted-provider-success')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(materializeArchiveBytes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        explicitUserAction: 'add-to-project-source-options',
+      }),
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Trusted provider Fixture Trusted Provider materialized archive bytes for the existing ZIP list/preview/select/stage path.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain('provider/gripple_provider.stl')
+    expect(sourceOptionsDialog?.textContent).toContain('provider/gripple_notes.pdf')
+    expect(sourceOptionsDialog?.textContent).toContain('Preview: Ready before staging')
+
+    const stagedRecord = Object.values(
+      readPubPartsDownloadsStorage(window.localStorage).stagedSourcesById,
+    )[0]
+    expect(stagedRecord).toBeDefined()
+    const internalLibraryCacheHit = await readPubPartsInternalLibraryArchiveCache(
+      stagedRecord!,
+      { storageManager },
+    )
+    expect(internalLibraryCacheHit?.entries).toHaveLength(2)
+    expect(internalLibraryCacheHit?.archiveBlob.size).toBe(archiveBlob.size)
+
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(sourceOptionsDialog?.textContent).toContain(
+      '1 PubParts source file staged in Import review with PubParts attribution',
+    )
+    expect(openStagedImportDraftSpy).toHaveBeenCalledWith({})
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_provider.stl',
+        fileType: 'stl',
+        sourceAttribution: expect.objectContaining({
+          providerId: 'pubparts',
+          catalogItemLabel: '3d Printed Gripples',
+        }),
+      }),
+    ])
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps browser fetch and Upload ZIP fallback available when a trusted provider is blocked', async () => {
+    const materializeArchiveBytes = vi.fn(async () => ({
+      status: 'blocked-by-provider' as const,
+      providerLabel: 'Fixture Trusted Provider',
+      reason: 'Fixture trusted provider is blocked.',
+    }))
+    const fakeProvider: PubPartsTrustedSourceProvider = {
+      getCapability: () => ({
+        status: 'configured',
+        providerLabel: 'Fixture Trusted Provider',
+      }),
+      materializeArchiveBytes,
+    }
+    setPubPartsTrustedSourceProviderForTests(fakeProvider)
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-trusted-provider-blocked')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(materializeArchiveBytes).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'PubParts ZIP archive inspection failed. Use Download ZIP to open or save the archive, then upload that ZIP here.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Browser source fetch failed or was blocked; ParaHook has not materialized archive bytes from this source.',
+    )
+    const downloadZipLink = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-source-download-link]',
+    ) as HTMLAnchorElement | null
+    const chooseLocalZipButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-choose-local-zip]',
+    ) as HTMLButtonElement | null
+    expect(downloadZipLink?.textContent).toBe('Download ZIP')
+    expect(chooseLocalZipButton?.textContent).toBe('Upload ZIP')
+    expect(chooseLocalZipButton?.disabled).toBe(false)
   })
 
   it('uses cached ZIP manifests for repeat source-options opens and still refetches for extraction', async () => {
@@ -1393,6 +1931,85 @@ describe('CatalogSurface', () => {
         fileType: 'stl',
       }),
     ])
+  })
+
+  it('keeps metadata-only ZIP manifest rows unavailable for ZIP entry preview', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const archiveBlob = await createFixtureZipBlob([
+      { path: 'gripple_standard.stl', content: 'stl bytes' },
+      { path: 'gripple_standard.3mf', content: 'unsupported bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => archiveBlob,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await act(async () => {
+      root?.render(<CatalogSurface surfaceInstanceId="catalog-surface-preview-metadata-only" />)
+    })
+
+    const externalCard = Array.from(container?.querySelectorAll('.CatalogShellCard') ?? []).find(
+      (element) => element.textContent?.includes('3d Printed Gripples'),
+    ) as HTMLElement | undefined
+    expect(externalCard).toBeDefined()
+
+    await act(async () => {
+      externalCard?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+    })
+
+    const itemPageRegion = container?.querySelector(
+      '[data-catalog-region="item-page"]',
+    ) as HTMLDivElement | null
+    const addToProjectButton = itemPageRegion?.querySelector(
+      '[data-catalog-pubparts-add-to-project-action]',
+    ) as HTMLButtonElement | null
+    expect(addToProjectButton).not.toBeNull()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 20))
+    })
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain('gripple_standard.stl')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      closeButton?.click()
+    })
+
+    fetchMock.mockClear()
+    createObjectURLMock.mockClear()
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain('Loaded cached ZIP manifest')
+    expect(sourceOptionsDialog?.textContent).toContain('Preview: Unavailable: metadata-only')
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    expect(previewButton?.disabled).toBe(true)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(createObjectURLMock).not.toHaveBeenCalled()
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
   })
 
   it('ignores stale cached ZIP manifests when the source version changes', async () => {
@@ -1566,6 +2183,1236 @@ describe('CatalogSurface', () => {
     expect(addImportedReferenceSpy).not.toHaveBeenCalled()
   })
 
+  it('writes local ZIP upload bytes and manifest into the PubParts Internal Library after Upload ZIP', async () => {
+    const { storageManager } = installFakePubPartsInternalLibrary()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+      { path: 'manual_download/gripple_standard.pdf', content: 'local pdf bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    await renderCatalogSurface('catalog-surface-internal-library-upload-write')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Local ZIP inspected. 1 supported archive candidate selected for extraction into Import review.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain('Saved to the PubParts Internal Library.')
+
+    const stagedRecord = Object.values(
+      readPubPartsDownloadsStorage(window.localStorage).stagedSourcesById,
+    )[0]
+    expect(stagedRecord).toBeDefined()
+    const cacheHit = await readPubPartsInternalLibraryArchiveCache(stagedRecord!, {
+      storageManager,
+    })
+    expect(cacheHit?.entries).toEqual([
+      expect.objectContaining({
+        archivePath: 'manual_download/gripple_standard.stl',
+        fileName: 'gripple_standard.stl',
+        selectable: true,
+      }),
+      expect.objectContaining({
+        archivePath: 'manual_download/gripple_standard.pdf',
+        fileName: 'gripple_standard.pdf',
+        selectable: false,
+      }),
+    ])
+    expect(cacheHit?.archiveBlob.size).toBe(localArchiveBlob.size)
+    expect(cacheHit?.manifest.sourceFileName).toBe(
+      'standard-gripples-for-onewheel-model_files.zip',
+    )
+  })
+
+  it('shows reconnect-needed Local Library mirror status in Catalog browse and item-page surfaces', async () => {
+    writePubPartsDownloadsStorage({
+      ...readPubPartsDownloadsStorage(window.localStorage),
+      library: {
+        status: 'enabled',
+        rootLabel: 'Previous PubParts Library',
+        rootFolderPath: pubPartsLocalLibraryFolderPath,
+        updatedAt: '2026-04-21T15:26:20.000Z',
+      },
+    })
+
+    await renderCatalogSurface('catalog-surface-local-library-mirror-status')
+    const browseStatus = container?.querySelector(
+      '[data-catalog-pubparts-local-library-mirror-status="permission-needed"]',
+    ) as HTMLElement | null
+    expect(browseStatus?.textContent).toContain(
+      'Reconnect the Local Library folder before ParaHook can mirror visible files.',
+    )
+
+    const { itemPageRegion, externalPreviewItemId } = await openGrippleItemPage()
+    const itemPageStatus = itemPageRegion?.querySelector(
+      `[data-catalog-pubparts-local-library-mirror="${externalPreviewItemId}"]`,
+    ) as HTMLElement | null
+    expect(itemPageStatus?.textContent).toContain('permission-needed')
+    expect(itemPageStatus?.textContent).toContain(
+      'Reconnect the Local Library folder before ParaHook can mirror visible files.',
+    )
+  })
+
+  it('mirrors local ZIP upload and selected extraction to the connected Local Library without auto-importing', async () => {
+    const { storageManager } = installFakePubPartsInternalLibrary()
+    const localLibraryRoot = connectFakePubPartsLocalLibraryMirror()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+      { path: 'manual_download/gripple_standard.pdf', content: 'local pdf bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    await renderCatalogSurface('catalog-surface-local-library-mirror-upload')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Mirrored to the visible Local Library folder.',
+    )
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+
+    const stagedRecord = Object.values(
+      readPubPartsDownloadsStorage(window.localStorage).stagedSourcesById,
+    )[0]
+    expect(stagedRecord).toBeDefined()
+    let cacheHit = await readPubPartsInternalLibraryArchiveCache(stagedRecord!, {
+      storageManager,
+    })
+    expect(cacheHit).not.toBeNull()
+    expect(resolvePubPartsLocalLibraryMirrorPlan(cacheHit!.manifest).manifestPath).toContain(
+      'pubparts-source.json',
+    )
+    const mirroredPathsAfterUpload = localLibraryRoot.listFilePaths()
+    expect(mirroredPathsAfterUpload).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('pubparts-source.json'),
+        expect.stringContaining('standard-gripples-for-onewheel-model_files.zip'),
+      ]),
+    )
+
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    cacheHit = await readPubPartsInternalLibraryArchiveCache(stagedRecord!, {
+      storageManager,
+    })
+    expect(cacheHit?.manifest.extractedCandidates).toHaveLength(1)
+    const mirroredPathsAfterExtraction = localLibraryRoot.listFilePaths()
+    expect(mirroredPathsAfterExtraction).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('extracted/'),
+        expect.stringContaining('importable/'),
+      ]),
+    )
+    expect(openStagedImportDraftSpy).toHaveBeenCalledWith({})
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+      }),
+    ])
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps source-options staging usable when the Local Library mirror write fails', async () => {
+    installFakePubPartsInternalLibrary()
+    connectFakePubPartsLocalLibraryMirror(new FailingLocalLibraryDirectoryHandle())
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    await renderCatalogSurface('catalog-surface-local-library-mirror-write-fails')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Local Library mirror write failed; source options and Internal Library cache still work.',
+    )
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(openStagedImportDraftSpy).toHaveBeenCalledWith({})
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+      }),
+    ])
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+  })
+
+  it('mirrors local ZIP upload and selected extraction when OPFS Internal Library is unavailable', async () => {
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: undefined,
+    })
+    const localLibraryRoot = connectFakePubPartsLocalLibraryMirror()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    await renderCatalogSurface('catalog-surface-local-library-without-opfs')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain('Internal Library cache unavailable')
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Mirrored to the visible Local Library folder.',
+    )
+    expect(localLibraryRoot.listFilePaths()).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('pubparts-source.json'),
+        expect.stringContaining('standard-gripples-for-onewheel-model_files.zip'),
+      ]),
+    )
+
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(localLibraryRoot.listFilePaths()).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('extracted/'),
+        expect.stringContaining('importable/'),
+      ]),
+    )
+    expect(openStagedImportDraftSpy).toHaveBeenCalledWith({})
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+      }),
+    ])
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+  })
+
+  it('previews one supported ZIP entry from an uploaded PubParts ZIP without staging Import review', async () => {
+    installFakePubPartsInternalLibrary()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+      { path: 'manual_download/gripple_standard.pdf', content: 'local pdf bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    createObjectURLMock.mockReturnValueOnce('blob:uploaded-zip-entry-preview')
+    await renderCatalogSurface('catalog-surface-uploaded-zip-entry-preview')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const previewButtons = Array.from(
+      sourceOptionsDialog?.querySelectorAll('[data-catalog-pubparts-preview-zip-entry]') ?? [],
+    ) as HTMLButtonElement[]
+    expect(previewButtons).toHaveLength(2)
+    expect(previewButtons[0]?.textContent).toBe('Preview 3D')
+    expect(previewButtons[0]?.disabled).toBe(false)
+    expect(previewButtons[1]?.disabled).toBe(true)
+
+    fetchMock.mockClear()
+    await act(async () => {
+      previewButtons[0]?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+    expect(
+      sourceOptionsDialog?.querySelector(
+        '[data-catalog-preview-surface-kind="source-options"]',
+      ),
+    ).not.toBeNull()
+    expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob))
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not immediately revoke a successful uploaded ZIP entry preview object URL while ready', async () => {
+    installFakePubPartsInternalLibrary()
+    const previewObjectUrl = 'blob:uploaded-zip-entry-preview-stays-live'
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    createObjectURLMock.mockReturnValueOnce(previewObjectUrl)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-entry-preview-url-live')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    expect(previewButton?.disabled).toBe(false)
+
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+    expect(
+      sourceOptionsDialog?.querySelector(
+        '[data-catalog-preview-surface-kind="source-options"]',
+      ),
+    ).not.toBeNull()
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1)
+    expect(revokeObjectURLMock).not.toHaveBeenCalledWith(previewObjectUrl)
+  })
+
+  it('revokes ZIP entry preview object URLs when the preview selection changes', async () => {
+    installFakePubPartsInternalLibrary()
+    const firstPreviewUrl = 'blob:first-uploaded-zip-entry-preview'
+    const secondPreviewUrl = 'blob:second-uploaded-zip-entry-preview'
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'first local stl bytes' },
+      { path: 'manual_download/gripple_tall.stl', content: 'second local stl bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    createObjectURLMock
+      .mockReturnValueOnce(firstPreviewUrl)
+      .mockReturnValueOnce(secondPreviewUrl)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-preview-switch')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const previewButtons = Array.from(
+      sourceOptionsDialog?.querySelectorAll('[data-catalog-pubparts-preview-zip-entry]') ?? [],
+    ) as HTMLButtonElement[]
+    expect(previewButtons).toHaveLength(2)
+
+    await act(async () => {
+      previewButtons[0]?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+    expect(revokeObjectURLMock).not.toHaveBeenCalledWith(firstPreviewUrl)
+
+    await act(async () => {
+      previewButtons[1]?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain('Preview ready for gripple_tall.stl.')
+    expect(createObjectURLMock).toHaveBeenCalledTimes(2)
+    expect(revokeObjectURLMock).toHaveBeenCalledWith(firstPreviewUrl)
+    expect(revokeObjectURLMock).not.toHaveBeenCalledWith(secondPreviewUrl)
+  })
+
+  it('revokes ZIP entry preview object URLs when source options closes', async () => {
+    installFakePubPartsInternalLibrary()
+    const previewObjectUrl = 'blob:close-uploaded-zip-entry-preview'
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    createObjectURLMock.mockReturnValueOnce(previewObjectUrl)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-preview-close')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      closeButton?.click()
+    })
+
+    expect(container?.querySelector('[data-catalog-pubparts-source-options-dialog]')).toBeNull()
+    expect(revokeObjectURLMock).toHaveBeenCalledWith(previewObjectUrl)
+  })
+
+  it('clears and revokes ZIP entry preview when a different local ZIP replaces the archive blob', async () => {
+    installFakePubPartsInternalLibrary()
+    const previewObjectUrl = 'blob:replace-uploaded-zip-entry-preview'
+    const firstArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'first local stl bytes' },
+    ])
+    const replacementArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_replacement.stl', content: 'replacement stl bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    createObjectURLMock.mockReturnValueOnce(previewObjectUrl)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-preview-replace')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(firstArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+
+    await chooseLocalZipFile(
+      replacementArchiveBlob,
+      'standard-gripples-for-onewheel-model_files.zip',
+    )
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(revokeObjectURLMock).toHaveBeenCalledWith(previewObjectUrl)
+    expect(sourceOptionsDialog?.textContent).toContain('manual_download/gripple_replacement.stl')
+    expect(sourceOptionsDialog?.textContent).toContain(
+      '3D preview idle. Choose Preview 3D on a supported ZIP entry.',
+    )
+    expect(sourceOptionsDialog?.textContent).not.toContain('Preview ready for gripple_standard.stl.')
+  })
+
+  it('revokes ZIP entry preview object URLs when CatalogSurface unmounts', async () => {
+    installFakePubPartsInternalLibrary()
+    const previewObjectUrl = 'blob:unmount-uploaded-zip-entry-preview'
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    createObjectURLMock.mockReturnValueOnce(previewObjectUrl)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-preview-unmount')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    await act(async () => {
+      root?.unmount()
+    })
+    root = null
+
+    expect(revokeObjectURLMock).toHaveBeenCalledWith(previewObjectUrl)
+  })
+
+  it('surfaces a ZIP entry preview error when selected entry extraction fails', async () => {
+    const { rootDirectory } = installFakePubPartsInternalLibrary()
+    const cacheWriteStorageManager: PubPartsInternalLibraryStorageManager = {
+      getDirectory: async () => rootDirectory,
+    }
+    const mismatchedArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/other_entry.stl', content: 'other stl bytes' },
+    ])
+    const fetchMock = vi.fn(() => new Promise<Response>(() => undefined))
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-preview-extraction-error')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+    })
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const stagedRecord = Object.values(
+      readPubPartsDownloadsStorage(window.localStorage).stagedSourcesById,
+    )[0]
+    expect(stagedRecord).toBeDefined()
+    await writePubPartsInternalLibraryArchiveCache({
+      stagedRecord: stagedRecord!,
+      archiveBlob: mismatchedArchiveBlob,
+      entries: [
+        {
+          archivePath: 'manual_download/missing_entry.stl',
+          normalizedPath: 'manual_download/missing_entry.stl',
+          fileName: 'missing_entry.stl',
+          fileType: 'stl',
+          classification: 'supported',
+          supportState: 'import-supported',
+          description: 'Supported STL model.',
+          fileSizeBytes: 15,
+          isDirectory: false,
+          selectable: true,
+        },
+      ],
+      sourceFileName: 'standard-gripples-for-onewheel-model_files.zip',
+      env: { storageManager: cacheWriteStorageManager },
+    })
+
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      closeButton?.click()
+    })
+    fetchMock.mockClear()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Loaded PubParts Internal Library ZIP cache.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain('cached archive bytes')
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    expect(previewButton?.disabled).toBe(false)
+
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain('Preview failed for missing_entry.stl')
+    expect(createObjectURLMock).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+  })
+
+  it('previews a ZIP entry without selecting rows, staging Import review, or writing OPFS', async () => {
+    const { storageManager } = installFakePubPartsInternalLibrary()
+    const previewObjectUrl = 'blob:preview-without-selecting-or-staging'
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    createObjectURLMock.mockReturnValueOnce(previewObjectUrl)
+    await renderCatalogSurface('catalog-surface-uploaded-zip-preview-only-boundary')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const clearSelectionButton = Array.from(
+      sourceOptionsDialog?.querySelectorAll('.CatalogSourceOptionsAction') ?? [],
+    ).find((button) => button.textContent === 'Clear Selection') as HTMLButtonElement | undefined
+    await act(async () => {
+      clearSelectionButton?.click()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const storageCallsBeforePreview = vi.mocked(storageManager.getDirectory!).mock.calls.length
+    fetchMock.mockClear()
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    expect(stageSelectedButton?.disabled).toBe(true)
+    expect(previewButton?.disabled).toBe(false)
+    expect(sourceOptionsDialog?.textContent).toContain('Selected: No')
+
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const stageSelectedButtonAfterPreview = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain('Selected: No')
+    expect(stageSelectedButtonAfterPreview?.disabled).toBe(true)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(vi.mocked(storageManager.getDirectory!)).toHaveBeenCalledTimes(
+      storageCallsBeforePreview,
+    )
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+    expect(currentAppState.referenceWorkspace.importedReferenceOrder).toEqual([
+      'imported-reference-1',
+    ])
+  })
+
+  it('reopens source options from the PubParts Internal Library cache for the same source version', async () => {
+    installFakePubPartsInternalLibrary()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-internal-library-cache-reopen')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      closeButton?.click()
+    })
+
+    fetchMock.mockClear()
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Loaded PubParts Internal Library ZIP cache.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain('manual_download/gripple_standard.stl')
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(sourceOptionsDialog?.textContent).toContain(
+      '1 PubParts source file staged in Import review with PubParts attribution',
+    )
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+      }),
+    ])
+  })
+
+  it('previews one supported ZIP entry from an Internal Library cache hit without fetching Dropbox', async () => {
+    installFakePubPartsInternalLibrary()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-internal-library-preview')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      closeButton?.click()
+    })
+
+    fetchMock.mockClear()
+    createObjectURLMock.mockReturnValueOnce('blob:internal-library-zip-entry-preview')
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Loaded PubParts Internal Library ZIP cache.',
+    )
+    const previewButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-preview-zip-entry]',
+    ) as HTMLButtonElement | null
+    expect(previewButton?.disabled).toBe(false)
+
+    await act(async () => {
+      previewButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Preview ready for gripple_standard.stl.',
+    )
+    expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob))
+    expect(openStagedImportDraftSpy).not.toHaveBeenCalled()
+    expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
+  })
+
+  it('does not reopen source options when an Internal Library cache read resolves after the dialog closes', async () => {
+    const { rootDirectory, resolveGetDirectory } = installDelayedFakePubPartsInternalLibrary()
+    const cacheWriteStorageManager: PubPartsInternalLibraryStorageManager = {
+      getDirectory: async () => rootDirectory,
+    }
+    const archiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-internal-library-close-before-read')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+    })
+
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog).not.toBeNull()
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Inspecting ZIP archive from the PubParts source',
+    )
+
+    const stagedRecord = Object.values(
+      readPubPartsDownloadsStorage(window.localStorage).stagedSourcesById,
+    )[0]
+    expect(stagedRecord).toBeDefined()
+    await writePubPartsInternalLibraryArchiveCache({
+      stagedRecord: stagedRecord!,
+      archiveBlob,
+      entries: [
+        {
+          archivePath: 'manual_download/gripple_standard.stl',
+          normalizedPath: 'manual_download/gripple_standard.stl',
+          fileName: 'gripple_standard.stl',
+          fileType: 'stl',
+          classification: 'supported',
+          supportState: 'import-supported',
+          description: 'Supported STL model.',
+          fileSizeBytes: 15,
+          isDirectory: false,
+          selectable: true,
+        },
+      ],
+      sourceFileName: 'standard-gripples-for-onewheel-model_files.zip',
+      env: { storageManager: cacheWriteStorageManager },
+    })
+
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      closeButton?.click()
+      await Promise.resolve()
+    })
+    expect(container?.querySelector('[data-catalog-pubparts-source-options-dialog]')).toBeNull()
+
+    await act(async () => {
+      resolveGetDirectory()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the existing local ZIP upload path when the Internal Library cache is unavailable', async () => {
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+      }),
+    )
+    await renderCatalogSurface('catalog-surface-internal-library-unavailable-upload')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Local ZIP inspected. 1 supported archive candidate selected for extraction into Import review.',
+    )
+    expect(sourceOptionsDialog?.textContent).toContain('Internal Library cache unavailable')
+
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(sourceOptionsDialog?.textContent).toContain(
+      '1 PubParts source file staged in Import review with PubParts attribution',
+    )
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+      }),
+    ])
+  })
+
+  it('does not use stale Internal Library archive bytes when source freshness changes', async () => {
+    const { storageManager } = installFakePubPartsInternalLibrary()
+    const sourceUrl =
+      'https://www.dropbox.com/scl/fi/8y9sup2xbsc98hlq8hong/standard-gripples-for-onewheel-model_files.zip?rlkey=qw8jvfrcs5i4f4t7ukwu6y856&st=rp5mc7yj&dl=0'
+    const archiveBlob = await createFixtureZipBlob([
+      { path: 'gripple_standard.stl', content: 'stl bytes' },
+    ])
+    let resolveFetch: (response: Response) => void = () => undefined
+    const fetchPromise = new Promise<Response>((resolve) => {
+      resolveFetch = resolve
+    })
+    const fetchMock = vi.fn(() => fetchPromise)
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-internal-library-stale')
+    const { externalPreviewItemId, addToProjectButton } = await openGrippleItemPage()
+    await writePubPartsInternalLibraryArchiveCache({
+      stagedRecord: {
+        stagedSourceId: `pubparts:${externalPreviewItemId}`,
+        catalogItemId: externalPreviewItemId,
+        catalogItemLabel: '3d Printed Gripples',
+        providerId: 'pubparts',
+        providerName: 'PubParts',
+        sourceCandidateUrl: sourceUrl,
+        linkedArchiveUrl: sourceUrl,
+        sourcePageUrl: 'https://www.printables.com/model/598759',
+        sourceUrl: 'https://www.printables.com/model/598759',
+        archiveLastUpdated: 'stale-version',
+        sourceMetadata: [],
+        status: 'source-link-staged',
+        binaryStatus: 'not-downloaded',
+        inspectionStatus: 'not-inspected',
+        importStatus: 'not-imported',
+        stagedAt: '2026-04-21T00:00:00.000Z',
+        updatedAt: '2026-04-21T00:00:00.000Z',
+      },
+      archiveBlob: new Blob(['stale bytes'], { type: 'application/zip' }),
+      entries: [
+        {
+          archivePath: 'stale.stl',
+          normalizedPath: 'stale.stl',
+          fileName: 'stale.stl',
+          fileType: 'stl',
+          classification: 'supported',
+          supportState: 'import-supported',
+          description: 'Stale cached entry.',
+          fileSizeBytes: 1,
+          isDirectory: false,
+          selectable: true,
+        },
+      ],
+      env: { storageManager },
+    })
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Inspecting ZIP archive from the PubParts source',
+    )
+    expect(sourceOptionsDialog?.textContent).not.toContain('stale.stl')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveFetch({
+        ok: true,
+        status: 200,
+        blob: async () => archiveBlob,
+      } as Response)
+      await fetchPromise
+      await Promise.resolve()
+    })
+  })
+
+  it('stages selected cached archive entries through Import review without auto-committing project assets', async () => {
+    installFakePubPartsInternalLibrary()
+    const localArchiveBlob = await createFixtureZipBlob([
+      { path: 'manual_download/gripple_standard.stl', content: 'local stl bytes' },
+    ])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['not a zip'], { type: 'application/zip' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderCatalogSurface('catalog-surface-internal-library-cache-stage')
+    const { addToProjectButton } = await openGrippleItemPage()
+
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await chooseLocalZipFile(localArchiveBlob, 'standard-gripples-for-onewheel-model_files.zip')
+    let sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    const closeButton = sourceOptionsDialog?.querySelector(
+      '.CatalogSourceOptionsClose',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      closeButton?.click()
+    })
+
+    fetchMock.mockClear()
+    await act(async () => {
+      addToProjectButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    sourceOptionsDialog = container?.querySelector(
+      '[data-catalog-pubparts-source-options-dialog]',
+    ) as HTMLElement | null
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Loaded PubParts Internal Library ZIP cache.',
+    )
+    const stageSelectedButton = sourceOptionsDialog?.querySelector(
+      '[data-catalog-pubparts-stage-selected-source-options]',
+    ) as HTMLButtonElement | null
+    await act(async () => {
+      stageSelectedButton?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    })
+
+    expect(openStagedImportDraftSpy).toHaveBeenCalledWith({})
+    expect(appendStagedImportDraftFilesSpy).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fileName: 'gripple_standard.stl',
+        fileType: 'stl',
+        sourceAttribution: expect.objectContaining({
+          providerId: 'pubparts',
+          catalogItemLabel: '3d Printed Gripples',
+        }),
+      }),
+    ])
+    expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('falls back to browser-honest ZIP download and upload guidance when ZIP inspection fails', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -1636,6 +3483,9 @@ describe('CatalogSurface', () => {
     expect(sourceOptionsDialog?.textContent).toContain(
       'PubParts ZIP archive inspection failed. Use Download ZIP to open or save the archive, then upload that ZIP here.',
     )
+    expect(sourceOptionsDialog?.textContent).toContain(
+      'Browser source fetch failed or was blocked; ParaHook has not materialized archive bytes from this source.',
+    )
     expect(sourceOptionsDialog?.textContent).toContain('Archive Needs Inspection')
     const downloadZipLink = sourceOptionsDialog?.querySelector(
       '[data-catalog-pubparts-source-download-link]',
@@ -1665,26 +3515,34 @@ describe('CatalogSurface', () => {
     expect(appendStagedImportDraftFilesSpy).not.toHaveBeenCalled()
     expect(addImportedReferenceSpy).not.toHaveBeenCalled()
 
+    const localZipDropZone = container?.querySelector(
+      '[data-catalog-pubparts-local-zip-drop-zone]',
+    ) as HTMLElement | null
+    expect(localZipDropZone).not.toBeNull()
+    const droppedZipFile = new File(
+      [localArchiveBlob],
+      'standard-gripples-for-onewheel-model_files.zip',
+      {
+        type: 'application/zip',
+      },
+    )
+
     await act(async () => {
-      chooseLocalZipButton?.click()
+      const dragOverEvent = new Event('dragover', { bubbles: true, cancelable: true })
+      Object.defineProperty(dragOverEvent, 'dataTransfer', {
+        value: { files: [droppedZipFile], dropEffect: 'none' },
+      })
+      localZipDropZone?.dispatchEvent(dragOverEvent)
       await Promise.resolve()
     })
-
-    const localZipInput = document.body.querySelector(
-      'input[type="file"][accept=".zip,application/zip"]',
-    ) as HTMLInputElement | null
-    expect(localZipInput).not.toBeNull()
-    Object.defineProperty(localZipInput, 'files', {
-      configurable: true,
-      value: [
-        new File([localArchiveBlob], 'standard-gripples-for-onewheel-model_files.zip', {
-          type: 'application/zip',
-        }),
-      ],
-    })
+    expect(localZipDropZone?.classList.contains('isLocalArchiveDragActive')).toBe(true)
 
     await act(async () => {
-      localZipInput?.dispatchEvent(new Event('change'))
+      const dropEvent = new Event('drop', { bubbles: true, cancelable: true })
+      Object.defineProperty(dropEvent, 'dataTransfer', {
+        value: { files: [droppedZipFile], dropEffect: 'none' },
+      })
+      localZipDropZone?.dispatchEvent(dropEvent)
       await Promise.resolve()
       await Promise.resolve()
       await Promise.resolve()
@@ -1695,7 +3553,7 @@ describe('CatalogSurface', () => {
     expect(sourceOptionsDialog?.textContent).toContain('manual_download/reference_folder/')
     expect(sourceOptionsDialog?.textContent).toContain('__MACOSX/._gripple_standard.stl')
     expect(sourceOptionsDialog?.textContent).toContain(
-      'Local ZIP inspected. 4 supported archive candidates selected for extraction into Import review',
+      'Dropped ZIP inspected. 4 supported archive candidates selected for extraction into Import review',
     )
     expect(sourceOptionsDialog?.textContent).toContain('Provider: PubParts')
     expect(sourceOptionsDialog?.textContent).toContain(
@@ -1723,51 +3581,51 @@ describe('CatalogSurface', () => {
     expect(localStagedRows[0]?.textContent).toContain('Type: STL')
     expect(localStagedRows[0]?.textContent).toContain('Size: 15 bytes')
     expect(localStagedRows[0]?.textContent).toContain('Support state: Supported')
-    expect(localStagedRows[0]?.textContent).toContain(
-      'Preview: In Import review after staging',
-    )
+    expect(localStagedRows[0]?.textContent).toContain('Preview: Ready before staging')
     expect(localStagedRows[0]?.textContent).toContain('Selected: Yes')
     expect(localStagedRows[1]?.textContent).toContain(
       'Archive path: manual_download/gripple_body.obj',
     )
     expect(localStagedRows[1]?.textContent).toContain('Support state: Supported')
-    expect(localStagedRows[1]?.textContent).toContain(
-      'Preview: In Import review after staging',
-    )
+    expect(localStagedRows[1]?.textContent).toContain('Preview: Ready before staging')
     expect(localStagedRows[1]?.textContent).toContain('Selected: Yes')
     expect(localStagedRows[2]?.textContent).toContain(
       'Archive path: manual_download/gripple_preview.glb',
     )
     expect(localStagedRows[2]?.textContent).toContain('Support state: Supported')
-    expect(localStagedRows[2]?.textContent).toContain(
-      'Preview: In Import review after staging',
-    )
+    expect(localStagedRows[2]?.textContent).toContain('Preview: Ready before staging')
     expect(localStagedRows[2]?.textContent).toContain('Selected: Yes')
     expect(localStagedRows[3]?.textContent).toContain(
       'Archive path: manual_download/gripple_bracket.step',
     )
     expect(localStagedRows[3]?.textContent).toContain('Support state: Supported')
-    expect(localStagedRows[3]?.textContent).toContain(
-      'Preview: In Import review after staging',
-    )
+    expect(localStagedRows[3]?.textContent).toContain('Preview: Ready before staging')
     expect(localStagedRows[3]?.textContent).toContain('Selected: Yes')
     expect(localStagedRows[4]?.textContent).toContain(
       'Archive path: manual_download/gripple_bracket.stp',
     )
     expect(localStagedRows[4]?.textContent).toContain('Support state: Unsupported')
-    expect(localStagedRows[4]?.textContent).toContain('Preview: Not available')
+    expect(localStagedRows[4]?.textContent).toContain(
+      'Preview: Unavailable: unsupported-file-type',
+    )
     expect(localStagedRows[4]?.textContent).toContain('Selected: No')
     expect(localStagedRows[5]?.textContent).toContain(
       'Archive path: manual_download/gripple_standard.pdf',
     )
     expect(localStagedRows[5]?.textContent).toContain('Support state: Unsupported')
-    expect(localStagedRows[5]?.textContent).toContain('Preview: Not available')
+    expect(localStagedRows[5]?.textContent).toContain(
+      'Preview: Unavailable: unsupported-file-type',
+    )
     expect(localStagedRows[5]?.textContent).toContain('Selected: No')
     expect(localStagedRows[6]?.textContent).toContain('Support state: Directory')
-    expect(localStagedRows[6]?.textContent).toContain('Preview: Not available')
+    expect(localStagedRows[6]?.textContent).toContain(
+      'Preview: Unavailable: directory-archive-entry',
+    )
     expect(localStagedRows[6]?.textContent).toContain('Blocked reason: Directory')
     expect(localStagedRows[7]?.textContent).toContain('Support state: Hidden/system path')
-    expect(localStagedRows[7]?.textContent).toContain('Preview: Not available')
+    expect(localStagedRows[7]?.textContent).toContain(
+      'Preview: Unavailable: unsafe-archive-entry',
+    )
     expect(localStagedRows[7]?.textContent).toContain('Blocked reason: Hidden/system path')
     const localCandidateCheckboxes = Array.from(
       sourceOptionsDialog?.querySelectorAll(
@@ -2535,6 +4393,18 @@ describe('CatalogSurface', () => {
       applyEnvironmentButton?.click()
     })
 
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Change environment look',
+        source: {
+          surface: 'viewer-environment',
+          sourceId: 'environment-look',
+          sourceLabel: 'Environment Look',
+        },
+        targetId: 'environment-source:catalog',
+        targetLabel: 'Studio Small 09 2K HDR',
+      },
+    ])
     expect(useUiPrefsStore.getState().view.environmentSource).toEqual(
       expect.objectContaining({
         kind: 'hdri',
@@ -2545,6 +4415,18 @@ describe('CatalogSurface', () => {
       }),
     )
     expect(addImportedReferenceSpy).not.toHaveBeenCalled()
+    expect(currentAppState.referenceWorkspace.importedReferenceOrder).toEqual([
+      'imported-reference-1',
+    ])
+
+    let undoLabel: string | undefined
+    await act(async () => {
+      undoLabel = editHistoryStore.undo()?.label
+    })
+    expect(undoLabel).toBe('Change environment look')
+    expect(useUiPrefsStore.getState().view.environmentSource).toEqual(
+      DEFAULT_VIEW_SETTINGS.environmentSource,
+    )
     expect(currentAppState.referenceWorkspace.importedReferenceOrder).toEqual([
       'imported-reference-1',
     ])

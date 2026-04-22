@@ -257,6 +257,44 @@ describe('ParaSlider', () => {
     expect(handleChange).not.toHaveBeenCalled()
   })
 
+  it('commits Home and End keyboard value changes once', async () => {
+    const handleChange = vi.fn()
+    const handleChangeEnd = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSlider
+          label="Exposure"
+          min={0}
+          max={5}
+          step={0.01}
+          value={1.23}
+          onChange={handleChange}
+          onChangeEnd={handleChangeEnd}
+        />,
+      )
+    })
+
+    const track = container.querySelector('.ParaSliderTrack') as HTMLDivElement | null
+    expect(track).not.toBeNull()
+
+    await act(async () => {
+      track?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }))
+    })
+    await act(async () => {
+      track?.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }))
+    })
+
+    expect(handleChange).toHaveBeenNthCalledWith(1, 0)
+    expect(handleChangeEnd).toHaveBeenNthCalledWith(1, 0)
+    expect(handleChange).toHaveBeenNthCalledWith(2, 5)
+    expect(handleChangeEnd).toHaveBeenNthCalledWith(2, 5)
+    expect(handleChangeEnd).toHaveBeenCalledTimes(2)
+  })
+
   it('uses 10x finer sensitivity and step quantization while shift-dragging the value', async () => {
     const handleChange = vi.fn()
     container = document.createElement('div')

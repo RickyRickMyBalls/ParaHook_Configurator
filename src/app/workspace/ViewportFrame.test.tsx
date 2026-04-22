@@ -201,6 +201,7 @@ describe('ViewportFrame', () => {
     expect(container?.textContent).toContain('Spaghetti Editor')
     expect(container?.textContent).toContain('Notepad')
     expect(container?.textContent).toContain('Dashboard')
+    expect(container?.textContent).toContain('Edit History')
   })
 
   it('enables every primary-slot target in the viewport type submenu', async () => {
@@ -239,6 +240,7 @@ describe('ViewportFrame', () => {
     const notepadButton = typeButtons.find((button) => button.textContent?.trim() === 'Notepad')
     const dashboardButton = typeButtons.find((button) => button.textContent?.trim() === 'Dashboard')
     const homePageButton = typeButtons.find((button) => button.textContent?.trim() === 'Home Page')
+    const editHistoryButton = typeButtons.find((button) => button.textContent?.trim() === 'Edit History')
 
     expect(modelViewerButton).toBeDefined()
     expect(modelViewerButton?.disabled).toBe(false)
@@ -256,6 +258,8 @@ describe('ViewportFrame', () => {
     expect(dashboardButton?.disabled).toBe(false)
     expect(homePageButton).toBeDefined()
     expect(homePageButton?.disabled).toBe(false)
+    expect(editHistoryButton).toBeDefined()
+    expect(editHistoryButton?.disabled).toBe(false)
   })
 
   it('calls the primary-slot browser type action from the titlebar submenu', async () => {
@@ -344,6 +348,7 @@ describe('ViewportFrame', () => {
     ['Notepad', 'notepad'],
     ['Dashboard', 'dashboard'],
     ['Home Page', 'homePage'],
+    ['Edit History', 'editHistory'],
   ] as const)(
     'calls the primary-slot %s type action from the titlebar submenu',
     async (buttonLabel, expectedSurfaceKind) => {
@@ -420,6 +425,31 @@ describe('ViewportFrame', () => {
 
     expect(onRequestSurfaceKind).toHaveBeenCalledWith('console')
     expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it('includes edit history in the default viewport type picker', async () => {
+    const onRequestSurfaceKind = vi.fn()
+    await renderFrame({ onRequestSurfaceKind })
+
+    const modeButton = container?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const editHistoryButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Edit History') as HTMLButtonElement | undefined
+
+    expect(editHistoryButton).not.toBeUndefined()
+    expect(editHistoryButton?.disabled).toBe(false)
+
+    await act(async () => {
+      editHistoryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onRequestSurfaceKind).toHaveBeenCalledWith('editHistory')
+    expect(container?.querySelector('.ViewportFrameTypePicker')).toBeNull()
   })
 
   it('calls the close action from the viewport titlebar menu', async () => {
