@@ -94,6 +94,15 @@ const makePromptDeps = (overrides: Record<string, unknown> = {}) => {
           selections: { contentObjectId: objectId },
         }),
       ),
+    createActiveEnvironmentLightTransformRootSession:
+      (overrides.createActiveEnvironmentLightTransformRootSession as any) ??
+      vi.fn((lightId: string) =>
+        makeSession({
+          scopeId: 'contentObjectTransformRoot',
+          breadcrumb: ['Root', 'Environment', 'Viewer Transform'],
+          selections: { environmentLightId: lightId },
+        }),
+      ),
     createActiveReferenceTransformRootSession:
       (overrides.createActiveReferenceTransformRootSession as any) ??
       vi.fn((referenceId: string) =>
@@ -105,6 +114,8 @@ const makePromptDeps = (overrides: Record<string, unknown> = {}) => {
       ),
     deleteLatestContentObjectTransformEntry:
       (overrides.deleteLatestContentObjectTransformEntry as any) ?? vi.fn(() => null),
+    deleteLatestEnvironmentLightTransformEntry:
+      (overrides.deleteLatestEnvironmentLightTransformEntry as any) ?? vi.fn(() => null),
     deleteLatestReferenceTransformEntry:
       (overrides.deleteLatestReferenceTransformEntry as any) ?? vi.fn(() => null),
     getActiveFeatureAssistDescriptor:
@@ -136,8 +147,10 @@ const makeExecuteDeps = (overrides: Record<string, unknown> = {}) => {
       referenceWorkspace: {
         activeReferenceTransformSession: null,
         activeContentObjectTransformSession: null,
+        activeEnvironmentLightTransformSession: null,
         transformHistoryByReferenceId: {},
         transformHistoryByObjectId: {},
+        transformHistoryByEnvironmentLightId: {},
         transformSnapByReferenceId: {},
         transformSnapByObjectId: {},
       },
@@ -179,6 +192,15 @@ const makeExecuteDeps = (overrides: Record<string, unknown> = {}) => {
           selections: { contentObjectId: objectId },
         }),
       ),
+    createActiveEnvironmentLightTransformRootSession:
+      (overrides.createActiveEnvironmentLightTransformRootSession as any) ??
+      vi.fn((lightId: string) =>
+        makeSession({
+          scopeId: 'contentObjectTransformRoot',
+          breadcrumb: ['Root', 'Environment', 'Viewer Transform'],
+          selections: { environmentLightId: lightId },
+        }),
+      ),
     createActiveContentObjectTransformSnapSession:
       (overrides.createActiveContentObjectTransformSnapSession as any) ??
       vi.fn((objectId: string, mode: string) =>
@@ -213,6 +235,8 @@ const makeExecuteDeps = (overrides: Record<string, unknown> = {}) => {
       ),
     deleteLatestContentObjectTransformEntry:
       (overrides.deleteLatestContentObjectTransformEntry as any) ?? vi.fn(() => null),
+    deleteLatestEnvironmentLightTransformEntry:
+      (overrides.deleteLatestEnvironmentLightTransformEntry as any) ?? vi.fn(() => null),
     deleteLatestReferenceTransformEntry:
       (overrides.deleteLatestReferenceTransformEntry as any) ?? vi.fn(() => null),
     getActiveFeatureAssistDescriptor:
@@ -1150,6 +1174,220 @@ describe('consoleReferenceContentCommands', () => {
       }),
     )
     expect(deps.requestRadioBurst).toHaveBeenCalledWith('cmd-test', 'enter')
+  })
+
+  it('arms environment light move through the extracted execute helper', async () => {
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    useUiPrefsStore.setState((state) => ({
+      ...state,
+      view: {
+        ...state.view,
+        lighting: {
+          ...state.view.lighting,
+          lights: [
+            {
+              id: 'light-key',
+              name: 'Key',
+              type: 'point',
+              enabled: true,
+              color: '#ffffff',
+              intensity: 1,
+              position: { x: 0, y: 10, z: 0 },
+            },
+          ],
+        },
+      },
+    }))
+
+    const viewer = {
+      activateTranslateCenterHandle: vi.fn(),
+      setViewerTransformSession: vi.fn(),
+    }
+    const appState = {
+      referenceWorkspace: {
+        activeEnvironmentLightTransformSession: null as any,
+      },
+      workspaceSelection: {
+        selectedTarget: { kind: 'environment-light', lightId: 'light-key' },
+      },
+      beginViewerTransformShell: vi.fn((target: { lightId: string }) => {
+        appState.referenceWorkspace.activeEnvironmentLightTransformSession = {
+          lightId: target.lightId,
+          entryActive: false,
+          mode: 'translate',
+          space: 'world',
+          entryOrigin: null,
+          draftTransform: null,
+        }
+      }),
+      beginActiveViewerTransformEntry: vi.fn((mode: string) => {
+        appState.referenceWorkspace.activeEnvironmentLightTransformSession = {
+          lightId: 'light-key',
+          entryActive: true,
+          mode,
+          space: 'world',
+          entryOrigin: null,
+          draftTransform: null,
+        }
+      }),
+    }
+    const deps = makeExecuteDeps({
+      appState,
+      getViewer: vi.fn(() => viewer),
+    })
+    const stagedSession = makeSession({
+      scopeId: 'contentObjectTransformRoot',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Viewer Transform'],
+      selections: { environmentLightId: 'light-key' },
+      validChoices: [{ label: 'Move' }],
+    })
+
+    const handled = commands.tryHandleReferenceContentExecuteAction({
+      activeReferenceSession: deps.activeReferenceSession,
+      appendConsoleEntry: deps.appendConsoleEntry,
+      buildFeatureAssistPromptText: deps.buildFeatureAssistPromptText,
+      commandIdentity: deps.commandIdentity,
+      createActiveContentObjectTransformRootSession:
+        deps.createActiveContentObjectTransformRootSession,
+      createActiveContentObjectTransformSnapSession:
+        deps.createActiveContentObjectTransformSnapSession,
+      createActiveReferenceTransformRootSession:
+        deps.createActiveReferenceTransformRootSession,
+      createActiveReferenceTransformSnapSession:
+        deps.createActiveReferenceTransformSnapSession,
+      createDeleteLatestTransformConfirmPromptSession:
+        deps.createDeleteLatestTransformConfirmPromptSession,
+      deleteLatestContentObjectTransformEntry:
+        deps.deleteLatestContentObjectTransformEntry,
+      deleteLatestReferenceTransformEntry:
+        deps.deleteLatestReferenceTransformEntry,
+      getActiveFeatureAssistDescriptor: deps.getActiveFeatureAssistDescriptor,
+      getAppState: deps.getAppState,
+      getSpaghettiState: deps.getSpaghettiState,
+      getStagedNavigationSession: deps.getStagedNavigationSession,
+      getViewer: deps.getViewer,
+      inputText: 'move',
+      requestRadioBurst: deps.requestRadioBurst,
+      setConsolePromptSession: deps.setConsolePromptSession,
+      setStagedNavigationSession: deps.setStagedNavigationSession,
+      stagedResult: {
+        actionId: 'content.transform.move',
+        breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Viewer Transform', 'Move'],
+        session: stagedSession,
+        selections: { environmentLightId: 'light-key' },
+      } as any,
+    })
+
+    expect(handled).toBe(true)
+    expect(appState.beginViewerTransformShell).toHaveBeenCalledWith({
+      kind: 'environment-light',
+      lightId: 'light-key',
+    })
+    expect(appState.beginActiveViewerTransformEntry).toHaveBeenCalledWith('translate')
+    expect(appState.referenceWorkspace.activeEnvironmentLightTransformSession).toMatchObject({
+      lightId: 'light-key',
+      entryActive: true,
+      mode: 'translate',
+    })
+    expect(viewer.setViewerTransformSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetKind: 'environment-light',
+        targetId: 'light-key',
+        mode: 'translate',
+      }),
+    )
+    expect(viewer.activateTranslateCenterHandle).toHaveBeenCalledOnce()
+    expect(deps.entries).toContainEqual(
+      expect.objectContaining({
+        layer: 'Transforms',
+        text: 'Move armed',
+      }),
+    )
+  })
+
+  it('warns when moving a non-positional environment light', async () => {
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    useUiPrefsStore.setState((state) => ({
+      ...state,
+      view: {
+        ...state.view,
+        lighting: {
+          ...state.view.lighting,
+          lights: [
+            {
+              id: 'light-fill',
+              name: 'Fill',
+              type: 'hemisphere',
+              enabled: true,
+              color: '#ffffff',
+              intensity: 1,
+            },
+          ],
+        },
+      },
+    }))
+
+    const appState = {
+      referenceWorkspace: {
+        activeEnvironmentLightTransformSession: null as any,
+      },
+      workspaceSelection: {
+        selectedTarget: { kind: 'environment-light', lightId: 'light-fill' },
+      },
+      beginViewerTransformShell: vi.fn(),
+      beginActiveViewerTransformEntry: vi.fn(),
+    }
+    const deps = makeExecuteDeps({ appState })
+
+    const handled = commands.tryHandleReferenceContentExecuteAction({
+      activeReferenceSession: deps.activeReferenceSession,
+      appendConsoleEntry: deps.appendConsoleEntry,
+      buildFeatureAssistPromptText: deps.buildFeatureAssistPromptText,
+      commandIdentity: deps.commandIdentity,
+      createActiveContentObjectTransformRootSession:
+        deps.createActiveContentObjectTransformRootSession,
+      createActiveContentObjectTransformSnapSession:
+        deps.createActiveContentObjectTransformSnapSession,
+      createActiveReferenceTransformRootSession:
+        deps.createActiveReferenceTransformRootSession,
+      createActiveReferenceTransformSnapSession:
+        deps.createActiveReferenceTransformSnapSession,
+      createDeleteLatestTransformConfirmPromptSession:
+        deps.createDeleteLatestTransformConfirmPromptSession,
+      deleteLatestContentObjectTransformEntry:
+        deps.deleteLatestContentObjectTransformEntry,
+      deleteLatestReferenceTransformEntry:
+        deps.deleteLatestReferenceTransformEntry,
+      getActiveFeatureAssistDescriptor: deps.getActiveFeatureAssistDescriptor,
+      getAppState: deps.getAppState,
+      getSpaghettiState: deps.getSpaghettiState,
+      getStagedNavigationSession: deps.getStagedNavigationSession,
+      getViewer: deps.getViewer,
+      inputText: 'move',
+      requestRadioBurst: deps.requestRadioBurst,
+      setConsolePromptSession: deps.setConsolePromptSession,
+      setStagedNavigationSession: deps.setStagedNavigationSession,
+      stagedResult: {
+        actionId: 'content.transform.move',
+        breadcrumb: ['Select', 'Content', 'Environment', 'Fill', 'Viewer Transform', 'Move'],
+        session: makeSession({
+          scopeId: 'contentObjectTransformRoot',
+          selections: { environmentLightId: 'light-fill' },
+        }),
+        selections: { environmentLightId: 'light-fill' },
+      } as any,
+    })
+
+    expect(handled).toBe(true)
+    expect(appState.beginViewerTransformShell).not.toHaveBeenCalled()
+    expect(appState.beginActiveViewerTransformEntry).not.toHaveBeenCalled()
+    expect(deps.entries).toContainEqual(
+      expect.objectContaining({
+        layer: 'Transforms',
+        text: 'Viewer Transform is only available for positional environment lights',
+        severity: 'warn',
+      }),
+    )
   })
 
   it('handles the reference-transform root delete shortcut through the extracted helper', () => {

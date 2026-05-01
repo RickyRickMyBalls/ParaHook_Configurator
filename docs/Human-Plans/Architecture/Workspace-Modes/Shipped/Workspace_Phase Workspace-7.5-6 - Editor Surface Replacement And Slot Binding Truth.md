@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-30 20:14:30: Closed `Workspace 7.5-6` as shipped after changelog entries `[859]` and `[860]` confirmed destructive replace when leaving `Spaghetti Editor` and constructive bind when entering it had both landed; prepared this record to move from `Future/` to `Shipped/`.
 1. 2026-04-01 16:45: Closed `Workspace 7.5-6` after the final manual confidence pass came back clean, marking `Phase 3 - Final Replacement Confidence` complete and recording that the shipped replace-versus-preserve behavior now feels honest enough across the tested slot-switch flows to end this follow-on without adding another residue implementation slice
 1. 2026-04-01 16:42: Added a dedicated `Phase 3 - Final Replacement Confidence` question block so the close-out slice now has its own unresolved decisions around which host paths must obey the same replace-versus-preserve rules, when a last bug still belongs inside `7.5-6` versus a new follow-on phase, and what exact closure evidence is required before marking the workspace replacement cleanup complete
 1. 2026-04-01 16:38: Implemented `Phase 2 - Constructive Bind When Entering Editor`, locking the switch-to-editor answers around valid same-slot retained editor reuse versus opening a new editor, then updating the shared slot-switch seam so `Browser -> Spaghetti Editor` no longer lands on a blank shell, stale retained ids are ignored, and switching another slot to editor opens a fresh viewport instead of stealing an already-visible one

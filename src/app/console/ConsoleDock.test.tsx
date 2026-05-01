@@ -6166,7 +6166,8 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some(
           (entry) =>
-            entry.text === 'Content > Choose next [ViewTransform, Move, Rotate, Scale, Zoom, Back]',
+            entry.text ===
+              'Content > Choose next [ViewTransform, Move, Rotate, Scale, ZoomObject, Zoom, Back]',
         ),
     ).toBe(true)
     expect(useConsoleStore.getState().inputText).toBe('ViewTransform')
@@ -11850,7 +11851,8 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some(
           (entry) =>
-            entry.text === 'Content > Choose next [ViewTransform, Move, Rotate, Scale, Zoom, Back]',
+            entry.text ===
+              'Content > Choose next [ViewTransform, Move, Rotate, Scale, ZoomObject, Zoom, Back]',
         ),
     ).toBe(true)
 
@@ -12457,7 +12459,7 @@ describe('ConsoleDock', () => {
     )
   })
 
-  it('frames a selected environment light from Console Zoom Object without using selectedPartKey', async () => {
+  it('frames a selected environment light directly from Console Zoom without using selectedPartKey', async () => {
     const viewerFrameEnvironmentLight = vi.fn(() => true)
     const viewerFrameSelected = vi.fn()
     setViewer({
@@ -12514,16 +12516,6 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       useConsoleStore.getState().setInputText('z')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('object')
     })
 
     await act(async () => {

@@ -6,6 +6,13 @@ export type EditHistorySourceMetadata = {
   sourceLabel?: string
 }
 
+export type EditHistoryEntryChildSummary = {
+  childId: string
+  label: string
+  kind: string | null
+  sequence: number
+}
+
 export type EditHistoryEntry = {
   entryId: string
   label: string
@@ -16,8 +23,28 @@ export type EditHistoryEntry = {
   transactionId?: string
   coalesceKey?: string
   isNoop?: boolean
+  childSummaries?: readonly EditHistoryEntryChildSummary[]
   undo: EditHistoryOperation
   redo: EditHistoryOperation
+}
+
+export type EditHistorySnapshotLogAction = 'commit' | 'undo' | 'redo'
+
+export type EditHistorySnapshotLogEntry = {
+  logId: string
+  sequence: number
+  action: EditHistorySnapshotLogAction
+  entryId: string
+  label: string
+  source: EditHistorySourceMetadata
+  targetId?: string
+  targetLabel?: string
+  timestamp: string
+  entryTimestamp: string | null
+  transactionId?: string
+  coalesceKey?: string
+  undoDepth: number
+  redoDepth: number
 }
 
 export type EditHistoryTransactionValues<TValue> = {
@@ -55,6 +82,7 @@ export type EditHistoryActiveTransaction = EditHistoryTransactionValues<unknown>
 export type EditHistorySnapshot = {
   undoEntries: EditHistoryEntry[]
   redoEntries: EditHistoryEntry[]
+  snapshotLog: EditHistorySnapshotLogEntry[]
   activeTransaction: EditHistoryActiveTransaction | null
   canUndo: boolean
   canRedo: boolean
@@ -82,6 +110,7 @@ export type EditHistoryOwner = {
   canRedo: () => boolean
   getUndoEntries: () => EditHistoryEntry[]
   getRedoEntries: () => EditHistoryEntry[]
+  getSnapshotLog: () => EditHistorySnapshotLogEntry[]
   getActiveTransaction: () => EditHistoryActiveTransaction | null
   getSnapshot: () => EditHistorySnapshot
   subscribe: (listener: () => void) => () => void
@@ -97,17 +126,59 @@ const areTransactionValuesStrictlyEqual = (
   currentValue: unknown,
 ): boolean => Object.is(initialValue, currentValue)
 
-const withEntryTimestamp = (entry: EditHistoryEntry): EditHistoryEntry => ({
-  ...entry,
-  timestamp: entry.timestamp ?? new Date().toISOString(),
-})
+const cloneEntryChildSummaries = (
+  childSummaries: readonly EditHistoryEntryChildSummary[] | undefined,
+): readonly EditHistoryEntryChildSummary[] | undefined => {
+  if (childSummaries === undefined) {
+    return undefined
+  }
+
+  return Object.freeze(childSummaries.map((summary) => ({ ...summary })))
+}
+
+const withEntryTimestamp = (entry: EditHistoryEntry): EditHistoryEntry => {
+  const childSummaries = cloneEntryChildSummaries(entry.childSummaries)
+  return {
+    ...entry,
+    ...(childSummaries === undefined ? {} : { childSummaries }),
+    timestamp: entry.timestamp ?? new Date().toISOString(),
+  }
+}
 
 export const createEditHistoryStore = (): EditHistoryOwner => {
   let undoEntries: EditHistoryEntry[] = []
   let redoEntries: EditHistoryEntry[] = []
+  let snapshotLog: EditHistorySnapshotLogEntry[] = []
   let activeTransaction: InternalEditHistoryTransaction | null = null
   const listeners = new Set<() => void>()
   let cachedSnapshot: EditHistorySnapshot | null = null
+
+  const recordSnapshotLogEntry = (
+    action: EditHistorySnapshotLogAction,
+    entry: EditHistoryEntry,
+  ): void => {
+    const timestamp = new Date().toISOString()
+    const sequence = snapshotLog.length + 1
+    snapshotLog = [
+      ...snapshotLog,
+      {
+        logId: `${sequence}:${action}:${entry.entryId}:${timestamp}`,
+        sequence,
+        action,
+        entryId: entry.entryId,
+        label: entry.label,
+        source: entry.source,
+        targetId: entry.targetId,
+        targetLabel: entry.targetLabel,
+        timestamp,
+        entryTimestamp: entry.timestamp ?? null,
+        transactionId: entry.transactionId,
+        coalesceKey: entry.coalesceKey,
+        undoDepth: undoEntries.length,
+        redoDepth: redoEntries.length,
+      },
+    ]
+  }
 
   const emitChange = (): void => {
     cachedSnapshot = null
@@ -137,6 +208,7 @@ export const createEditHistoryStore = (): EditHistoryOwner => {
       cachedSnapshot = {
         undoEntries: [...undoEntries],
         redoEntries: [...redoEntries],
+        snapshotLog: [...snapshotLog],
         activeTransaction: getActiveTransaction(),
         canUndo: undoEntries.length > 0,
         canRedo: redoEntries.length > 0,
@@ -150,8 +222,10 @@ export const createEditHistoryStore = (): EditHistoryOwner => {
       return false
     }
 
-    undoEntries = [...undoEntries, withEntryTimestamp(entry)]
+    const timestampedEntry = withEntryTimestamp(entry)
+    undoEntries = [...undoEntries, timestampedEntry]
     redoEntries = []
+    recordSnapshotLogEntry('commit', timestampedEntry)
     emitChange()
     return true
   }
@@ -260,6 +334,7 @@ export const createEditHistoryStore = (): EditHistoryOwner => {
       entry.undo()
       undoEntries = undoEntries.slice(0, -1)
       redoEntries = [...redoEntries, entry]
+      recordSnapshotLogEntry('undo', entry)
       emitChange()
       return entry
     },
@@ -272,12 +347,14 @@ export const createEditHistoryStore = (): EditHistoryOwner => {
       entry.redo()
       redoEntries = redoEntries.slice(0, -1)
       undoEntries = [...undoEntries, entry]
+      recordSnapshotLogEntry('redo', entry)
       emitChange()
       return entry
     },
     clear: () => {
       undoEntries = []
       redoEntries = []
+      snapshotLog = []
       activeTransaction = null
       emitChange()
     },
@@ -285,6 +362,7 @@ export const createEditHistoryStore = (): EditHistoryOwner => {
     canRedo: () => redoEntries.length > 0,
     getUndoEntries: () => [...undoEntries],
     getRedoEntries: () => [...redoEntries],
+    getSnapshotLog: () => [...snapshotLog],
     getActiveTransaction,
     getSnapshot,
     subscribe: (listener) => {

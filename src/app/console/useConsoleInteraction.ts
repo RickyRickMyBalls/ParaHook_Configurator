@@ -78,10 +78,12 @@ import {
   commitActiveReferenceTransformFromConsole as commitActiveReferenceTransformFromConsoleCommand,
   createActiveContentObjectTransformRootSession as createActiveContentObjectTransformRootSessionCommand,
   createActiveContentObjectTransformSnapSession as createActiveContentObjectTransformSnapSessionCommand,
+  createActiveEnvironmentLightTransformRootSession as createActiveEnvironmentLightTransformRootSessionCommand,
   createActiveReferenceTransformRootSession as createActiveReferenceTransformRootSessionCommand,
   createActiveReferenceTransformSnapSession as createActiveReferenceTransformSnapSessionCommand,
   createDeleteLatestTransformConfirmPromptSession,
   deleteLatestContentObjectTransformEntry as deleteLatestContentObjectTransformEntryCommand,
+  deleteLatestEnvironmentLightTransformEntry as deleteLatestEnvironmentLightTransformEntryCommand,
   deleteLatestReferenceTransformEntry as deleteLatestReferenceTransformEntryCommand,
   formatReferenceTransformSnapValue,
   getReferenceTransformSnapAxisValue,
@@ -109,6 +111,7 @@ import {
   parseConsoleCommand,
   parseZoomCommandAction,
 } from './consoleCommandParser'
+import { resolveZoomObjectTarget } from '../zoomObjectTarget'
 import {
   parseConsoleSignedFloatLiteral,
   parseConsoleVec2Literal,
@@ -710,12 +713,23 @@ export function useConsoleInteraction(
     })
   }, [])
 
+  const createActiveEnvironmentLightTransformRootSession = useCallback((lightId: string) => {
+    return createActiveEnvironmentLightTransformRootSessionCommand({
+      appState: useAppStore.getState(),
+      lightId,
+    })
+  }, [])
+
   const deleteLatestReferenceTransformEntry = useCallback((referenceId: string) => {
     return deleteLatestReferenceTransformEntryCommand(useAppStore.getState(), referenceId)
   }, [])
 
   const deleteLatestContentObjectTransformEntry = useCallback((objectId: string) => {
     return deleteLatestContentObjectTransformEntryCommand(useAppStore.getState(), objectId)
+  }, [])
+
+  const deleteLatestEnvironmentLightTransformEntry = useCallback((lightId: string) => {
+    return deleteLatestEnvironmentLightTransformEntryCommand(useAppStore.getState(), lightId)
   }, [])
 
   const createActiveReferenceTransformSnapSession = useCallback((
@@ -1711,8 +1725,10 @@ export function useConsoleInteraction(
             clearConsolePromptSession: () => useConsoleStore.getState().clearConsolePromptSession(),
             commitActiveReferenceTransformFromConsole,
             createActiveContentObjectTransformRootSession,
+            createActiveEnvironmentLightTransformRootSession,
             createActiveReferenceTransformRootSession,
             deleteLatestContentObjectTransformEntry,
+            deleteLatestEnvironmentLightTransformEntry,
             deleteLatestReferenceTransformEntry,
             getActiveFeatureAssistDescriptor,
             getAppState: () => useAppStore.getState(),
@@ -2500,10 +2516,12 @@ export function useConsoleInteraction(
               commandIdentity,
               createActiveContentObjectTransformRootSession,
               createActiveContentObjectTransformSnapSession,
+              createActiveEnvironmentLightTransformRootSession,
               createActiveReferenceTransformRootSession,
               createActiveReferenceTransformSnapSession,
               createDeleteLatestTransformConfirmPromptSession,
               deleteLatestContentObjectTransformEntry,
+              deleteLatestEnvironmentLightTransformEntry,
               deleteLatestReferenceTransformEntry,
               getActiveFeatureAssistDescriptor,
               getAppState: () => useAppStore.getState(),
@@ -4796,7 +4814,7 @@ export function useConsoleInteraction(
           requestRadioBurst(flatCommandIdentity, 'enter')
           appendConsoleEntry({
             layer: 'Commands',
-            text: 'Commands: help, console, clear, history, frame, zoom, pan, orbit, move, rotate, scale, snap, echo, status',
+            text: 'Commands: help, console, clear, history, frame, zoom, zoomobject, pan, orbit, move, rotate, scale, snap, echo, status',
             severity: 'info',
           })
           return
@@ -4855,9 +4873,14 @@ export function useConsoleInteraction(
             severity: 'info',
           })
           return
+        case 'zoomobject':
         case 'zoom':
           {
-            const zoomAction = parseZoomCommandAction(parsed.args)
+            const parsedZoomAction =
+              parsed.name === 'zoomobject' ? 'object' : parseZoomCommandAction(parsed.args)
+            const zoomObjectTarget = resolveZoomObjectTarget(useAppStore.getState())
+            const zoomAction =
+              parsedZoomAction ?? (zoomObjectTarget !== null ? 'object' : null)
             if (zoomAction === null) {
               const stagedResult = submitConsoleStagedNavigationToken(
                 null,
@@ -4886,9 +4909,11 @@ export function useConsoleInteraction(
             const selectedObjectPartKey = resolveSelectedObjectPartKeyForZoom()
             const workspaceSelectedTarget = useAppStore.getState().workspaceSelection.selectedTarget
             const selectedEnvironmentLightId =
-              workspaceSelectedTarget?.kind === 'environment-light'
-                ? workspaceSelectedTarget.lightId
-                : null
+              zoomObjectTarget?.kind === 'environment-light'
+                ? zoomObjectTarget.lightId
+                : workspaceSelectedTarget?.kind === 'environment-light'
+                  ? workspaceSelectedTarget.lightId
+                  : null
             if (zoomAction === 'all') {
               frameAllCommand()
             } else if (zoomAction === 'extents') {
@@ -4912,6 +4937,8 @@ export function useConsoleInteraction(
                 requestRadioBurst(flatCommandIdentity, 'enter')
                 return
               }
+            } else if (zoomObjectTarget?.kind === 'selection-set') {
+              frameSelectionSetCommand(zoomObjectTarget.partKeys, zoomObjectTarget.referenceIds)
             } else if (selectedObjectPartKey !== null) {
               frameSelectedCommand(selectedObjectPartKey, undefined, {
                 animate: true,
@@ -5085,6 +5112,7 @@ export function useConsoleInteraction(
       clearStagedNavigationSession,
       commitActiveReferenceTransformFromConsole,
       createActiveContentObjectTransformRootSession,
+      createActiveEnvironmentLightTransformRootSession,
       createActiveReferenceTransformRootSession,
       createDeleteLatestTransformConfirmPromptSession,
       createMissingGraphNodeInGraphDocument,
@@ -5096,6 +5124,7 @@ export function useConsoleInteraction(
       unhideSelectedReferenceTargets,
       unhideAllReferenceTargets,
       deleteLatestContentObjectTransformEntry,
+      deleteLatestEnvironmentLightTransformEntry,
       deleteLatestReferenceTransformEntry,
       dispatchImmediateShortcut,
       enterGuidedRootSession,

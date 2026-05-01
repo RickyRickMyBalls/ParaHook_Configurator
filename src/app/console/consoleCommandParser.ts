@@ -5,6 +5,7 @@ export type ConsoleCommandName =
   | 'history'
   | 'frame'
   | 'zoom'
+  | 'zoomobject'
   | 'pan'
   | 'orbit'
   | 'move'
@@ -23,6 +24,8 @@ const CONSOLE_COMMAND_ALIASES: Record<string, ConsoleCommandName> = {
   f: 'frame',
   zoom: 'zoom',
   z: 'zoom',
+  zoomobject: 'zoomobject',
+  zo: 'zoomobject',
   pan: 'pan',
   orbit: 'orbit',
   move: 'move',

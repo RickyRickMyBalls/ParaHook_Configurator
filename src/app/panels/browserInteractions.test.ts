@@ -338,6 +338,7 @@ const createDeps = (
   setWorkspaceSelectedTarget: vi.fn(),
   setWorkspaceExplicitSelection: vi.fn(),
   setActiveSurface: vi.fn(),
+  activeViewerViewportId: 'model-viewer-primary',
   selectLight: vi.fn(),
   selectPart: vi.fn(),
   requestConsoleContextSync: vi.fn(),
@@ -355,6 +356,7 @@ const createDeps = (
   setExpandedGraphDocumentIds: vi.fn(),
   setGraphSectionExpandedByRowId: vi.fn(),
   setCollapsedContentRowIds: vi.fn(),
+  setViewportLocalViewState: vi.fn(),
   appendBrowserEntry: vi.fn(),
   ...overrides,
 })
@@ -535,7 +537,7 @@ describe('createBrowserRowInteractionHandlers', () => {
     ).toBe('environment-light-row:light-key')
   })
 
-  it('frames environment-light rows through the shared environment-light frame command', () => {
+  it('frames environment-light rows and opens the selected light settings', () => {
     const row = environmentLightRow('light-key', 'Key')
     const deps = createDeps()
     const handlers = createBrowserRowInteractionHandlers(deps)
@@ -543,6 +545,16 @@ describe('createBrowserRowInteractionHandlers', () => {
     handlers.handleDoubleSelectBrowserRow(row)
 
     expect(frameEnvironmentLightCommandMock).toHaveBeenCalledWith('light-key')
+    expect(deps.selectLight).toHaveBeenCalledWith('light-key')
+    expect(deps.setViewportLocalViewState).toHaveBeenCalledWith('model-viewer-primary', {
+      viewToolbarOpen: true,
+      viewToolbarActiveTab: 'environment',
+    })
+    const collapseUpdater = vi.mocked(deps.setCollapsedContentRowIds).mock.calls[0]?.[0]
+    expect(collapseUpdater?.(['assembly-1', 'environment-root', 'graph-row:1'])).toEqual([
+      'assembly-1',
+      'graph-row:1',
+    ])
     expect(viewerFrameSelectionSetMock).not.toHaveBeenCalled()
   })
 

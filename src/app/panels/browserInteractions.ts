@@ -20,6 +20,10 @@ import type {
   WorkspaceSurface,
 } from '../store/useAppStore'
 import type { ReferenceCategoryId } from '../references/referenceManifest'
+import type {
+  WorkspaceViewportId,
+  WorkspaceViewportLocalViewState,
+} from '../workspace/workspaceShellTypes'
 import { describeBrowserRow, isExplicitSelectionRow } from './browserRowFamilies'
 import type { BrowserRenderableRowVm } from './selectBrowserTreeRows'
 
@@ -72,6 +76,7 @@ export type BrowserRowInteractionDeps = {
     selectionAnchorTarget: WorkspaceSelectedTarget | null
   }) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
+  activeViewerViewportId: WorkspaceViewportId
   selectLight: (lightId: string | null) => void
   selectPart: (partKey: string | null) => void
   requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
@@ -96,6 +101,10 @@ export type BrowserRowInteractionDeps = {
   ) => void
   setCollapsedContentRowIds: (
     updater: (currentIds: string[]) => string[],
+  ) => void
+  setViewportLocalViewState: (
+    viewportId: WorkspaceViewportId,
+    patch: Partial<WorkspaceViewportLocalViewState>,
   ) => void
   appendBrowserEntry: (text: string) => void
 }
@@ -535,6 +544,14 @@ export const createBrowserRowInteractionHandlers = (
     }
     if (row.rowKind === 'environment-light') {
       frameEnvironmentLightCommand(row.lightId)
+      deps.selectLight(row.lightId)
+      deps.setCollapsedContentRowIds((currentIds) =>
+        currentIds.filter((rowId) => rowId !== 'environment-root'),
+      )
+      deps.setViewportLocalViewState(deps.activeViewerViewportId, {
+        viewToolbarOpen: true,
+        viewToolbarActiveTab: 'environment',
+      })
       return
     }
     if (row.rowKind === 'object') {

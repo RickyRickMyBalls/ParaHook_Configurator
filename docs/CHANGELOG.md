@@ -6,6 +6,7 @@ Numbering rule for major entries:
 - Increment by 1 for every new Codex-added section.
 
 ### Doc History
+10. 2026-05-01 01:19:08: Cleaned the recent Edit History workspace changelog phase entries `[1710]` through `[1722]` so their canonical prefix and phase-doc paths use `Edit-History-Workspace-4` instead of colliding with the separate broader `Edit-History-4` architecture plan.
 9. 2026-04-22 10:30:12: Cleaned this changelog's Doc History so it only tracks changelog document structure, rule, and cleanup changes instead of duplicating permanent shipped-work body entries.
 8. 2026-04-22 10:21:56: Cleaned up the in-progress `Edit-History-Gen3-1 / Phase 2` changelog repair by removing the duplicate replayed Gen 1 through Gen 2 body entries that were accidentally inserted during the Phase 2 repair and renumbering the current Phase 2 repair body entry from `[1717]` to the next sequential `[1691]`.
 7. 2026-03-08 10:23: Removed planning-only entries `[132]` through `[139]` from the live changelog after moving that batch tracking back into the active `N_CodexChat.md` planning surface
@@ -67,6 +68,1327 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 1732 -->
+
+### [1732] - 2026-05-01 09:32 - `Edit-History-Workspace-4 - Phase 11A - Canonical Scrub Pointer Audit`
+
+<!-- ENTRY 1732 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub marker now has regression proof that moving it remains equivalent to canonical Undo/Redo steps. Scrubbing from marker index 10 to 5 is covered with real Undo/Redo toolbar button follow-ups, and marker movement is proven not to create a Current position or marker-move pseudo-entry.`
+
+#### Scope / Constraints Honored
+
+- Kept the existing canonical `editHistoryStore.undo()` and `editHistoryStore.redo()` ownership unchanged.
+- Kept marker movement as a reader action that routes through the existing shared scrub jump behavior.
+- Did not add marker-move entries, screenshot-derived history entries, child restore points, CAD build-path timeline behavior, snapshot-log relabeling, or global shortcut rewrites.
+
+#### Summary of Implementation
+
+- Added a numbered-entry test helper for focused canonical timeline regression scenarios.
+- Added coverage for dragging the Timeline marker from index `10` to index `5`, then clicking the real `Undo` toolbar button and proving the marker moves to index `4`.
+- Added coverage for clicking the real `Redo` toolbar button after that undo and proving the marker returns to index `5`.
+- Added coverage that scrub marker jumps do not add `Current position`, marker, or marker-move pseudo-entries to the canonical undo/redo stacks.
+
+#### Tests / Verification
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1731 -->
+
+### [1731] - 2026-05-01 01:27 - `Edit-History-Workspace-4 - Phase 11 - Expanded Child Scrub Preview Stops`
+
+<!-- ENTRY 1731 -->
+HUMAN SUMMARY: `Expanded Sketch Draw child rows in the Edit History Timeline can now act as read-only scrub preview and selection stops. Releasing on a child target still routes through the parent canonical history boundary, keeping child restore ownership deferred.`
+
+#### Scope / Constraints Honored
+
+- Kept canonical undo/redo ownership on parent history entries.
+- Kept Sketch Draw child summaries as public read-only metadata.
+- Left true child restore points, checkpoint storage, branch graphs, private payload inspection, persisted reader state, and global shortcut routing out of scope.
+- Preserved newest-first ordering, parent row clicks, rail clicks, marker drag release, expand/collapse behavior, and snapshot log semantics.
+
+#### Summary of Implementation
+
+- Added local selected-child target state to the Edit History reader surface.
+- Rendered expanded committed Sketch Draw child rows as measurable scrub targets.
+- Extended scrub preview resolution to snap to visible child row centers when the pointer is near a child target.
+- Released child scrub targets through the parent canonical marker boundary, then selected the child detail.
+- Added read-only child marker inspector metadata.
+- Added selected and preview styling for child rows while keeping the parent card visually canonical.
+- Added focused reader tests for child target measurement, child selection, preview targeting, and redo-through-parent release behavior.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Expanded Sketch Draw child rows can be selected in the Timeline and inspected as read-only child markers.
+- Dragging near a visible child row can preview that child row as the scrub target.
+- Releasing on a redoable child target redoes through the parent entry, then selects the child detail.
+- Child rows do not become independent undo/redo entries.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1730 -->
+
+### [1730] - 2026-05-01 01:12 - `Edit History Workspace - Inline Chevron Alignment`
+
+<!-- ENTRY 1730 -->
+HUMAN SUMMARY: `The expandable Sketch Draw Timeline chevron now behaves like an inline title affordance instead of reserving a full left column, so the summary, status, and timestamp text stay aligned with normal history cards.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Edit History workspace CSS.
+- Preserved the separate accessible chevron button, expandable group behavior, numbered titles, newest-first ordering, scrub behavior, and canonical undo/redo ownership.
+
+#### Summary of Implementation
+
+- Returned Timeline entry cards to a single-column grid layout.
+- Positioned the chevron affordance absolutely beside the title line.
+- Limited extra spacing to the expandable title text only so secondary metadata lines align with other cards.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Expandable Timeline card metadata no longer appears over-indented compared with non-expandable cards.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1729 -->
+
+### [1729] - 2026-05-01 01:05 - `Edit History Workspace - Timeline Chevron And Entry Numbers`
+
+<!-- ENTRY 1729 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub cards now show canonical entry numbers in their titles, and expandable Sketch Draw commit cards use a compact left-side chevron instead of a large text expand/collapse button.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the Edit History reader timeline UI and CSS.
+- Preserved the existing sibling-button structure so expand/collapse does not become a nested button inside the parent jump target.
+- Preserved canonical undo/redo ownership, timeline marker behavior, scrub behavior, child-summary rendering, and newest-first ordering.
+
+#### Summary of Implementation
+
+- Added a numbered timeline label helper that renders scrub card titles as `#N Label`.
+- Moved expandable card controls into a narrow left-side chevron column before the timeline title.
+- Replaced visible `Expand` / `Collapse` button text with an icon-only chevron while keeping descriptive accessible labels and `aria-expanded`.
+- Added focused reader-surface assertions for numbered titles and icon-only expand button text.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Timeline scrub list entries now read like `#N Commit sketch draw changes`.
+- Expandable Sketch Draw commit cards use a small chevron affordance on the left edge of the card title row.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1728 -->
+
+### [1728] - 2026-05-01 01:04 - `Edit History Workspace - Newest First Timeline Order`
+
+<!-- ENTRY 1728 -->
+HUMAN SUMMARY: `The Edit History Timeline now shows the newest entries at the top, with redoable newer entries above the current-position marker and applied older entries below it. The scrub rail click, drag, and fallback-position math now follows that same newest-at-top direction.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the Edit History reader surface and focused reader tests.
+- Preserved canonical undo/redo store ownership and release-time scrub commits.
+- Left the existing compact current-position row, expandable cards, and timeline scrollbar styling intact.
+
+#### Summary of Implementation
+
+- Sorted applied and redoable timeline entries by descending timeline index before rendering.
+- Rendered redoable entries above the current-position marker and applied entries below it so the top of the list represents the newest/end marker position.
+- Inverted fallback rail target, dot, and handle percentage math so top maps to the latest marker index and bottom maps to the oldest marker index.
+- Updated timeline order, click, drag, cancel, and smooth-preview tests for the reversed visual direction.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Edit History Timeline entries display newest-first.
+- Scrubbing toward the top moves toward newer history entries; scrubbing toward the bottom moves toward older history entries.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1727 -->
+
+### [1727] - 2026-05-01 00:59 - `Edit History Workspace - Compact Marker Height Polish`
+
+<!-- ENTRY 1727 -->
+HUMAN SUMMARY: `The Edit History Timeline current-position card is shorter, reducing its minimum height by about 20 percent while keeping the marker grip, label, and marker index intact.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Edit History workspace CSS.
+- Preserved Timeline rail measurement, scroll behavior, undo/redo ownership, expandable group cards, child-summary rendering, and title/header sizing.
+
+#### Summary of Implementation
+
+- Reduced the compact current-position marker row minimum height from `48px` to `38px`.
+- Tightened marker row padding from `8px 12px` to `5px 10px`.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The current-position card takes less vertical space in the Timeline scrub list.
+
+#### Verification Steps
+
+- Not run; CSS-only visual polish.
+
+<!-- ENTRY 1726 -->
+
+### [1726] - 2026-05-01 00:58 - `Edit History Workspace - Timeline Dot And Handle Polish`
+
+<!-- ENTRY 1726 -->
+HUMAN SUMMARY: `The Edit History Timeline rail dots are smaller, and the active current-position handle now has enough lane width to avoid being clipped on the left. The scrub behavior is unchanged.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Edit History workspace CSS.
+- Preserved Timeline rail measurement, scroll behavior, undo/redo ownership, expandable group cards, child-summary rendering, and title/header sizing.
+
+#### Summary of Implementation
+
+- Reduced inactive Timeline rail dots from `14px` to `10px`.
+- Slightly reduced the active handle from `32px` to `30px`.
+- Widened the Timeline rail column and added small left padding so the active marker can render fully.
+- Tightened the rail-to-card gap to keep card alignment visually compact.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Timeline rail dots are visually lighter.
+- The active current-position marker is no longer clipped on the left side.
+
+#### Verification Steps
+
+- Not run; CSS-only visual polish.
+
+<!-- ENTRY 1725 -->
+
+### [1725] - 2026-05-01 00:55 - `Edit History Workspace - Scrub Lane Overflow Fix`
+
+<!-- ENTRY 1725 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub lane now owns the overflow for both the vertical rail and the history cards, so long timelines scroll inside the left scrub area instead of spilling below the workspace panel.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Edit History workspace CSS.
+- Preserved Timeline rail measurement, current-position marker behavior, undo/redo ownership, expandable group cards, child-summary rendering, inspector scrolling, and title/header sizing.
+
+#### Summary of Implementation
+
+- Moved the visible Timeline scrollbar from the card list alone to the full scrub container.
+- Added `overflow: hidden` to the Edit History panel and body so child lanes are height-bounded.
+- Left the card list overflow visible inside the scrub container so the rail and cards scroll together.
+- Kept the dark blue themed scrollbar styling on the scrub lane.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Long Timeline history lists scroll within the left scrub lane.
+- The vertical rail and history cards stay visually synchronized while scrolling.
+
+#### Verification Steps
+
+- Not run; CSS-only overflow repair.
+
+<!-- ENTRY 1724 -->
+
+### [1724] - 2026-05-01 00:51 - `Edit History Workspace - Timeline Scrub List Scrollbar`
+
+<!-- ENTRY 1724 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub list now has an explicit dark themed scrollbar with stable gutter spacing, making long history card lists easier to scan without changing Timeline behavior.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Edit History workspace CSS.
+- Preserved Timeline scrub behavior, rail measurement, undo/redo ownership, expandable group cards, child-summary rendering, and title/header sizing.
+
+#### Summary of Implementation
+
+- Added a Timeline-specific scrollbar style for `.EditHistoryReaderTimelineList`.
+- Added stable scrollbar gutter spacing so card text does not collide with the scrollbar.
+- Matched the scrollbar thumb and track to the dark blue Edit History theme.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Long Edit History Timeline card lists show a visible themed scrollbar in the scrub list.
+
+#### Verification Steps
+
+- Not run; CSS-only scrollbar styling change.
+
+<!-- ENTRY 1723 -->
+
+### [1723] - 2026-05-01 00:48 - `Edit History Workspace - Reader Text Density`
+
+<!-- ENTRY 1723 -->
+HUMAN SUMMARY: `The Edit History workspace reader text is now smaller and denser while the standard workspace title/header area keeps its existing sizing. Timeline rows, tabs, expanded child rows, inspector metadata, empty states, and snapshot log text were scaled down.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Edit History workspace CSS.
+- Preserved the standard header/title sizing and title-bar action sizing.
+- Preserved Timeline behavior, expandable group-card behavior, rail measurement, undo/redo ownership, Sketch Draw child-summary rendering, and snapshot log behavior.
+
+#### Summary of Implementation
+
+- Reduced Edit History stack tab text from `12px` to `10px`.
+- Reduced Timeline row title text from `13px` to `10px`.
+- Reduced Timeline row metadata, timestamps, empty states, expand controls, and expanded child rows from `11px` to `9px`.
+- Reduced inspector headings, metadata labels, and metadata values.
+- Reduced snapshot log heading, title, metadata, and timestamp text.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Edit History workspace reader displays more compact text density.
+- The main `Edit History` title and header action buttons keep their previous size.
+
+#### Verification Steps
+
+- Not run; CSS-only typography change.
+
+<!-- ENTRY 1722 -->
+
+### [1722] - 2026-05-01 00:14 - `Edit-History-Workspace-4 - Phase 10 - Sketch Draw Commit Child Summaries`
+
+<!-- ENTRY 1722 -->
+HUMAN SUMMARY: `Committed Sketch Draw parent entries now carry public child-summary metadata for the accepted local commands that made up the commit. Expanded Edit History Timeline group cards render those real child rows while the parent entry remains the only undo/redo target.`
+
+#### Scope / Constraints Honored
+
+- Kept canonical undo/redo ownership on the parent `Commit sketch draw changes` entry.
+- Preserved Sketch Draw local command execution, final sketch commit behavior, marker jumps, snapshot log ordering, and Phase 9 expand/collapse event ownership.
+- Exposed only public metadata: child id, label, kind, and sequence.
+- Left private sketch params, undo/redo functions, raw command payloads, independent child entries, checkpoint storage, and branch graph state out of scope.
+
+#### Summary of Implementation
+
+- Added `EditHistoryEntryChildSummary` metadata to canonical edit-history entries.
+- Cloned and froze committed child-summary arrays at the edit-history store boundary.
+- Captured public Sketch Draw child summaries from accepted `sessionUndoCommands` during `closeGeometrySketchSession()`.
+- Attached summaries to the single parent `Commit sketch draw changes` canonical entry.
+- Surfaced cloned child summaries through the Edit History reader model.
+- Rendered real child summary rows inside expanded Timeline group cards when available.
+- Kept the Phase 9 unavailable fallback for expandable entries without child-summary data.
+- Added focused tests for store metadata isolation, reader-model cloning, committed Sketch Draw summary capture, locally undone geometry exclusion, tool-selection summaries, and Timeline child-row rendering.
+
+#### Files Changed
+
+- `src/app/store/editHistoryStore.ts`
+- `src/app/store/editHistoryStore.test.ts`
+- `src/app/store/editHistoryReaderViewModel.ts`
+- `src/app/store/editHistoryReaderViewModel.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Closing an accepted Sketch Draw session stores public child-summary rows on the committed parent edit-history entry.
+- Expanded Timeline group cards show real accepted local-command rows for committed Sketch Draw changes.
+- Accepted tool-selection commands can appear as child summary rows.
+- Locally undone geometry commands are not included as committed geometry child summaries.
+- Undoing or redoing the parent entry keeps the same parent-owned canonical behavior.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1721 -->
+
+### [1721] - 2026-05-01 00:08 - `Edit-History-Workspace-4 - Phase 9 - Expandable Timeline Group Cards`
+
+<!-- ENTRY 1721 -->
+HUMAN SUMMARY: `The Edit History Timeline now supports expandable group cards for committed Sketch Draw parent entries. Expanding a group is a local reader action, while the parent card remains the only canonical undo/redo jump target.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the Edit History reader Timeline UI.
+- Preserved canonical undo/redo stack ownership, marker jump behavior, rail click and drag behavior, timeline ordering, snapshot log behavior, source filtering, and active Sketch Draw local history ownership.
+- Left Sketch Draw child-summary storage, committed command serialization, private payload inspection, checkpoint storage, and branch graph state for later phases.
+
+#### Summary of Implementation
+
+- Added local expanded-entry state for Timeline group cards.
+- Converted Timeline entry rows into full-card wrappers with sibling parent-jump and expand/collapse controls.
+- Kept `data-timeline-rail-entry-id` on the full card wrapper so rail dots continue to measure the visual card center.
+- Enabled `Commit sketch draw changes` as the first expandable group-capable parent entry.
+- Added a read-only unavailable child-detail fallback until real committed child summaries ship in Phase 10.
+- Added focused reader-surface tests for expansion, non-group rows, no-jump expand behavior, parent jump behavior, and rail measurement preservation.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Commit sketch draw changes` Timeline cards can expand and collapse in the reader.
+- Expanding a card shows a nested read-only fallback row when no committed child summaries are available.
+- Expand/collapse does not call undo, redo, or marker jump behavior.
+- Parent card clicks still move the current-position marker through the existing canonical undo/redo path.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1720 -->
+
+### [1720] - 2026-04-30 23:38 - `Edit-History-Workspace-4 - Phase 8 - Rail Dot Card-Center Alignment`
+
+<!-- ENTRY 1720 -->
+HUMAN SUMMARY: `The Edit History Timeline rail dots and active marker now align to the actual rendered card centers instead of only using equal slot percentages. Slot math remains as a fallback, and the scrub behavior is unchanged.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the existing Edit History Timeline rail presentation.
+- Preserved canonical undo/redo semantics, rail click behavior, marker drag preview, continuous drag handle motion, snapped preview placement, compact marker row text, timeline ordering, snapshot log behavior, source filtering, and Sketch Draw local history ownership.
+- Left private payloads, checkpoint storage, branch graph state, live scrub execution, and scrollbar synchronization out of scope.
+
+#### Summary of Implementation
+
+- Added DOM-center measurement for rendered timeline history cards.
+- Added DOM-center measurement for the compact current-position marker row.
+- Used measured card centers for decorative rail dot positions when available.
+- Used the measured current-position row center for the idle active marker handle when available.
+- Kept the existing slot-center percentages as fallback when DOM geometry is unavailable.
+- Added focused reader-surface coverage for uneven measured card geometry.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Rail dots visually align to the middle of rendered history cards.
+- The active current-position marker visually aligns to the middle of the compact current-position card when idle.
+- Dragging still uses the live pointer position and commits through the existing release-time undo/redo path.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1719 -->
+
+### [1719] - 2026-04-30 23:30 - `Edit-History-Workspace-4 - Phase 8 - Thin Timeline Rail And Entry Dots`
+
+<!-- ENTRY 1719 -->
+HUMAN SUMMARY: `The Edit History Timeline rail now reads as a thin timeline line with decorative entry dots and a larger blue active marker node. The wide rail hit target and existing click, drag, and release-time undo/redo behavior are preserved.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the existing Edit History Timeline rail presentation.
+- Preserved canonical undo/redo semantics, rail click behavior, marker drag preview, continuous handle motion, snapped preview placement, compact marker row text, timeline ordering, snapshot log behavior, source filtering, and Sketch Draw local history ownership.
+- Left private payloads, checkpoint storage, branch graph state, live scrub execution, and scrollbar synchronization out of scope.
+
+#### Summary of Implementation
+
+- Added decorative rail dot elements derived from the visible timeline entries.
+- Positioned rail dots with the same slot-center percentage math used by the active marker handle.
+- Restyled the visible rail from a filled track into a thin muted vertical line while keeping the rail button as the wide click and drag hit target.
+- Restyled the active handle as a larger blue ringed node with a brighter active-drag treatment.
+- Added focused reader-surface assertions for empty-history dot absence, dot slot positions, and active handle positioning.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Timeline rail now visually reads as a thin history timeline with inactive entry dots.
+- The active current-position node is larger and blue while staying driven by the existing marker position state.
+- Rail click and marker drag behavior remain unchanged.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1718 -->
+
+### [1718] - 2026-04-30 23:21 - `Edit-History-Workspace-4 - Phase 7 - Compact Current Position Marker Row`
+
+<!-- ENTRY 1718 -->
+HUMAN SUMMARY: `The Edit History Timeline current-position marker is now a compact rail-connected row with only the grip, label, and marker index in the timeline lane. Full applied/redoable marker details remain in the inspector, and scrub behavior is unchanged.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the existing Edit History Timeline marker presentation.
+- Preserved canonical undo/redo semantics, rail clicks, drag preview, continuous handle motion, snapped marker preview, and release-time commits.
+- Left timeline ordering, snapshot log behavior, source filtering, Sketch Draw local history ownership, private payloads, checkpoint storage, and branch graphs unchanged.
+
+#### Summary of Implementation
+
+- Replaced the full-height marker card contents with a compact grip, `Current position` label, and right-aligned `Marker index N`.
+- Removed `N applied / M redoable` from the marker row while keeping applied and redoable counts in the inspector.
+- Added compact marker CSS with a blue dark-mode background, short rail connector, and tighter row height.
+- Restyled the active rail handle as a larger blue circular node aligned to the compact marker row.
+- Updated focused reader-surface tests to assert the compact marker text and preserved inspector details.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Timeline marker row now reads as a compact scrub position row instead of a full history entry card.
+- The marker row still starts scrub drags and still participates in the same rail click and release-time undo/redo paths.
+- Marker applied/redoable counts are no longer duplicated in the timeline row and remain available in the marker inspector.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1717 -->
+
+### [1717] - 2026-04-30 23:09 - `Edit-History-Workspace-4 - Phase 6 - Smooth Scrub Handle With Snapped Preview`
+
+<!-- ENTRY 1717 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub handle now moves fluidly with the pointer while the current-position card preview still snaps to discrete history slots. Canonical undo/redo remains release-only.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the existing Edit History Timeline scrub interaction.
+- Preserved release-time canonical undo/redo commits.
+- Preserved pointer cancel no-op behavior and discrete rail click jumps.
+- Left timeline ordering, snapshot storage, branch graphs, private payloads, and Sketch Draw local history ownership unchanged.
+
+#### Summary of Implementation
+
+- Extended scrub preview state with continuous `dragPercent`.
+- Rendered the rail handle from `dragPercent` during active drags.
+- Kept the marker card and target preview snapped through `previewMarkerIndex`.
+- Reused the existing rail geometry for continuous and snapped target calculations.
+- Added a reader-surface regression proving the handle can move inside one snapped slot without mutating canonical history.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- During drag, the scrub handle follows the pointer continuously instead of snapping slot-to-slot.
+- The current-position card preview still snaps to the nearest discrete history slot.
+- Releasing the pointer commits the snapped target through canonical undo/redo calls.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1716 -->
+
+### [1716] - 2026-04-30 23:00 - `Edit-History-Workspace-4 - Phase 5 - Scrub Rail Blue Theme Polish`
+
+<!-- ENTRY 1716 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub rail and marker handle now use the app's dark blue theme instead of the earlier warm green/red/gold styling. The scrub behavior is unchanged.`
+
+#### Scope / Constraints Honored
+
+- Kept the change to visual styling for the existing scrub rail.
+- Preserved rail click, drag preview, pointer cancel, and release-time canonical undo/redo behavior.
+- Left timeline ordering, history ownership, snapshot storage, and local Sketch Draw history untouched.
+
+#### Summary of Implementation
+
+- Replaced the warm rail gradient with a dark blue rail treatment.
+- Restyled the inner rail line with blue tones and a subtle glow.
+- Replaced the red marker handle with a blue handle.
+- Restyled active scrubbing preview as a brighter blue state.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Timeline scrub rail and marker now visually match the dark blue Edit History workspace theme.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1715 -->
+
+### [1715] - 2026-04-30 22:58 - `Edit-History-Workspace-4 - Phase 5 - Scrub Rail Card-Slot Alignment`
+
+<!-- ENTRY 1715 -->
+HUMAN SUMMARY: `The Edit History Timeline scrub rail now matches the rendered card stack instead of stretching down the whole panel. The marker handle is positioned at the center of the current-position card slot, so scrub clicks and drags line up with the visible cards.`
+
+#### Scope / Constraints Honored
+
+- Kept the repair inside the existing Timeline scrub rail.
+- Preserved canonical undo/redo jump behavior.
+- Preserved drag preview and commit-on-release behavior.
+- Left timeline ordering, snapshot storage, private payloads, branch graphs, and Sketch Draw local history ownership unchanged.
+
+#### Summary of Implementation
+
+- Measured the rendered timeline list content height and applied it to the scrub rail.
+- Changed handle positioning from endpoint percentage math to rendered card-slot center math.
+- Updated rail click and drag target mapping to use card-slot coordinates.
+- Kept the rail aligned to the top of the card stack instead of stretching to fill the whole panel.
+- Updated reader-surface tests for centered slot handle positions.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The vertical scrub rail is only as tall as the rendered timeline card stack.
+- The marker handle aligns to the middle of the current-position card slot.
+- Rail clicks and drags still route to discrete canonical marker targets.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1714 -->
+
+### [1714] - 2026-04-30 22:54 - `Edit-History-Workspace-4 - Phase 5 - Draggable Marker Scrub Release`
+
+<!-- ENTRY 1714 -->
+HUMAN SUMMARY: `The Edit History Timeline marker can now be dragged along the vertical scrub rail. Dragging previews the destination locally, and history only changes on release through the canonical undo/redo path.`
+
+#### Scope / Constraints Honored
+
+- Kept drag behavior inside the Edit History Timeline surface.
+- Kept preview state local to the reader UI.
+- Reused the Phase 4 rail coordinate mapping and Phase 3 canonical jump helper.
+- Left live scrub execution, checkpoint storage, branch graphs, private payload inspection, timeline ordering, and Sketch Draw local history ownership out of scope.
+
+#### Summary of Implementation
+
+- Added local scrub preview state for active pointer drags.
+- Let both the rail and current-position marker card start marker scrubs.
+- Added pointer-id guarded pointer move, pointer up, and pointer cancel handling.
+- Updated the rail handle to follow the preview marker index while dragging.
+- Committed canonical undo/redo jumps only on pointer up.
+- Kept pointer cancel and same-index release as no-op history mutations.
+- Added active drag styling for the preview rail handle.
+- Added reader-surface tests for upward drag, downward drag, no mutation during pointer move, pointer cancel, same-index release, and preserved rail click behavior.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Dragging the current-position marker card or rail previews a new history marker position.
+- Pointer movement during drag does not mutate canonical history.
+- Releasing the pointer commits the preview target through canonical undo/redo calls.
+- Pointer cancel clears preview state without undoing or redoing anything.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1713 -->
+
+### [1713] - 2026-04-30 22:47 - `Edit-History-Workspace-4 - Phase 4 - Vertical Scrub Rail And Click Targets`
+
+<!-- ENTRY 1713 -->
+HUMAN SUMMARY: `The Edit History Timeline now has a vertical scrub rail tied to the current-position marker. Clicking the rail jumps to the nearest discrete history point by reusing canonical undo/redo calls, while drag-to-scrub remains reserved for the next phase.`
+
+#### Scope / Constraints Honored
+
+- Kept the rail inside the Edit History Timeline tab.
+- Reused the existing Phase 3 marker jump path through `editHistoryStore.undo()` and `editHistoryStore.redo()`.
+- Left drag behavior, live scrub execution, checkpoint storage, branch graphs, private payload inspection, and Sketch Draw local history ownership out of scope.
+
+#### Summary of Implementation
+
+- Added a Timeline-only scrub rail beside the timeline entry list.
+- Added a marker handle positioned from the canonical timeline marker index over the discrete `0..entries.length` range.
+- Added rail click mapping from pointer `clientY` to the nearest marker index using the rail bounding rect.
+- Kept empty-history rail clicks as marker no-ops.
+- Added reader-surface tests for rail visibility, empty no-op behavior, rail-driven undo jumps, rail-driven redo jumps, and existing row-click jump behavior.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Timeline tab now shows a vertical scrub rail and current-position handle.
+- Clicking the rail can move the marker backward through canonical undo calls or forward through canonical redo calls.
+- Empty timeline rail clicks select or retain the current-position marker without mutating history.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1712 -->
+
+### [1712] - 2026-04-30 22:28 - `Edit-History-Workspace-4 - Phase 3 - Marker Jump Routing`
+
+<!-- ENTRY 1712 -->
+HUMAN SUMMARY: `Timeline row clicks now move the Edit History marker by routing through canonical undo/redo calls. Applied rows jump backward, redoable rows jump forward, and the marker row itself remains a no-op current-position read.`
+
+#### Scope / Constraints Honored
+
+- Kept jump execution inside the existing Edit History workspace surface.
+- Moved history only through `editHistoryStore.undo()` and `editHistoryStore.redo()`.
+- Left checkpoint storage, branch graphs, private payload inspection, and Sketch Draw local command buffers out of scope.
+
+#### Summary of Implementation
+
+- Added target marker index resolution for applied and redoable timeline rows.
+- Added a bounded timeline jump helper that computes the marker delta and calls canonical undo/redo once per step.
+- Kept marker row clicks as no-op selection of the current-position inspector.
+- Updated reader surface tests for multi-step applied-row undo jumps, multi-step redoable-row redo jumps, marker no-op behavior, and preserved canonical stack contents.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking an applied timeline row moves the current-position marker backward through canonical undo calls.
+- Clicking a redoable timeline row moves the current-position marker forward through canonical redo calls.
+- Clicking the marker row remains read-only and does not mutate history.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1711 -->
+
+### [1711] - 2026-04-30 22:22 - `Edit-History-Workspace-4 - Phase 2 - Timeline UI`
+
+<!-- ENTRY 1711 -->
+HUMAN SUMMARY: `The Edit History workspace now opens to a unified Timeline tab with a visible read-only current-position marker between applied and redoable entries. Existing Undo, Redo, Sketch Draw, and snapshot activity reads remain available while marker jump execution stays deferred to Phase 3.`
+
+#### Scope / Constraints Honored
+
+- Kept this phase to the reader UI over the Phase 1 timeline model.
+- Preserved canonical `editHistoryStore.undo()` and `editHistoryStore.redo()` behavior.
+- Left marker jump execution, checkpoint storage, branch graphs, and private payload inspection out of scope.
+
+#### Summary of Implementation
+
+- Added a default `Timeline (N)` tab to `EditHistoryReaderSurface`.
+- Rendered applied timeline rows above a `Current position` marker and redoable rows below it.
+- Added applied, redoable, and marker row styling in the workspace reader CSS.
+- Added a marker inspector state that shows marker index and stack counts without executing history movement.
+- Extended reader surface tests for empty timeline state, timeline ordering, row side labels, marker selection, non-mutating marker behavior, and preserved stack/local-history behavior.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Edit History workspace now leads with one combined timeline instead of defaulting to the Undo stack.
+- The timeline clearly shows applied entries, the current position, and redoable entries in redo execution order.
+- Selecting the current-position marker is read-only and does not run undo or redo.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1710 -->
+
+### [1710] - 2026-04-30 22:15 - `Edit-History-Workspace-4 - Phase 1 - Timeline Read Model`
+
+<!-- ENTRY 1710 -->
+HUMAN SUMMARY: `The Edit History reader model now exposes one unified timeline over canonical Undo/Redo entries, including the current marker index and applied versus redoable row classification. This is the data slice for the later visible marker UI and jump routing work.`
+
+#### Scope / Constraints Honored
+
+- Kept this phase to the reader model and focused tests.
+- Left canonical undo/redo mutation behavior unchanged.
+- Did not add visible marker UI, marker jump execution, checkpoint storage, branch graphs, or private payload inspection.
+
+#### Summary of Implementation
+
+- Added `EditHistoryReaderTimelineModel` and `EditHistoryReaderTimelineEntryModel` to the reader view model.
+- Added `createEditHistoryReaderTimelineModel()` so Undo entries remain oldest-to-newest while Redo entries are reversed for redo execution order after the marker.
+- Exposed `timeline` on `createEditHistoryReaderModel()` beside the existing Undo, Redo, and snapshot activity reads.
+- Added focused view-model tests for empty history, committed-only history, undone history with redoable rows, metadata preservation, and private undo/redo exclusion.
+
+#### Files Changed
+
+- `src/app/store/editHistoryReaderViewModel.ts`
+- `src/app/store/editHistoryReaderViewModel.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The reader layer can now ask for one chronological history timeline with a marker index, applied row count, and redoable row count.
+- Existing Undo and Redo stack reads, buttons, and snapshot activity behavior remain unchanged.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1709 -->
+
+### [1709] - 2026-04-30 22:04 - `Edit-History - Sketch Draw Pending Tab`
+
+<!-- ENTRY 1709 -->
+HUMAN SUMMARY: `The Edit History workspace now separates active Sketch Draw local history from committed canonical Undo/Redo entries. A pending row appears in the Undo list while sketch draw changes are uncommitted, and clicking it opens the Sketch Draw tab.`
+
+#### Scope / Constraints Honored
+
+- Kept uncommitted Sketch Draw commands out of the canonical Undo/Redo stacks.
+- Presented active Sketch Draw history as read-only workspace state owned by the sketch session.
+- Preserved the committed canonical history list and existing snapshot log behavior.
+
+#### Summary of Implementation
+
+- Added a `Sketch Draw` tab to `EditHistoryReaderSurface`.
+- Added a pending `Sketch Draw changes` row to the Undo list when active local sketch draw commands exist.
+- Made the pending row navigate to the `Sketch Draw` tab, where local command rows and session metadata are visible.
+- Added focused reader coverage for the pending row and tab navigation.
+
+#### Files Changed
+
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- Active, uncommitted Sketch Draw commands are visible in the Edit History workspace before they become a committed canonical history entry.
+- The pending Sketch Draw row is clearly marked `Not committed yet` and does not create a fake undo entry.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1708 -->
+
+### [1708] - 2026-04-30 21:56 - `Edit-History - Snapshot Log Sequence Numbers`
+
+<!-- ENTRY 1708 -->
+HUMAN SUMMARY: `Snapshot log rows now carry a linear session sequence number, making captured, undo, and redo activity easier to reference even when stack movement is non-linear.`
+
+#### Scope / Constraints Honored
+
+- Kept numbering local to the snapshot activity log instead of tying it to Undo or Redo stack position.
+- Preserved session-local reset behavior when the edit-history store is cleared.
+
+#### Summary of Implementation
+
+- Added a `sequence` field to edit-history snapshot log entries.
+- Rendered snapshot log rows with `#N` prefixes in the Edit History reader.
+- Extended focused store and reader tests for the displayed sequence.
+
+#### Files Changed
+
+- `src/app/store/editHistoryStore.ts`
+- `src/app/store/editHistoryStore.test.ts`
+- `src/app/store/editHistoryReaderViewModel.ts`
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- Snapshot activity rows now display as `#1 Captured`, `#2 Undo`, `#3 Redo`, and so on for the current history session.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryStore.test.ts src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1707 -->
+
+### [1707] - 2026-04-30 21:51 - `Edit-History - Snapshot Activity Log`
+
+<!-- ENTRY 1707 -->
+HUMAN SUMMARY: `Undo/redo snapshot activity now has a public metadata log in the canonical edit-history owner. The Edit History reader shows captured, undo, and redo activity without exposing private undo payloads.`
+
+#### Scope / Constraints Honored
+
+- Kept the snapshot activity list session-local inside the canonical edit-history store.
+- Exposed only public entry metadata, stack depths, and timestamps; undo/redo closures and private payloads remain hidden.
+- Preserved existing Undo and Redo stack behavior.
+
+#### Summary of Implementation
+
+- Added `snapshotLog` metadata to edit-history snapshots and a `getSnapshotLog()` owner API.
+- Recorded `commit`, `undo`, and `redo` activity after the canonical stacks mutate.
+- Rendered a `Snapshot log` section in the Edit History reader inspector.
+- Tightened the source-filter UI test so stack filtering is asserted against the filtered stack list while the full snapshot log remains visible.
+
+#### Files Changed
+
+- `src/app/store/editHistoryStore.ts`
+- `src/app/store/editHistoryStore.test.ts`
+- `src/app/store/editHistoryReaderViewModel.ts`
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- The Edit History reader now keeps and displays a public list of undo/redo snapshot activity for the current store session.
+- Clearing the edit-history store clears the snapshot activity log with the Undo/Redo stacks.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryStore.test.ts src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1706 -->
+
+### [1706] - 2026-04-30 21:43 - `Camera-Controls - Middle-Mouse Double-Click Pan Separation`
+
+<!-- ENTRY 1706 -->
+HUMAN SUMMARY: `Middle-mouse double-click still frames all content, but it no longer falls into a pan gesture afterward. Middle-mouse pan now starts only after the held button moves past the click threshold.`
+
+#### Scope / Constraints Honored
+
+- Kept middle-mouse double-click zoom-all behavior intact.
+- Kept middle-mouse hold-and-drag panning available.
+- Moved only plain middle-button pan ownership out of OrbitControls and into the viewer's existing temporary pan path.
+
+#### Summary of Implementation
+
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so OrbitControls no longer directly claims middle-button pan on pointer down.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so middle-button pointer tracking captures the pointer, treats down/up as click candidates, starts temporary pan only after movement crosses the click threshold, and ends temporary pan on release.
+- Extended [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) and [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts) with focused proof for double-click zoom without pan and threshold-gated hold-drag pan.
+
+#### Files Changed
+
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+
+#### Behavior Changes
+
+- Double-clicking the middle mouse button still runs frame-all.
+- Releasing the second middle-click no longer leaves the camera in a pan gesture.
+- Holding middle mouse and dragging still pans after movement crosses the existing click threshold.
+
+#### Verification Steps
+
+- Ran `node_modules\.bin\vitest.cmd run src/viewer/Viewer.test.ts src/viewer/scene/CameraController.test.ts`
+
+<!-- ENTRY 1705 -->
+
+### [1705] - 2026-04-30 21:35 - `Camera-Controls - Modified Viewer Shortcut Routing Repair`
+
+<!-- ENTRY 1705 -->
+HUMAN SUMMARY: `Modified keyboard chords no longer leak into the Three viewer's bare one-letter framing shortcuts. Fresh model viewports now leave Ctrl+Z available for undo routing instead of falling through to frame-all behavior when there is nothing to undo.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix local to the existing viewer keydown owner and focused viewer regression proof.
+- Preserved the existing bare `z`, `f`, and `a` viewer-local framing shortcuts.
+- Left active-viewer `Shift+Z` zoom-object routing on the shared camera shortcut seam.
+
+#### Summary of Implementation
+
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so viewer-local one-letter camera and gizmo shortcuts return early when Ctrl, Meta, Alt, or Shift is held.
+- Extended [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) with regression coverage proving `Ctrl+Z` no longer reaches `frameObject` or `frameBox`, while bare `z` still frames through the existing path.
+
+#### Files Changed
+
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+
+#### Behavior Changes
+
+- In a fresh model viewport with no undo entries, `Ctrl+Z` no longer falls through to `frameSelected(null)` / `frameAll()`.
+- Bare `z` still frames the selected part, or frames all when no part is selected.
+
+#### Verification Steps
+
+- Ran `node_modules\.bin\vitest.cmd run src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1704 -->
+
+### [1704] - 2026-04-27 12:41 - `DOCS - MkDocs Strict Build Warning Cleanup`
+
+<!-- ENTRY 1704 -->
+HUMAN SUMMARY: `MkDocs strict builds no longer drown in false broken-link warnings from repo source references. The published docs set now skips the stray duplicate changelog copy, and the landing page links now point at the real current docs paths.`
+
+#### Summary of Implementation
+
+- Updated [`mkdocs.yml`](./mkdocs.yml) so the published docs set excludes `CHANGELOG copy.md` and the docs-link validator no longer treats intentional repo/source-file references as strict-mode broken-doc failures.
+- Repaired stale front-door links in [`docs/index.md`](./index.md) for the System Map, Worker, Engine Architecture, Glossary, DOC phase family, and Extrude deep links that had drifted to moved or unpublished docs.
+
+#### Files Changed
+
+- [`mkdocs.yml`](./mkdocs.yml)
+- [`docs/index.md`](./index.md)
+
+#### Behavior Changes
+
+- `python -m mkdocs build --strict` now ignores intentional repo-file markdown links instead of surfacing thousands of false broken-doc warnings.
+- The hosted docs landing page now routes those repaired quick links to the current published docs paths.
+
+#### Verification Steps
+
+- Ran `python -m mkdocs build --strict`
+
+<!-- ENTRY 1703 -->
+
+### [1703] - 2026-04-23 09:15 - `Environment-3 - Environment Light Object Transform And Selection Polish`
+
+<!-- ENTRY 1703 -->
+HUMAN SUMMARY: `Movable positional environment lights now have translate-only Viewer Transform history, including toolbar history reads, Console DeleteLatest, and app-level undo/redo restore. Non-positional lights and unsupported rotate, scale, snap, timeline, and camera-lock behaviors stay blocked.`
+
+#### Scope / Constraints Honored
+
+- Kept environment lights Environment-owned instead of turning them into content objects.
+- Kept light Viewer Transform support translate-only for positional `directional`, `point`, and `spot` lights.
+- Preserved existing Browser selection, double-click focus, selected-light zoom, disabled-helper, and non-positional warning behavior.
+
+#### Summary of Implementation
+
+- Added environment-light transform history state, baseline tracking, active scrub state, move commit insertion, and history operations for scrub, reset, delete, delta edit, lock, and merge.
+- Routed environment-light Viewer Transform commits through canonical edit-history snapshots so undo and redo restore both light history and `LightSpec.position`.
+- Returned active light transform history to the Viewer Transform toolbar while keeping the visible transform surface Move-only.
+- Added Console history context so selected lights expose `DeleteLatest` only after committed light move history exists.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/store/viewerTransformEditHistoryStore.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/consoleReferenceContentCommands.ts`
+- `src/app/console/consoleReferenceContentCommands.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/useConsoleStore.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-3 - Environment Light Object Transform And Selection Polish.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Moving a positional environment light now creates a real translate history row and one canonical undoable Viewer Transform edit.
+- Undo and redo of a light move restore the light's actual position and private transform-history rows together.
+- Console light transform roots show `DeleteLatest` after light history exists; fresh light transform roots still show only `Move` and `Back`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/viewerTransformEditHistoryStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/consoleReferenceContentCommands.test.ts --reporter=dot`
+- `npm.cmd test -- src/app/store/viewerTransformEditHistoryStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/consoleReferenceContentCommands.test.ts src/app/store/useAppStore.test.ts -t "environment light" --reporter=dot`
+- `npm.cmd run build`
+- Broad `npm.cmd test -- src/app/store/viewerTransformEditHistoryStore.test.ts src/app/store/useAppStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/consoleReferenceContentCommands.test.ts --reporter=dot` still reports pre-existing `useAppStore.test.ts` project-content failures outside the environment-light scope.
+
+<!-- ENTRY 1702 -->
+
+### [1702] - 2026-04-23 08:04 - `VT - Phase 1 - Zoom Object Selection Routing`
+
+<!-- ENTRY 1702 -->
+HUMAN SUMMARY: `Selected object and environment-light Zoom now routes directly to Zoom Object instead of forcing a second Object choice, and Shift+Z shares the same object/all-selected resolver. Console also exposes a ZoomObject command and ZO alias for direct selected-target zooming.`
+
+#### Scope / Constraints Honored
+
+- Kept the existing staged Zoom family for non-selected/root zoom workflows.
+- Reused the existing environment-light frame command for selected light zoom.
+- Preserved existing object, reference, and multi-select frame command seams.
+
+#### Summary of Implementation
+
+- Added a shared zoom-object target resolver that understands selected parts, references, environment lights, and explicit multi-select selection sets.
+- Routed viewer Shift+Z through the shared resolver so selected environment lights and multi-selects can frame correctly.
+- Added `zoomobject` / `zo` console aliases and a staged `ZoomObject` choice for object-like selections.
+- Made object and environment-light selected `Zoom` execute model Zoom Object directly from Console.
+
+#### Files Changed
+
+- `src/app/zoomObjectTarget.ts`
+- `src/app/zoomObjectTarget.test.ts`
+- `src/app/useViewerCameraShortcuts.ts`
+- `src/app/useViewerCameraShortcuts.test.tsx`
+- `src/app/console/consoleCommandParser.ts`
+- `src/app/console/consoleCommandParser.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+
+- Typing `Zoom` while an object or environment light is selected now frames that selected target immediately.
+- Typing `ZoomObject` or `ZO` frames the current object-like target directly.
+- Pressing Shift+Z now uses the same selected target resolver, including environment lights and all-selected object/reference sets.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/zoomObjectTarget.test.ts src/app/useViewerCameraShortcuts.test.tsx src/app/console/consoleCommandParser.test.ts src/app/console/stagedNavigation.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "uses the same object-local zoom branch"`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "environment light directly from Console Zoom"`
+- `npx.cmd tsc --noEmit --pretty false`
+
+<!-- ENTRY 1701 -->
+
+### [1701] - 2026-04-23 07:52 - `VT - Phase 1 - Environment Light Double-Click Settings Focus`
+
+<!-- ENTRY 1701 -->
+HUMAN SUMMARY: `Double-clicking a Browser environment light now keeps the object-like frame-to-light behavior while also selecting that light and opening the Environment toolbar tab to its settings. The Environment section is expanded as part of the action so the selected light remains visible in Browser.`
+
+#### Scope / Constraints Honored
+
+- Kept the existing environment-light frame command as the zoom-to-light behavior.
+- Scoped the settings focus to Browser environment-light double-clicks.
+- Preserved single-click Browser selection behavior without auto-opening Viewer Transform.
+
+#### Summary of Implementation
+
+- Extended Browser row interaction dependencies with the active viewer viewport and viewport local view-state setter.
+- Updated environment-light double-click handling to select the light, expand the Environment Browser root, and open the Environment toolbar tab.
+- Added focused Browser interaction coverage for the combined frame-and-settings behavior.
+
+#### Files Changed
+
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+
+- Double-clicking Key, Fill, Rim, or custom environment lights in Browser now zooms to the light marker and opens the Environment light settings for that same light.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/panels/browserInteractions.test.ts -t "environment-light"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1700 -->
+
+### [1700] - 2026-04-23 07:47 - `VT - Phase 1 - Disabled Environment Light Marker Visibility`
+
+<!-- ENTRY 1700 -->
+HUMAN SUMMARY: `Disabled environment lights no longer leave their viewport helper marker visible or pickable, and the viewer now refreshes transform attachments when light visibility changes. This keeps off Key, Fill, Rim, and custom light rows visually consistent with their Browser state.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside the viewer runtime light-helper behavior.
+- Preserved Browser-based light selection while removing disabled helpers from viewport picking.
+- Refreshed active transform overlays after lighting updates so stale helper attachments detach when a light turns off.
+
+#### Summary of Implementation
+
+- Made environment-light helper groups follow `LightSpec.enabled` for visibility instead of always forcing helpers visible.
+- Refreshed viewer transform attachments, transform history overlays, and snap overlays after applying light settings.
+- Added focused viewer coverage for disabled environment-light helpers being hidden and excluded from workspace selection candidates.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+
+- Turning an environment light off now hides its viewport marker and prevents viewport picking against that disabled marker.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "hides disabled environment-light helpers"`
+- `npm.cmd test -- src/app/console/stagedNavigation.test.ts`
+- `npm.cmd test -- src/app/console/consoleReferenceContentCommands.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "keeps Browser-selected environment lights"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1699 -->
+
+### [1699] - 2026-04-23 07:38 - `VT - Phase 1 - Environment Light Console Viewer Transform Opt-In`
+
+<!-- ENTRY 1699 -->
+HUMAN SUMMARY: `Browser selection for Key, Fill, Rim, and environment-light rows now stays passive instead of auto-opening Viewer Transform, while Console selection exposes ViewTransform and Move opt-in commands. Positional lights open the existing environment-light transform shell, and non-positional lights warn cleanly when transform is requested.`
+
+#### Scope / Constraints Honored
+
+- Kept environment-light Viewer Transform ownership opt-in from Console commands instead of Browser selection side effects.
+- Reused the existing environment-light transform shell and active translate entry path for positional lights.
+- Kept non-positional light handling explicit with Console warnings instead of silent no-op behavior.
+
+#### Summary of Implementation
+
+- Stopped `ViewerHost` from auto-starting environment-light Viewer Transform on Browser-selected light rows.
+- Added environment-light `ViewTransform` and `Move` staged Console choices with a narrowed transform-root surface.
+- Routed environment-light Move execution through the existing viewer-transform shell for directional, point, and spot lights, with clean warnings for missing or unsupported lights.
+- Added focused navigation, command, and ViewerHost coverage for the opt-in behavior.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/consoleReferenceContentCommands.ts`
+- `src/app/console/consoleReferenceContentCommands.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+
+- Browser-selected environment lights no longer open Viewer Transform automatically.
+- Console-selected environment lights now offer `ViewTransform` and `Move`; positional lights can enter the environment-light translate shell, while non-positional lights report that Viewer Transform is only available for positional environment lights.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/stagedNavigation.test.ts`
+- `npm.cmd test -- src/app/console/consoleReferenceContentCommands.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "keeps Browser-selected environment lights"`
+- `npm.cmd run build`
+- Attempted combined targeted run `npm.cmd test -- src/app/console/stagedNavigation.test.ts src/app/console/consoleReferenceContentCommands.test.ts src/app/components/ViewerHost.test.tsx`; it timed out after five minutes while the individual focused runs above passed.
 
 <!-- ENTRY 1698 -->
 

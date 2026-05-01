@@ -1109,7 +1109,7 @@ export class CameraController {
 
   private applyMouseBindings(): void {
     this.controls.mouseButtons.LEFT = this.leftButtonOrbitEnabled ? MOUSE.ROTATE : null
-    this.controls.mouseButtons.MIDDLE = MOUSE.PAN
+    this.controls.mouseButtons.MIDDLE = null
     this.controls.mouseButtons.RIGHT = null
   }
 

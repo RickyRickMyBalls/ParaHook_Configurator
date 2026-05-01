@@ -876,6 +876,28 @@ const buildStagedNavigationContextFromStoreState = (
           },
         },
     workspaceViewportOptions,
+    appState.referenceWorkspace.activeEnvironmentLightTransformSession === null
+      ? {}
+      : {
+          [appState.referenceWorkspace.activeEnvironmentLightTransformSession.lightId]: {
+            activeSessionId:
+              appState.referenceWorkspace.activeEnvironmentLightTransformSession.sessionId,
+            totalCommittedEntryCount: (
+              appState.referenceWorkspace.transformHistoryByEnvironmentLightId[
+                appState.referenceWorkspace.activeEnvironmentLightTransformSession.lightId
+              ] ?? []
+            ).length,
+            activeSessionCommittedEntryCount: (
+              appState.referenceWorkspace.transformHistoryByEnvironmentLightId[
+                appState.referenceWorkspace.activeEnvironmentLightTransformSession.lightId
+              ] ?? []
+            ).filter(
+              (entry) =>
+                entry.sessionId ===
+                appState.referenceWorkspace.activeEnvironmentLightTransformSession?.sessionId,
+            ).length,
+          },
+        },
   )
 }
 
@@ -898,6 +920,7 @@ export function ConsoleDock({
   const lastHandledConsoleWorkspaceContextHandoffSeqRef = useRef(0)
   const lastHandledReferenceTransformShellExitSeqRef = useRef(0)
   const suppressNextReferenceTransformShellExitRef = useRef(false)
+  const environmentLightTransformWarningRef = useRef<string | null>(null)
   const previousSketchPlanePickSessionRef = useRef<
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
   >(null)
@@ -1075,6 +1098,43 @@ export function ConsoleDock({
       return
     }
     const appState = useAppStore.getState()
+    const environmentLightId = stagedNavigationSession.selections.environmentLightId ?? null
+    if (environmentLightId !== null) {
+      const selectedLight =
+        useUiPrefsStore
+          .getState()
+          .view.lighting.lights.find((light) => light.id === environmentLightId) ?? null
+      const activeLightId =
+        appState.referenceWorkspace.activeEnvironmentLightTransformSession?.lightId ?? null
+      const lightSupportsTransform =
+        selectedLight?.type === 'directional' ||
+        selectedLight?.type === 'point' ||
+        selectedLight?.type === 'spot'
+      if (selectedLight === null || !lightSupportsTransform) {
+        const warningKey = `${environmentLightId}:${selectedLight?.type ?? 'missing'}`
+        if (environmentLightTransformWarningRef.current !== warningKey) {
+          appendConsoleEntry({
+            layer: 'Transforms',
+            text:
+              selectedLight === null
+                ? 'Viewer Transform could not find the selected environment light'
+                : 'Viewer Transform is only available for positional environment lights',
+            source: 'console',
+            severity: 'warn',
+          })
+          environmentLightTransformWarningRef.current = warningKey
+        }
+        return
+      }
+      environmentLightTransformWarningRef.current = null
+      if (selectedLight !== null && lightSupportsTransform && activeLightId !== environmentLightId) {
+        appState.beginViewerTransformShell({
+          kind: 'environment-light',
+          lightId: environmentLightId,
+        })
+      }
+      return
+    }
     const selectedTarget = appState.workspaceSelection.selectedTarget
     if (selectedTarget?.kind !== 'object') {
       return

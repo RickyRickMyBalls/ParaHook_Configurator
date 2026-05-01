@@ -1150,6 +1150,10 @@ export class Viewer {
     this.applyMaterialSettings(settings.materials)
     this.applyShadowFlags()
     this.refreshSelectionStyling()
+    this.refreshGizmoAttachment()
+    this.syncReferenceTransformHistoryOverlay()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
   private applyEnvironmentSource(settings: ViewSettings): void {
@@ -3310,7 +3314,7 @@ export class Viewer {
     helper.name = `${spec.name}:environment-light-helper`
     helper.userData.environmentLightId = spec.id
     helper.userData.environmentLightType = spec.type
-    helper.visible = true
+    helper.visible = spec.enabled
     helper.position.set(0, 0, 0)
     helper.quaternion.identity()
     helper.scale.setScalar(spec.id === this.currentViewSettings.lighting.selectedLightId ? 1.12 : 1)
@@ -5107,6 +5111,9 @@ export class Viewer {
         anchorClientY: event.clientY,
         moved: false,
       }
+      event.preventDefault()
+      event.stopPropagation()
+      this.renderer.domElement.setPointerCapture(event.pointerId)
       return
     }
     if (
@@ -5324,14 +5331,29 @@ export class Viewer {
     }
     if (
       this.middleClickTracker !== null &&
-      event.pointerId === this.middleClickTracker.pointerId &&
-      !this.middleClickTracker.moved
+      event.pointerId === this.middleClickTracker.pointerId
     ) {
-      this.middleClickTracker.moved =
-        Math.max(
-          Math.abs(event.clientX - this.middleClickTracker.anchorClientX),
-          Math.abs(event.clientY - this.middleClickTracker.anchorClientY),
-        ) >= 3
+      event.preventDefault()
+      event.stopPropagation()
+      if (!this.middleClickTracker.moved) {
+        const moved =
+          Math.max(
+            Math.abs(event.clientX - this.middleClickTracker.anchorClientX),
+            Math.abs(event.clientY - this.middleClickTracker.anchorClientY),
+          ) >= 3
+        if (moved) {
+          this.middleClickTracker.moved = true
+          this.lastMiddleClick = null
+          this.beginTemporaryPanDrag(
+            this.middleClickTracker.anchorClientX,
+            this.middleClickTracker.anchorClientY,
+          )
+          this.updateTemporaryPanDrag(event.clientX, event.clientY)
+        }
+        return
+      }
+      this.updateTemporaryPanDrag(event.clientX, event.clientY)
+      return
     }
     if (
       this.sketchPlanePickOverlay !== null &&
@@ -5494,6 +5516,9 @@ export class Viewer {
     ) {
       const click = this.middleClickTracker
       this.middleClickTracker = null
+      if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(event.pointerId)
+      }
       if (!click.moved && this.currentViewSettings.orbitEnabled) {
         const nextClickAtMs = performance.now()
         if (
@@ -5517,6 +5542,9 @@ export class Viewer {
         }
       } else if (click.moved) {
         this.lastMiddleClick = null
+        event.preventDefault()
+        event.stopPropagation()
+        this.endTemporaryPanDrag()
       }
       return
     }
@@ -5647,6 +5675,9 @@ export class Viewer {
     }
 
     const key = event.key.toLowerCase()
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+      return
+    }
     if (
       this.sketchPlanePickOverlay?.stage === 'adjust' &&
       (key === 'w' || key === 'e' || key === 'r' || key === 'q')
@@ -5747,6 +5778,21 @@ export class Viewer {
   }
 
   private readonly handleViewerPointerCancel = (event: PointerEvent): void => {
+    if (
+      this.middleClickTracker !== null &&
+      event.pointerId === this.middleClickTracker.pointerId
+    ) {
+      const wasPanning = this.middleClickTracker.moved
+      this.middleClickTracker = null
+      this.lastMiddleClick = null
+      if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+      if (wasPanning) {
+        this.endTemporaryPanDrag()
+      }
+      return
+    }
     if (this.flySession === null || event.pointerId !== this.flySession.pointerId) {
       return
     }

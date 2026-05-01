@@ -9877,7 +9877,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
   })
 
-  it('routes positioned environment lights through the shared viewer transform shell and commits position only', async () => {
+  it('routes positioned environment lights through the shared viewer transform shell and records move history', async () => {
     const {
       selectActiveViewerTransformSession,
       selectActiveViewerTransformTarget,
@@ -9928,6 +9928,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       .getState()
       .view.lighting.lights.find((entry) => entry.id === light!.id)
     expect(committedLight?.position).toEqual({ x: 12, y: 8, z: -4 })
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByEnvironmentLightId[light!.id],
+    ).toHaveLength(1)
     expect(selectActiveViewerTransformSession(useAppStore.getState().referenceWorkspace)).toMatchObject({
       targetKind: 'environment-light',
       targetId: light!.id,
@@ -9940,6 +9943,58 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         scale: { x: 1, y: 1, z: 1 },
       },
     })
+  })
+
+  it('scrubs and deletes environment light transform history from the shared viewer transform API', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useUiPrefsStore } = await import('./uiPrefsStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+
+    const light = useUiPrefsStore.getState().view.lighting.lights.find((entry) => entry.type === 'directional')
+    expect(light).toBeTruthy()
+    const originalPosition = { ...light!.position! }
+
+    useAppStore.getState().beginViewerTransformShell({
+      kind: 'environment-light',
+      lightId: light!.id,
+    })
+    useAppStore.getState().beginActiveViewerTransformEntry('translate')
+    useAppStore.getState().setActiveViewerTransformDraft({
+      position: { x: 4, y: 5, z: 6 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    })
+    useAppStore.getState().commitActiveViewerTransformEntry()
+
+    useAppStore.getState().setActiveViewerTransformHistoryScrubIndex(0)
+    expect(
+      useUiPrefsStore.getState().view.lighting.lights.find((entry) => entry.id === light!.id)
+        ?.position,
+    ).toEqual(originalPosition)
+
+    useAppStore.getState().setActiveViewerTransformHistoryScrubIndex(1)
+    expect(
+      useUiPrefsStore.getState().view.lighting.lights.find((entry) => entry.id === light!.id)
+        ?.position,
+    ).toEqual({ x: 4, y: 5, z: 6 })
+
+    const entryId =
+      useAppStore.getState().referenceWorkspace.transformHistoryByEnvironmentLightId[light!.id]?.[0]
+        ?.entryId
+    expect(entryId).toBeDefined()
+    useAppStore
+      .getState()
+      .deleteViewerTransformHistoryEntry({ kind: 'environment-light', lightId: light!.id }, entryId!)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByEnvironmentLightId[light!.id] ?? [],
+    ).toEqual([])
+    expect(
+      useUiPrefsStore.getState().view.lighting.lights.find((entry) => entry.id === light!.id)
+        ?.position,
+    ).toEqual(originalPosition)
   })
 
   it('does not start a viewer transform shell for non-positioned environment lights', async () => {

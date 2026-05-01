@@ -46,6 +46,7 @@ import {
 } from '../store/useAppStore'
 import type { BrowserBuildPolicy } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
   activateGraphTargetIntent,
   activateGraphDocumentIntent,
@@ -300,6 +301,10 @@ export function useBrowserPanelController(
   const selectLight = useUiPrefsStore((state) => state.selectLight)
   const deleteLight = useUiPrefsStore((state) => state.deleteLight)
   const updateLight = useUiPrefsStore((state) => state.updateLight)
+  const activeViewerViewportId = useWorkspaceStore((state) => state.activeViewerViewportId)
+  const setViewportLocalViewState = useWorkspaceStore(
+    (state) => state.setViewportLocalViewState,
+  )
   const setHdriEnvironmentBackgroundVisible = useUiPrefsStore(
     (state) => state.setHdriEnvironmentBackgroundVisible,
   )
@@ -2211,6 +2216,7 @@ export function useBrowserPanelController(
         setWorkspaceSelectedTarget,
         setWorkspaceExplicitSelection,
         setActiveSurface,
+        activeViewerViewportId,
         selectLight,
         selectPart,
         requestConsoleContextSync,
@@ -2242,9 +2248,11 @@ export function useBrowserPanelController(
         setExpandedGraphDocumentIds,
         setGraphSectionExpandedByRowId,
         setCollapsedContentRowIds,
+        setViewportLocalViewState,
         appendBrowserEntry,
       }),
     [
+      activeViewerViewportId,
       appendBrowserEntry,
       browserTreeRows,
       closeBrowserOverlays,
@@ -2260,6 +2268,7 @@ export function useBrowserPanelController(
       setActiveSurface,
       setPartVisibility,
       setReferenceItemVisibility,
+      setViewportLocalViewState,
       setWorkspaceExplicitSelection,
       setWorkspaceSelectedTarget,
       sharedViewerComposition,

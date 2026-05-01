@@ -310,6 +310,18 @@ describe('sketch draft and runtime edit-history exclusions', () => {
       targetId: 'node-sketch-1:sketch:components',
       targetLabel: 'Sketch Draw changes',
     })
+    expect(editHistoryStore.getUndoEntries()[0]?.childSummaries?.map((summary) => summary.label)).toEqual([
+      'Select sketch line tool',
+      'Draw sketch line',
+      'Select sketch rectangle tool',
+      'Draw sketch rectangle',
+      'Select sketch circle tool',
+      'Draw sketch circle',
+      'Select sketch circle tool',
+      'Draw sketch circle',
+      'Select sketch pline tool',
+      'Draw sketch polyline',
+    ])
 
     editHistoryStore.undo()
     expect(geometrySketchTypes()).toEqual([])
@@ -444,6 +456,30 @@ describe('sketch draft and runtime edit-history exclusions', () => {
     expect(editHistoryStore.getUndoEntries()).toEqual([])
   })
 
+  it('stores accepted Sketch Draw tool-selection commands as committed child summaries', () => {
+    useSpaghettiStore.getState().setGraph(graphWithPartAndGeometrySketch([]))
+    editHistoryStore.clear()
+
+    startDrawSession()
+    useSpaghettiStore.getState().runGeometrySketchDrawCommand('rectangle')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 1, y: 1 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 8, y: 5 }, null)
+    useSpaghettiStore.getState().closeGeometrySketchSession()
+
+    expect(editHistoryStore.getUndoEntries()[0]?.childSummaries).toMatchObject([
+      {
+        label: 'Select sketch rectangle tool',
+        kind: 'tool-selection',
+        sequence: 1,
+      },
+      {
+        label: 'Draw sketch rectangle',
+        kind: 'geometry',
+        sequence: 2,
+      },
+    ])
+  })
+
   it('keeps Sketch Draw no-op delete attempts out of canonical history', () => {
     useSpaghettiStore.getState().setGraph(graphWithPartAndGeometrySketch([
       line('row-line-1'),
@@ -564,6 +600,15 @@ describe('sketch draft and runtime edit-history exclusions', () => {
     expect(geometrySketchTypes()).toEqual(['rectangle', 'rectangle', 'rectangle'])
     expect(editHistoryStore.getUndoEntries().map((entry) => entry.label)).toEqual([
       'Commit sketch draw changes',
+    ])
+    expect(
+      editHistoryStore.getUndoEntries()[0]?.childSummaries
+        ?.filter((summary) => summary.kind === 'geometry')
+        .map((summary) => summary.label),
+    ).toEqual([
+      'Draw sketch rectangle',
+      'Draw sketch rectangle',
+      'Draw sketch rectangle',
     ])
 
     editHistoryStore.undo()

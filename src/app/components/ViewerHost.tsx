@@ -1084,11 +1084,11 @@ export function ViewerHost(props: ViewerHostProps) {
       return
     }
 
-    if (activeEnvironmentLightSession?.lightId !== workspaceSelectedTarget.lightId) {
-      useAppStore.getState().beginViewerTransformShell({
-        kind: 'environment-light',
-        lightId: workspaceSelectedTarget.lightId,
-      })
+    if (
+      activeEnvironmentLightSession !== null &&
+      activeEnvironmentLightSession.lightId !== workspaceSelectedTarget.lightId
+    ) {
+      useAppStore.getState().exitEnvironmentLightTransformShell()
     }
   }, [
     globalView.lighting.lights,

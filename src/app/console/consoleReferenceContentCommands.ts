@@ -8,6 +8,7 @@ import {
   type ReferenceTransformSnapMode,
   useAppStore,
 } from '../store/useAppStore'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 import type { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import type { ConsoleAssistDescriptor, ConsoleAppendEntryInput } from './consoleTypes'
 import { normalizeRadioCommandIdentity } from './consoleCommandParser'
@@ -48,9 +49,14 @@ type ReferenceTransformHistoryEntry =
   AppState['referenceWorkspace']['transformHistoryByReferenceId'][string][number] | null
 type ContentObjectTransformHistoryEntry =
   AppState['referenceWorkspace']['transformHistoryByObjectId'][string][number] | null
+type EnvironmentLightTransformHistoryEntry =
+  AppState['referenceWorkspace']['transformHistoryByEnvironmentLightId'][string][number] | null
 type StagedNavigationContext = Parameters<
   typeof createReferenceTransformRootSessionForTarget
 >[0]
+
+const environmentLightTypeSupportsViewerTransform = (type: string): boolean =>
+  type === 'directional' || type === 'point' || type === 'spot'
 
 export type ConsoleReferenceContentBaseDeps = {
   appendConsoleEntry: (entry: ConsoleAppendEntryInput) => void
@@ -235,7 +241,8 @@ export const createActiveContentObjectTransformRootSession = ({
 export const createDeleteLatestTransformConfirmPromptSession = (
   target:
     | { kind: 'reference'; referenceId: string }
-    | { kind: 'content-object'; objectId: string },
+    | { kind: 'content-object'; objectId: string }
+    | { kind: 'environment-light'; lightId: string },
   returnSession: ConsoleStagedNavigationSession,
 ): ConsolePromptSession => ({
   kind: 'transform.delete-latest.confirm',
@@ -270,6 +277,41 @@ export const deleteLatestContentObjectTransformEntry = (
     appState.deleteContentObjectTransformHistoryEntry(objectId, latestEntry.entryId)
   }
   return latestEntry
+}
+
+export const deleteLatestEnvironmentLightTransformEntry = (
+  appState: AppState,
+  lightId: string,
+) => {
+  const currentEntries =
+    appState.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? []
+  const latestEntry = currentEntries.at(-1) ?? null
+  if (latestEntry !== null) {
+    appState.deleteEnvironmentLightTransformHistoryEntry(lightId, latestEntry.entryId)
+  }
+  return latestEntry
+}
+
+export const createActiveEnvironmentLightTransformRootSession = ({
+  appState,
+  lightId,
+}: {
+  appState: AppState
+  lightId: string
+}): ConsoleStagedNavigationSession => {
+  const light =
+    useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((candidate) => candidate.id === lightId) ?? null
+  const historyEntries =
+    appState.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? []
+  return createContentObjectTransformRootSession(
+    ['Environment', light?.name ?? lightId],
+    null,
+    null,
+    historyEntries.length > 0,
+    lightId,
+  )
 }
 
 export const createActiveReferenceTransformSnapSession = ({
@@ -670,8 +712,10 @@ export const tryHandleReferenceContentPromptSubmission = ({
   clearConsolePromptSession,
   commitActiveReferenceTransformFromConsole,
   createActiveContentObjectTransformRootSession,
+  createActiveEnvironmentLightTransformRootSession,
   createActiveReferenceTransformRootSession,
   deleteLatestContentObjectTransformEntry,
+  deleteLatestEnvironmentLightTransformEntry,
   deleteLatestReferenceTransformEntry,
   getActiveFeatureAssistDescriptor,
   getAppState,
@@ -709,12 +753,18 @@ export const tryHandleReferenceContentPromptSubmission = ({
   createActiveContentObjectTransformRootSession: (
     objectId: string,
   ) => ConsoleStagedNavigationSession
+  createActiveEnvironmentLightTransformRootSession?: (
+    lightId: string,
+  ) => ConsoleStagedNavigationSession
   createActiveReferenceTransformRootSession: (
     referenceId: string,
   ) => ConsoleStagedNavigationSession
   deleteLatestContentObjectTransformEntry: (
     objectId: string,
   ) => ContentObjectTransformHistoryEntry
+  deleteLatestEnvironmentLightTransformEntry?: (
+    lightId: string,
+  ) => EnvironmentLightTransformHistoryEntry
   deleteLatestReferenceTransformEntry: (
     referenceId: string,
   ) => ReferenceTransformHistoryEntry
@@ -755,6 +805,37 @@ export const tryHandleReferenceContentPromptSubmission = ({
         const nextTransformRootSession = createActiveReferenceTransformRootSession(
           activePromptSession.target.referenceId,
         )
+        setStagedNavigationSession(nextTransformRootSession)
+        clearConsolePromptSession()
+        appendConsoleEntry({
+          layer: 'Transforms',
+          text:
+            latestEntry === null
+              ? 'Delete latest skipped: no committed transform entry'
+              : 'Deleted latest transform entry',
+          source: 'console',
+          severity: latestEntry === null ? 'warn' : 'info',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildStagedPromptText(
+            nextTransformRootSession,
+            nextTransformRootSession.validChoices,
+          ),
+          source: 'console',
+          severity: 'info',
+        })
+        return true
+      }
+
+      if (activePromptSession.target.kind === 'environment-light') {
+        const latestEntry = deleteLatestEnvironmentLightTransformEntry?.(
+          activePromptSession.target.lightId,
+        ) ?? null
+        const nextTransformRootSession =
+          createActiveEnvironmentLightTransformRootSession?.(
+            activePromptSession.target.lightId,
+          ) ?? activePromptSession.returnSession
         setStagedNavigationSession(nextTransformRootSession)
         clearConsolePromptSession()
         appendConsoleEntry({
@@ -1558,10 +1639,12 @@ export const tryHandleReferenceContentExecuteAction = ({
   commandIdentity,
   createActiveContentObjectTransformRootSession,
   createActiveContentObjectTransformSnapSession,
+  createActiveEnvironmentLightTransformRootSession,
   createActiveReferenceTransformRootSession,
   createActiveReferenceTransformSnapSession,
   createDeleteLatestTransformConfirmPromptSession,
   deleteLatestContentObjectTransformEntry,
+  deleteLatestEnvironmentLightTransformEntry,
   deleteLatestReferenceTransformEntry,
   getActiveFeatureAssistDescriptor,
   getAppState,
@@ -1581,6 +1664,9 @@ export const tryHandleReferenceContentExecuteAction = ({
   createActiveContentObjectTransformRootSession: (
     objectId: string,
   ) => ConsoleStagedNavigationSession
+  createActiveEnvironmentLightTransformRootSession?: (
+    lightId: string,
+  ) => ConsoleStagedNavigationSession
   createActiveContentObjectTransformSnapSession: (
     objectId: string,
     mode: ReferenceTransformSnapMode,
@@ -1595,12 +1681,16 @@ export const tryHandleReferenceContentExecuteAction = ({
   createDeleteLatestTransformConfirmPromptSession: (
     target:
       | { kind: 'reference'; referenceId: string }
-      | { kind: 'content-object'; objectId: string },
+      | { kind: 'content-object'; objectId: string }
+      | { kind: 'environment-light'; lightId: string },
     returnSession: ConsoleStagedNavigationSession,
   ) => ConsolePromptSession
   deleteLatestContentObjectTransformEntry: (
     objectId: string,
   ) => ContentObjectTransformHistoryEntry
+  deleteLatestEnvironmentLightTransformEntry?: (
+    lightId: string,
+  ) => EnvironmentLightTransformHistoryEntry
   deleteLatestReferenceTransformEntry: (
     referenceId: string,
   ) => ReferenceTransformHistoryEntry
@@ -2025,6 +2115,67 @@ export const tryHandleReferenceContentExecuteAction = ({
   }
 
   if (actionId === 'content.transform.deleteLatest') {
+    const environmentLightId = stagedResult.selections.environmentLightId ?? null
+    if (environmentLightId !== null) {
+      const activeSession =
+        getAppState().referenceWorkspace.activeEnvironmentLightTransformSession
+      const currentEntries =
+        getAppState().referenceWorkspace.transformHistoryByEnvironmentLightId[
+          environmentLightId
+        ] ?? []
+      const latestEntry = currentEntries.at(-1) ?? null
+      const shouldConfirmDeleteLatest =
+        latestEntry !== null &&
+        activeSession?.lightId === environmentLightId &&
+        latestEntry.sessionId !== activeSession.sessionId
+      if (shouldConfirmDeleteLatest) {
+        const promptSession = createDeleteLatestTransformConfirmPromptSession(
+          { kind: 'environment-light', lightId: environmentLightId },
+          stagedResult.session,
+        )
+        setConsolePromptSession(promptSession)
+        appendConsoleEntry({
+          layer: 'Transforms',
+          text: 'Delete latest will remove an entry from the previous transform. Are you sure?',
+          source: 'console',
+          severity: 'warn',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildConsolePromptSessionText(promptSession),
+          source: 'console',
+          severity: 'info',
+        })
+        requestRadioBurst(commandIdentity, 'enter')
+        return true
+      }
+      const deletedEntry = deleteLatestEnvironmentLightTransformEntry?.(environmentLightId) ?? null
+      const nextTransformRootSession =
+        createActiveEnvironmentLightTransformRootSession?.(environmentLightId) ??
+        stagedResult.session
+      setStagedNavigationSession(nextTransformRootSession)
+      appendConsoleEntry({
+        layer: 'Transforms',
+        text:
+          deletedEntry === null
+            ? 'Delete latest skipped: no committed transform entry'
+            : 'Deleted latest transform entry',
+        source: 'console',
+        severity: deletedEntry === null ? 'warn' : 'info',
+      })
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: buildStagedPromptText(
+          nextTransformRootSession,
+          nextTransformRootSession.validChoices,
+        ),
+        source: 'console',
+        severity: 'info',
+      })
+      requestRadioBurst(commandIdentity, 'enter')
+      return true
+    }
+
     const activeSession = getAppState().referenceWorkspace.activeContentObjectTransformSession
     const objectId = activeSession?.objectId ?? stagedResult.selections.contentObjectId ?? null
     if (objectId === null) {
@@ -2092,6 +2243,79 @@ export const tryHandleReferenceContentExecuteAction = ({
   }
 
   const selectedTarget = appState.workspaceSelection.selectedTarget
+  const environmentLightId = stagedResult.selections.environmentLightId ?? null
+  if (environmentLightId !== null) {
+    if (actionId !== 'content.transform.move') {
+      appendConsoleEntry({
+        layer: 'Transforms',
+        text: 'Environment light Viewer Transform only supports Move',
+        source: 'console',
+        severity: 'warn',
+      })
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: buildStagedPromptText(
+          getStagedNavigationSession() ?? stagedResult.session,
+          (getStagedNavigationSession() ?? stagedResult.session).validChoices,
+        ),
+        source: 'console',
+        severity: 'info',
+      })
+      requestRadioBurst(commandIdentity, 'enter')
+      return true
+    }
+    const light =
+      useUiPrefsStore
+        .getState()
+        .view.lighting.lights.find((candidate) => candidate.id === environmentLightId) ?? null
+    if (light === null) {
+      appendConsoleEntry({
+        layer: 'Transforms',
+        text: 'Viewer Transform could not find the selected environment light',
+        source: 'console',
+        severity: 'warn',
+      })
+    } else if (!environmentLightTypeSupportsViewerTransform(light.type)) {
+      appendConsoleEntry({
+        layer: 'Transforms',
+        text: 'Viewer Transform is only available for positional environment lights',
+        source: 'console',
+        severity: 'warn',
+      })
+    } else {
+      appState.beginViewerTransformShell({
+        kind: 'environment-light',
+        lightId: environmentLightId,
+      })
+      appState.beginActiveViewerTransformEntry('translate')
+      const nextSession = getAppState().referenceWorkspace.activeEnvironmentLightTransformSession
+      getViewer()?.setViewerTransformSession?.({
+        targetKind: 'environment-light',
+        targetId: environmentLightId,
+        mode: 'translate',
+        space: nextSession?.space ?? 'world',
+        entryOrigin: nextSession?.entryOrigin ?? null,
+      })
+      getViewer()?.activateTranslateCenterHandle?.()
+      appendConsoleEntry({
+        layer: 'Transforms',
+        text: 'Move armed',
+        source: 'console',
+        severity: 'info',
+      })
+    }
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: buildStagedPromptText(
+        getStagedNavigationSession() ?? stagedResult.session,
+        (getStagedNavigationSession() ?? stagedResult.session).validChoices,
+      ),
+      source: 'console',
+      severity: 'info',
+    })
+    requestRadioBurst(commandIdentity, 'enter')
+    return true
+  }
   const selectedOwnerTarget = resolveWorkspaceSelectedContentOwnerTarget(
     appState,
     selectedTarget,

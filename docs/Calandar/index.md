@@ -261,34 +261,89 @@ Do not use it for:
       <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
       <div class="day-tag">Import scale controls and environment baseline</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">18</div>
+    <div class="day phase-browser" data-target="april-18">
+      <div class="day-head"><div class="day-number">18</div><div class="day-title">Catalog Preview</div></div>
+      <ul class="day-bullets">
+        <li>Preview asset repair</li>
+        <li>Interactive card and page previews</li>
+        <li>Add-to-project card action</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">1 commit in this checkout</span></div>
+      <div class="day-tag">Catalog preview and commit flow</div>
     </div>
 
-    <div class="day empty">
-      <div class="day-number">19</div>
+    <div class="day phase-workspace-foundation" data-target="april-19">
+      <div class="day-head"><div class="day-number">19</div><div class="day-title">Home & Console</div></div>
+      <ul class="day-bullets">
+        <li>Environment look persistence</li>
+        <li>Home Page launch and storage lanes</li>
+        <li>Console workspace actions</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">1 commit in this checkout</span></div>
+      <div class="day-tag">Home Page and Console workspace flow</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">20</div>
+    <div class="day phase-browser" data-target="april-20">
+      <div class="day-head"><div class="day-number">20</div><div class="day-title">Catalog Intake</div></div>
+      <ul class="day-bullets">
+        <li>Control deck shell</li>
+        <li>External source mapping</li>
+        <li>PubParts downloads and Dropbox intake</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">1 commit in this checkout</span></div>
+      <div class="day-tag">Catalog external-source intake sprint</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">21</div>
+    <div class="day phase-browser" data-target="april-21">
+      <div class="day-head"><div class="day-number">21</div><div class="day-title">Catalog Cleanup</div></div>
+      <ul class="day-bullets">
+        <li>ZIP entry import review</li>
+        <li>Local library mirror and PubParts refresh</li>
+        <li>Rail filters and browse cleanup</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">1 commit in this checkout</span></div>
+      <div class="day-tag">Catalog cleanup and source tooling</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">22</div>
+    <div class="day phase-build-fix" data-target="april-22">
+      <div class="day-head"><div class="day-number">22</div><div class="day-title">Edit History</div></div>
+      <ul class="day-bullets">
+        <li>Reader UI and filtering</li>
+        <li>Checkpoint readiness proof</li>
+        <li>Sketch draw undo batches</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">1 commit in this checkout</span></div>
+      <div class="day-tag">Edit History sprint</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">23</div>
+    <div class="day phase-time-off" data-target="april-23">
+      <div class="day-head"><div class="day-number">23</div><div class="day-title">Shred Fest</div></div>
+      <ul class="day-bullets">
+        <li>Oak City Shred Fest 2026</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">time off</span></div>
+      <div class="day-tag">Oak City Shred Fest 2026</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">24</div>
+    <div class="day phase-time-off" data-target="april-24">
+      <div class="day-head"><div class="day-number">24</div><div class="day-title">Shred Fest</div></div>
+      <ul class="day-bullets">
+        <li>Oak City Shred Fest 2026</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">time off</span></div>
+      <div class="day-tag">Oak City Shred Fest 2026</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">25</div>
+    <div class="day phase-time-off" data-target="april-25">
+      <div class="day-head"><div class="day-number">25</div><div class="day-title">Shred Fest</div></div>
+      <ul class="day-bullets">
+        <li>Oak City Shred Fest 2026</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">time off</span></div>
+      <div class="day-tag">Oak City Shred Fest 2026</div>
     </div>
 
-    <div class="day empty">
-      <div class="day-number">26</div>
+    <div class="day phase-time-off" data-target="april-26">
+      <div class="day-head"><div class="day-number">26</div><div class="day-title">Shred Fest</div></div>
+      <ul class="day-bullets">
+        <li>Oak City Shred Fest 2026</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">time off</span></div>
+      <div class="day-tag">Oak City Shred Fest 2026</div>
     </div>
     <div class="day empty">
       <div class="day-number">27</div>
@@ -1196,6 +1251,28 @@ Do not use it for:
   </details>
   </details>
 
+  <details class="calendar-day-details" id="april-18">
+  <summary>April 18 - Saturday</summary>
+  <ul>
+    <li>Repaired Catalog preview assets and base-path resolution so seeded preview media finally loaded truthfully in real runtime</li>
+    <li>Built the first interactive Catalog preview viewports across repo-backed cards, then widened that same viewport path onto the item page with warm runtime reuse</li>
+    <li>Finished by making the larger unloaded preview surface click-to-load and adding a direct grid-card `Add To Project` action for eligible repo-backed items</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 1 commit in this checkout.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (7)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Catalog-2 - Phase 3 - Reference Family Item Page Read`</li>
+      <li>`Catalog-2 - Phase 4 - Reference Family Commit Follow-Through`</li>
+      <li>`Catalog - Preview Asset Repair And Base-Path Resolution`</li>
+      <li>`Catalog-2 - Phase 5 - Repo-backed Interactive Card Preview Viewports`</li>
+      <li>`Catalog-2 - Phase 5.1 - Item Page Interactive Preview Viewport`</li>
+      <li>`Catalog - Warm Repo-backed Preview Viewport Reuse`</li>
+      <li>`Catalog-1.12 - Phase 1 - Item Card Add To Project Button`</li>
+    </ul>
+  </details>
+  </details>
+
   </details>
 
   </details>
@@ -1967,6 +2044,156 @@ Do not use it for:
       <li>`Workspace 7.2c-2 - Left Dock Ref Repoint And Behavior Parity`</li>
     </ul>
   </details>
+  </details>
+
+  <details class="calendar-week-details">
+  <summary>Week of April 19-26</summary>
+
+  <details class="calendar-day-details" id="april-19">
+  <summary>April 19 - Sunday</summary>
+  <ul>
+    <li>Opened with Environment-2 recall, quick A/B compare helpers, and persisted environment-look workflows</li>
+    <li>Launched the Home Page surface with startup return, launch actions, storage transparency, recent-item wiring, and a compact orientation strip</li>
+    <li>Closed the day by routing Console workspace modes through the shared surface catalog and unified workspace action eligibility model</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 1 commit in this checkout.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (11)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Environment-2 - Phase 3 - Add Persistence For Environment Look Workflows`</li>
+      <li>`Environment-2 - Phase 4 - Add Recall And Quick A/B Compare Helpers`</li>
+      <li>`Catalog-7 - Phase 1 - Local Taxonomy Contract And Seed Metadata`</li>
+      <li>`Catalog-7 - Phase 2 - Part And Platform Browse Modes`</li>
+      <li>`Catalog-7 - Phase 3 - Predictable Filter Semantics`</li>
+      <li>`Home-Page-1 - Surface Registry And Minimal Render`</li>
+      <li>`Home-Page-1 - First Launch Actions And Closeout`</li>
+      <li>`Home-Page-2 - Storage Transparency And Persistence Controls`</li>
+      <li>`Home-Page-5 - Recent-Items Inventory And Toggle Wiring`</li>
+      <li>`Console-1 - Shared Workspace Action Eligibility Through Runtime Execution`</li>
+      <li>`Console-1 - Surface Catalog Expansion Proof And Generation Closeout`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-20">
+  <summary>April 20 - Monday</summary>
+  <ul>
+    <li>Started the Control Deck Home Page shell and then shifted hard into Catalog Gen2 external source, archive, and attribution groundwork</li>
+    <li>Added external source page actions, linked archive metadata, platform and fitment mapping, XR PubWheel asset-set contracts, and broader PubParts cache coverage</li>
+    <li>Finished with PubParts download storage, staged downloads and inspection flows, selected-file import handoff, local folder discovery, Dropbox chooser repair, and shared direct-file resolution</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 1 commit in this checkout.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (15)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Home-Page-6 - Control Deck Shell And Launch Rail`</li>
+      <li>`Catalog-Gen2-0 - Intake Readiness And Source Handoff Closeout`</li>
+      <li>`Catalog-Gen2-1 - External Source Contract, Attribution, And Cached Source Repair`</li>
+      <li>`Catalog-Gen2-2 - External Source Page Action Support And Archive Classification`</li>
+      <li>`Catalog-7 - Wheel-Specific Motor And Tire Fitment Fields`</li>
+      <li>`Catalog-Gen2-3 - Platform Mapping And Fitment Notes`</li>
+      <li>`Catalog-Gen2-4 - External Type System Mapping Baseline`</li>
+      <li>`Catalog-Gen2-4.5 - XR PubWheel Versioned Asset Sets`</li>
+      <li>`Catalog-Gen2-7 - Full PubParts Cache Coverage And Eager Preview Images`</li>
+      <li>`Catalog-Gen2-8 - External Source Action Boundary Through Selected File Import Handoff`</li>
+      <li>`Catalog-Gen2-5 - Catalog Surface Cleanup And Scroll Containment`</li>
+      <li>`Catalog-Gen2-9 - Local PubParts Library Folder And Auto-Discovery Handoff`</li>
+      <li>`Catalog-Gen2-10 - Dropbox Chooser Add-To-Project Bridge And Diagnostic Repair`</li>
+      <li>`Catalog-Gen2-11 - Dropbox Shared Direct File Resolver`</li>
+      <li>`Catalog-Gen2-11 - ZIP And Archive Candidate Inspection`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-21">
+  <summary>April 21 - Tuesday</summary>
+  <ul>
+    <li>Built the ZIP-entry catalog path from browser ZIP reading through manifest caching, selected entry extraction, preview candidates, source-option preview, and import-review handoff</li>
+    <li>Expanded local library mirror and PubParts metadata refresh work while hardening viewer and runtime ownership around loaded-but-missing references and source fallback behavior</li>
+    <li>Closed with a dense Catalog cleanup pass across browse rail density, part and platform section boxes, multi-select group filtering, left-rail facets, ZIP drop acceptance, and in-surface back-forward navigation</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 1 commit in this checkout.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (18)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Catalog-Gen2-12 - ZIP Reader, Entry Listing, Extraction, Cache, And Browser Fallback`</li>
+      <li>`Catalog-Gen2-13 - Source Actions, ZIP Entry Staged Importer List, And Preview Affordance`</li>
+      <li>`Catalog-Gen2-14 - Runtime Ownership Contract, ViewerHost Rehydration, And Bug 22 Closeout`</li>
+      <li>`Catalog-Gen2-15 - OPFS Capability And Optional Local Library Folder Mirror`</li>
+      <li>`Catalog-Gen2-16 - Preview Candidate Contract Through Uploaded ZIP Entry Preview`</li>
+      <li>`Catalog-Gen2-17 - Direct Source Byte Materialization And Trusted Provider Boundary`</li>
+      <li>`Catalog-Gen2-18 - Runtime PubParts Metadata Refresh And Source-Update Preservation`</li>
+      <li>`Catalog Cleanup - Resizable Browse Rail Edge`</li>
+      <li>`Catalog Cleanup - Compact Browse Rail Rows`</li>
+      <li>`Catalog Cleanup - Catalog Info Page And Rail Utility Cleanup`</li>
+      <li>`Catalog Cleanup - Part And Platform Browse Section Boxes`</li>
+      <li>`Catalog Cleanup - Browse Groups Multi-Select Filtering`</li>
+      <li>`Catalog Cleanup - Left Rail Faceted Filters`</li>
+      <li>`Catalog Cleanup - Expanded Part Facet Taxonomy`</li>
+      <li>`Catalog Cleanup - Facet Selection Mode Toggle`</li>
+      <li>`Catalog Cleanup - Store-Style Left Rail Facets`</li>
+      <li>`Catalog Cleanup - PubParts ZIP Drop Acceptance`</li>
+      <li>`Catalog Cleanup - In-Surface Back Forward Navigation`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-22">
+  <summary>April 22 - Wednesday</summary>
+  <ul>
+    <li>Opened the Edit History reader surface with public metadata, picker reachability, and local source filtering polish</li>
+    <li>Added checkpoint ownership and restore-boundary proof without widening into runtime checkpoint UI or storage systems</li>
+    <li>Spent the rest of the day on Sketch Draw undo: canonical authored-command entries, viewport `Ctrl+Z`, staged command buffering, focused Console ownership, and durable local history batches</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 1 commit in this checkout.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (9)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Edit-History-Gen3-1 - Reader Contract And UX Shape Proof`</li>
+      <li>`Edit-History-Gen3-1 - Read-Only History Reader UI`</li>
+      <li>`Edit-History-Gen3-1 - Reader Grouping And Filtering Polish`</li>
+      <li>`Edit-History-Gen3-2 - Checkpoint Ownership And Restore Boundary Proof`</li>
+      <li>`Edit-History-Gen4-1 - Sketch Draw Authored Command Undo`</li>
+      <li>`Edit-History-Gen4-1 - Viewport Ctrl+Z Shortcut Ownership`</li>
+      <li>`Edit-History-Gen4-2 - Sketch Draw Staged Command Buffer`</li>
+      <li>`Edit-History-Gen4-3 - Console-Focused Sketch Draw Undo Ownership`</li>
+      <li>`Edit-History-Gen5-1 - Durable CAD Local History Batches`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-23">
+  <summary>April 23 - Thursday</summary>
+  <ul>
+    <li>Oak City Shred Fest 2026</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: time off.</div>
+  </details>
+
+  <details class="calendar-day-details" id="april-24">
+  <summary>April 24 - Friday</summary>
+  <ul>
+    <li>Oak City Shred Fest 2026</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: time off.</div>
+  </details>
+
+  <details class="calendar-day-details" id="april-25">
+  <summary>April 25 - Saturday</summary>
+  <ul>
+    <li>Oak City Shred Fest 2026</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: time off.</div>
+  </details>
+
+  <details class="calendar-day-details" id="april-26">
+  <summary>April 26 - Sunday</summary>
+  <ul>
+    <li>Oak City Shred Fest 2026</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: time off.</div>
+  </details>
+
   </details>
 
   </details>

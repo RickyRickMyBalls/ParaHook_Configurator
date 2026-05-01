@@ -10,7 +10,13 @@ import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { getViewer } from './viewerBridge'
 import { resolveViewerCameraShortcutAction } from './cameraShortcuts'
 import { resolveZoomObjectTarget } from './zoomObjectTarget'
-import { frameReferenceCommand, frameSelectedCommand, setCameraPresetCommand } from './viewCommands'
+import {
+  frameEnvironmentLightCommand,
+  frameReferenceCommand,
+  frameSelectedCommand,
+  frameSelectionSetCommand,
+  setCameraPresetCommand,
+} from './viewCommands'
 
 export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void {
   useEffect(() => {
@@ -71,6 +77,14 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
           event.stopImmediatePropagation()
           if (zoomTarget.kind === 'part') {
             frameSelectedCommand(zoomTarget.partKey, viewportId, animationOptions)
+            return
+          }
+          if (zoomTarget.kind === 'environment-light') {
+            frameEnvironmentLightCommand(zoomTarget.lightId, viewportId, animationOptions)
+            return
+          }
+          if (zoomTarget.kind === 'selection-set') {
+            frameSelectionSetCommand(zoomTarget.partKeys, zoomTarget.referenceIds)
             return
           }
           frameReferenceCommand(zoomTarget.referenceId, viewportId, animationOptions)

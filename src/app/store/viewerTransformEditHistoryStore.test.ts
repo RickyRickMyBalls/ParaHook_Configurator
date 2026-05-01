@@ -161,13 +161,14 @@ describe('viewer transform edit history', () => {
     expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
   })
 
-  it('keeps environment-light transform commits outside canonical edit history', () => {
+  it('commits environment-light transform changes as one undoable canonical entry', () => {
     resetStores()
     const light = useUiPrefsStore
       .getState()
       .view.lighting.lights.find((candidate) => candidate.position !== undefined)
     expect(light).toBeDefined()
     const lightId = light!.id
+    const originalPosition = { ...light!.position! }
 
     const store = useAppStore.getState()
     store.beginViewerTransformShell({ kind: 'environment-light', lightId })
@@ -175,11 +176,32 @@ describe('viewer transform edit history', () => {
     useAppStore.getState().setActiveViewerTransformDraft(movedTransform(10, 11, 12))
     useAppStore.getState().commitActiveViewerTransformEntry()
 
-    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByEnvironmentLightId[lightId],
+    ).toHaveLength(1)
     expect(
       useUiPrefsStore.getState().view.lighting.lights.find((candidate) => candidate.id === lightId)
         ?.position,
     ).toEqual({ x: 10, y: 11, z: 12 })
+
+    expect(editHistoryStore.undo()).not.toBeNull()
+    expect(
+      useUiPrefsStore.getState().view.lighting.lights.find((candidate) => candidate.id === lightId)
+        ?.position,
+    ).toEqual(originalPosition)
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? [],
+    ).toEqual([])
+
+    expect(editHistoryStore.redo()).not.toBeNull()
+    expect(
+      useUiPrefsStore.getState().view.lighting.lights.find((candidate) => candidate.id === lightId)
+        ?.position,
+    ).toEqual({ x: 10, y: 11, z: 12 })
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByEnvironmentLightId[lightId],
+    ).toHaveLength(1)
   })
 
   it('preserves unrelated targets and local runtime/view state across transform undo and redo', () => {

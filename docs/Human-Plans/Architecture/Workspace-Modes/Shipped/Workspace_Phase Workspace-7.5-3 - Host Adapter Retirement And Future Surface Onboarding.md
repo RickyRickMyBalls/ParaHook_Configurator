@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-30 20:14:30: Closed `Workspace 7.5-3` as shipped after the existing `docs/CHANGELOG.md` trail through entries `[832]` through `[838]` and this doc's own `Part 6` closeout confirmed host-adapter retirement, Console proof-surface onboarding, AppShell closeout, and the future-surface onboarding recipe had landed; marked the stale original execution checklist as complete and prepared this record to move from `Future/` to `Shipped/`.
 1. 2026-04-01 01:58: Marked `Part 6` as shipped after the final close-out slice landed, moving the remaining detached Browser plus Console rehome lookup behind the shared `workspaceSurfaceActions.ts` seam so `AppShell` no longer hand-orchestrates that feature-specific restore path, and writing down the explicit future-surface onboarding recipe using the now-proven Browser, Spaghetti, and Console contract boundaries
 1. 2026-04-01 01:50: Locked the main `Part 6` close-out questions and tightened that final slice into an implementation-ready `AppShell` plus onboarding-recipe spec by explicitly deciding that `Console` is already sufficient as the proof surface, that the remaining work should stay small and close-out-focused instead of becoming another broad refactor, and that the final deliverable is both the last avoidable `AppShell` glue cleanup and one explicit code-facing onboarding recipe for later workspace surfaces
 1. 2026-04-01 01:47: Marked `Part 5` as shipped after the Spaghetti compatibility retirement slice landed, closing its checklist now that AppShell no longer re-authors persisted `split view` as live runtime state during hydration, Spaghetti popout dock-back flows use an explicit separate-window restore helper instead of toggling `windowMode` through `setEditorViewportWindowMode(..., 'separateWindow')`, and the focused Spaghetti plus AppShell compatibility regressions are green
@@ -175,12 +176,12 @@ Important rule:
 
 ### Execution Checklist
 
-- [ ] Identify and remove the Browser-only and Spaghetti-only shell helpers that are now duplicating shared workspace contract behavior
-- [ ] Repoint remaining host titlebar and menu actions to shared workspace verbs wherever the contract already covers the transition
-- [ ] Reduce Spaghetti `split view` to compatibility-only or delete-ready status so it no longer behaves like a normal shell authoring mode
-- [ ] Use `console` as the first proof that another surface can adopt the contract without starting another Browser-style cleanup ladder
-- [ ] Add or update focused tests showing Browser, Spaghetti, and Console all use the shared host-transition path for the covered behaviors
-- [ ] Write down the future-surface onboarding recipe once the proof surface is real
+- [x] Identify and remove the Browser-only and Spaghetti-only shell helpers that are now duplicating shared workspace contract behavior
+- [x] Repoint remaining host titlebar and menu actions to shared workspace verbs wherever the contract already covers the transition
+- [x] Reduce Spaghetti `split view` to compatibility-only or delete-ready status so it no longer behaves like a normal shell authoring mode
+- [x] Use `console` as the first proof that another surface can adopt the contract without starting another Browser-style cleanup ladder
+- [x] Add or update focused tests showing Browser, Spaghetti, and Console all use the shared host-transition path for the covered behaviors
+- [x] Write down the future-surface onboarding recipe once the proof surface is real
 
 ### Acceptance And Done Shape
 

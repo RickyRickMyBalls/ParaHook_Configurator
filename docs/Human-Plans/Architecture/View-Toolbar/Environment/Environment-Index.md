@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+32. 2026-04-23 09:15:21: Marked `Environment-3` complete after movable positional environment lights gained translate-only Viewer Transform history, toolbar history reads, Console `DeleteLatest`, edit-history undo/redo restore, focused tests, and production build proof while keeping non-positional lights and unsupported modes blocked
+31. 2026-04-23 08:15:37: Refined the `Environment-3` future plan into small one-by-one phases, marking the already-fixed Browser, Console, double-click, selected-light zoom, and disabled-helper follow-ups as completed and leaving the remaining Viewer Transform history work split across storage, commit, operation, undo-redo, and UI closeout phases
+30. 2026-04-23 08:12:21: Added `Environment-3` as the environment-light object transform and selection polish lane, created its standalone future doc, and routed the recent Browser, Console, zoom, disabled-helper, positional-move, and Viewer Transform history follow-ups into one explicit planning surface
 29. 2026-04-19 10:18:08: Added the dedicated `Environment-2 / Phase 5` cleanup future doc after review found the first four `Environment-2` phases landed the right scaffold but still need grade-fidelity, local-HDRI persistence, and closeout-language cleanup before the family should read as fully polished
 28. 2026-04-19 00:14:32: Removed the stale Environment-1 handoff note that still described remaining open work as living in `Environment-2` after `Environment-2` itself closed out
 27. 2026-04-19 00:07:26: Marked `Environment-2 / Phase 4` implemented after the recall helpers, A/B compare toggle, and remembered-look workflow landed downstream from the existing persistence seam, then closed `Environment-2` honestly and advanced the index to a fully complete environment-family read
@@ -107,6 +110,7 @@ Use this folder like this:
   - `Environment_Phase Environment-2 - Photoshop-Like Grade Controls, Persistence, And Workflow Polish.md`
   - `Environment_Phase Environment-2 Phase 5 - Cleanup, Grade Fidelity, And Persistence Honesty.md`
   - `Environment_Phase Environment-1 Phase 2c - Environment Section Organization Pass.md`
+  - `Environment_Phase Environment-3 - Environment Light Object Transform And Selection Polish.md`
 - `Shipped/`
   - shipped records for completed environment-family cuts
 
@@ -171,6 +175,7 @@ Current remaining gap against the desired environment workflow:
 - `Environment-2 / Phase 1` through `Phase 4` shipped the grade-state scaffold, visible controls, persistence bridge, and recall or compare helpers
 - review found that the lane still needs a dedicated `Phase 5` cleanup pass for grade-fidelity honesty, local HDRI persistence, and final closeout language
 - the visible grade slider surface, persistence bridge, and workflow polish are shipped as scaffolding, but the family should not read as fully polished until `Phase 5` closes
+- the selected environment-light workflow now has a closed `Environment-3` lane covering object-like Browser, Console, viewport zoom, disabled-helper, positional-move, and translate-only Viewer Transform history polish
 
 Important current rule:
 - keep the currently shipped default scene look stable at startup
@@ -224,9 +229,24 @@ Use the family phases to organize the current environment wishlist like this:
   - make the environment surface feel finished for everyday use through persistence, recall, and compare helpers once the visual system itself is already strong
   - use `Environment-2 / Phase 5` to clean up the places where the first four phases overclaimed grade fidelity, persistence scope, or production-ready closeout
 
+### `Environment-3`
+- [x] `22. Environment-Light Selection Should Stay Calm Until Explicit Transform Entry`
+- [x] `23. Console Should Offer Explicit ViewTransform And Move For Movable Lights`
+- [x] `24. Double-Click Light Rows Should Zoom And Open Light Settings`
+- [x] `25. Console And Shift+Z Should Zoom Selected Environment Lights Like Objects`
+- [x] `26. Disabled Environment Lights Should Not Leave Viewport Markers Behind`
+- [x] `27. Movable Environment Lights Need Translate-Only Viewer Transform History`
+- Current source doc:
+  - `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-3 - Environment Light Object Transform And Selection Polish.md`
+- implementation status:
+  - preserved the already-fixed Browser selection, explicit Console transform entry, double-click settings focus, selected-light zoom, and disabled-helper behavior
+  - finished the Viewer Transform history work across state and baseline, move commit insertion, history operations, edit-history undo/redo, and toolbar/Console closeout
+  - keep environment lights object-like selected targets without turning them into content objects
+  - keep light transform history translate-only for positional light types
+
 ### Phase Ladder
 
-The `Environment` subfamily should now grow through an explicit two-phase ladder.
+The `Environment` subfamily should now grow through an explicit three-phase ladder.
 
 ## [x] Environment-1 - Default Lighting, Presets, And HDRI Runtime
 
@@ -323,3 +343,51 @@ Environment-1 status:
 
 Environment-2 status:
 - cleanup reopened through `Phase 5`
+
+## [x] Environment-3 - Environment Light Object Transform And Selection Polish
+
+Current source doc:
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-3 - Environment Light Object Transform And Selection Polish.md`
+
+### Purpose
+
+Make selected environment lights behave coherently across Browser, Console, viewport zoom, and Viewer Transform while keeping light settings and runtime ownership inside the Environment family.
+
+### Owns
+
+- Browser selection behavior for environment-light rows
+- double-click frame-and-settings behavior for selected lights
+- Console `ViewTransform`, `Move`, `ZoomObject`, and `ZO` selected-light routing
+- `Shift+Z` zoom-to-selected routing for environment lights
+- disabled-light helper visibility and pickability
+- translate-only Viewer Transform history for positional environment lights
+
+### Does Not Own
+
+- changing the locked default environment look
+- moving lights into content-object ownership
+- adding rotate, scale, snap, timeline, or camera-lock support for environment lights
+- making non-positional lights movable
+- new HDRI catalog browsing behavior
+
+### Current Live Read
+
+- Browser selection, Console explicit transform entry, double-click frame/settings focus, selected-light zoom, and disabled-helper visibility have follow-up fixes captured as completed `Environment-3` phases
+- positional lights can move through the environment-light transform shell with translate-only Viewer Transform history
+- environment-light transform commits now participate in edit-history undo/redo and restore both history rows and `LightSpec.position`
+- Console exposes `DeleteLatest` only after light history exists, and non-positional lights plus unsupported modes remain blocked
+
+### Summary
+
+Recommended family direction:
+- keep `Environment-1` closed as the baseline, preset, Browser-light, and HDRI runtime lane
+- keep `Environment-2` focused on grade cleanup and persistence honesty
+- preserve the completed `Environment-3` light-object polish phases as shipped follow-up work
+- route any future light-transform widening into a new follow-up phase instead of reopening `Environment-3`
+
+Guardrail:
+- environment lights can be object-like selected targets without becoming content objects
+- positional light movement should gain shared Viewer Transform history, but light settings should remain Environment-owned
+
+Environment-3 status:
+- completed and closed with focused tests plus production build proof

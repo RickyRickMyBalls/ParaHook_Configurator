@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-04-30 20:14:30: Closed `Workspace 7.5-7A` as shipped after changelog entries `[869]` through `[874]` and this doc's own report-back section confirmed the temporary split-spaghetti console live-focus repair was complete, the reserve submit-only slice was not needed, and the durable outcome had been folded back into `Workspace 7.5-7`; marked stale reserve checklist items complete and prepared this record to move from `Future/` to `Shipped/`.
 14. 2026-04-01 22:02: Completed `Phase 3 - Report Back To Workspace 7.5-7 And Resume 2F` by folding the durable live-repair outcome back into `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`, recording that the main floating-to-split spaghetti console loop now stays in graph scope without duplicate focus spam, and closing this temporary follow-up doc as execution history while leaving any later Browser-side rollout decision to the main `7.5-7` ladder
 13. 2026-04-01 21:54: Implemented `Phase 2E - Dedupe Spaghetti Activation Noise` by collapsing the hosted spaghetti shell publishers in `src/app/hosts/SpaghettiWindowHost.tsx` so floating, meatball, and popout windows no longer stack capture and bubble activation for the same click, adding focused `src/app/AppShell.test.tsx` coverage that one floating spaghetti click now emits one explicit console handoff and one legacy `surface-activation` sync, and keeping `src/app/AppShell.consoleLiveFocus.test.tsx` as reserve composed-shell coverage while the broader `Phase 2F` submit-only decision stays deferred
 12. 2026-04-01 21:33: Tightened `Phase 2E - Dedupe Spaghetti Activation Noise` into an implementation-ready next slice after re-reading the current AppShell, SpaghettiPanel, and SpaghettiWindowHost publishers, locking the remaining noise cleanup around one canonical base spaghetti activation per click, the panel-level graph or node refinement path, and the floating-window double-publish seam so the next repair can remove duplicate graph-focus logs without reopening the late-root replay or submit work
@@ -298,7 +299,7 @@ Verification:
 - `npm.cmd test -- --run src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
 - `npm.cmd run build`
 
-## [ ] Phase 2B - Repair Graph Submit Only If Replay Fix Is Not Sufficient
+## [x] Phase 2B - Repair Graph Submit Only If Replay Fix Is Not Sufficient
 ### info
 Purpose:
 - keep one small reserve slice for the submit path only if stopping the stale root replay does not fully restore graph enter behavior
@@ -306,6 +307,7 @@ Purpose:
 Current read:
 - the current evidence suggests the stale root replay is the primary failure
 - if `Phase 2A` removes that replay and the user can commit `Graph`, this reserve slice should stay unused
+- this reserve slice stayed unused after the later replay, publisher, clear, and duplicate-activation repairs resolved the main user loop
 
 Main work:
 - inspect only the staged-submit path if graph focus remains visible but `Graph` still cannot commit afterward
@@ -316,9 +318,9 @@ Done shape:
 - or the remaining submit-only seam is patched without widening the scope
 
 Checklist:
-- [ ] Use only if the root replay fix is not enough
-- [ ] Keep the submit repair isolated from publisher and replay work
-- [ ] Add submit-specific regression coverage only if needed
+- [x] Use only if the root replay fix is not enough
+- [x] Keep the submit repair isolated from publisher and replay work
+- [x] Add submit-specific regression coverage only if needed
 
 ## [x] Phase 2C - Restore Split Spaghetti Click Publisher Reliability After Dock Or Split
 ### info

@@ -42,7 +42,10 @@ import {
   removeNode as removeNodeCommand,
   type GraphCommand,
 } from '../graphCommands'
-import { editHistoryStore } from '../../store/editHistoryStore'
+import {
+  editHistoryStore,
+  type EditHistoryEntryChildSummary,
+} from '../../store/editHistoryStore'
 import { isPartNodeType, normalizePartSlots } from '../parts/partSlots'
 import { buildNodeDriverVm, type OutputPinnedRowVm } from '../canvas/driverVm'
 import {
@@ -209,6 +212,7 @@ type CommitGeometrySketchFeatureHistoryOptions = {
   label: string
   targetId?: string
   targetLabel?: string
+  childSummaries?: readonly EditHistoryEntryChildSummary[]
 }
 
 export type GraphCompileBuildState = {
@@ -2268,6 +2272,9 @@ const commitGeometrySketchFeatureHistoryCommand = (
     source: geometrySketchDrawHistorySource,
     targetId: options.targetId ?? `${options.nodeId}:sketch`,
     targetLabel: options.targetLabel ?? 'Sketch Draw',
+    ...(options.childSummaries === undefined || options.childSummaries.length === 0
+      ? {}
+      : { childSummaries: options.childSummaries }),
     undo: () =>
       restoreGeometrySketchNodeParameterSnapshot(
         graphDocumentId,
@@ -2322,6 +2329,16 @@ const buildGeometrySketchToolSelectionCommand = (options: {
   beforeSessionState: cloneGeometrySketchSessionSnapshot(options.beforeSessionState),
   afterSessionState: cloneGeometrySketchSessionSnapshot(options.afterSessionState),
 })
+
+const createGeometrySketchChildSummaries = (
+  commands: readonly GeometrySketchSessionHistoryCommand[],
+): EditHistoryEntryChildSummary[] =>
+  commands.map((command, index) => ({
+    childId: command.commandId,
+    label: command.label,
+    kind: command.kind,
+    sequence: index + 1,
+  }))
 
 const commitPartFeatureParameterHistoryCommand = (
   options: CommitPartFeatureParameterHistoryOptions,
@@ -6292,6 +6309,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           label: 'Commit sketch draw changes',
           targetId: `${session.nodeId}:sketch:components`,
           targetLabel: 'Sketch Draw changes',
+          childSummaries: createGeometrySketchChildSummaries(session.sessionUndoCommands),
         })
       }
     }

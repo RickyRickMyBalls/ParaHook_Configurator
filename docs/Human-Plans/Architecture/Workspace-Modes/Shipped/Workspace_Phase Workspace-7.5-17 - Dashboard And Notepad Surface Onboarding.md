@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-30 20:09:27: Closed `Workspace 7.5-17` as shipped after the existing `docs/CHANGELOG.md` trail showed `Dashboard - Phase 1`, `Dashboard - Phase 2`, and `Dashboard - Phase 3` landed as entries `[962]`, `[963]`, and `[964]`, with later Dashboard and Notepad follow-ups proving the original surface-onboarding goal was already exceeded; prepared this record to move from `Future/` to `Shipped/`.
 1. 2026-04-03 19:38: Added this native `Workspace 7.5-17` future phase doc to promote `Dashboard` from `Wish-Features` into the real workspace-family execution lane, grounded the first research pass in the live `Workspace 7.x` slot and surface seams across `workspaceShellTypes`, `ViewportFrame`, `ViewportSurfaceRegistry`, `useWorkspaceStore`, `workspaceSurfaceActions`, `workspacePersistence`, and `AppShell`, and locked the first implementation order where `Dashboard` lands as the first new surface before `Notepad` while note content persistence stays outside workspace-layout persistence
 
 ### Purpose
@@ -164,7 +165,7 @@ Done shape:
 - the workspace family has a canonical planning home for this feature
 - the old wish doc can stay product truth while this doc becomes execution truth
 
-## [ ] Phase 1 - Dashboard Surface Kind Adoption
+## [x] Phase 1 - Dashboard Surface Kind Adoption
 ### Header
 
 Purpose:
@@ -195,7 +196,10 @@ Done shape:
 - the new surface can ride the shared split, float, popout, redock, and restore rules without inventing a dashboard-only host system
 - the surface is ready for note or widget work later
 
-## [ ] Phase 2 - Notepad Surface And Shared Note Model
+Closeout evidence:
+- `docs/CHANGELOG.md` entry `[962] - Dashboard - Phase 1 - Create Dashboard Workspace Foundation` records `dashboard` as a shared workspace surface kind with slot labels, viewport picker support, render registry support, layout persistence normalization, shared workspace actions, `DashboardSurface`, `DashboardWindowHost`, split, float, popout, redock, and persisted restore.
+
+## [x] Phase 2 - Notepad Surface And Shared Note Model
 ### Header
 
 Purpose:
@@ -216,7 +220,10 @@ Done shape:
 - note records persist through a dedicated feature store
 - `Dashboard` and later widgets can read the same note model instead of inventing a second note system
 
-## [ ] Phase 3 - Sticky Notes Widget First Usefulness Pass
+Closeout evidence:
+- `docs/CHANGELOG.md` entry `[963] - Dashboard - Phase 2 - Create Notepad Workspace And Shared Note Model` records `notepad` as a shared workspace surface kind, adds the dedicated note store and persistence seam, keeps note content out of workspace layout persistence, and wires detached Notepad hosts through the main workspace shell.
+
+## [x] Phase 3 - Sticky Notes Widget First Usefulness Pass
 ### Header
 
 Purpose:
@@ -237,9 +244,13 @@ Done shape:
 - `Notepad` and `Dashboard` share one note model
 - moving or pinning notes does not fracture the data model
 
+Closeout evidence:
+- `docs/CHANGELOG.md` entry `[964] - Dashboard - Phase 3 - Add Sticky Notes As The First Dashboard Widget` records pinned notes rendering as Dashboard sticky-note cards, dashboard-owned widget-layout persistence, slotted and detached open-in-notepad handoff, unpin behavior, drag persistence, and restored widget positions while preserving note content ownership in the Notepad store.
+- Later Dashboard and Edit-History entries continue to build on the shipped Dashboard/Notepad/sticky-note surface stack, so the original `Workspace 7.5-17` onboarding goal is complete rather than merely partially implemented.
+
 ### Carry Forward
 
-Later widgets such as `Time` or `Weather` stay deferred until:
-- `Dashboard` exists as a stable surface
-- `Notepad` exists as a stable note editor surface
-- `Sticky Notes` proves the dashboard identity first
+Later widgets such as `Time` or `Weather` remain deferred to later Dashboard-family planning because:
+- `Dashboard` now exists as a stable workspace surface
+- `Notepad` now exists as a stable note editor surface
+- `Sticky Notes` has already proven the first Dashboard identity

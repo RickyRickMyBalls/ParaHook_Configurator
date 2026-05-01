@@ -16,18 +16,24 @@ import { useWorkspaceStore } from './workspace/useWorkspaceStore'
   true
 
 const {
+  frameEnvironmentLightCommandMock,
   setCameraPresetCommandMock,
   frameReferenceCommandMock,
   frameSelectedCommandMock,
+  frameSelectionSetCommandMock,
 } = vi.hoisted(() => ({
+  frameEnvironmentLightCommandMock: vi.fn(),
   setCameraPresetCommandMock: vi.fn(),
   frameReferenceCommandMock: vi.fn(),
   frameSelectedCommandMock: vi.fn(),
+  frameSelectionSetCommandMock: vi.fn(),
 }))
 
 vi.mock('./viewCommands', () => ({
+  frameEnvironmentLightCommand: frameEnvironmentLightCommandMock,
   frameReferenceCommand: frameReferenceCommandMock,
   frameSelectedCommand: frameSelectedCommandMock,
+  frameSelectionSetCommand: frameSelectionSetCommandMock,
   setCameraPresetCommand: setCameraPresetCommandMock,
 }))
 
@@ -53,8 +59,10 @@ describe('useViewerCameraShortcuts', () => {
 
   beforeEach(() => {
     setCameraPresetCommandMock.mockReset()
+    frameEnvironmentLightCommandMock.mockReset()
     frameReferenceCommandMock.mockReset()
     frameSelectedCommandMock.mockReset()
+    frameSelectionSetCommandMock.mockReset()
     useAppStore.setState(useAppStore.getInitialState(), true)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
@@ -284,6 +292,51 @@ describe('useViewerCameraShortcuts', () => {
       durationMs: 275,
     })
     expect(frameSelectedCommandMock).not.toHaveBeenCalled()
+    expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
+  })
+
+  it('routes Shift+Z through the shared environment-light framing seam', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as any)
+    useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(410)
+    useAppStore.setState((state) => ({
+      ...state,
+      selectedPartKey: null,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+        selectedTarget: {
+          kind: 'environment-light',
+          lightId: 'light-key',
+        },
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Z',
+          code: 'KeyZ',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(frameEnvironmentLightCommandMock).toHaveBeenCalledWith('light-key', viewportId, {
+      animate: true,
+      durationMs: 410,
+    })
+    expect(frameSelectedCommandMock).not.toHaveBeenCalled()
+    expect(frameReferenceCommandMock).not.toHaveBeenCalled()
     expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
   })
 

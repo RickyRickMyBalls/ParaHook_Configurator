@@ -3,10 +3,15 @@ docs_dir: docs
 site_url: https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/
 
 exclude_docs: |
+  CHANGELOG copy.md
   Archive/
   Human-Plans/CodexNotes/
   Human-Plans/roadmap/archive/
   Phase-Plans/Tasks/Archive/
+
+validation:
+  links:
+    not_found: ignore
 
 theme:
   name: material

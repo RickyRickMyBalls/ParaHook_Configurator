@@ -105,18 +105,20 @@ describe('CameraController', () => {
     expect(controls.rotateUp).toHaveBeenCalledTimes(1)
   })
 
-  it('can disable and restore left-button orbit ownership without affecting other mouse buttons', () => {
+  it('keeps OrbitControls middle-button pan disabled while preserving temporary pan ownership', () => {
     const { controller, controls } = createController()
 
     expect(controls.mouseButtons.LEFT).toBeNull()
-    expect(controls.mouseButtons.MIDDLE).toBe(MOUSE.PAN)
+    expect(controls.mouseButtons.MIDDLE).toBeNull()
     expect(controls.mouseButtons.RIGHT).toBeNull()
 
     controller.setLeftButtonOrbitEnabled(true)
     expect(controls.mouseButtons.LEFT).toBe(MOUSE.ROTATE)
+    expect(controls.mouseButtons.MIDDLE).toBeNull()
 
     controller.setLeftButtonOrbitEnabled(false)
     expect(controls.mouseButtons.LEFT).toBeNull()
+    expect(controls.mouseButtons.MIDDLE).toBeNull()
   })
 
   it('pans the camera and orbit target during a temporary pan drag and stops after release', () => {

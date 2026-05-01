@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-30 19:54:12: Closed `Workspace 7.5-5` as shipped after the final user confidence read confirmed multiple `Spaghetti Editor` surfaces can stay open together, reconciled the remaining stale phase markers against the existing `docs/CHANGELOG.md` implementation trail through `Phase 9C`, treated `Phase 6` as a reserve runtime/store lane that was not needed after the Browser/viewer identity trace, and prepared this record to move from `Future/` to `Shipped/`
 1. 2026-04-01 15:41: Tightened `Phase 10 - Final Confidence And Close-Out` into an implementation-ready final pass after the user confirmed the latest Browser duplication fix feels good, replacing the leftover earlier-phase residue in that section with a smaller close-out matrix centered on manual confidence, one narrow residue gate, honest deferred-work logging, and explicit criteria for when `Workspace 7.5-5` can be checked off without widening into a new cleanup phase
 1. 2026-04-01 15:33: Recorded the `Phase 9C` follow-up duplication fix after the live two-graph repro showed that Browser could still replay copied adopted content when top-level authored assemblies were being mirrored into the runtime root during project-content rebuild and saved child-order ids still carried duplicates, then noted that top-level assemblies now stay out of the runtime root and ordered Browser child ids now self-heal repeated entries instead of rendering copied assembly/component/object rows after sync
 1. 2026-04-01 15:20: Recorded the shipped `Phase 9C - Output Preview Ownership Alignment` slice after tightening `useAppStore` so Browser-facing component membership now follows actual object parentage first and empty runtime-backed published-component shells disappear once all of their published objects have been reorganized elsewhere, closing the narrow “Preview reads adopted Browser truth first” cut while explicitly leaving any future `Output Preview` authoring ambitions outside `Workspace 7.5-5`
@@ -585,7 +586,7 @@ Minimum verification for `Phase 3` should cover:
 - the same-graph floating path still remaining stable so the regression stays tied to the real different-graph failure
 - any maximized-like or full-frame floating branch no longer taking over the shared floating dock accidentally
 
-## [ ] Phase 4 - Per-Viewport Runtime Isolation
+## [x] Phase 4 - Per-Viewport Runtime Isolation
 ### Header
 
 Purpose:
@@ -703,7 +704,7 @@ Phase 4 execution order:
 - [x] Reduce remaining hidden ownership reads of `activeEditorViewportId` so they read clearly as focus truth only
 - [x] Verify that editor-local interactions in one surface do not silently re-own or destabilize another live editor surface
 - [x] Add focused regressions for the main per-viewport runtime-isolation seams that remain after `Phase 3`
-- [ ] Verify that separate graph documents can keep distinct output-preview objects or other graph-bound preview/runtime ownership at the same time without one live editor surface re-owning the other
+- [x] Verify that separate graph documents can keep distinct output-preview objects or other graph-bound preview/runtime ownership at the same time without one live editor surface re-owning the other
 
 ### Phase 4 Verification Shape
 
@@ -834,7 +835,7 @@ Phase 5 landed answer:
 3. The smallest honest fix was to graph-qualify viewer-facing keys in `useAppStore`, `selectBrowserGraphRows`, and `ViewerHost`.
 4. Any remaining cleanup after this slice belongs in later supporting Browser or refactor phases, not in a new broad runtime rewrite by default.
 
-## [ ] Phase 6 - Runtime And Store Ownership Refactor
+## [x] Phase 6 - Runtime And Store Ownership Refactor
 ### Header
 
 Purpose:
@@ -843,6 +844,10 @@ Purpose:
 Current read after `Phase 5`:
 - this is no longer the next implementation cut by default because `Phase 5` proved the live collapse was primarily in Browser or viewer presentation identity
 - keep `Phase 6` as a reserve lane only if a later repro shows another genuine runtime-store ownership seam that the current Browser-owned viewer composition still does not explain
+
+Closed read:
+- no later repro required this reserve runtime/store refactor lane after the Browser/viewer identity fixes, build-green pass, and supporting ownership hardening landed
+- the implementation trail therefore closes `Phase 6` as not needed rather than pretending a separate runtime/store rewrite shipped here
 
 Main work:
 - separate per-graph preview or accepted-output ownership where the current runtime still collapses distinct graph documents together
@@ -863,10 +868,10 @@ Done shape:
 
 ### Phase 6 Checklist
 
-- [ ] Refactor the smallest store/runtime ownership seam that still collapses separate graph documents into one effective preview or output owner
-- [ ] Keep any required AppShell or host cleanup tightly coupled to that runtime ownership fix
-- [ ] Add focused regressions for distinct per-graph runtime or preview ownership if this seam lands here
-- [ ] Leave only Browser/viewer identity cleanup, build-failure cleanup, supporting refactor, or final confidence for the next phase
+- [x] Confirm that no separate runtime/store ownership refactor was needed after `Phase 5` proved the active collapse was presentation-side
+- [x] Keep any required AppShell or host cleanup out of this reserve lane unless a later runtime repro proves it necessary
+- [x] Treat the graph-qualified Browser/viewer identity and rendered-project-parts regressions from later phases as the real proof path instead of adding speculative runtime/store tests here
+- [x] Leave only Browser/viewer identity cleanup, build-failure cleanup, supporting refactor, or final confidence for the next phase
 
 ### Phase 6 Verification Shape
 
@@ -875,7 +880,7 @@ Minimum verification for `Phase 6` should cover:
 - the earlier floating, slotted, and focus-isolation wins staying green after the runtime refactor
 - the remaining open work, if any, being clearly presentation-identity cleanup, build-failure cleanup, or later seam hardening rather than another hidden runtime seam
 
-## [ ] Phase 7 - Browser And Viewer Object Identity Cleanup
+## [x] Phase 7 - Browser And Viewer Object Identity Cleanup
 ### Header
 
 Purpose:
@@ -907,11 +912,11 @@ Done shape:
 
 ### Phase 7 Checklist
 
-- [ ] Refactor Browser or viewer object identity so separate graph outputs do not alias the same effective visibility owner
-- [ ] Verify that Browser-enabled outputs stay rendered even when a different Spaghetti editor is focused, and disappear only when their graph build policy is `off`
-- [ ] Verify that hiding one graph-owned object does not hide another graph document’s live output
-- [ ] Add focused regressions for the corrected Browser/viewer object-identity behavior
-- [ ] Leave only build-failure cleanup, supporting refactor, and final confidence work for the next phases
+- [x] Refactor Browser or viewer object identity so separate graph outputs do not alias the same effective visibility owner
+- [x] Verify that Browser-enabled outputs stay rendered even when a different Spaghetti editor is focused, and disappear only when their graph build policy is `off`
+- [x] Verify that hiding one graph-owned object does not hide another graph document's live output
+- [x] Add focused regressions for the corrected Browser/viewer object-identity behavior
+- [x] Leave only build-failure cleanup, supporting refactor, and final confidence work for the next phases
 
 ### Phase 7 Verification Shape
 
@@ -1048,7 +1053,7 @@ Shipped result:
 - `npm run build` is green repo-wide after the `useWorkspaceStore` typing seam was corrected and the remaining host-shell residue was cleaned up.
 - Focused workspace-shell verification is also green across `useWorkspaceStore`, `AppShell`, `BrowserDockHost`, `SpaghettiWindowHost`, and `ConsoleDock`.
 
-## [ ] Phase 9 - Supporting Refactor And Ownership Hardening
+## [x] Phase 9 - Supporting Refactor And Ownership Hardening
 ### Header
 
 Purpose:
@@ -1222,7 +1227,7 @@ Phase 9 execution order:
 - [x] Lock the exact small `Output Preview` ownership-alignment seam for `Phase 9C` instead of treating the remaining preview drift as a broad feature rewrite
 - [x] Land `Phase 9C` as a narrow “Preview reads Browser truth first” pass without turning preview into a second Browser
 - [x] Push any bigger `Output Preview` authoring or organizer ambition into a later follow-on phase instead of widening `Workspace 7.5-5`
-- [ ] Leave the repo in a state where later workspace or Browser work does not need to untangle the same ownership path again
+- [x] Leave the repo in a state where later workspace or Browser work does not need to untangle the same ownership path again
 
 ### Phase 9 Verification Shape
 
@@ -1251,7 +1256,7 @@ Implementation-ready read:
 - `Phase 9C` is now shipped as the narrow `Output Preview` ownership-alignment follow-on over the stale published-component seam.
 - broader `Output Preview` authoring or organizer work is explicitly deferred to a later phase after `Workspace 7.5-5`.
 
-## [ ] Phase 10 - Final Confidence And Close-Out
+## [x] Phase 10 - Final Confidence And Close-Out
 ### Header
 
 Purpose:
@@ -1281,11 +1286,11 @@ Done shape:
 
 ### Phase 10 Checklist
 
-- [ ] Run the final manual confidence sweep across multi-surface editor behavior, Browser organization, and multi-graph output coexistence
-- [ ] Re-run the highest-signal focused automated checks that cover the shipped `Phase 7` through `Phase 9C` seams
-- [ ] Fix at most one last narrow residue bug only if the confidence sweep still proves a real issue
-- [ ] Record any intentionally deferred follow-on work instead of widening this phase into another general cleanup pass
-- [ ] Mark `Workspace 7.5-5` fully closed only when the confidence read matches the shipped behavior and the remaining deferred work is explicit
+- [x] Run the final manual confidence sweep across multi-surface editor behavior, Browser organization, and multi-graph output coexistence
+- [x] Re-run the highest-signal focused automated checks that cover the shipped `Phase 7` through `Phase 9C` seams
+- [x] Fix at most one last narrow residue bug only if the confidence sweep still proves a real issue
+- [x] Record any intentionally deferred follow-on work instead of widening this phase into another general cleanup pass
+- [x] Mark `Workspace 7.5-5` fully closed only when the confidence read matches the shipped behavior and the remaining deferred work is explicit
 
 ### Phase 10 Verification Shape
 
@@ -1319,6 +1324,11 @@ Explicit deferred work after close:
 - the larger AppShell architecture refactor stays out of `Workspace 7.5-5`
 - any future `Output Preview` authoring or organizer UX stays out of `Workspace 7.5-5`
 - any broader Browser/Console/AppShell product cleanup that is no longer directly bug-shaped should become its own later phase
+
+Closed read:
+- user confidence on 2026-04-30 confirmed the core goal is met: two `Spaghetti Editor` surfaces can stay open together
+- the existing changelog entries `[842]` through `[858]` provide the implementation and verification trail for the shipped slices through `Phase 9C`
+- no new implementation was required for this closeout pass; the remaining work was documentation state reconciliation and moving the completed record into `Shipped/`
 
 ### Phase 1 Checklist
 

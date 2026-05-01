@@ -9,6 +9,7 @@
   --phase-split-polish: #ef476f;
   --phase-parity: #f94144;
   --phase-build-fix: #90be6d;
+  --phase-time-off: #ffffff;
   --phase-quiet: #94a3b8;
 }
 
@@ -358,6 +359,27 @@
 
 .phase-build-fix {
   color: var(--phase-build-fix);
+}
+
+.phase-time-off {
+  color: var(--phase-time-off);
+}
+
+.day.phase-time-off {
+  background:
+    linear-gradient(165deg, color-mix(in srgb, white 96%, transparent), color-mix(in srgb, white 88%, transparent)),
+    #ffffff;
+}
+
+.day.phase-time-off .day-title,
+.day.phase-time-off .day-tag,
+.day.phase-time-off .day-diff-neutral {
+  color: color-mix(in srgb, var(--md-default-fg-color) 72%, transparent);
+}
+
+.day.phase-time-off .day-number {
+  background: color-mix(in srgb, var(--md-default-fg-color) 10%, white 90%);
+  color: var(--md-default-fg-color);
 }
 
 .phase-quiet {

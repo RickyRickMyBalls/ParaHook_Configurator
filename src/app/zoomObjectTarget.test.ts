@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from './store/useAppStore'
 import {
   resolveSelectedObjectPartKeyForZoom,
+  resolveSelectedEnvironmentLightIdForZoom,
   resolveSelectedReferenceIdForZoom,
+  resolveSelectionSetForZoomObject,
   resolveZoomObjectTarget,
 } from './zoomObjectTarget'
 
@@ -102,6 +104,94 @@ describe('zoomObjectTarget', () => {
     expect(resolveZoomObjectTarget(appState)).toEqual({
       kind: 'reference',
       referenceId: 'shoe:shoe-1',
+    })
+  })
+
+  it('resolves a selected environment light as a zoom object target', () => {
+    useAppStore.setState((state) => ({
+      ...state,
+      selectedPartKey: null,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        selectedTarget: {
+          kind: 'environment-light',
+          lightId: 'light-key',
+        },
+      },
+    }))
+
+    const appState = useAppStore.getState()
+
+    expect(resolveSelectedEnvironmentLightIdForZoom(appState)).toBe('light-key')
+    expect(resolveZoomObjectTarget(appState)).toEqual({
+      kind: 'environment-light',
+      lightId: 'light-key',
+    })
+  })
+
+  it('resolves explicit multi-select objects as a zoom selection set', () => {
+    useAppStore.setState((state) => ({
+      ...state,
+      selectedPartKey: null,
+      projectContent: {
+        ...state.projectContent,
+        objectsById: {
+          ...state.projectContent.objectsById,
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-output-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+          {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+        ],
+      },
+    }))
+
+    const appState = useAppStore.getState()
+
+    expect(resolveSelectionSetForZoomObject(appState)).toEqual({
+      partKeys: ['graph-document-1:output-entry-1', 'graph-document-1:output-entry-2'],
+      referenceIds: [],
+    })
+    expect(resolveZoomObjectTarget(appState)).toEqual({
+      kind: 'selection-set',
+      partKeys: ['graph-document-1:output-entry-1', 'graph-document-1:output-entry-2'],
+      referenceIds: [],
     })
   })
 })

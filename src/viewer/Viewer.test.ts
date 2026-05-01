@@ -15,6 +15,9 @@ const cameraControllerMocks = vi.hoisted(() => ({
     beginTemporaryOrbitDrag: ReturnType<typeof vi.fn>
     updateTemporaryOrbitDrag: ReturnType<typeof vi.fn>
     endTemporaryOrbitDrag: ReturnType<typeof vi.fn>
+    beginTemporaryPanDrag: ReturnType<typeof vi.fn>
+    updateTemporaryPanDrag: ReturnType<typeof vi.fn>
+    endTemporaryPanDrag: ReturnType<typeof vi.fn>
     beginFlyMode: ReturnType<typeof vi.fn>
     endFlyMode: ReturnType<typeof vi.fn>
     applyFlyLookDelta: ReturnType<typeof vi.fn>
@@ -31,6 +34,7 @@ const cameraControllerMocks = vi.hoisted(() => ({
     setCameraClipRange: ReturnType<typeof vi.fn>
     resetCameraClipRange: ReturnType<typeof vi.fn>
     frameObject: ReturnType<typeof vi.fn>
+    frameBox: ReturnType<typeof vi.fn>
   }>,
 }))
 
@@ -151,6 +155,9 @@ vi.mock('./scene/CameraController', async () => {
     public readonly beginTemporaryOrbitDrag = vi.fn()
     public readonly updateTemporaryOrbitDrag = vi.fn()
     public readonly endTemporaryOrbitDrag = vi.fn()
+    public readonly beginTemporaryPanDrag = vi.fn()
+    public readonly updateTemporaryPanDrag = vi.fn()
+    public readonly endTemporaryPanDrag = vi.fn()
     public readonly beginFlyMode = vi.fn()
     public readonly endFlyMode = vi.fn()
     public readonly translateFly = vi.fn()
@@ -177,6 +184,7 @@ vi.mock('./scene/CameraController', async () => {
       this.clipEnd = 1000
     })
     public readonly frameObject = vi.fn()
+    public readonly frameBox = vi.fn()
 
     public constructor(
       perspectiveCamera: { position: ThreeVector3; up: ThreeVector3 },
@@ -196,10 +204,6 @@ vi.mock('./scene/CameraController', async () => {
     }
 
     public setProjectionMode(): void {}
-    public beginTemporaryPanDrag(): void {}
-    public updateTemporaryPanDrag(): void {}
-    public endTemporaryPanDrag(): void {}
-    public frameBox(): void {}
     public animateToPose(): void {}
     public applyPose(pose: {
       perspectiveFovDeg: number
@@ -1463,6 +1467,206 @@ describe('Viewer baseline replacement', () => {
     })
   })
 
+  it('keeps middle-button double-click zoom separate from middle-button pan drag', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    const capturedPointerIds = new Set<number>()
+    canvas.setPointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.add(pointerId)
+    })
+    canvas.releasePointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.delete(pointerId)
+    })
+    canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
+
+    const controller = cameraControllerMocks.instances[0]!
+
+    for (const pointerId of [71, 72]) {
+      canvas.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          button: 1,
+          buttons: 4,
+          pointerId,
+          clientX: 180,
+          clientY: 140,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      canvas.dispatchEvent(
+        new PointerEvent('pointerup', {
+          button: 1,
+          buttons: 0,
+          pointerId,
+          clientX: 180,
+          clientY: 140,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    }
+
+    expect(controller.frameBox).toHaveBeenCalledTimes(1)
+    expect(controller.beginTemporaryPanDrag).not.toHaveBeenCalled()
+    expect(controller.updateTemporaryPanDrag).not.toHaveBeenCalled()
+    expect(controller.endTemporaryPanDrag).not.toHaveBeenCalled()
+  })
+
+  it('starts middle-button pan only after the held button moves past the click threshold', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    const capturedPointerIds = new Set<number>()
+    canvas.setPointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.add(pointerId)
+    })
+    canvas.releasePointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.delete(pointerId)
+    })
+    canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
+
+    const controller = cameraControllerMocks.instances[0]!
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        button: 1,
+        buttons: 4,
+        pointerId: 73,
+        clientX: 200,
+        clientY: 160,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', {
+        buttons: 4,
+        pointerId: 73,
+        clientX: 201,
+        clientY: 161,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(controller.beginTemporaryPanDrag).not.toHaveBeenCalled()
+    expect(controller.updateTemporaryPanDrag).not.toHaveBeenCalled()
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', {
+        buttons: 4,
+        pointerId: 73,
+        clientX: 206,
+        clientY: 164,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', {
+        buttons: 4,
+        pointerId: 73,
+        clientX: 211,
+        clientY: 169,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        button: 1,
+        buttons: 0,
+        pointerId: 73,
+        clientX: 211,
+        clientY: 169,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(controller.beginTemporaryPanDrag).toHaveBeenCalledWith(200, 160)
+    expect(controller.updateTemporaryPanDrag).toHaveBeenNthCalledWith(1, 206, 164)
+    expect(controller.updateTemporaryPanDrag).toHaveBeenNthCalledWith(2, 211, 169)
+    expect(controller.endTemporaryPanDrag).toHaveBeenCalledTimes(1)
+    expect(controller.frameBox).not.toHaveBeenCalled()
+  })
+
+  it('keeps modified Z chords out of the viewer-local frame-selected shortcut', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'z',
+        code: 'KeyZ',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(controller.frameObject).not.toHaveBeenCalled()
+    expect(controller.frameBox).not.toHaveBeenCalled()
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'z',
+        code: 'KeyZ',
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(controller.frameBox).toHaveBeenCalledTimes(1)
+  })
+
   it('forwards animated frame-reference options through the shared viewer framing seam', async () => {
     const { Viewer } = await import('./Viewer')
     const { Group } = await import('three')
@@ -1898,6 +2102,66 @@ describe('Viewer baseline replacement', () => {
       kind: 'environment-light',
       lightId: 'light-key',
     })
+  })
+
+  it('hides disabled environment-light helpers from the viewport and picking', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    ;(viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }).applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      lighting: {
+        selectedLightId: 'light-key',
+        lights: [
+          {
+            id: 'light-key',
+            name: 'Key',
+            type: 'point' as const,
+            enabled: false,
+            color: '#fff2e6',
+            intensity: 1.25,
+            position: { x: 0, y: 0, z: 0 },
+            castShadow: true,
+            shadowBias: -0.0002,
+            shadowMapSize: 1024,
+          },
+        ],
+      },
+    })
+
+    const runtime = viewer as unknown as {
+      environmentLightHelpersById: Map<string, { visible: boolean }>
+      collectWorkspaceSelectionCandidates: () => Array<{
+        pick: { kind: string; lightId?: string }
+      }>
+    }
+
+    const helper = runtime.environmentLightHelpersById.get('light-key')
+    expect(helper?.visible).toBe(false)
+    expect(
+      runtime.collectWorkspaceSelectionCandidates().some(
+        (candidate) =>
+          candidate.pick.kind === 'environment-light' &&
+          candidate.pick.lightId === 'light-key',
+      ),
+    ).toBe(false)
   })
 
   it('frames environment-light helpers by light id without falling back to frame all for missing helpers', async () => {

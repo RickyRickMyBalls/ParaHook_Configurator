@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+33. 2026-04-30 20:14:30: Marked `Workspace 7.5-3`, `Workspace 7.5-6`, `Workspace 7.5-7A`, `Workspace 7.5-8`, `Workspace 7.5-13`, and `Workspace 7.5-16` shipped from the existing changelog trail, moved their phase records into `Workspace-Modes/Shipped/`, and kept `Workspace 7.2b`, `Workspace 7.5-4`, `Workspace 7.5-7`, `Workspace 7.5-9`, `Workspace 5.3`, `Workspace 7`, `Workspace 7.5`, and `Workspace 8` in the open queue for follow-up review or remaining work.
+32. 2026-04-30 20:09:27: Marked `Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding` shipped after the existing changelog trail showed Dashboard surface adoption, Notepad surface plus shared note model, and the first sticky-note Dashboard widget landed, moved the phase record into `Workspace-Modes/Shipped/`, removed it from the active working order, and added it to the shipped workspace reference.
+31. 2026-04-30 19:54:12: Marked `Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity` shipped after the existing changelog trail and user confidence confirmed the multi-editor goal is met, moved the phase record into `Workspace-Modes/Shipped/`, removed it from the active working order, and added it to the shipped workspace reference.
 30. 2026-04-18 10:32:19: Reworked the lower roadmap scan surfaces so this file now separates the active open queue from the parked open backlog and the shipped reference, widened the tracked family scope to include newer `Catalog`, `Import`, `Transform`, `Viewport HUD`, `Cleanup Gen2`, and `Worker Gen2` planning surfaces, and expanded the shipped/open summary so one-person planning can use this roadmap as the practical cross-family "what is still open" plus "what has already landed" reference
 29. 2026-04-17 14:57:36: Refreshed this roadmap against the live `Browser`, `View Toolbar`, and `Worker Vision` family docs, marking the shipped `Browser-13` cleanup slices, the now-landed `View-Toolbar 1`, `View-Toolbar 7`, `View-Toolbar 8 Phase 1` through `Phase 4`, and `Worker-Vision-3 Phase 6` through `Phase 9`, while expanding the `View Toolbar` family read past the stale older four-cut ladder
 28. 2026-04-13 15:00: Refreshed this roadmap against the live `Cleanup`, `Build Path`, and `Viewport Runtime Inspector` family indexes, adding the previously missing `Cleanup` and `Viewport Runtime Inspector` families, marking the now-shipped `Cleanup 1` through `Cleanup 10` ladder plus shipped `VRI-1` through `VRI-3.5` slices, and tightening the `Build Path` source-doc read around the new dedicated vision doc and the real lowercase `build-path-index.md` entrypoint
@@ -553,14 +556,19 @@ Current read:
   - `Workspace 7.5-1`
   - `Workspace 7.5-2`
   - `Workspace 7.5-3`
+  - `Workspace 7.5-6`
+  - `Workspace 7.5-7A`
+  - `Workspace 7.5-8`
+  - `Workspace 7.5-13`
+  - `Workspace 7.5-16`
 - the active open follow-ons are now the real native workspace docs:
   - `Workspace 5.3`
   - `Workspace 7`
   - `Workspace 7.2b`
   - `Workspace 7.5`
   - `Workspace 7.5-4`
-  - `Workspace 7.5-5`
-  - `Workspace 7.5-17`
+  - `Workspace 7.5-7`
+  - `Workspace 7.5-9`
 
 ### [x] Workspace 0.1 - Codebase Research And Implementation Audit
 ### [x] Workspace 1 - Shared Workspace Owner And State Extraction
@@ -597,8 +605,15 @@ Current read:
 ### [x] Workspace 7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize
 ### [x] Workspace 7.5-3 - Host Adapter Retirement And Future Surface Onboarding
 ### [~] Workspace 7.5-4 - Browser And Spaghetti Shell Parity Cleanup
-### [~] Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity
-### [~] Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding
+### [x] Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity
+### [x] Workspace 7.5-6 - Editor Surface Replacement And Slot Binding Truth
+### [ ] Workspace 7.5-7 - Spaghetti Editor Split Modes And Console Alignment
+### [x] Workspace 7.5-7A - Split Spaghetti Console Live Focus Repair
+### [x] Workspace 7.5-8 - Global Workspace Split Ghost Preview Truth
+### [ ] Workspace 7.5-9 - Spaghetti Presentation Mode Truth
+### [x] Workspace 7.5-13 - Model Viewport Popout Window
+### [x] Workspace 7.5-16 - Console Workspace Modes Entry
+### [x] Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding
 
 ## [~] Model Viewport
 ### Info
@@ -839,7 +854,7 @@ Source doc:
 Current read:
 - the current dedicated `AppShell` family has shipped its original `[5.0F]` through `[5.0F-2]` cleanup ladder
 - the family index now also carries one later open `AppShell 4 - Workspace Host Reorganization And Readability Cleanup` follow-on
-- that open `AppShell 4` cut should stay treated as a later workspace-driven cleanup after the current main workspace lane such as `Workspace 7`, `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, `Workspace 7.5-17`, `Workspace 5.3`, and `Workspace 8`, not as a reopening of the original shipped `[5.0F]` ladder
+- that open `AppShell 4` cut should stay treated as a later workspace-driven cleanup after the current main workspace lane such as `Workspace 7`, `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 5.3`, and `Workspace 8`, not as a reopening of the original shipped `[5.0F]` ladder
 
 ### [x] [5.0F] AppShell Cleanup And Host Seam Extraction
 ### [x] [5.0F-1] AppShell Runtime Host Extraction
@@ -865,8 +880,6 @@ The lower roadmap view is intentionally split into three jobs:
 - [ ] `Workspace 7.2b`
 - [ ] `Workspace 7.5`
 - [~] `Workspace 7.5-4`
-- [~] `Workspace 7.5-5`
-- [~] `Workspace 7.5-17`
 - [ ] `Workspace 5.3`
 - [ ] `Workspace 8`
 
@@ -1119,6 +1132,13 @@ This is the grouped shipped scan surface. Use it as the cross-family "already la
 - [x] `Workspace 7.5-1`
 - [x] `Workspace 7.5-2`
 - [x] `Workspace 7.5-3`
+- [x] `Workspace 7.5-5`
+- [x] `Workspace 7.5-6`
+- [x] `Workspace 7.5-7A`
+- [x] `Workspace 7.5-8`
+- [x] `Workspace 7.5-13`
+- [x] `Workspace 7.5-16`
+- [x] `Workspace 7.5-17`
 
 #### 5 - Model Viewport
 - [x] `Model-Viewport 1.1`

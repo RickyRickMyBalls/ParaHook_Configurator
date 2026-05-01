@@ -240,6 +240,7 @@ export type ActiveEnvironmentLightTransformSession = {
   shellActive: boolean
   entryActive: boolean
   activeHandle: ActiveReferenceTransformHandle | null
+  historyScrubIndex?: number
   draftTransform: ReferenceTransformOverride
   entryOrigin: ReferenceTransformOverride | null
 }
@@ -260,7 +261,7 @@ export type ViewerTransformTarget =
 
 type ViewerTransformHistoryTarget = Extract<
   ViewerTransformTarget,
-  { kind: 'reference' } | { kind: 'content-object' }
+  { kind: 'reference' } | { kind: 'content-object' } | { kind: 'environment-light' }
 >
 
 type ViewerTransformHistorySnapshot = {
@@ -649,6 +650,8 @@ export type ReferenceWorkspaceState = {
   activeReferenceTransformSession: ActiveReferenceTransformSession | null
   contentObjectTransformOverrideById: Record<string, ReferenceTransformOverride | null>
   transformHistoryByObjectId: Record<string, ReferenceTransformHistoryEntry[]>
+  environmentLightTransformBaseById: Record<string, ReferenceTransformOverride>
+  transformHistoryByEnvironmentLightId: Record<string, ReferenceTransformHistoryEntry[]>
   activeContentObjectTransformSession: ActiveContentObjectTransformSession | null
   activeEnvironmentLightTransformSession: ActiveEnvironmentLightTransformSession | null
   stagedImportDraft: StagedImportDraftState | null
@@ -1363,6 +1366,17 @@ export type AppState = {
   setActiveEnvironmentLightTransformDraft: (
     transformOverride: ReferenceTransformOverride | null,
   ) => void
+  setActiveEnvironmentLightTransformHistoryScrubIndex: (scrubIndex: number) => void
+  resetEnvironmentLightTransform: (lightId: string) => void
+  setEnvironmentLightTransformHistoryEntryDeltaValue: (
+    lightId: string,
+    entryId: string,
+    axis: 'x' | 'y' | 'z',
+    value: number,
+  ) => void
+  deleteEnvironmentLightTransformHistoryEntry: (lightId: string, entryId: string) => void
+  toggleEnvironmentLightTransformHistoryLock: (lightId: string, entryId: string) => void
+  mergeEnvironmentLightTransformHistory: (lightId: string) => void
   cancelActiveEnvironmentLightTransformEntry: () => void
   beginViewerTransformShell: (target: ViewerTransformTarget) => void
   exitActiveViewerTransformShell: () => void
@@ -2951,6 +2965,8 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   activeReferenceTransformSession: null,
   contentObjectTransformOverrideById: {},
   transformHistoryByObjectId: {},
+  environmentLightTransformBaseById: {},
+  transformHistoryByEnvironmentLightId: {},
   activeContentObjectTransformSession: null,
   activeEnvironmentLightTransformSession: null,
   stagedImportDraft: null,
@@ -2977,6 +2993,18 @@ const buildEnvironmentLightTransformOverride = (light: LightSpec): ReferenceTran
 
 const selectEnvironmentLightById = (lightId: string): LightSpec | null =>
   useUiPrefsStore.getState().view.lighting.lights.find((light) => light.id === lightId) ?? null
+
+const updateEnvironmentLightPosition = (
+  lightId: string,
+  transformOverride: ReferenceTransformOverride,
+): void => {
+  if (selectEnvironmentLightById(lightId) === null) {
+    return
+  }
+  useUiPrefsStore.getState().updateLight(lightId, {
+    position: { ...transformOverride.position },
+  })
+}
 
 const buildStagedImportDraftFileId = () => newId('staged-import-file')
 const DEFAULT_STAGED_IMPORT_MODE: StagedImportMode = 'single-object'
@@ -3644,6 +3672,7 @@ const cloneActiveEnvironmentLightTransformSession = (
         shellActive: value.shellActive,
         entryActive: value.entryActive,
         activeHandle: value.activeHandle === null ? null : { ...value.activeHandle },
+        historyScrubIndex: value.historyScrubIndex,
         draftTransform:
           cloneReferenceTransformOverride(value.draftTransform) ??
           buildDefaultReferenceTransformOverride(),
@@ -3701,6 +3730,7 @@ export const selectActiveViewerTransformSession = (
       shellActive: activeEnvironmentLightSession.shellActive,
       entryActive: activeEnvironmentLightSession.entryActive,
       activeHandle: activeEnvironmentLightSession.activeHandle,
+      historyScrubIndex: activeEnvironmentLightSession.historyScrubIndex,
       draftTransform: activeEnvironmentLightSession.draftTransform,
       entryOrigin: activeEnvironmentLightSession.entryOrigin,
     }
@@ -3754,6 +3784,7 @@ export const selectActiveViewerTransformHistoryEntries = (
     | 'activeEnvironmentLightTransformSession'
     | 'transformHistoryByReferenceId'
     | 'transformHistoryByObjectId'
+    | 'transformHistoryByEnvironmentLightId'
   >,
 ): ReferenceTransformHistoryEntry[] => {
   const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
@@ -3761,7 +3792,7 @@ export const selectActiveViewerTransformHistoryEntries = (
     return []
   }
   if (activeTarget.kind === 'environment-light') {
-    return []
+    return referenceWorkspace.transformHistoryByEnvironmentLightId[activeTarget.lightId] ?? []
   }
   return activeTarget.kind === 'reference'
     ? referenceWorkspace.transformHistoryByReferenceId[activeTarget.referenceId] ?? []
@@ -3819,7 +3850,9 @@ const cloneViewerTransformHistoryTarget = (
 ): ViewerTransformHistoryTarget =>
   target.kind === 'reference'
     ? { kind: 'reference', referenceId: target.referenceId }
-    : { kind: 'content-object', objectId: target.objectId }
+    : target.kind === 'environment-light'
+      ? { kind: 'environment-light', lightId: target.lightId }
+      : { kind: 'content-object', objectId: target.objectId }
 
 const areReferenceTransformHistoryEntriesEqual = (
   left: ReferenceTransformHistoryEntry,
@@ -3868,6 +3901,29 @@ const captureViewerTransformHistorySnapshot = (
       ),
     }
   }
+  if (target.kind === 'environment-light') {
+    const light = selectEnvironmentLightById(target.lightId)
+    const baseTransform =
+      cloneReferenceTransformOverride(
+        referenceWorkspace.environmentLightTransformBaseById[target.lightId] ?? null,
+      ) ??
+      (light === null
+        ? buildDefaultReferenceTransformOverride()
+        : buildEnvironmentLightTransformOverride(light))
+    const hasHistoryEntries = Object.prototype.hasOwnProperty.call(
+      referenceWorkspace.transformHistoryByEnvironmentLightId,
+      target.lightId,
+    )
+    return {
+      target: cloneViewerTransformHistoryTarget(target),
+      hasTransformOverride: true,
+      transformOverride: baseTransform,
+      hasHistoryEntries,
+      historyEntries: (referenceWorkspace.transformHistoryByEnvironmentLightId[target.lightId] ?? []).map(
+        cloneReferenceTransformHistoryEntry,
+      ),
+    }
+  }
   const hasTransformOverride = Object.prototype.hasOwnProperty.call(
     referenceWorkspace.contentObjectTransformOverrideById,
     target.objectId,
@@ -3896,6 +3952,8 @@ const areViewerTransformHistorySnapshotsEqual = (
     left.target.kind !== right.target.kind ||
     (left.target.kind === 'reference' && right.target.kind === 'reference'
       ? left.target.referenceId !== right.target.referenceId
+      : left.target.kind === 'environment-light' && right.target.kind === 'environment-light'
+        ? left.target.lightId !== right.target.lightId
       : left.target.kind === 'content-object' && right.target.kind === 'content-object'
         ? left.target.objectId !== right.target.objectId
         : true)
@@ -3950,6 +4008,59 @@ const restoreViewerTransformHistorySnapshot = (
             previousTransformOverride,
             nextTransformOverride,
           ),
+        },
+      }
+    }
+
+    if (snapshot.target.kind === 'environment-light') {
+      const lightId = snapshot.target.lightId
+      const environmentLightTransformBaseById = {
+        ...state.referenceWorkspace.environmentLightTransformBaseById,
+      }
+      const transformHistoryByEnvironmentLightId = {
+        ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+      }
+      const baseTransform =
+        cloneReferenceTransformOverride(snapshot.transformOverride) ??
+        buildDefaultReferenceTransformOverride()
+      const historyEntries = snapshot.hasHistoryEntries
+        ? snapshot.historyEntries.map(cloneReferenceTransformHistoryEntry)
+        : []
+      const nextTransformOverride = applyEnvironmentLightTransformHistoryEntriesToOverride(
+        historyEntries,
+        baseTransform,
+      )
+
+      if (snapshot.hasTransformOverride) {
+        environmentLightTransformBaseById[lightId] = baseTransform
+      } else {
+        delete environmentLightTransformBaseById[lightId]
+      }
+
+      if (snapshot.hasHistoryEntries) {
+        transformHistoryByEnvironmentLightId[lightId] = historyEntries
+      } else {
+        delete transformHistoryByEnvironmentLightId[lightId]
+      }
+
+      updateEnvironmentLightPosition(lightId, nextTransformOverride)
+
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          environmentLightTransformBaseById,
+          transformHistoryByEnvironmentLightId,
+          activeEnvironmentLightTransformSession:
+            state.referenceWorkspace.activeEnvironmentLightTransformSession?.lightId !== lightId
+              ? state.referenceWorkspace.activeEnvironmentLightTransformSession
+              : {
+                  ...state.referenceWorkspace.activeEnvironmentLightTransformSession,
+                  historyScrubIndex: getReferenceTransformHistoryLatestScrubIndex(historyEntries),
+                  draftTransform: nextTransformOverride,
+                  entryOrigin: null,
+                  entryActive: false,
+                  activeHandle: null,
+                },
         },
       }
     }
@@ -4029,10 +4140,12 @@ const buildReferenceTransformHistoryOverrideAfter = (
   return nextTransform
 }
 
-export const normalizeReferenceTransformHistoryEntries = (
+const normalizeReferenceTransformHistoryEntriesFromBase = (
   entries: readonly ReferenceTransformHistoryEntryLike[],
+  baseTransform: ReferenceTransformOverride,
 ): ReferenceTransformHistoryEntry[] => {
-  let currentTransform = buildDefaultReferenceTransformOverride()
+  let currentTransform =
+    cloneReferenceTransformOverride(baseTransform) ?? buildDefaultReferenceTransformOverride()
   return entries.map((entry) => {
     const before = getReferenceTransformHistoryEntryAfterValue(currentTransform, entry.kind)
     const after = isLegacyReferenceTransformHistoryEntry(entry)
@@ -4057,6 +4170,14 @@ export const normalizeReferenceTransformHistoryEntries = (
     return nextEntry
   })
 }
+
+export const normalizeReferenceTransformHistoryEntries = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+): ReferenceTransformHistoryEntry[] =>
+  normalizeReferenceTransformHistoryEntriesFromBase(
+    entries,
+    buildDefaultReferenceTransformOverride(),
+  )
 
 const resolveReferenceTransformHistoryKind = (
   mode: ReferenceTransformMode,
@@ -4124,6 +4245,40 @@ export const getReferenceTransformHistoryTransformAtScrubIndex = (
         buildDefaultReferenceTransformOverride()
 }
 
+const normalizeEnvironmentLightTransformHistoryEntries = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  baseTransform: ReferenceTransformOverride,
+): ReferenceTransformHistoryEntry[] =>
+  normalizeReferenceTransformHistoryEntriesFromBase(entries, baseTransform)
+
+const getEnvironmentLightTransformHistoryTransformAtScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  scrubIndex: number,
+  baseTransform: ReferenceTransformOverride,
+): ReferenceTransformOverride => {
+  const effectiveEntries = normalizeEnvironmentLightTransformHistoryEntries(
+    entries,
+    baseTransform,
+  ).slice(0, clampReferenceTransformHistoryScrubIndex(scrubIndex, entries.length))
+  const lastEntry = effectiveEntries.at(-1)
+  return (
+    cloneReferenceTransformOverride(lastEntry?.transformAfter ?? baseTransform) ??
+    buildDefaultReferenceTransformOverride()
+  )
+}
+
+const applyEnvironmentLightTransformHistoryEntriesToOverride = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  baseTransform: ReferenceTransformOverride,
+): ReferenceTransformOverride => {
+  const normalizedEntries = normalizeEnvironmentLightTransformHistoryEntries(entries, baseTransform)
+  const lastEntry = normalizedEntries.at(-1)
+  return (
+    cloneReferenceTransformOverride(lastEntry?.transformAfter ?? baseTransform) ??
+    buildDefaultReferenceTransformOverride()
+  )
+}
+
 export const insertReferenceTransformHistoryEntryAtScrubIndex = (
   entries: readonly ReferenceTransformHistoryEntryLike[],
   scrubIndex: number,
@@ -4158,6 +4313,48 @@ export const insertReferenceTransformHistoryEntryAtScrubIndex = (
     insertedEntry,
     ...normalizedEntries.slice(clampedScrubIndex),
   ])
+}
+
+const insertEnvironmentLightTransformHistoryEntryAtScrubIndex = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  scrubIndex: number,
+  sessionId: string,
+  sessionOrdinal: number,
+  after: ReferenceTransformHistoryVector,
+  baseTransform: ReferenceTransformOverride,
+): ReferenceTransformHistoryEntry[] => {
+  const normalizedEntries = normalizeEnvironmentLightTransformHistoryEntries(entries, baseTransform)
+  const clampedScrubIndex = clampReferenceTransformHistoryScrubIndex(
+    scrubIndex,
+    normalizedEntries.length,
+  )
+  const previousTransform = getEnvironmentLightTransformHistoryTransformAtScrubIndex(
+    normalizedEntries,
+    clampedScrubIndex,
+    baseTransform,
+  )
+  const previousAfter = cloneReferenceTransformVector(previousTransform.position)
+  const nextAfter = clampReferenceTransformHistoryVector('move', after)
+  if (areReferenceTransformVectorsEqual(previousAfter, nextAfter)) {
+    return normalizedEntries.map(cloneReferenceTransformHistoryEntry)
+  }
+  const insertedEntry: ReferenceTransformHistoryEntryDraft = {
+    entryId: newId('reference-transform-history'),
+    sessionId,
+    sessionOrdinal,
+    kind: 'move',
+    delta: subtractReferenceTransformVectors(nextAfter, previousAfter),
+    after: nextAfter,
+    locked: false,
+  }
+  return normalizeEnvironmentLightTransformHistoryEntries(
+    [
+      ...normalizedEntries.slice(0, clampedScrubIndex),
+      insertedEntry,
+      ...normalizedEntries.slice(clampedScrubIndex),
+    ],
+    baseTransform,
+  )
 }
 
 const mergeReferenceTransformHistoryEntries = (
@@ -4205,6 +4402,55 @@ const mergeReferenceTransformHistoryEntries = (
     preservedEntries
       .sort((left, right) => left.sortIndex - right.sortIndex)
       .map(({ entry }) => entry),
+  )
+}
+
+const mergeEnvironmentLightTransformHistoryEntries = (
+  entries: readonly ReferenceTransformHistoryEntryLike[],
+  baseTransform: ReferenceTransformOverride,
+): ReferenceTransformHistoryEntry[] => {
+  const normalizedEntries = normalizeEnvironmentLightTransformHistoryEntries(entries, baseTransform)
+  if (normalizedEntries.length <= 1) {
+    return normalizedEntries.map(cloneReferenceTransformHistoryEntry)
+  }
+  const preservedEntries: Array<{ sortIndex: number; entry: ReferenceTransformHistoryEntryLike }> = []
+  let unlockedDelta: ReferenceTransformHistoryVector | null = null
+  let lastUnlockedEntry: ReferenceTransformHistoryEntry | null = null
+  for (let index = 0; index < normalizedEntries.length; index += 1) {
+    const entry = normalizedEntries[index]!
+    if (entry.locked) {
+      preservedEntries.push({
+        sortIndex: index,
+        entry: cloneReferenceTransformHistoryEntry(entry),
+      })
+      continue
+    }
+    unlockedDelta =
+      unlockedDelta === null
+        ? cloneReferenceTransformVector(entry.delta)
+        : addReferenceTransformVectors(unlockedDelta, entry.delta)
+    lastUnlockedEntry = entry
+  }
+  if (unlockedDelta !== null && lastUnlockedEntry !== null) {
+    const mergedEntry = lastUnlockedEntry
+    preservedEntries.push({
+      sortIndex: normalizedEntries.findIndex((entry) => entry.entryId === mergedEntry.entryId),
+      entry: {
+        entryId: mergedEntry.entryId,
+        sessionId: mergedEntry.sessionId,
+        sessionOrdinal: mergedEntry.sessionOrdinal,
+        kind: 'move',
+        delta: cloneReferenceTransformVector(unlockedDelta),
+        after: cloneReferenceTransformVector(baseTransform.position),
+        locked: false,
+      },
+    })
+  }
+  return normalizeEnvironmentLightTransformHistoryEntries(
+    preservedEntries
+      .sort((left, right) => left.sortIndex - right.sortIndex)
+      .map(({ entry }) => entry),
+    baseTransform,
   )
 }
 
@@ -4604,7 +4850,12 @@ const nextCatalogAddToProjectHistoryEntryId = (referenceId: string): string => {
 
 const nextViewerTransformHistoryEntryId = (target: ViewerTransformHistoryTarget): string => {
   viewerTransformHistoryEntryCounter += 1
-  const targetId = target.kind === 'reference' ? target.referenceId : target.objectId
+  const targetId =
+    target.kind === 'reference'
+      ? target.referenceId
+      : target.kind === 'environment-light'
+        ? target.lightId
+        : target.objectId
   return `viewer-transform:${target.kind}:${targetId}:${viewerTransformHistoryEntryCounter}`
 }
 
@@ -11089,21 +11340,43 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (existingSession?.lightId === lightId && existingSession.shellActive) {
         return state
       }
-      const draftTransform = buildEnvironmentLightTransformOverride(light)
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[lightId] ?? null,
+        ) ?? buildEnvironmentLightTransformOverride(light)
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? [],
+        baseTransform,
+      )
+      const latestScrubIndex = getReferenceTransformHistoryLatestScrubIndex(currentEntries)
+      const draftTransform = getEnvironmentLightTransformHistoryTransformAtScrubIndex(
+        currentEntries,
+        latestScrubIndex,
+        baseTransform,
+      )
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
+          environmentLightTransformBaseById: {
+            ...state.referenceWorkspace.environmentLightTransformBaseById,
+            [lightId]: baseTransform,
+          },
+          transformHistoryByEnvironmentLightId: {
+            ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+            [lightId]: currentEntries,
+          },
           activeReferenceTransformSession: null,
           activeContentObjectTransformSession: null,
           activeEnvironmentLightTransformSession: {
             lightId,
             sessionId: newId('environment-light-transform-session'),
-            sessionOrdinal: 1,
+            sessionOrdinal: getNextReferenceTransformSessionOrdinal(currentEntries),
             mode: 'translate',
             space: 'world',
             shellActive: true,
             entryActive: false,
             activeHandle: null,
+            historyScrubIndex: latestScrubIndex,
             draftTransform,
             entryOrigin: null,
           },
@@ -11148,34 +11421,80 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   commitActiveEnvironmentLightTransformEntry: () => {
-    const activeSession = get().referenceWorkspace.activeEnvironmentLightTransformSession
-    if (activeSession === null) {
-      return
-    }
-    const committedTransformOverride =
-      cloneReferenceTransformOverride(activeSession.draftTransform) ??
-      buildDefaultReferenceTransformOverride()
-    useUiPrefsStore.getState().updateLight(activeSession.lightId, {
-      position: { ...committedTransformOverride.position },
-    })
     set((state) => {
-      const latestLight = selectEnvironmentLightById(activeSession.lightId)
-      const nextDraftTransform =
-        latestLight === null
-          ? committedTransformOverride
-          : buildEnvironmentLightTransformOverride(latestLight)
-      const currentSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
-      if (currentSession?.lightId !== activeSession.lightId) {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null) {
         return state
       }
+      const activeLightId = activeSession.lightId
+      const light = selectEnvironmentLightById(activeLightId)
+      if (light === null || !environmentLightSupportsPosition(light)) {
+        return state
+      }
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[activeLightId] ?? null,
+        ) ?? buildEnvironmentLightTransformOverride(light)
+      const committedTransformOverride =
+        cloneReferenceTransformOverride(activeSession.draftTransform) ?? baseTransform
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[activeLightId] ?? [],
+        baseTransform,
+      )
+      const currentScrubIndex = resolveReferenceTransformHistoryScrubIndex(
+        currentEntries,
+        activeSession.historyScrubIndex,
+      )
+      const nextEntries = insertEnvironmentLightTransformHistoryEntryAtScrubIndex(
+        currentEntries,
+        currentScrubIndex,
+        activeSession.sessionId,
+        activeSession.sessionOrdinal,
+        committedTransformOverride.position,
+        baseTransform,
+      )
+      const historyChanged =
+        currentEntries.length !== nextEntries.length ||
+        currentEntries.some((entry, index) => {
+          const other = nextEntries[index]
+          return (
+            other === undefined ||
+            entry.entryId !== other.entryId ||
+            !areReferenceTransformVectorsEqual(entry.delta, other.delta) ||
+            !areReferenceTransformVectorsEqual(entry.after, other.after) ||
+            !areReferenceTransformOverridesEqual(entry.transformAfter, other.transformAfter) ||
+            entry.locked !== other.locked
+          )
+        })
+      const latestScrubIndex = getReferenceTransformHistoryLatestScrubIndex(nextEntries)
+      const nextActiveScrubIndex = historyChanged
+        ? Math.min(latestScrubIndex, currentScrubIndex + 1)
+        : Math.min(latestScrubIndex, currentScrubIndex)
+      const nextActiveDraftTransform = getEnvironmentLightTransformHistoryTransformAtScrubIndex(
+        nextEntries,
+        nextActiveScrubIndex,
+        baseTransform,
+      )
+      updateEnvironmentLightPosition(activeLightId, nextActiveDraftTransform)
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
+          environmentLightTransformBaseById: {
+            ...state.referenceWorkspace.environmentLightTransformBaseById,
+            [activeLightId]: baseTransform,
+          },
+          transformHistoryByEnvironmentLightId: historyChanged
+            ? {
+                ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+                [activeLightId]: nextEntries,
+              }
+            : state.referenceWorkspace.transformHistoryByEnvironmentLightId,
           activeEnvironmentLightTransformSession: {
-            ...currentSession,
+            ...activeSession,
             entryActive: false,
             activeHandle: null,
-            draftTransform: nextDraftTransform,
+            historyScrubIndex: nextActiveScrubIndex,
+            draftTransform: nextActiveDraftTransform,
             entryOrigin: null,
           },
         },
@@ -11254,6 +11573,310 @@ export const useAppStore = create<AppState>((set, get) => ({
               ...activeSession.draftTransform,
               position: { ...nextTransformOverride.position },
             },
+          },
+        },
+      }
+    })
+  },
+  setActiveEnvironmentLightTransformHistoryScrubIndex: (scrubIndex) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null || activeSession.entryActive) {
+        return state
+      }
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[activeSession.lightId] ?? null,
+        ) ??
+        (selectEnvironmentLightById(activeSession.lightId) === null
+          ? buildDefaultReferenceTransformOverride()
+          : buildEnvironmentLightTransformOverride(selectEnvironmentLightById(activeSession.lightId)!))
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[activeSession.lightId] ?? [],
+        baseTransform,
+      )
+      const nextScrubIndex = resolveReferenceTransformHistoryScrubIndex(currentEntries, scrubIndex)
+      if (nextScrubIndex === activeSession.historyScrubIndex) {
+        return state
+      }
+      const nextDraftTransform = getEnvironmentLightTransformHistoryTransformAtScrubIndex(
+        currentEntries,
+        nextScrubIndex,
+        baseTransform,
+      )
+      updateEnvironmentLightPosition(activeSession.lightId, nextDraftTransform)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            entryActive: false,
+            activeHandle: null,
+            historyScrubIndex: nextScrubIndex,
+            draftTransform: nextDraftTransform,
+            entryOrigin:
+              activeSession.entryOrigin === null
+                ? null
+                : cloneReferenceTransformOverride(nextDraftTransform),
+          },
+        },
+      }
+    })
+  },
+  resetEnvironmentLightTransform: (lightId) => {
+    set((state) => {
+      const light = selectEnvironmentLightById(lightId)
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[lightId] ?? null,
+        ) ?? (light === null ? buildDefaultReferenceTransformOverride() : buildEnvironmentLightTransformOverride(light))
+      updateEnvironmentLightPosition(lightId, baseTransform)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformHistoryByEnvironmentLightId: {
+            ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+            [lightId]: [],
+          },
+          activeEnvironmentLightTransformSession:
+            state.referenceWorkspace.activeEnvironmentLightTransformSession?.lightId !== lightId
+              ? state.referenceWorkspace.activeEnvironmentLightTransformSession
+              : {
+                  ...state.referenceWorkspace.activeEnvironmentLightTransformSession,
+                  historyScrubIndex: 0,
+                  draftTransform: baseTransform,
+                  entryOrigin: null,
+                  entryActive: false,
+                  activeHandle: null,
+                },
+        },
+      }
+    })
+  },
+  setEnvironmentLightTransformHistoryEntryDeltaValue: (lightId, entryId, axis, value) => {
+    set((state) => {
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[lightId] ?? null,
+        ) ??
+        (selectEnvironmentLightById(lightId) === null
+          ? buildDefaultReferenceTransformOverride()
+          : buildEnvironmentLightTransformOverride(selectEnvironmentLightById(lightId)!))
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? [],
+        baseTransform,
+      )
+      let changed = false
+      const nextEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        currentEntries.map((entry) => {
+          if (entry.entryId !== entryId || entry.delta[axis] === value) {
+            return entry
+          }
+          changed = true
+          return {
+            ...entry,
+            delta: {
+              ...entry.delta,
+              [axis]: value,
+            },
+          }
+        }),
+        baseTransform,
+      )
+      if (!changed) {
+        return state
+      }
+      const nextTransformOverride = applyEnvironmentLightTransformHistoryEntriesToOverride(
+        nextEntries,
+        baseTransform,
+      )
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      const nextScrubIndex =
+        activeSession?.lightId !== lightId
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(nextEntries, activeSession.historyScrubIndex)
+      const nextDraftTransform =
+        nextScrubIndex === undefined
+          ? nextTransformOverride
+          : getEnvironmentLightTransformHistoryTransformAtScrubIndex(
+              nextEntries,
+              nextScrubIndex,
+              baseTransform,
+            )
+      updateEnvironmentLightPosition(lightId, nextDraftTransform)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformHistoryByEnvironmentLightId: {
+            ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+            [lightId]: nextEntries,
+          },
+          activeEnvironmentLightTransformSession:
+            activeSession?.lightId !== lightId
+              ? activeSession
+              : {
+                  ...activeSession,
+                  historyScrubIndex: nextScrubIndex,
+                  draftTransform:
+                    cloneReferenceTransformOverride(nextDraftTransform) ??
+                    buildDefaultReferenceTransformOverride(),
+                  entryOrigin:
+                    activeSession.entryOrigin === null
+                      ? null
+                      : cloneReferenceTransformOverride(nextDraftTransform),
+                },
+        },
+      }
+    })
+  },
+  deleteEnvironmentLightTransformHistoryEntry: (lightId, entryId) => {
+    set((state) => {
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[lightId] ?? null,
+        ) ??
+        (selectEnvironmentLightById(lightId) === null
+          ? buildDefaultReferenceTransformOverride()
+          : buildEnvironmentLightTransformOverride(selectEnvironmentLightById(lightId)!))
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? [],
+        baseTransform,
+      )
+      const removedIndex = currentEntries.findIndex((entry) => entry.entryId === entryId)
+      if (removedIndex < 0) {
+        return state
+      }
+      const nextEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        [...currentEntries.slice(0, removedIndex), ...currentEntries.slice(removedIndex + 1)],
+        baseTransform,
+      )
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      const currentScrubIndex =
+        activeSession?.lightId !== lightId
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(currentEntries, activeSession.historyScrubIndex)
+      const nextScrubIndex =
+        currentScrubIndex === undefined
+          ? undefined
+          : resolveReferenceTransformHistoryScrubIndex(
+              nextEntries,
+              currentScrubIndex - (removedIndex + 1 < currentScrubIndex ? 1 : 0),
+            )
+      const nextTransformOverride =
+        nextScrubIndex === undefined
+          ? applyEnvironmentLightTransformHistoryEntriesToOverride(nextEntries, baseTransform)
+          : getEnvironmentLightTransformHistoryTransformAtScrubIndex(
+              nextEntries,
+              nextScrubIndex,
+              baseTransform,
+            )
+      updateEnvironmentLightPosition(lightId, nextTransformOverride)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformHistoryByEnvironmentLightId: {
+            ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+            [lightId]: nextEntries,
+          },
+          activeEnvironmentLightTransformSession:
+            activeSession?.lightId !== lightId
+              ? activeSession
+              : {
+                  ...activeSession,
+                  historyScrubIndex: nextScrubIndex,
+                  draftTransform:
+                    cloneReferenceTransformOverride(nextTransformOverride) ??
+                    buildDefaultReferenceTransformOverride(),
+                  entryOrigin:
+                    activeSession.entryOrigin === null
+                      ? null
+                      : cloneReferenceTransformOverride(nextTransformOverride),
+                },
+        },
+      }
+    })
+  },
+  toggleEnvironmentLightTransformHistoryLock: (lightId, entryId) => {
+    set((state) => {
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[lightId] ?? null,
+        ) ??
+        (selectEnvironmentLightById(lightId) === null
+          ? buildDefaultReferenceTransformOverride()
+          : buildEnvironmentLightTransformOverride(selectEnvironmentLightById(lightId)!))
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? [],
+        baseTransform,
+      )
+      let changed = false
+      const nextEntries = currentEntries.map((entry) => {
+        if (entry.entryId !== entryId) {
+          return entry
+        }
+        changed = true
+        return {
+          ...entry,
+          locked: !entry.locked,
+        }
+      })
+      if (!changed) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformHistoryByEnvironmentLightId: {
+            ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+            [lightId]: nextEntries,
+          },
+        },
+      }
+    })
+  },
+  mergeEnvironmentLightTransformHistory: (lightId) => {
+    set((state) => {
+      const baseTransform =
+        cloneReferenceTransformOverride(
+          state.referenceWorkspace.environmentLightTransformBaseById[lightId] ?? null,
+        ) ??
+        (selectEnvironmentLightById(lightId) === null
+          ? buildDefaultReferenceTransformOverride()
+          : buildEnvironmentLightTransformOverride(selectEnvironmentLightById(lightId)!))
+      const currentEntries = normalizeEnvironmentLightTransformHistoryEntries(
+        state.referenceWorkspace.transformHistoryByEnvironmentLightId[lightId] ?? [],
+        baseTransform,
+      )
+      const nextEntries = mergeEnvironmentLightTransformHistoryEntries(currentEntries, baseTransform)
+      const changed =
+        currentEntries.length !== nextEntries.length ||
+        currentEntries.some((entry, index) => {
+          const other = nextEntries[index]
+          return (
+            other === undefined ||
+            entry.entryId !== other.entryId ||
+            entry.sessionId !== other.sessionId ||
+            entry.sessionOrdinal !== other.sessionOrdinal ||
+            entry.locked !== other.locked ||
+            !areReferenceTransformVectorsEqual(entry.delta, other.delta) ||
+            !areReferenceTransformVectorsEqual(entry.after, other.after) ||
+            !areReferenceTransformOverridesEqual(entry.transformAfter, other.transformAfter)
+          )
+        })
+      if (!changed) {
+        return state
+      }
+      const nextTransformOverride = applyEnvironmentLightTransformHistoryEntriesToOverride(
+        nextEntries,
+        baseTransform,
+      )
+      updateEnvironmentLightPosition(lightId, nextTransformOverride)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          transformHistoryByEnvironmentLightId: {
+            ...state.referenceWorkspace.transformHistoryByEnvironmentLightId,
+            [lightId]: nextEntries,
           },
         },
       }
@@ -11360,7 +11983,33 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (activeTarget.kind === 'environment-light') {
+      const beforeSnapshot = captureViewerTransformHistorySnapshot(
+        state.referenceWorkspace,
+        activeTarget,
+      )
       state.commitActiveEnvironmentLightTransformEntry()
+      const afterState = get()
+      const afterSnapshot = captureViewerTransformHistorySnapshot(
+        afterState.referenceWorkspace,
+        activeTarget,
+      )
+      if (areViewerTransformHistorySnapshotsEqual(beforeSnapshot, afterSnapshot)) {
+        return
+      }
+      const lightLabel =
+        useUiPrefsStore
+          .getState()
+          .view.lighting.lights.find((light) => light.id === activeTarget.lightId)?.name ??
+        activeTarget.lightId
+      editHistoryStore.commitEntry({
+        entryId: nextViewerTransformHistoryEntryId(activeTarget),
+        label: 'Change Viewer transform',
+        source: viewerTransformHistorySource,
+        targetId: activeTarget.lightId,
+        targetLabel: lightLabel,
+        undo: () => restoreViewerTransformHistorySnapshot(beforeSnapshot),
+        redo: () => restoreViewerTransformHistorySnapshot(afterSnapshot),
+      })
       return
     }
     const beforeSnapshot = captureViewerTransformHistorySnapshot(
@@ -11460,6 +12109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (activeTarget.kind === 'environment-light') {
+      state.setActiveEnvironmentLightTransformHistoryScrubIndex(scrubIndex)
       return
     }
     state.setActiveContentObjectTransformHistoryScrubIndex(scrubIndex)
@@ -11487,6 +12137,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (target.kind === 'environment-light') {
+      state.resetEnvironmentLightTransform(target.lightId)
       return
     }
     state.resetContentObjectTransform(target.objectId)
@@ -11498,6 +12149,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (target.kind === 'environment-light') {
+      state.setEnvironmentLightTransformHistoryEntryDeltaValue(
+        target.lightId,
+        entryId,
+        axis,
+        value,
+      )
       return
     }
     state.setContentObjectTransformHistoryEntryDeltaValue(target.objectId, entryId, axis, value)
@@ -11509,6 +12166,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (target.kind === 'environment-light') {
+      state.deleteEnvironmentLightTransformHistoryEntry(target.lightId, entryId)
       return
     }
     state.deleteContentObjectTransformHistoryEntry(target.objectId, entryId)
@@ -11520,6 +12178,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (target.kind === 'environment-light') {
+      state.toggleEnvironmentLightTransformHistoryLock(target.lightId, entryId)
       return
     }
     state.toggleContentObjectTransformHistoryLock(target.objectId, entryId)
@@ -11531,6 +12190,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     if (target.kind === 'environment-light') {
+      state.mergeEnvironmentLightTransformHistory(target.lightId)
       return
     }
     state.mergeContentObjectTransformHistory(target.objectId)

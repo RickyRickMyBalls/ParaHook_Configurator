@@ -20,6 +20,12 @@ describe('consoleCommandParser', () => {
       args: ['extents'],
       argumentText: 'extents',
     })
+    expect(parseConsoleCommand('zo')).toEqual({
+      raw: 'zo',
+      name: 'zoomobject',
+      args: [],
+      argumentText: '',
+    })
 
     expect(parseConsoleCommand('  m   1,2,3  ')).toEqual({
       raw: 'm   1,2,3',

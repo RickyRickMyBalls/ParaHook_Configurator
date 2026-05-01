@@ -4,6 +4,13 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+286. 2026-05-01 01:16:58: Updated the Edit History workspace docs map entry after the unified timeline future doc was renamed back to `Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, while preserving the separate broad architecture `Edit-History-4` entry.
+285. 2026-04-30 22:11:53: Updated the Edit History workspace docs map entry after the unified timeline future doc was named `Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, and recorded Phase 1 as prepped for the timeline read-model implementation slice.
+284. 2026-04-30 22:09:49: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md` to the docs map after the Edit History workspace direction gained a unified Undo/Redo timeline with a visible current-position marker.
+283. 2026-04-30 22:07:41: Added the new `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/` subtree to the docs map, listing the Edit History workspace vision and active Generation 1 index so the history reader workspace surface is discoverable beside Browser, Console, Catalog, and Model Viewport.
+282. 2026-04-30 20:14:30: Moved the stale shipped Workspace-Modes records `Workspace 7.5-3`, `Workspace 7.5-6`, `Workspace 7.5-7A`, `Workspace 7.5-8`, `Workspace 7.5-13`, and `Workspace 7.5-16` from `Future/` to `Shipped/` in the docs map after reconciling them against the existing changelog trail.
+281. 2026-04-30 20:09:27: Moved `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md` to `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md` and refreshed the Workspace-Modes docs map after the Dashboard/Notepad onboarding phase was closed as shipped.
+280. 2026-04-30 19:54:12: Moved `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md` to `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md` and refreshed the Workspace-Modes docs map after the multi-editor phase was closed as shipped.
 279. 2026-04-22 17:56:30: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Gen5-Index.md` plus `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen5-1 - Durable CAD Local History Batches.md` to the docs map after user review promoted durable nested CAD-local undo/redo batches for Sketch Draw, Viewer Transform, and later CAD sessions.
 278. 2026-04-22 15:16:08: Added `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-3 - Console-Focused Sketch Draw Undo Ownership.md` to the docs map after focused-console research showed Sketch Draw undo/redo needs active command-session ownership even when the console input remains focused after submitted commands.
 277. 2026-04-22 12:12:20: Added `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-Gen4-2 - Sketch Draw Staged Command Buffer.md` to the docs map after user review clarified completed Sketch Draw commands need in-session staged undo/redo before the final sketch commit reaches canonical app history.
@@ -843,6 +850,11 @@ Rule notes:
             - `Workspaces/Pubwheel-Builder/Future/Pubwheel-Builder-1 - Workspace Foundation And Assembly Carousel.md`
 ###### -------------Console
             - `Workspaces/Console/Console-Index.md`
+###### -------------Edit-History
+            - `Workspaces/Edit-History/Edit-History-Vision.md`
+            - `Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+####### --------------Future
+            - `Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
 ###### -------------Dashboard
             - `Workspaces/Dashboard/Dashboard.md`
 ###### -------------Export
@@ -871,10 +883,12 @@ Rule notes:
             - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
             - `Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
             - `Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md`
-            - `Future/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md`
             - `Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
-            - `Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md`
-            - `Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`
+            - `Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`
+            - `Future/Workspace_Phase Workspace-7.5-7a-Phase 2d.md`
+            - `Future/Workspace_Phase Workspace-7.5-9 - Spaghetti Presentation Mode Truth.md`
+            - `Future/workspace7-featurestocarry.md`
+            - `Future/Workspace-Cleanup-Task-Stack.md`
 ##### ------------Shipped
             - `Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
             - `Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
@@ -904,6 +918,14 @@ Rule notes:
             - `Shipped/Workspace_Phase Workspace-7.3-2 - Per-Viewport Host Targeting And Viewer Rehome Parity.md`
             - `Shipped/Workspace_Phase Workspace-7.5-1 - Shared Surface Placement Contract And Host Route Ownership.md`
             - `Shipped/Workspace_Phase Workspace-7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-6 - Editor Surface Replacement And Slot Binding Truth.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-7A - Split Spaghetti Console Live Focus Repair.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-13 - Model Viewport Popout Window.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`
 #### -------AppShell
             - `AppShell-Index.md`
         ##### ------------Future

@@ -244,7 +244,7 @@ describe('stagedNavigation', () => {
     expect(backResult.session.scopeId).toBe('sketchDrawRoot')
   })
 
-  it('routes object-selected zoom back to the object scope', () => {
+  it('routes object-selected zoom and ZoomObject directly to model zoom object', () => {
     const context = createConsoleStagedNavigationContext([])
     const objectSession = {
       scopeId: 'contentObjectSelected' as const,
@@ -259,36 +259,18 @@ describe('stagedNavigation', () => {
     }
 
     const zoomRoot = submitConsoleStagedNavigationToken(objectSession, 'z', context)
-    expect(zoomRoot.kind).toBe('advance')
-    if (zoomRoot.kind !== 'advance') {
-      throw new Error('Expected object zoom token to advance')
-    }
-    expect(zoomRoot.session.scopeId).toBe('contentObjectZoomRoot')
-    expect(zoomRoot.session.breadcrumb).toEqual(['Select', 'Content', 'Object 1', 'Zoom'])
-    expect(zoomRoot.validChoices.map((choice) => choice.canonicalToken)).toEqual([
-      'ALL',
-      'EXTENTS',
-      'PREVIOUS',
-      'WINDOW',
-      'OBJECT',
-      'BACK',
-    ])
+    expect(zoomRoot).toMatchObject({
+      kind: 'execute',
+      actionId: 'zoom.model.object',
+      breadcrumb: ['Select', 'Content', 'Object 1', 'Zoom'],
+    })
 
-    const backResult = submitConsoleStagedNavigationToken(zoomRoot.session, 'b', context)
-    expect(backResult.kind).toBe('advance')
-    if (backResult.kind !== 'advance') {
-      throw new Error('Expected object zoom back token to advance')
-    }
-    expect(backResult.session.scopeId).toBe('contentObjectSelected')
-    expect(backResult.session.breadcrumb).toEqual(['Select', 'Content', 'Object 1'])
-    expect(backResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
-      'VIEWTRANSFORM',
-      'MOVE',
-      'ROTATE',
-      'SCALE',
-      'ZOOM',
-      'BACK',
-    ])
+    const zoomObjectResult = submitConsoleStagedNavigationToken(objectSession, 'zo', context)
+    expect(zoomObjectResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'zoom.model.object',
+      breadcrumb: ['Select', 'Content', 'Object 1', 'ZoomObject'],
+    })
   })
 
   it('routes object-selected transform and direct move through the canonical transform branch', () => {
@@ -379,35 +361,128 @@ describe('stagedNavigation', () => {
       },
     })
 
-    const zoomResult = submitConsoleStagedNavigationToken(environmentLightSession, 'zoom', context)
-    expect(zoomResult.kind).toBe('advance')
-    if (zoomResult.kind !== 'advance') {
-      throw new Error('Expected environment light zoom token to advance')
+    const transformRootResult = submitConsoleStagedNavigationToken(
+      environmentLightSession,
+      'transform',
+      context,
+    )
+    expect(transformRootResult.kind).toBe('advance')
+    if (transformRootResult.kind !== 'advance') {
+      throw new Error('Expected environment light transform token to advance')
     }
-    expect(zoomResult.session).toMatchObject({
-      scopeId: 'contentObjectZoomRoot',
+    expect(transformRootResult.session).toMatchObject({
+      scopeId: 'contentObjectTransformRoot',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Viewer Transform'],
+      selections: {
+        environmentLightId: 'light-key',
+      },
+    })
+    expect(transformRootResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'MOVE',
+      'BACK',
+    ])
+
+    const committedEnvironmentLightContext = createConsoleStagedNavigationContext(
+      [],
+      [],
+      [],
+      {
+        hasSelection: false,
+        hasPrevious: false,
+        preferredTool: 'LINE',
+      },
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      [],
+      {
+        'light-key': {
+          activeSessionId: 'light-session',
+          activeSessionCommittedEntryCount: 1,
+          totalCommittedEntryCount: 1,
+        },
+      },
+    )
+    const transformRootWithHistory = submitConsoleStagedNavigationToken(
+      environmentLightSession,
+      'transform',
+      committedEnvironmentLightContext,
+    )
+    expect(transformRootWithHistory.kind).toBe('advance')
+    if (transformRootWithHistory.kind !== 'advance') {
+      throw new Error('Expected environment light transform token to advance with history')
+    }
+    expect(transformRootWithHistory.validChoices.map((choice) => choice.canonicalToken)).toEqual([
+      'DELETELATEST',
+      'MOVE',
+    ])
+    expect(
+      submitConsoleStagedNavigationToken(
+        transformRootWithHistory.session,
+        'delete',
+        committedEnvironmentLightContext,
+      ),
+    ).toMatchObject({
+      kind: 'execute',
+      actionId: 'content.transform.deleteLatest',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Viewer Transform', 'DeleteLatest'],
       selections: {
         environmentLightId: 'light-key',
       },
     })
 
-    const zoomObjectResult = submitConsoleStagedNavigationToken(zoomResult.session, 'object', context)
+    expect(submitConsoleStagedNavigationToken(environmentLightSession, 'move', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'content.transform.move',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Viewer Transform', 'Move'],
+      selections: {
+        environmentLightId: 'light-key',
+      },
+    })
+
+    expect(submitConsoleStagedNavigationToken(transformRootResult.session, 'move', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'content.transform.move',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Viewer Transform', 'Move'],
+      selections: {
+        environmentLightId: 'light-key',
+      },
+    })
+
+    const transformBackResult = submitConsoleStagedNavigationToken(
+      transformRootResult.session,
+      'back',
+      context,
+    )
+    expect(transformBackResult.kind).toBe('advance')
+    if (transformBackResult.kind !== 'advance') {
+      throw new Error('Expected environment light transform back token to advance')
+    }
+    expect(transformBackResult.session).toMatchObject({
+      scopeId: 'contentObjectSelected',
+      selections: {
+        environmentLightId: 'light-key',
+      },
+    })
+
+    const zoomResult = submitConsoleStagedNavigationToken(environmentLightSession, 'zoom', context)
+    expect(zoomResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'zoom.model.object',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Zoom'],
+      selections: {
+        environmentLightId: 'light-key',
+      },
+    })
+
+    const zoomObjectResult = submitConsoleStagedNavigationToken(environmentLightSession, 'zo', context)
     expect(zoomObjectResult).toMatchObject({
       kind: 'execute',
       actionId: 'zoom.model.object',
-      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'Zoom', 'Object'],
-      selections: {
-        environmentLightId: 'light-key',
-      },
-    })
-
-    const zoomBackResult = submitConsoleStagedNavigationToken(zoomResult.session, 'b', context)
-    expect(zoomBackResult.kind).toBe('advance')
-    if (zoomBackResult.kind !== 'advance') {
-      throw new Error('Expected environment light zoom back token to advance')
-    }
-    expect(zoomBackResult.session).toMatchObject({
-      scopeId: 'contentObjectSelected',
+      breadcrumb: ['Select', 'Content', 'Environment', 'Key', 'ZoomObject'],
       selections: {
         environmentLightId: 'light-key',
       },

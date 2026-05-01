@@ -590,9 +590,11 @@ describe('ViewerHost reference loading', () => {
     const { useAppStore } = await import('../store/useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
     useAppStore.setState(useAppStore.getInitialState(), true)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
   })
 
   afterEach(async () => {
@@ -9229,6 +9231,61 @@ describe('ViewerHost reference loading', () => {
     expect(viewerSetHighlightedReferenceIds).toHaveBeenCalledWith(['shoe:shoe-1'])
     expect(viewerSetViewerTransformSession).not.toHaveBeenCalledWith(
       expect.objectContaining({ targetKind: 'reference', targetId: 'shoe:shoe-1' }),
+    )
+  })
+
+  it('keeps Browser-selected environment lights out of Viewer Transform until Console opt-in', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    act(() => {
+      useUiPrefsStore.setState((state) => ({
+        ...state,
+        view: {
+          ...state.view,
+          lighting: {
+            ...state.view.lighting,
+            lights: [
+              {
+                id: 'light-key',
+                name: 'Key',
+                type: 'point',
+                enabled: true,
+                color: '#ffffff',
+                intensity: 1,
+                position: { x: 0, y: 10, z: 0 },
+              },
+            ],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        ...state,
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: {
+            kind: 'environment-light',
+            lightId: 'light-key',
+          },
+          activeSurface: 'browser',
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.activeEnvironmentLightTransformSession,
+    ).toBeNull()
+    expect(viewerSetViewerTransformSession).not.toHaveBeenCalledWith(
+      expect.objectContaining({ targetKind: 'environment-light', targetId: 'light-key' }),
     )
   })
 

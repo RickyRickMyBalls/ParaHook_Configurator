@@ -98,6 +98,14 @@ export type ConsoleStagedNavigationContext = {
       totalCommittedEntryCount: number
     }
   >
+  environmentLightTransformShellByLightId: Record<
+    string,
+    {
+      activeSessionId: string | null
+      activeSessionCommittedEntryCount: number
+      totalCommittedEntryCount: number
+    }
+  >
 }
 
 export type ConsoleStagedNavigationChoiceKind = 'scope' | 'action'
@@ -807,6 +815,13 @@ const ZOOM_OBJECT_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'OBJECT',
   aliases: ['O'],
   label: 'Object',
+  kind: 'action',
+}
+
+const ZOOM_OBJECT_DIRECT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ZOOMOBJECT',
+  aliases: ['ZO'],
+  label: 'ZoomObject',
   kind: 'action',
 }
 
@@ -1532,6 +1547,7 @@ const buildContentObjectSelectedChoices = (): ConsoleStagedNavigationChoice[] =>
   MOVE_CHOICE,
   ROTATE_CHOICE,
   SCALE_CHOICE,
+  ZOOM_OBJECT_DIRECT_CHOICE,
   ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
@@ -1540,9 +1556,12 @@ const buildEnvironmentLightSelectedChoices = (options: {
   canHide: boolean
   canShow: boolean
 }): ConsoleStagedNavigationChoice[] => [
+  TRANSFORM_CHOICE,
+  MOVE_CHOICE,
   ...(options.canShow ? [SHOW_CHOICE] : []),
   ...(options.canHide ? [HIDE_CHOICE] : []),
   ...(options.canDelete ? [DELETE_CHOICE] : []),
+  ZOOM_OBJECT_DIRECT_CHOICE,
   ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
@@ -1640,6 +1659,13 @@ export const buildContentTransformRootChoices = (
       ]
     : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, SNAP_CHOICE, SETTINGS_CHOICE, createBackChoice()]
 
+const buildEnvironmentLightTransformRootChoices = (
+  hasCommittedEntriesInActiveShell = false,
+): ConsoleStagedNavigationChoice[] =>
+  hasCommittedEntriesInActiveShell
+    ? [DELETE_LATEST_TRANSFORM_CHOICE, MOVE_CHOICE]
+    : [MOVE_CHOICE, createBackChoice()]
+
 export const buildReferenceTransformRootChoices = (
   hasCommittedEntriesInActiveShell = false,
 ): ConsoleStagedNavigationChoice[] =>
@@ -1718,6 +1744,12 @@ const hasAnyCommittedEntriesInContentObjectTransformHistory = (
   objectId: string,
 ): boolean =>
   (context.contentObjectTransformShellByObjectId[objectId]?.totalCommittedEntryCount ?? 0) > 0
+
+const hasAnyCommittedEntriesInEnvironmentLightTransformHistory = (
+  context: ConsoleStagedNavigationContext,
+  lightId: string,
+): boolean =>
+  (context.environmentLightTransformShellByLightId[lightId]?.totalCommittedEntryCount ?? 0) > 0
 
 const isReferenceTransformSnapModeLocked = (
   context: ConsoleStagedNavigationContext,
@@ -2154,6 +2186,7 @@ export const createContentObjectTransformRootSession = (
   fallbackGraphDocumentId: string | null,
   objectId: string | null = null,
   hasCommittedEntriesInHistory = false,
+  environmentLightId: string | null = null,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentObjectTransformRoot',
   breadcrumb: [...buildContentBreadcrumb(labels), VIEWER_TRANSFORM_LABEL],
@@ -2164,9 +2197,13 @@ export const createContentObjectTransformRootSession = (
     contentAssemblyId: null,
     contentComponentId: null,
     contentObjectId: objectId,
+    environmentLightId,
     referenceId: null,
   },
-  validChoices: buildContentTransformRootChoices(hasCommittedEntriesInHistory),
+  validChoices:
+    environmentLightId === null
+      ? buildContentTransformRootChoices(hasCommittedEntriesInHistory)
+      : buildEnvironmentLightTransformRootChoices(hasCommittedEntriesInHistory),
 })
 
 const createContentObjectTransformSettingsRootSession = (
@@ -3416,6 +3453,7 @@ export const createConsoleStagedNavigationContext = (
   contentObjectTransformSnapEnabledByObjectId: ConsoleStagedNavigationContext['contentObjectTransformSnapEnabledByObjectId'] = {},
   contentObjectTransformShellByObjectId: ConsoleStagedNavigationContext['contentObjectTransformShellByObjectId'] = {},
   workspaceViewportOptions: ConsoleStagedNavigationContext['workspaceViewportOptions'] = [],
+  environmentLightTransformShellByLightId: ConsoleStagedNavigationContext['environmentLightTransformShellByLightId'] = {},
 ): ConsoleStagedNavigationContext => {
   const usingLegacyArgumentOrder =
     (contentAssembliesOrReferenceCategories.length > 0 &&
@@ -3498,6 +3536,7 @@ export const createConsoleStagedNavigationContext = (
     contentObjectTransformSnapLockByObjectId: { ...contentObjectTransformSnapLockByObjectId },
     contentObjectTransformSnapEnabledByObjectId: { ...contentObjectTransformSnapEnabledByObjectId },
     contentObjectTransformShellByObjectId: { ...contentObjectTransformShellByObjectId },
+    environmentLightTransformShellByLightId: { ...environmentLightTransformShellByLightId },
   }
 }
 
@@ -5293,30 +5332,87 @@ export const submitConsoleStagedNavigationToken = (
         }
       }
       if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
+        return {
+          kind: 'execute',
+          session: { ...session, validChoices: contentChoices },
+          submittedToken,
+          matchedChoice,
+          actionId: 'zoom.model.object',
+          breadcrumb: [...session.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
+      if (matchedChoice.canonicalToken === ZOOM_OBJECT_DIRECT_CHOICE.canonicalToken) {
+        return {
+          kind: 'execute',
+          session: { ...session, validChoices: contentChoices },
+          submittedToken,
+          matchedChoice,
+          actionId: 'zoom.model.object',
+          breadcrumb: [...session.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
+      if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
         return createAdvanceResult(
-          {
-            scopeId: 'contentObjectZoomRoot',
-            breadcrumb: [...session.breadcrumb, matchedChoice.label],
-            selections: session.selections,
-            validChoices: buildZoomActionChoices(),
-          },
+          createContentObjectTransformRootSession(
+            extractContentBreadcrumbLabels(session.breadcrumb),
+            session.selections.graphDocumentId,
+            null,
+            hasAnyCommittedEntriesInEnvironmentLightTransformHistory(
+              context,
+              session.selections.environmentLightId ?? '',
+            ),
+            session.selections.environmentLightId ?? null,
+          ),
           submittedToken,
           matchedChoice,
         )
       }
+      if (matchedChoice.canonicalToken === MOVE_CHOICE.canonicalToken) {
+        const transformRootSession = createContentObjectTransformRootSession(
+          extractContentBreadcrumbLabels(session.breadcrumb),
+          session.selections.graphDocumentId,
+          null,
+          hasAnyCommittedEntriesInEnvironmentLightTransformHistory(
+            context,
+            session.selections.environmentLightId ?? '',
+          ),
+          session.selections.environmentLightId ?? null,
+        )
+        return {
+          kind: 'execute',
+          session: transformRootSession,
+          submittedToken,
+          matchedChoice,
+          actionId: 'content.transform.move',
+          breadcrumb: [...transformRootSession.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
       return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
     }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
-      return createAdvanceResult(
-        {
-          scopeId: 'contentObjectZoomRoot',
-          breadcrumb: [...session.breadcrumb, matchedChoice.label],
-          selections: session.selections,
-          validChoices: buildZoomActionChoices(),
-        },
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
         submittedToken,
         matchedChoice,
-      )
+        actionId: 'zoom.model.object',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === ZOOM_OBJECT_DIRECT_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'zoom.model.object',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
     }
     if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
       return createAdvanceResult(
@@ -5364,15 +5460,25 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session.scopeId === 'contentObjectTransformRoot') {
+    const isEnvironmentLight =
+      typeof session.selections.environmentLightId === 'string' &&
+      session.selections.environmentLightId.length > 0
     const transformChoices =
       session.validChoices.length > 0
         ? session.validChoices
-        : buildContentTransformRootChoices(
-            hasAnyCommittedEntriesInContentObjectTransformHistory(
-              context,
-              session.selections.contentObjectId ?? '',
-            ),
-          )
+        : isEnvironmentLight
+          ? buildEnvironmentLightTransformRootChoices(
+              hasAnyCommittedEntriesInEnvironmentLightTransformHistory(
+                context,
+                session.selections.environmentLightId ?? '',
+              ),
+            )
+          : buildContentTransformRootChoices(
+              hasAnyCommittedEntriesInContentObjectTransformHistory(
+                context,
+                session.selections.contentObjectId ?? '',
+              ),
+            )
     const matchedChoice =
       transformChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -5388,9 +5494,52 @@ export const submitConsoleStagedNavigationToken = (
           extractContentBreadcrumbLabels(session.breadcrumb, 1),
           session.selections.graphDocumentId,
           session.selections.contentObjectId ?? null,
+          isEnvironmentLight
+            ? {
+                environmentLightId: session.selections.environmentLightId ?? null,
+                canDelete: true,
+                canHide: session.selections.contentCanHide ?? false,
+                canShow: session.selections.contentCanShow ?? false,
+              }
+            : null,
         ),
         submittedToken,
         matchedChoice,
+      )
+    }
+    if (isEnvironmentLight) {
+      if (matchedChoice.canonicalToken === DELETE_LATEST_TRANSFORM_CHOICE.canonicalToken) {
+        return {
+          kind: 'execute',
+          session: {
+            ...session,
+            validChoices: transformChoices,
+          },
+          submittedToken,
+          matchedChoice,
+          actionId: 'content.transform.deleteLatest',
+          breadcrumb: [...session.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
+      if (matchedChoice.canonicalToken === MOVE_CHOICE.canonicalToken) {
+        return {
+          kind: 'execute',
+          session: {
+            ...session,
+            validChoices: transformChoices,
+          },
+          submittedToken,
+          matchedChoice,
+          actionId: 'content.transform.move',
+          breadcrumb: [...session.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
+      return createInvalidResult(
+        { ...session, validChoices: transformChoices },
+        submittedToken,
+        transformChoices,
       )
     }
     if (matchedChoice.canonicalToken === SETTINGS_CHOICE.canonicalToken) {

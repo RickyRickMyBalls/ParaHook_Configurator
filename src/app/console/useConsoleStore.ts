@@ -74,6 +74,7 @@ export type ConsolePromptSession =
       target:
         | { kind: 'reference'; referenceId: string }
         | { kind: 'content-object'; objectId: string }
+        | { kind: 'environment-light'; lightId: string }
     }
 
 const CONSOLE_LAYERS: ConsoleLayer[] = [

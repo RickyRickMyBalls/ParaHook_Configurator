@@ -126,6 +126,36 @@ describe('editHistoryStore', () => {
     })
   })
 
+  it('stores child summaries as public metadata without sharing caller arrays', () => {
+    const store = createEditHistoryStore()
+    const events: string[] = []
+    const childSummaries = [
+      {
+        childId: 'draw-command-1',
+        label: 'Draw sketch line',
+        kind: 'geometry' as const,
+        sequence: 1,
+      },
+    ]
+
+    expect(store.commitEntry(createTestEntry('entry-1', 'Commit sketch draw changes', events, {
+      childSummaries,
+    }))).toBe(true)
+
+    childSummaries[0].label = 'Mutated outside store'
+
+    const committedEntry = store.getUndoEntries()[0]
+    expect(committedEntry.childSummaries).toEqual([
+      {
+        childId: 'draw-command-1',
+        label: 'Draw sketch line',
+        kind: 'geometry',
+        sequence: 1,
+      },
+    ])
+    expect(Object.isFrozen(committedEntry.childSummaries)).toBe(true)
+  })
+
   it('publishes stable read snapshots to subscribers when canonical stacks change', () => {
     const store = createEditHistoryStore()
     const events: string[] = []
@@ -211,6 +241,58 @@ describe('editHistoryStore', () => {
     expect(store.canRedo()).toBe(false)
   })
 
+  it('keeps a public snapshot log for commit undo and redo activity', () => {
+    const store = createEditHistoryStore()
+    const events: string[] = []
+    store.commitEntry(createTestEntry('entry-1', 'First edit', events, {
+      transactionId: 'transaction-1',
+      coalesceKey: 'entry-1:value',
+    }))
+    store.commitEntry(createTestEntry('entry-2', 'Second edit', events))
+    store.undo()
+    store.redo()
+
+    const log = store.getSnapshotLog()
+    expect(log.map((entry) => entry.sequence)).toEqual([1, 2, 3, 4])
+    expect(log.map((entry) => `${entry.action}:${entry.entryId}`)).toEqual([
+      'commit:entry-1',
+      'commit:entry-2',
+      'undo:entry-2',
+      'redo:entry-2',
+    ])
+    expect(log[0]).toMatchObject({
+      label: 'First edit',
+      source: {
+        surface: 'test-surface',
+        sourceId: 'test-source',
+        sourceLabel: 'Test Source',
+      },
+      targetId: 'target-entry-1',
+      targetLabel: 'Target entry-1',
+      transactionId: 'transaction-1',
+      coalesceKey: 'entry-1:value',
+      undoDepth: 1,
+      redoDepth: 0,
+    })
+    expect(log[0]?.timestamp).toEqual(expect.any(String))
+    expect(log[0]?.entryTimestamp).toEqual(store.getUndoEntries()[0]?.timestamp ?? null)
+    expect(log[2]).toMatchObject({
+      action: 'undo',
+      entryId: 'entry-2',
+      undoDepth: 1,
+      redoDepth: 1,
+    })
+    expect(log[3]).toMatchObject({
+      action: 'redo',
+      entryId: 'entry-2',
+      undoDepth: 2,
+      redoDepth: 0,
+    })
+    expect(store.getSnapshot().snapshotLog.map((entry) => entry.logId)).toEqual(
+      log.map((entry) => entry.logId),
+    )
+  })
+
   it('clears redo entries when a new entry commits after undo', () => {
     const store = createEditHistoryStore()
     const events: string[] = []
@@ -257,6 +339,7 @@ describe('editHistoryStore', () => {
 
     expect(store.getUndoEntries()).toEqual([])
     expect(store.getRedoEntries()).toEqual([])
+    expect(store.getSnapshotLog()).toEqual([])
     expect(store.canUndo()).toBe(false)
     expect(store.canRedo()).toBe(false)
     expect(store.undo()).toBeNull()
