@@ -72,6 +72,88 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1777 -->
+
+### [1777] - 2026-05-05 16:12 - `SP - Split Restore Memory - Meatball Editor View Support`
+
+HUMAN SUMMARY: `The split-restore contract can now honestly remember when a Spaghetti editor should come back as \`meatball editor view\` instead of silently narrowing everything to plain expanded/maximized editor state. This closes the last build blocker from the earlier cleanup pass and keeps workspace persistence aligned with the runtime window-mode rules the product already expects.`
+
+<!-- ENTRY 1777 -->
+
+#### Scope / Constraints Honored
+
+- Kept the change focused on the restore-state type and persistence contract instead of widening into new docking behavior, new restore flows, or a broader workspace-state redesign.
+- Matched the user decision that split restore should be able to remember both ordinary Spaghetti editor state and `meatball editor view`.
+- Preserved the existing restore shape and only widened the accepted `windowMode` values where the runtime already depends on them.
+
+#### Summary of Implementation
+
+- Widened `EditorSurfaceRestoreFromSplit` in `workspaceShellTypes.ts` so workspace surface restore state can remember `meatball editor view`.
+- Widened the matching `EditorViewportRestoreFromSplit` contract in `spaghettiTypes.ts` so viewport-side restore metadata stays aligned with the workspace surface translation seam.
+- Updated `workspacePersistence.ts` normalization so persisted `restoreFromSplit.windowMode` accepts `meatball editor view` instead of coercing it back to `expanded`.
+- Verified the full production build after the earlier easy cleanup batch and this restore-memory decision landed together.
+
+#### Files Changed
+
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Spaghetti editor restore-from-split state can now remember and persist `meatball editor view` in addition to normal expanded/maximized editor restore targets.
+- The build no longer fails on the split-restore type mismatch between viewport and workspace editor restore state.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+
+<!-- ENTRY 1776 -->
+
+### [1776] - 2026-05-05 15:26 - `SP - Build Cleanup - Dock Stack, Node Resize Test, And Overlay State Drift`
+
+HUMAN SUMMARY: `Cleared the bulk of the current build drift by updating stale left-dock and NodeView test harnesses, removing dead Spaghetti host split-toggle leftovers, and restoring the missing overlay-canvas-hidden store typing picks. The branch build is now blocked by one remaining \`restoreFromSplit\` type decision instead of the earlier multi-error batch.`
+
+<!-- ENTRY 1776 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass focused on compile and test-harness drift exposed by the current build output instead of widening into new runtime behavior or broader Spaghetti/workspace redesign.
+- Preserved the current `restoreFromSplit` behavior and stopped short of guessing whether `meatball editor view` should be retained or filtered in that path.
+- Reused the existing left-dock, NodeView, and overlay state contracts rather than inventing compatibility shims.
+
+#### Summary of Implementation
+
+- Removed the unused floating-host split-toggle callback leftovers from `SpaghettiWindowHost.tsx`.
+- Updated `useAppShellDockController.test.tsx` and `WorkspaceViewportTree.test.tsx` so their harness props include the shipped left-dock stack height and split ratio inputs.
+- Updated `NodeView.geometryMode.test.tsx` and `NodeView.test.tsx` so the test render helpers match the shipped required `onNodeResizeHandlePointerDown` prop and optional `selected` option shape.
+- Restored `editorViewportOverlayCanvasHiddenById` to the narrowed Spaghetti store state picks used by browser-viewport normalization helpers.
+- Reduced the failing build from the original multi-error batch down to one remaining `restoreFromSplit` type mismatch in `useSpaghettiStore.ts`.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/useAppShellDockController.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior changes in this cleanup batch.
+- The remaining build blocker is the `restoreFromSplit` typing decision for the `meatball editor view` branch.
+
+#### Verification Steps
+
+- Passed `npm.cmd exec -- tsc --noEmit`
+- Ran `npm.cmd run build`
+  - remaining failure: `src/app/spaghetti/store/useSpaghettiStore.ts(8822)` `restoreFromSplit` type mismatch for `'meatball editor view'`
+
 <!-- ENTRY 1775 -->
 
 ### [1775] - 2026-05-05 12:43 - `SP - Edit-History-2 / Phase 1.1 - Wire Surface History Parity`

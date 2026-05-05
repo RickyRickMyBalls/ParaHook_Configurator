@@ -180,7 +180,7 @@ export type EditorViewportRestoreFromCollapsed = {
 }
 
 export type EditorViewportRestoreFromSplit = {
-  windowMode: 'expanded' | 'maximized'
+  windowMode: 'expanded' | 'maximized' | 'meatball editor view'
   position?: EditorViewportPosition
   size?: EditorViewportSize
 }

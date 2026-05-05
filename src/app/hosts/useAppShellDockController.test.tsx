@@ -14,6 +14,9 @@ import { useAppShellDockController } from './useAppShellDockController'
 function DockControllerHarness() {
   const leftDockWidth = useWorkspaceStore((state) => state.leftDockWidth)
   const setLeftDockWidth = useWorkspaceStore((state) => state.setLeftDockWidth)
+  const leftDockStackHeight = useWorkspaceStore((state) => state.leftDockStackHeight)
+  const setLeftDockStackHeight = useWorkspaceStore((state) => state.setLeftDockStackHeight)
+  const setLeftDockStackSplitRatio = useWorkspaceStore((state) => state.setLeftDockStackSplitRatio)
   const leftDockResizeMenu = useWorkspaceStore((state) => state.leftDockResizeMenu)
   const setLeftDockResizeMenu = useWorkspaceStore((state) => state.setLeftDockResizeMenu)
   const workspaceSplitMenu = useWorkspaceStore((state) => state.workspaceSplitMenu)
@@ -24,6 +27,9 @@ function DockControllerHarness() {
     dockedMeatballHostRef: createRef<HTMLDivElement>(),
     leftDockWidth,
     setLeftDockWidth,
+    leftDockStackHeight,
+    setLeftDockStackHeight,
+    setLeftDockStackSplitRatio,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,

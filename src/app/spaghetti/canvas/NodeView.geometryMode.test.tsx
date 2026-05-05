@@ -330,6 +330,9 @@ function SketchNodeHarness() {
       onNodeBodyPointerDown={() => {
         // no-op for test
       }}
+      onNodeResizeHandlePointerDown={() => {
+        // no-op for test
+      }}
       onNodeTitleClick={() => {
         // no-op for test
       }}
@@ -466,6 +469,9 @@ function ExtrudeNodeHarness(props?: {
       onNodeBodyPointerDown={() => {
         // no-op for test
       }}
+      onNodeResizeHandlePointerDown={() => {
+        // no-op for test
+      }}
       onNodeTitleClick={() => {
         // no-op for test
       }}
@@ -550,6 +556,9 @@ function CompositeNodeHarness(props?: {
         // no-op for test
       }}
       onNodeBodyPointerDown={() => {
+        // no-op for test
+      }}
+      onNodeResizeHandlePointerDown={() => {
         // no-op for test
       }}
       onNodeTitleClick={() => {
@@ -894,6 +903,9 @@ describe('NodeView geometry mode behavior', () => {
             // no-op for test
           }}
           onNodeBodyPointerDown={() => {
+            // no-op for test
+          }}
+          onNodeResizeHandlePointerDown={() => {
             // no-op for test
           }}
           onNodeTitleClick={() => {
@@ -2598,6 +2610,9 @@ describe('NodeView geometry mode behavior', () => {
             // no-op for test
           }}
           onNodeBodyPointerDown={() => {
+            // no-op for test
+          }}
+          onNodeResizeHandlePointerDown={() => {
             // no-op for test
           }}
           onNodeTitleClick={() => {

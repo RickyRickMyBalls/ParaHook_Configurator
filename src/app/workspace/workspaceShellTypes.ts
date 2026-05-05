@@ -151,7 +151,7 @@ export type EditorSurfaceRestoreFromCollapsed = {
 }
 
 export type EditorSurfaceRestoreFromSplit = {
-  windowMode: 'expanded' | 'maximized'
+  windowMode: 'expanded' | 'maximized' | 'meatball editor view'
   position?: EditorSurfacePosition
   size?: EditorSurfaceSize
 }

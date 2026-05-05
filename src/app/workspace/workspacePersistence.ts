@@ -619,7 +619,8 @@ const normalizeEditorSurfacePlacement = (
     normalized.restoreFromSplit = {
       windowMode:
         value.restoreFromSplit.windowMode === 'expanded' ||
-        value.restoreFromSplit.windowMode === 'maximized'
+        value.restoreFromSplit.windowMode === 'maximized' ||
+        value.restoreFromSplit.windowMode === 'meatball editor view'
           ? value.restoreFromSplit.windowMode
           : 'expanded',
       position: isRecord(value.restoreFromSplit.position)

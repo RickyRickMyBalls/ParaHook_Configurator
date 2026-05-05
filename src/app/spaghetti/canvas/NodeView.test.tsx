@@ -365,6 +365,7 @@ const renderUtilityNode = (options: {
   node: SpaghettiNode
   title: string
   utilityVm: UtilityNodeVm
+  selected?: boolean
 }): string => {
   seedGraphForRender(options.node)
   return renderToStaticMarkup(
@@ -452,6 +453,7 @@ const renderLegacyPortNode = (options: {
   allInputs: PortSpec[]
   allOutputs: PortSpec[]
   nodeMode?: ViewMode
+  selected?: boolean
 }): string => {
   seedGraphForRender(options.node, options.nodeMode)
   return renderToStaticMarkup(
@@ -538,6 +540,7 @@ const renderSketchNode = (options: {
   allInputs: PortSpec[]
   allOutputs: PortSpec[]
   nodeMode?: ViewMode
+  selected?: boolean
 }): string => {
   seedGraphForRender(options.node, options.nodeMode)
   return renderToStaticMarkup(
@@ -626,6 +629,7 @@ const renderExtrudeNode = (options: {
   allInputs: PortSpec[]
   allOutputs: PortSpec[]
   nodeMode?: 'collapsed' | 'essentials' | 'expanded'
+  selected?: boolean
 }): string => {
   seedGraphForRender(options.node, options.nodeMode)
   return renderToStaticMarkup(

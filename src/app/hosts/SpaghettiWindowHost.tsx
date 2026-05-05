@@ -1096,7 +1096,6 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   const editorSurfacePlacementById = useWorkspaceStore((state) => state.editorSurfacePlacementById)
   const detachedSlotSurfaceById = useWorkspaceStore((state) => state.detachedSlotSurfaceById)
   const viewportSlotsById = useWorkspaceStore((state) => state.viewportSlotsById)
-  const removeViewportSlot = useWorkspaceStore((state) => state.removeViewportSlot)
   const clearDetachedSlotSurface = useWorkspaceStore((state) => state.clearDetachedSlotSurface)
   const [popupManagedViewportIdsByRootId, setPopupManagedViewportIdsByRootId] = useState<
     Record<string, string[]>
@@ -1288,9 +1287,6 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     activeWindowMode === 'maximized'
   const canResizeFloatingWindow = activeWindowMode === 'expanded'
   const activeEditorSize = activeViewportState?.size ?? defaultEditorSurfaceSize
-  const splitDirection = activeViewportState?.splitDirection ?? defaultWorkspaceSplitDirection
-  const splitDockSide =
-    activeViewportState?.splitDockSide ?? resolveDefaultWorkspaceSplitDockSide(splitDirection)
 
   const getFloatingShellFrame = useCallback(() => {
     const shellElement = appShellRef.current
@@ -2567,40 +2563,6 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       onActivateSpaghettiFloatingWindow,
       setActiveEditorViewportId,
       setEditorViewportWindowMode,
-    ],
-  )
-
-  const handleViewportSplitToggle = useCallback(
-    (editorViewportId: string) => {
-      const slot = Object.values(viewportSlotsById).find(
-        (candidate) =>
-          candidate.surfaceKind === 'spaghettiEditor' && candidate.surfaceInstanceId === editorViewportId,
-      )
-      if (slot !== undefined) {
-        removeViewportSlot(slot.slotId)
-        setEditorViewportWindowMode(editorViewportId, 'expanded')
-        return
-      }
-      dockEditorViewportIntoWorkspaceSplit(editorViewportId, {
-        side: splitDockSide,
-        scope: 'local',
-        targetSlotId:
-          viewportSlotByEditorViewportId[editorViewportId]?.slotId ?? defaultPrimaryViewportSlotId,
-        rect: {
-          left: 0,
-          top: 0,
-          width: 0,
-          height: 0,
-        },
-      })
-    },
-    [
-      dockEditorViewportIntoWorkspaceSplit,
-      removeViewportSlot,
-      setEditorViewportWindowMode,
-      splitDockSide,
-      viewportSlotByEditorViewportId,
-      viewportSlotsById,
     ],
   )
 
