@@ -3,6 +3,84 @@
 ## Doc Header
 
 ### Doc History
+3114. 2026-05-05 12:43:52: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-2 - Graph And Parameter Undo Coverage.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to implement and close `Edit-History-2 / Phase 1.1 - Wire Surface History Parity` after the live canvas wire create/remove surfaces were routed through canonical history and focused parity verification passed.
+3113. 2026-05-05 12:36:47: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-2 - Graph And Parameter Undo Coverage.md` and `docs/Doc-Log.md` to add `Edit-History-2 / Phase 1.1 - Wire Surface History Parity`, keeping any remaining user-facing wire create/remove history follow-up inside the existing graph-structure family lane instead of widening into a new `Edit-History-N` plan.
+3112. 2026-05-04 15:09:24: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to implement and mark complete `Nodes-6 / Phase 6` after the final node-frame regression fence landed and the family handoff surfaces were refreshed to read as a closed shipped lane.
+3111. 2026-05-04 10:13:33: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md` and `docs/Doc-Log.md` to prep `Nodes-6 / Phase 6` for implementation with a code-grounded remaining-owner read, explicit hardening-versus-handoff scope, tighter likely-file guidance, no-widening guardrails, and focused final-contract verification shape.
+3110. 2026-05-04 10:13:33: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to implement and mark complete `Nodes-6 / Phase 5` after the shared node families adopted one code-backed minimum-width and overflow/readability policy, and the docs now record the shipped frame-parity pass plus its focused verification scope.
+3109. 2026-05-04 09:49:26: Updated `docs/Calandar/index.md` and `docs/Doc-Log.md` to extend the calendar through 2026-05-04 with the missing 2026-04-27 through 2026-05-02 changelog-derived day cards, refreshed recent weekly reads, and a new May 2026 month section.
+3108. 2026-05-04 09:49:37: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to implement and mark complete `Nodes-6 / Phase 4` after `Output Preview` moved onto `GeometryNodeShell`, the shared content/input lane mapping was verified, and the docs now record the shipped shell migration.
+3107. 2026-05-04 07:44:38: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md` and `docs/Doc-Log.md` to prep `Nodes-6 / Phase 5` for implementation with a code-grounded overflow/readability owner read, explicit shared-shell parity rules for constrained frames, tighter likely-file guidance, and focused overflow verification scope.
+3106. 2026-05-02 17:22:42: Updated `src/app/theme/surfaces/spaghetti.css`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to remove visible selected-node resize grip chrome and widen the invisible node-edge resize hit areas so selected nodes resize more like the Spaghetti editor window frame.
+3105. 2026-05-02 14:37:31: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md` and `docs/Doc-Log.md` to prep `Nodes-6 / Phase 4` for implementation with a code-grounded `Output Preview` custom-template owner read, an explicit `GeometryNodeShell` migration target, tighter lane-mapping rules, and focused shell-parity verification scope.
+3104. 2026-05-02 14:35:57: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/spaghetti/store/graphEditHistoryStore.test.ts`, `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to implement `Nodes-6 / Phase 3`, shipping width-aware resize history commits with focused undo/redo proof while keeping move entries and authored height scope unchanged.
+3103. 2026-05-02 13:52:52: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md` and `docs/Doc-Log.md` to prep `Nodes-6 / Phase 3` for implementation with a code-grounded resize-commit owner read, width-aware before/after snapshot rules, tighter likely-file guidance, explicit no-op commit boundaries, and focused undo/redo verification scope.
+3102. 2026-05-02 13:51:38: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `src/app/spaghetti/canvas/NodeView.tsx`, `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/theme/surfaces/spaghetti.css`, the focused node-resize test files, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to implement `Nodes-6 / Phase 2`, shipping selected-node resize handles plus live width-only pointer routing while leaving resize history commits for the next phase.
+3101. 2026-05-02 13:24:35: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md` and `docs/Doc-Log.md` to prep `Nodes-6 / Phase 2` for implementation with a code-grounded selected-node handle owner, canvas resize-session boundary, width-only first-pass guardrails, tighter likely-file guidance, and focused verification scope.
+3100. 2026-05-02 13:22:38: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `src/app/spaghetti/schema/spaghettiTypes.ts`, `src/app/spaghetti/schema/spaghettiSchema.ts`, `src/app/spaghetti/graphCommands/addNode.ts`, `src/app/spaghetti/graphCommands/setNodePosition.ts`, `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/spaghetti/canvas/NodeView.tsx`, the focused graph-width test files, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to prep and ship `Nodes-6 / Phase 1`, making node width a persisted graph UI frame field and marking the phase complete with focused verification notes.
+3099. 2026-05-02 12:07:51: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md` and `docs/Doc-Log.md` to lock the `Nodes-6` sizing direction so node `width` stays the one authored persisted frame dimension while node `height` remains content-derived from section and attached-body expansion state.
+3098. 2026-05-02 12:02:14: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`, and `docs/Doc-Log.md` to rename the internal `Nodes-6` ladder from `Nodes-6.1` through `Nodes-6.6` to `Nodes-6 / Phase 1` through `Nodes-6 / Phase 6` so Phase 1 prep now matches the standard family-phase naming pattern.
+3097. 2026-05-02 11:48:50: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`, added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`, and updated `docs/Doc-Log.md` so the Nodes family now tracks resizable node frames, persisted node width/height, edge-and-corner resize handles, and later `Output Preview` shared-shell adoption as a dedicated `Nodes-6` future lane split into Codex-sized phases.
+3096. 2026-05-02 11:38:05: Updated `src/app/workspace/ViewportFrame.tsx`, `src/app/workspace/WorkspaceViewportTree.tsx`, `src/app/workspace/PopupWorkspaceShell.tsx`, `src/app/theme/foundation/base.css`, `src/app/workspace/ViewportFrame.test.tsx`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` so model-viewport overlay titlebar controls now opt into a left-aligned viewport-header supplement lane instead of staying anchored on the right.
+3095. 2026-05-02 11:29:00: Updated `src/app/theme/shell/docks.css`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` so the left and right dock rails now render above the Spaghetti overlay layer while leaving the overlay above the model viewport content.
+3094. 2026-05-02 11:24:24: Updated `src/app/hosts/SpaghettiWindowHost.tsx`, `src/app/hosts/SpaghettiWindowHost.test.tsx`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` so new Spaghetti editor sessions that open in default essentials mode now start with a 50 percent titlebar BG canvas background fill instead of 0.
+3093. 2026-05-02 11:21:47: Updated `src/app/AppShell.tsx`, `src/app/AppShell.test.tsx`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to fix the docked Meatball collapse follow-up so the left toolbar still treats collapsed viewports restoring back to Meatball mode as occupied dock content instead of clamping the host to zero height.
+3092. 2026-05-02 11:16:18: Updated `src/app/hosts/SpaghettiWindowHost.tsx`, `src/app/hosts/SpaghettiWindowHost.test.tsx`, `src/app/spaghetti/schema/spaghettiTypes.ts`, `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/theme/surfaces/spaghetti.css`, `src/app/workspace/workspaceShellTypes.ts`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` so minimizing a docked Meatball editor now keeps the Spaghetti editor in the left toolbar as a one-line titlebar shell instead of routing it into the generic floating collapsed window lane.
+3091. 2026-05-02 10:52:00: Updated `src/app/hosts/BrowserDockHost.tsx`, `src/app/theme/shell/docks.css`, `src/app/theme/surfaces/browser.css`, `src/app/workspace/PrimaryViewportLeftDock.tsx`, `src/app/workspace/PrimaryViewportLeftDock.test.tsx`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to make the browser-only left dock treat its startup height as a visible cap instead of a forced fixed pane, so the toolbar scrollbar only appears when real content exceeds the model-viewport lane.
+3090. 2026-05-02 10:37:39: Updated `src/app/hosts/BrowserDockHost.tsx`, `src/app/panels/BrowserPanel.tsx`, `src/app/panels/BrowserPanel.test.tsx`, `src/app/theme/surfaces/browser.css`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` to clean up the first-load left-dock browser dead-space scrollbar by making hosted browser roots fill their assigned dock height and recording the focused verification pass.
+3089. 2026-05-02 10:28:45: Updated `src/app/AppShell.tsx`, `src/app/AppShell.test.tsx`, `src/app/hosts/useAppShellDockController.ts`, `src/app/theme/shell/docks.css`, `src/app/workspace/PrimaryViewportLeftDock.tsx`, `src/app/workspace/WorkspaceViewportTree.tsx`, `src/app/workspace/useWorkspaceStore.ts`, `src/app/workspace/workspacePersistence.ts`, `src/app/workspace/workspaceShellTypes.ts`, `docs/CHANGELOG.md`, `docs/Human-Plans/Architecture/Viewport-Docking/Future/Left-Dock-1 - Shared Dock Stack Resizing.md`, and `docs/Human-Plans/Architecture/Viewport-Docking/Left-Dock-Gen1-Index.md` to implement `Left-Dock-1 / Phase 1`, ship the shared left-dock stack-height plus divider baseline, and mark the family phase complete with focused verification notes.
+3088. 2026-05-02 10:21:21: Updated `docs/Human-Plans/Architecture/Viewport-Docking/Future/Left-Dock-1 - Shared Dock Stack Resizing.md` to prep `Left-Dock-1 / Phase 1 - Read-Only Shared Stack Resizing Baseline` for implementation with a code-grounded owner read, exact handle-visibility rules, likely file set, Runtime Inspector honesty boundary, tighter stop rules, and focused AppShell verification targets.
+3087. 2026-05-02 10:16:10: Added `docs/Human-Plans/Architecture/Viewport-Docking/Left-Dock-Gen1-Index.md` and `docs/Human-Plans/Architecture/Viewport-Docking/Future/Left-Dock-1 - Shared Dock Stack Resizing.md`, giving the new `Viewport-Docking` left-dock family its first generation index, first explicit family phase, and first implementation-ready future doc for shared Browser, Meatball Editor, and Runtime Inspector stack resizing.
+3086. 2026-05-02 10:16:10: Added `docs/Human-Plans/Architecture/Viewport-Docking/Left-Dock-Vision.md` as the new planning home for shared left-dock Browser, Meatball Editor, and Runtime Inspector hosting, resize ownership, persistence direction, and future dock-stack generation planning.
+3085. 2026-05-02 09:46:35: Updated `src/app/hosts/SpaghettiWindowHost.tsx`, `src/app/AppShell.test.tsx`, `docs/CHANGELOG.md`, and `docs/Bugs/23_2026-05-02_meatball-editor-disappears-after-model-viewport-split-right.md` to implement Attempt 1 for the meatball-editor split-right disappearance by re-targeting Spaghetti portal hosts across workspace layout remounts and recording the focused regression / verification read.
+3084. 2026-05-02 09:39:15: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`, `docs/CHANGELOG.md`, and `src/app` workspace/host surfaces to mark Settings-1 Phase 3 complete after adding floating-window Settings shortcuts and contextual section launches.
+3083. 2026-05-02 09:39:04: Added `docs/Bugs/23_2026-05-02_meatball-editor-disappears-after-model-viewport-split-right.md`, updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts.md`, and updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md` to track the meatball-editor split-right bug with a dedicated Attempt 1 read and a future phase focused on dock ownership preservation.
+3082. 2026-05-02 09:30:37: Added `docs/Bugs/bug/23_2026-05-02_meatball-editor-disappears-after-model-viewport-split-right.md`, updated `docs/Bugs/0_Bug_Report.md`, and updated this `docs/Doc-Log.md` to track the newly reported meatball-editor disappearance after splitting the model viewport right as a dedicated bug note.
+3081. 2026-05-02 09:25:42: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md` to prep `Settings-1` Phase 3 for implementation with tighter float-window `I` menu scope, likely files, no-widening boundaries, and verification shape.
+3080. 2026-05-02 09:18:22: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md` to expand the Settings-1 roadmap with later internal phases for General, Workspace, Viewport, Appearance, Browser, Console, Storage, Input, Advanced, and cleanup work.
+3079. 2026-05-02 09:12:34: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`, `src/app/panels/spaghettiWindowAppearance.ts`, `src/app/store/uiPrefsStore.ts`, `src/app/store/uiPrefsPersistence.ts`, `src/app/store/useUiPrefsPersistenceBridge.ts`, `src/app/store/uiPreferenceEditHistory.ts`, `src/app/hosts/SpaghettiWindowHost.tsx`, `src/app/workspace/SettingsSurface.tsx`, `src/app/theme/surfaces/settings.css`, and the related Settings/UI preference tests to implement `Settings-1` Phase 2, making Spaghetti Editor window defaults owner-backed, editable from Settings, persisted, and history-aware.
+3077. 2026-05-02 08:54:16: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`, added `Settings-2 - Spaghetti Editor Window Default Settings.md` and `Settings-3 - Float Window I Menu Settings And Per-Window Defaults.md`, and marked the Settings phase-1 family work complete so the roadmap now covers the shipped shell plus the next owner-backed window-default and float-window menu slices.
+3078. 2026-05-02 08:54:16: Consolidated the Settings roadmap back into `Settings-1` by moving the next two slices into internal Phase 2 and Phase 3 sections, then deleted the separate `Settings-2` and `Settings-3` docs so the family keeps one active source of truth.
+3076. 2026-05-02 08:50:57: Updated `src/app/workspace/ViewportFrame.tsx` and `docs/CHANGELOG.md` so the right-click viewport type menu now includes `Settings` in the canonical surface list.
+3075. 2026-05-02 08:46:13: Updated `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/workspaceSurfaceCatalog.ts`, `src/app/workspace/ViewportSurfaceRegistry.tsx`, `src/app/workspace/SettingsSurface.tsx`, `src/app/workspace/SettingsSurface.test.tsx`, `src/app/workspace/workspaceSurfaceCatalog.test.ts`, `src/app/workspace/ViewportSurfaceRegistry.test.tsx`, `src/app/workspace/HomePageSurface.test.tsx`, `src/app/theme/surfaces/settings.css`, `src/app/theme/v15Theme.css`, and `docs/CHANGELOG.md` to ship the `Settings-1` phase-1 workspace shell and section router with the new Unreal-style left rail, All-first projection pane, and focused registration/launch coverage.
+3074. 2026-05-02 08:35:43: Tightened `Settings-1` for implementation by adding a one-slice shell-and-router first code cut, likely-file guidance, and verification shape, then marking `Settings-Gen1-Index.md` as the next implementation-ready slice for the Unreal-style settings workspace.
+3073. 2026-05-02 08:35:43: Added the new `Settings` workspace planning home by creating `Settings-Vision.md`, `Settings-Gen1-Index.md`, and the first `Settings-1` future phase doc, then refreshed `Workspace-Modes-Index.md` so the new Unreal-style left-rail/right-pane settings surface now has a dedicated architecture family record.
+3072. 2026-05-02 08:31:18: Updated `docs/CHANGELOG.md` and this `docs/Doc-Log.md` after the maximized Spaghetti editor drag-restore size follow-up, logging that titlebar drag on a maximized floating editor now restores to a deliberately smaller floating window while leaving the normal default editor size unchanged.
+3071. 2026-05-02 08:28:48: Updated `docs/CHANGELOG.md` and this `docs/Doc-Log.md` after implementing the maximized Spaghetti editor restore-on-drag cleanup, logging that titlebar drag on a maximized floating editor now restores it to the standard smaller floating size under the pointer and continues the move in one gesture instead of staying pinned full-size.
+3070. 2026-05-02 08:20:01: Updated `docs/CHANGELOG.md` and this `docs/Doc-Log.md` after the maximized Spaghetti editor follow-up fix, logging that maximized floating editor shells now render in a dedicated higher dock layer so they actually stay above model viewport headers, gizmo chrome, and neighboring workspace title bars instead of sharing the normal floating-shell z band.
+3069. 2026-05-02 08:15:16: Updated `docs/CHANGELOG.md` and this `docs/Doc-Log.md` after implementing the Spaghetti floating-editor maximize cleanup, logging that the top-right maximize control now renders as a square-window glyph instead of the old bracket text and that maximize now explicitly activates the target editor viewport first so the maximized shell stays above the model viewport lane.
+3068. 2026-05-02 08:06:26: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to mark `Spaghetti-Editor 3 / Phase 4 - Essentials Canvas Background Transparency Cleanup` complete after `e` mode gained its own Spaghetti editor titlebar `BG` slider and essentials canvas background transparency tuning without widening back into overlay-owned controls.
+3067. 2026-05-02 07:59:17: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to add `Spaghetti-Editor 3 / Phase 4 - Essentials Canvas Background Transparency Cleanup` as the next implementation-ready follow-on, keeping the remaining `e`-mode readability work focused on a Spaghetti editor titlebar canvas-background transparency slider instead of widening the shipped overlay-titlebar phase.
+3066. 2026-05-02 07:36:15: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to mark `Spaghetti-Editor 3 / Phase 3 - Overlay Titlebar Controls And Surface Cleanup` complete after the viewport titlebar took over visible overlay state, direct `O` exit, graph naming, and the first background-transparency control while the old floating overlay chip path was retired.
+3065. 2026-05-02 07:24:31: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to mark `Spaghetti-Editor 3 / Phase 2 - Overlay Viewport Ownership And Hit-Testing` complete after the viewport-local overlay ownership move shipped, then prep `Phase 3 - Overlay Titlebar Controls And Surface Cleanup` around the remaining temporary floating exit chip, viewport-titlebar overlay wording, direct exit affordance, and first background-transparency control.
+3064. 2026-05-01 20:47:53: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to prep `Spaghetti-Editor 3 / Phase 2 - Overlay Viewport Ownership And Hit-Testing` for implementation, grounding the next cut in the shipped `overlay` shell state, the viewport-local host seam, the existing `Shift` viewer-control behavior, and a narrow ownership/hit-testing verification band before `Phase 3` starts.
+3063. 2026-05-01 20:45:21: Updated `docs/CHANGELOG.md` and this `docs/Doc-Log.md` after implementing `Spaghetti-Editor 3 / Phase 1 - Window Density Truth And O Mode Entry`, logging that `e` now returns to honest compact floating-window meaning, the old maximized overlay chip now belongs to explicit `O` shell state, and the focused verification pass shipped with known unrelated `OutputPreview` test failures still present elsewhere in the dirty branch.
+3062. 2026-05-01 20:27:32: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to prep `Spaghetti-Editor 3 / Phase 1 - Window Density Truth And O Mode Entry` for implementation, grounding the first code cut in the live host/store/editor seams and tightening the exact shell split, file targets, sequencing, and verification band before `Phase 2` starts.
+3061. 2026-05-01 20:23:22: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` so the accidental new `Phase 0` stays removed while the real overlay workspace-behavior slice now lives as `Spaghetti-Editor 3 / Phase 2 - Overlay Viewport Ownership And Hit-Testing`, with the former titlebar cleanup follow-on renumbered to `Phase 3`.
+3060. 2026-05-01 20:18:48: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to remove `Spaghetti-Editor 3 - Phase 0` from the execution ladder while keeping the useful Edit History boundary as plan context instead of a standalone Spaghetti Editor phase.
+3059. 2026-05-01 20:16:40: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` after implementing `Spaghetti-Editor 3 - Phase 0` as a docs-only ownership closeout, marking the presentation-state versus canonical node-CAD undo boundary complete while keeping `Phase 1` as the first runtime/editor-mode implementation step.
+3058. 2026-05-01 20:14:35: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md` and this `docs/Doc-Log.md` to prep `Spaghetti-Editor 3 - Phase 0 - Edit History Boundary And Presentation-State Ownership` for implementation, tightening the docs-only first cut, exact file targets, verification read, and the explicit no-runtime-change boundary before `Phase 1` starts.
+3057. 2026-05-01 20:12:19: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`, and this `docs/Doc-Log.md` to add `Spaghetti-Editor 3 - Phase 0 - Edit History Boundary And Presentation-State Ownership`, making the editor presentation-state versus canonical node-CAD undo handoff an explicit prep phase before the `O` mode implementation ladder.
+3056. 2026-05-01 20:11:10: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`, and this `docs/Doc-Log.md` to add a cross-plan handoff clarifying that Spaghetti Editor `- / e / + / O` window-density and overlay presentation state belongs to the Spaghetti Editor shell plan and remains excluded from canonical node-CAD undo unless a later workspace/editor-history owner explicitly takes presentation-state history.
+3055. 2026-05-01 20:01:21: Updated `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`, `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-3 / Phase 7`, routing canvas selected-node Delete/Backspace deletion through canonical `Remove graph node` snapshots while preserving selected-edge precedence and proving Sketch/Extrude deletion undo/redo, related-edge restoration, no-selection no-entry behavior, Console delete regression, and production build proof.
+3054. 2026-05-01 19:49:54: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md` and this `docs/Doc-Log.md` to prep `Edit-History-3 / Phase 7` for implementation, confirming Console `node.delete` already uses `removeGraphNodeWithHistory(...)`, the store proof already covers `Remove graph node` undo/redo with related edges, and the first code cut should add canvas selected-node Delete/Backspace deletion through the canonical helper while preserving selected-edge precedence and visible selection feedback.
+3053. 2026-05-01 19:48:36: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md` and this `docs/Doc-Log.md` to add `Edit-History-3 / Phase 7 - Node Deletion Surface History Parity`, planning canonical `Remove graph node` snapshot coverage for user-facing node deletion surfaces while preserving Console `node.delete` as the accepted `removeGraphNodeWithHistory(...)` reference seam and excluding edge deletion, feature-stack remove, and sketch-session delete behavior.
+3052. 2026-05-01 19:44:56: Updated `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/panels/SpaghettiPanel.tsx`, `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`, `src/app/panels/SpaghettiPanel.test.tsx`, `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-3 / Phase 6`, routing canvas menu-created Sketch and Extrude nodes plus `SpaghettiPanel` part-node creation through canonical `Add graph node` snapshots with focused creation-surface, graph-history, and production build proof.
+3051. 2026-05-01 19:40:23: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md` and this `docs/Doc-Log.md` to prep `Edit-History-3 / Phase 6` for implementation, confirming the accepted `addGraphNodeWithHistory(...)` seam, the Console-created Sketch reference proof, the `SpaghettiCanvas` and `SpaghettiPanel` direct graph-command gaps, and the narrow first code cut that preserves placement, spawn mode, selection, and user feedback behavior.
+3050. 2026-05-01 19:37:20: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md` and this `docs/Doc-Log.md` to add `Edit-History-3 / Phase 6 - Node Creation Surface History Parity`, routing canvas node-add menu and `SpaghettiPanel` node creation through canonical `Add graph node` snapshots while preserving Console-created Sketch and Extrude history behavior as the accepted reference seam.
+3049. 2026-05-01 18:50:31: Updated `src/app/spaghetti/canvas/NodeView.tsx`, `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`, `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`, `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-3 / Phase 5`, adding canonical graph-parameter history commits for Extrude node-template Type, Direction, Depth, Start Depth, End Depth, Taper Angle, and Output rows with focused undo/redo, numeric semantic-commit, and driven-row no-entry proof.
+3048. 2026-05-01 18:43:47: Created `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md`, updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-List.md`, `docs/Doc-Index.md`, and this `docs/Doc-Log.md` so the planned `Geometry/Loft` node has a dedicated feature-addition checklist covering node UI, Console commands, toolbar workflow, edit history, parameter/object types, compile/runtime, preview/output publication, and verification.
+3047. 2026-05-01 18:43:00: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md` and this `docs/Doc-Log.md` to prep `Edit-History-3 / Phase 5` for implementation with the live `NodeView` Extrude row seams, confirmed authored params for Type, Direction, Depth, Start Depth, End Depth, Taper Angle, and Output, row-specific graph history targets, and focused verification commands.
+3046. 2026-05-01 18:35:27: Updated `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`, `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`, and this `docs/Doc-Log.md` to add `Edit-History-3 / Phase 5 - Extrude Node Template Row Parameter Commits`, routing authored Extrude node-template Type, Direction, Depth, Taper Angle, and Output row history coverage while preserving the later every-node-row direction.
+3045. 2026-05-01 16:18:46: Updated `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`, `src/app/workspace/EditHistoryReaderSurface.tsx`, `src/app/workspace/EditHistoryReaderSurface.test.tsx`, `src/app/components/ViewportOverlay.tsx`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-Workspace-4 / Phase 13`, adding read-only Sketch Draw history-scrub state, restore-then-open reader wiring, viewport scrub panel display, focused tests, and TypeScript build proof.
+3044. 2026-05-01 16:05:22: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to prep `Edit-History-Workspace-4 / Phase 13` for implementation with a separate read-only `geometrySketchHistoryScrub` state, restore-then-open ordering, parent Undo/Redo clearing rules, and focused Sketch Draw history-scrub tests.
+3043. 2026-05-01 11:11:52: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to add `Edit-History-Workspace-4 / Phase 13`, planning automatic Sketch Draw history-scrub opening from expanded child command targets while preserving parent-only canonical Undo/Redo behavior.
+3042. 2026-05-01 10:52:28: Updated `src/app/store/editHistoryStore.ts`, `src/app/store/editHistoryStore.test.ts`, `src/app/store/editHistoryReaderViewModel.ts`, `src/app/store/editHistoryReaderViewModel.test.ts`, `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`, `src/app/workspace/EditHistoryReaderSurface.tsx`, `src/app/workspace/EditHistoryReaderSurface.test.tsx`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-Workspace-4 / Phase 12`, adding private parent-owned Sketch Draw child restore points, store-level child restore execution, reader restored-child selection, focused tests, and TypeScript build proof shipped.
+3041. 2026-05-01 10:44:34: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to re-prep `Edit-History-Workspace-4 / Phase 12` after Phases 11A through 11C shipped, locking true child restore to temporary in-parent state over parent canonical entries with parent-only Ctrl+Z/Ctrl+Y ownership.
+3040. 2026-05-01 10:34:53: Updated `src/app/workspace/EditHistoryReaderSurface.tsx`, `src/app/workspace/EditHistoryReaderSurface.test.tsx`, `src/app/store/editHistoryReaderViewModel.test.ts`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-Workspace-4 / Phase 11C`, adding selected child boundary revalidation, parent Undo stale-child clearing, and proof that child summaries remain nested inside parent timeline entries.
+3039. 2026-05-01 10:23:49: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to prep `Edit-History-Workspace-4 / Phase 11C` for implementation with an inspectable-only expanded child-row policy, parent-boundary Ctrl+Z/Ctrl+Y regression coverage, child-selection revalidation, and exclusions for child entries in canonical timeline models.
+3038. 2026-05-01 10:19:34: Updated `src/app/workspace/EditHistoryReaderSurface.tsx`, `src/app/workspace/EditHistoryReaderSurface.test.tsx`, `src/app/store/editHistoryReaderViewModel.test.ts`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-Workspace-4 / Phase 11B`, relabelling the inspector snapshot section as diagnostic activity and proving activity rows do not drive Timeline scrub targets or canonical timeline counts.
+3037. 2026-05-01 10:12:11: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to prep `Edit-History-Workspace-4 / Phase 11B` for implementation with diagnostic activity wording, Timeline-versus-snapshot separation tests, activity-row rail-dot exclusions, and no canonical store ownership changes.
 3036. 2026-05-01 09:32:23: Updated `src/app/workspace/EditHistoryReaderSurface.test.tsx`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` after implementing `Edit-History-Workspace-4 / Phase 11A`, adding canonical scrub pointer regression coverage for marker index `10` to `5`, real Undo/Redo button follow-ups, and no marker-move pseudo-entry ownership.
 3035. 2026-05-01 09:10:55: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to prep `Edit-History-Workspace-4 / Phase 11A` for implementation with shared jump-helper reuse, canonical stack assertions after scrub release, Ctrl+Z/Ctrl+Y follow-up expectations, child-selection cleanup, and no marker-move pseudo-entry ownership.
 3034. 2026-05-01 08:41:07: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`, and this `docs/Doc-Log.md` to add pre-Phase-12 bridge phases 11A, 11B, and 11C for canonical scrub pointer alignment, snapshot activity separation, and expanded child-row policy reconciliation before true Sketch Draw child restore work starts.
@@ -9396,518 +9474,3 @@ HUMAN SUMMARY: `Added a new active Codex-notes entry documenting the current ske
 - This is documentation/planning capture only; no implementation work was performed in this change.
 
 <!-- ENTRY 012 -->
-### [012] - 2026-03-21 12:06 - `DOC - Add Sketch Follow-On For Move Axis Numeric Console Depth`
-<!-- ENTRY 012 -->
-HUMAN SUMMARY: `Added a new open sketch phase for \`SketchPlane > Move > X / Y / Z\` so axis-specific movement now has a dedicated planning home with float-only console entry, return-to-\`Move\` behavior, and matching sketch/roadmap index references.` 
-
-#### Scope
-- Limited this change to active sketch and roadmap planning docs under `docs/`.
-- Did not change any runtime code or console behavior.
-- Kept the new phase narrow to `SketchPlane > Move` child-depth and numeric entry behavior.
-
-#### Summary
-- Added `[3.2B-S6] SketchPlane Move Axis Numeric Entry` to the sketch architecture doc history and hierarchy-cleanup index.
-- Created the standalone phase doc for `[3.2B-S6]`.
-- Added the new open phase to the roadmap and corrected the stale `[3.2B-S5]` detailed roadmap status/checklist so it matches shipped reality.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch_Phase 3.2B-S6 - SketchPlane Move Axis Numeric Entry.md`
-- `docs/Human-Plans/roadmap/roadmap.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This is documentation/planning capture only; no implementation work was performed in this change.
-
-<!-- ENTRY 001 -->
-### [001] - 2026-03-18 16:09 - `DOC - Create Doc-Log And Split Document Tracking From CHANGELOG`
-<!-- ENTRY 001 -->
-HUMAN SUMMARY: `Created the new permanent document-history file at \`docs/Doc-Log.md\` and updated \`AGENTS.md\` so document changes now route here while shipped code and runtime work continue to use \`docs/CHANGELOG.md\`.` 
-
-#### Scope
-- Limited this change to repository documentation workflow rules.
-- Did not rewrite existing `docs/CHANGELOG.md` history.
-- Kept `docs/Chill-Log.md` reserved for chill-mode logging.
-
-#### Summary
-- Added `docs/Doc-Log.md` as the canonical permanent log for documentation changes.
-- Updated `AGENTS.md` so code/system work continues to use `docs/CHANGELOG.md`.
-- Updated `AGENTS.md` so document changes use `docs/Doc-Log.md`.
-- Fixed the stale Codex-notes path in `AGENTS.md` so it points at the current `docs/Human-Plans/CodexNotes/` location.
-
-#### Files Changed
-- `AGENTS.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This file starts at entry `[001]`.
-- Earlier documentation history remains in existing docs and local `Doc History` sections.
-<!-- ENTRY 410 -->
-### [410] - 2026-03-28 00:31 - `DOC - Add Transform 15.1 Shared Viewer Transform Cleanup Follow-On`
-<!-- ENTRY 410 -->
-HUMAN SUMMARY: `Added a new Transform-family cleanup phase between generated-object widening and multi-select so \`Viewer Transform\` can unify reference and object behavior behind one clearer target-adapter seam, and locked a new focused-target toolbar section that can later widen into the multi-select target list.` 
-
-#### Scope
-- Added one new standalone future phase doc under the Transform family.
-- Updated the Transform family index so the next-step ladder now includes `Transform 15.1`.
-- Did not change runtime code or shipped transform behavior.
-
-#### Summary
-- Created `Transform 15.1 - Shared Viewer Transform Target Adapter Cleanup`.
-- Locked the direction that references and generated objects should share one `Viewer Transform` system while persistence differences stay below the shell.
-- Locked a new focused-target section in the toolbar as the single-target precursor to the later multi-select target list.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
-- `docs/Human-Plans/Architecture/Transform/transform-index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was a docs-only planning cleanup; no implementation work was performed.
-<!-- ENTRY 411 -->
-### [411] - 2026-03-28 00:36 - `DOC - Tighten Transform 15.1 Shared Template And Snap Parity Cleanup`
-<!-- ENTRY 411 -->
-HUMAN SUMMARY: `Tightened \`Transform 15.1\` into a more implementation-ready cleanup spec so \`Viewer Transform\` can share one target-adapter/template direction across references and generated objects, and explicitly pulled object snap parity into that same cleanup instead of leaving snap reference-only.` 
-
-#### Scope
-- Refined the existing `Transform 15.1` future phase doc rather than creating a new numbered follow-on.
-- Updated the Transform family index so the cleanup now explicitly owns object snap parity and shared template direction.
-- Did not change runtime code or shipped transform behavior.
-
-#### Summary
-- Added explicit shared-template language to `Transform 15.1`.
-- Locked the direction that snap should move into the same shared target-adapter model instead of staying reference-only.
-- Sharpened implementation targets and verification expectations for the future cleanup.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
-- `docs/Human-Plans/Architecture/Transform/transform-index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was a docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 412 -->
-### [412] - 2026-03-28 00:42 - `DOC - Make Transform 15.1 Implementation Ready`
-<!-- ENTRY 412 -->
-HUMAN SUMMARY: `Made \`Transform 15.1\` implementation-ready by locking the shared \`Viewer Transform\` target-descriptor shape, the new object-side snap-state widening direction, the focused-target toolbar section contract, and the concrete verification matrix for the cleanup.` 
-
-#### Scope
-- Tightened the existing `Transform 15.1` future phase into implementation-ready detail.
-- Updated the Transform family index to reflect that sharper locked direction.
-- Did not change runtime code or current transform behavior.
-
-#### Summary
-- Locked the exact shared target-adapter/template contract for `Viewer Transform`.
-- Added the `transformSnapByObjectId` widening direction so object snap parity has a concrete store seam.
-- Sharpened the focused-target section contract and test expectations.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
-- `docs/Human-Plans/Architecture/Transform/transform-index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only; no implementation work was performed.
-<!-- ENTRY 413 -->
-### [413] - 2026-03-28 00:48 - `DOC - Mark Transform 15.1 Shipped After Shared Object Snap Cleanup`
-<!-- ENTRY 413 -->
-HUMAN SUMMARY: `Cleaned up the Transform-family docs after shipping \`Transform 15.1\`, moving its standalone record into \`Shipped/\`, marking the phase shipped in the transform index, and recording the implementation in \`docs/CHANGELOG.md\`.` 
-
-#### Scope
-- Moved the `Transform 15.1` standalone phase record from `Future/` into `Shipped/`.
-- Updated the Transform family index so the next open follow-ons now start at multi-select.
-- Logged the shipped implementation in `docs/CHANGELOG.md`.
-
-#### Summary
-- Marked `Transform 15.1` shipped after the shared target-adapter cleanup landed.
-- Updated the roadmap so `Transform 16` is now the next open transform phase.
-- Preserved the standalone shipped record for future historical reference.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
-- `docs/Human-Plans/Architecture/Transform/transform-index.md`
-- `docs/CHANGELOG.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This entry records docs cleanup after a shipped implementation, not separate runtime work.
-<!-- ENTRY 414 -->
-### [414] - 2026-03-28 13:05 - `DOC - Add Browser 7.6 Container Versus Leaf Target Cleanup Direction`
-<!-- ENTRY 414 -->
-HUMAN SUMMARY: `Added a new Browser-family cleanup direction so the tree can move toward one cleaner \`container vs leaf\` model, with `References`, reference categories, `Assemblies`, and `Components` treated as hierarchy/container owners while generated objects and individual reference items become the real selectable/transformable leaf targets reused by later `Viewer Transform` and multi-select work.` 
-
-#### Scope
-- Updated the Browser family umbrella doc only.
-- Added a new narrow Browser-7 tracked cleanup entry instead of creating a standalone future phase doc yet.
-- Did not change runtime Browser, transform, or selection behavior.
-
-#### Summary
-- Added `b7.6` to `Browser-7 - Browser Cleanup Follow-Ons`.
-- Locked the first direction that Browser should distinguish container rows from transformable leaf targets more clearly.
-- Connected that Browser cleanup directly to later `Viewer Transform`, `Esc` / `Back` selection clearing, and multi-select simplification work.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was a docs-only planning update; no implementation work was performed.
-<!-- ENTRY 415 -->
-### [415] - 2026-03-28 13:18 - `DOC - Expand Browser 7.6 With Folder CRUD Direction`
-<!-- ENTRY 415 -->
-HUMAN SUMMARY: `Expanded \`Browser 7.6\` so the new container-vs-leaf cleanup also explicitly owns folder/container create, rename, and delete actions from both the Browser UI and Console, while still keeping transform ownership centered on leaf targets rather than the container rows themselves.` 
-
-#### Scope
-- Refined the existing `Browser-7.6` tracked cleanup direction in the Browser umbrella doc.
-- Did not create a separate standalone future phase doc yet.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Added folder/container create, rename, and delete as explicit Browser-7.6 owned work.
-- Locked that those actions should exist in both Browser UI and Console surfaces.
-- Kept durable export/STEP semantics out of this cleanup so the phase stays focused on Browser structure and target ownership.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 430 -->
-### [430] - 2026-03-28 17:30 - `DOC - Add Standalone Browser 8.4 Reparenting And Drop Rules Phase`
-<!-- ENTRY 430 -->
-HUMAN SUMMARY: `Added the standalone future `Browser-8.4 - Reparenting And Drop Rules` phase doc and tightened it into an implementation-ready Browser drag/drop spec by locking same-parent reorder plus cross-parent reparent together, world-placement-preserving local-transform recalculation, collapsed-owner drop behavior, authored-content-first scope, and a sharper implementation checklist/test matrix.` 
-
-#### Scope
-- Added one new standalone future Browser phase doc.
-- Updated the Browser family index so `Browser-8.4` now points at that future doc and reflects the locked implementation-ready direction.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Created `Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`.
-- Locked the first drag/drop scope and legal drop matrix into a dedicated phase file.
-- Added an implementation checklist and sharper test plan for reorder/reparent behavior.
-- Mirrored the stronger implementation-ready state back into the Browser umbrella index.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only setup and planning refinement; no implementation work was performed.
-<!-- ENTRY 429 -->
-### [429] - 2026-03-28 17:23 - `DOC - Add Drag Drop Questions To Browser 8.4`
-<!-- ENTRY 429 -->
-HUMAN SUMMARY: `Expanded `Browser-8.4 - Reparenting And Drop Rules` with an explicit `Questions / Decisions` block covering whether reorder and reparent should ship together, how world placement versus local transform should behave on reparent, how collapsed drop targets should work, and whether first-pass drag/drop should stay on authored content owners before widening to imported/reference-backed hierarchy.` 
-
-#### Scope
-- Refined the existing `Browser-8.4` entry inside the Browser family index.
-- Did not create a separate standalone `Browser-8.4` phase doc yet.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Added four concrete drag/drop questions under `Browser-8.4`.
-- Added recommendation text for reorder versus reparent scoping.
-- Reaffirmed the world-placement-preserving reparent suggestion in explicit question form.
-- Added first-pass scope caution around imported/reference-backed hierarchy rows.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 428 -->
-### [428] - 2026-03-28 17:16 - `DOC - Add Later Owner Status Summary Direction To Browser 8`
-<!-- ENTRY 428 -->
-HUMAN SUMMARY: `Expanded the Browser-8 umbrella direction so the Console status can later print the selected owner path plus a compact immediate-child summary, keeping the same one-level-deep summary rule reusable across assemblies, subassemblies, components, later subcomponents, and later objects with parts.` 
-
-#### Scope
-- Refined the existing Browser-8 umbrella direction in the Browser family index.
-- Did not create a separate standalone status-summary phase doc yet.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Added the later Console owner-status summary direction under Browser-8.
-- Locked example summary shapes for selected assemblies with immediate component/object contents.
-- Clarified that the same summary rule should later scale across assemblies, subassemblies, components, later subcomponents, and later objects with parts.
-- Locked the readability rule that the status summary should stay one level deep by default.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 427 -->
-### [427] - 2026-03-28 17:08 - `DOC - Make Browser 8.3 Shared Owner Entry Implementation Ready`
-<!-- ENTRY 427 -->
-HUMAN SUMMARY: `Tightened `Browser-8.3` into a more implementation-ready Browser phase by locking the exact shared owner-target descriptor, the rule that `SelectAll` resolves a separate descendant action set without mutating the selected owner, the first focused-target payload, and a sharper store/Browser/Console verification matrix for shared Browser-to-`Viewer Transform` owner entry.` 
-
-#### Scope
-- Refined the existing standalone `Browser-8.3` future phase doc.
-- Updated the Browser family index to reflect the stronger implementation-ready direction.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Locked one canonical owner-target contract for Browser, Console, and `Viewer Transform`.
-- Clarified that `SelectAll` should resolve descendants separately without redefining the selected owner.
-- Locked the first focused-target payload that later multi-select can widen into a list.
-- Sharpened the state direction and test plan around shared owner-resolution and capability mapping.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 425 -->
-### [425] - 2026-03-28 16:57 - `DOC - Add Standalone Browser 8.3 Shared Owner Target Entry Phase`
-<!-- ENTRY 425 -->
-HUMAN SUMMARY: `Added the standalone future `Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep` phase doc so the next Browser-8 follow-on now has a dedicated planning surface for one shared selected-owner target seam across Browser, Console, and `Viewer Transform`, while explicitly preparing that same owner shape to widen later into multi-select without changing the target model again.` 
-
-#### Scope
-- Added one new standalone future Browser phase doc.
-- Updated the Browser family index so `Browser-8.3` now points at that future doc.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Created `Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`.
-- Locked the shared selected-owner target direction across Browser, Console, and `Viewer Transform`.
-- Clarified that parent/container ownership stays explicit while descendant resolution remains a separate action like `SelectAll`.
-- Positioned the current focused-target area as the first single-owner version of a later multi-select owner list.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only setup; no implementation work was performed.
-<!-- ENTRY 426 -->
-### [426] - 2026-03-28 17:03 - `DOC - Add Later SubComponent Direction To Browser 8`
-<!-- ENTRY 426 -->
-HUMAN SUMMARY: `Expanded the Browser-8 umbrella direction so the hierarchy now explicitly allows later nested `SubComponent` support as a future transformable container-owner growth path, while also keeping that widening out of the current `Browser-8.3` owner-entry cleanup and the first shipped `Browser-8.2` CRUD scope.` 
-
-#### Scope
-- Refined the existing Browser-8 umbrella direction in the Browser family index.
-- Did not create a separate standalone SubComponent phase doc yet.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Added a future-facing `SubComponent` note under the locked Browser-8 hierarchy direction.
-- Clarified that `SubComponent` is not part of the current `Browser-8.3` owner-entry phase.
-- Clarified that `SubComponent` was not part of the first shipped `Browser-8.2` container CRUD scope.
-- Clarified that the first `Browser-8.4` reparent/drop matrix should not imply nested subcomponents by accident.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 416 -->
-### [416] - 2026-03-28 13:28 - `DOC - Promote Browser 7.6 Into Browser 8 Umbrella Phase`
-<!-- ENTRY 416 -->
-HUMAN SUMMARY: `Promoted the earlier `b7.6` container-vs-leaf Browser cleanup into a real `Browser-8` umbrella phase, removed it from the smaller Browser-7 follow-on bucket, and broke the direction into explicit subphases for target semantics, folder CRUD, and later shared leaf-target transform/multi-select alignment.` 
-
-#### Scope
-- Reorganized the Browser family umbrella doc only.
-- Did not create a standalone future Browser-8 phase doc yet.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Removed the earlier `b7.6` entry from the Browser-7 small-follow-on list.
-- Added a new `Browser-8 - Container Versus Leaf Browser Model` umbrella phase.
-- Broke the new Browser-8 direction into `###` subphases:
-  - `Browser-8.1`
-  - `Browser-8.2`
-  - `Browser-8.3`
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only roadmap cleanup; no implementation work was performed.
-<!-- ENTRY 417 -->
-### [417] - 2026-03-28 13:36 - `DOC - Lock Content Root Under Browser 8 Console Direction`
-<!-- ENTRY 417 -->
-HUMAN SUMMARY: `Expanded `Browser-8` so the Browser container-vs-leaf cleanup now also locks one stable Console content root, `Select > Content > ...`, with child choices updating dynamically from the current Browser or viewport content selection instead of relying on more ad hoc content-side scope naming.` 
-
-#### Scope
-- Refined the existing `Browser-8` umbrella direction in the Browser family index.
-- Did not create a separate standalone future phase doc yet.
-- Did not change runtime Console or Browser behavior.
-
-#### Summary
-- Added a stable `Content` Console root to the Browser-8 locked direction.
-- Clarified that content-side child choices under `Content` should update dynamically with current selection.
-- Connected that Console direction directly to the `Browser-8.1` target-semantics cleanup.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 418 -->
-### [418] - 2026-03-28 13:43 - `DOC - Add Parent-Only Selection And SelectAll Direction To Browser 8`
-<!-- ENTRY 418 -->
-HUMAN SUMMARY: `Expanded `Browser-8` so parent/container rows can be selected as parents without auto-selecting their descendants, and locked the rule that those parent Console scopes should expose an explicit `SelectAll` action when the user wants to resolve the full child set on demand.` 
-
-#### Scope
-- Refined the existing `Browser-8` umbrella direction in the Browser family index.
-- Did not create a separate standalone future phase doc yet.
-- Did not change runtime selection or Console behavior.
-
-#### Summary
-- Added a parent-only selection rule to the Browser-8 locked direction.
-- Added explicit `SelectAll` ownership to parent/container Console scopes.
-- Connected that behavior to `Browser-8.1` so it lands as part of the target-semantics cleanup rather than as a separate ad hoc selection rule.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 419 -->
-### [419] - 2026-03-28 14:00 - `DOC - Reframe Browser 8 Around Transformable Container Owners`
-<!-- ENTRY 419 -->
-HUMAN SUMMARY: `Reframed `Browser-8` around a stronger Fusion-style hierarchy so `Assembly`, later `Subassembly`, and `Component` now read as real transformable container owners with origins, basis, and transform history, while `Object` / `Part` stays the leaf geometry owner under that structured container model.` 
-
-#### Scope
-- Refined the existing `Browser-8` umbrella direction in the Browser family index.
-- Did not create a separate standalone future phase doc yet.
-- Did not change runtime Browser or transform behavior.
-
-#### Summary
-- Replaced the earlier leaf-only transform-owner read with a structured transformable-container hierarchy.
-- Locked `Assembly` as the primary root container model, with later `Subassembly` and `Component` also acting as transform owners.
-- Updated the Browser-8 subphases so later transform and multi-select work now target both container owners and leaf geometry owners.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 420 -->
-### [420] - 2026-03-28 14:08 - `DOC - Add Drag And Drop Rearrangement Direction To Browser 8`
-<!-- ENTRY 420 -->
-HUMAN SUMMARY: `Expanded `Browser-8` so the new structured hierarchy now explicitly prepares for user-driven Browser re-arrangement, locking the direction that both leaf objects and transformable containers should later support drag-and-drop reorder and reparent behavior instead of remaining a fixed static tree.` 
-
-#### Scope
-- Refined the existing `Browser-8` umbrella direction in the Browser family index.
-- Did not create a separate standalone future phase doc yet.
-- Did not change runtime Browser or tree-reordering behavior.
-
-#### Summary
-- Added drag-and-drop reorder/reparent as explicit Browser-8 owned direction.
-- Clarified that both leaf objects and transformable containers should participate in later tree rearrangement.
-- Connected that direction to the Browser-8 hierarchy and container-authoring cleanup instead of leaving it implied.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 421 -->
-### [421] - 2026-03-28 14:15 - `DOC - Lock Multiple Top-Level Assembly Direction Under Browser 8`
-<!-- ENTRY 421 -->
-HUMAN SUMMARY: `Expanded `Browser-8` so the Browser hierarchy now explicitly supports multiple top-level assembly roots, and locked the import/upload rule that an incoming assembly should default to its own top-level assembly unless the user later nests it under another assembly as a subassembly.` 
-
-#### Scope
-- Refined the existing `Browser-8` umbrella direction in the Browser family index.
-- Did not create a separate standalone future phase doc yet.
-- Did not change runtime Browser or import behavior.
-
-#### Summary
-- Added explicit support for multiple top-level `Assembly` roots.
-- Locked the default import/upload rule for incoming assemblies.
-- Clarified that subassembly status should come from later nesting/reparenting, not from forced single-root import behavior.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 422 -->
-### [422] - 2026-03-28 14:27 - `DOC - Add Drop Rules And Reparent Semantics To Browser 8`
-<!-- ENTRY 422 -->
-HUMAN SUMMARY: `Tightened `Browser-8` with the next hierarchy rules by locking the first legal drag/drop matrix, the reparent rule that world placement should be preserved while local transform is recalculated under the new parent, the decision to avoid a separate pure non-transform folder type for now, and a new dedicated `Browser-8.4` subphase for reparenting and drop behavior.` 
-
-#### Scope
-- Refined the existing `Browser-8` umbrella direction in the Browser family index.
-- Added one new Browser-8 subphase section inside the umbrella doc.
-- Did not change runtime Browser, transform, or drag/drop behavior.
-
-#### Summary
-- Locked first-pass legal container/leaf drop targets.
-- Locked the transform-preserving reparent behavior for later Browser drag/drop work.
-- Decided that Browser-8 should stay on structured transformable containers instead of adding a separate non-transform folder type.
-- Added `Browser-8.4 - Reparenting And Drop Rules`.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-<!-- ENTRY 423 -->
-### [423] - 2026-03-28 14:36 - `DOC - Add Standalone Browser 8.1 Container And Leaf Semantics Phase`
-<!-- ENTRY 423 -->
-HUMAN SUMMARY: `Added the standalone future `Browser-8.1 - Container And Leaf Target Semantics` phase doc so the first Browser-8 implementation slice now has its own dedicated planning surface for the stable `Select > Content > ...` Console root, transformable container-owner semantics, and parent-only selection plus explicit `SelectAll`.` 
-
-#### Scope
-- Added one new standalone future Browser phase doc.
-- Updated the Browser family index so `Browser-8.1` now links to that future doc.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Created `Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`.
-- Locked the first structured Browser owner-versus-leaf semantics in a dedicated phase file.
-- Mirrored the new standalone future doc back into the Browser umbrella index.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only setup; no implementation work was performed.
-<!-- ENTRY 424 -->
-### [424] - 2026-03-28 14:45 - `DOC - Make Browser 8.1 Container And Leaf Semantics Implementation Ready`
-<!-- ENTRY 424 -->
-HUMAN SUMMARY: `Tightened `Browser-8.1` into a more implementation-ready Browser phase by locking the first target-kind contract, the exact `Select > Content > ...` Console seam, the parent-only selection plus explicit `SelectAll` behavior, and a sharper Browser/store/Console verification matrix.` 
-
-#### Scope
-- Refined the existing standalone `Browser-8.1` future phase doc.
-- Updated the Browser family index to reflect that stronger implementation-ready state.
-- Did not change runtime Browser, Console, or transform behavior.
-
-#### Summary
-- Added the first explicit owner-kind contract for `assembly`, later `subassembly`, `component`, and `object-part`.
-- Sharpened the expected Console path and selection behavior for parent/container owners.
-- Expanded likely implementation targets and the test plan so the phase can be executed with less ambiguity.
-
-#### Files Changed
-- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Doc-Log.md`
-
-#### Notes
-- This was docs-only planning refinement; no implementation work was performed.
-2038. 2026-04-17 14:59:15: Updated `src/app/components/FloatingWindowQuickDockButton.tsx`, updated `src/app/components/ViewToolbar.tsx`, updated `src/app/hosts/DashboardWindowHost.tsx`, updated `src/app/hosts/NotepadWindowHost.tsx`, updated `src/app/AppShell.tsx`, updated `src/app/theme/foundation/base.css`, updated `src/app/components/ViewToolbar.test.tsx`, updated `src/app/AppShell.test.tsx`, updated `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`, updated `docs/CHANGELOG.md`, and updated this `docs/Doc-Log.md` to implement `View-Toolbar 8 / Phase 5 - Floating Shell Chrome Theme Parity And Quick-Dock Styling`, landing one shared icon-based floating quick-dock owner plus explicit shell-header theme rules across the real floating shell users while keeping the pass scoped to shell-chrome polish
-
-2039. 2026-04-18 16:38:00: Updated docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md and updated this docs/Doc-Log.md to clean up the Environment family direction around a locked default startup scene baseline, so the remaining open work now reads as opt-in preset, HDRI, Browser-light, and grading follow-through instead of implying more default-scene retuning
-2040. 2026-04-18 16:46:00: Updated `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md` and updated this `docs/Doc-Log.md` to clean up the `Environment-1` phase framing around the preserved startup-scene baseline, keeping the shipped default-lighting repair as historical context while reframing the remaining open ladder as opt-in preset, Browser-light, and HDRI/runtime follow-through
-2041. 2026-04-18 17:00:00: Added `docs/DispatchPlans/Environment-1-2-Completion-Dispatch-Plan.md` and updated this `docs/Doc-Log.md` to create a manager-facing dispatch plan for finishing `Environment-1` and `Environment-2` through the normal prep-then-implement loop, including the cleaned-up family HLG, final changelog-entry rules, and the explicit rule that the user will test behavior after both environment family phases are complete
-2042. 2026-04-18 17:08:00: Added `docs/DispatchPlans/1_Environment-1-2-Manager-Dispatch-Plan.md` and updated this `docs/Doc-Log.md` to create the corrected canonical numbered dispatch plan for the Environment family, making the manager-versus-worker split explicit and locking the exact one-task-at-a-time dispatch loop for finishing `Environment-1` and `Environment-2`
-2043. 2026-04-18 17:30:00: Updated `src/shared/viewSettingsTypes.ts`, `src/app/components/ViewToolbar.tsx`, `src/app/components/ViewToolbar.test.tsx`, `src/viewer/Viewer.ts`, `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`, `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to implement `Environment-1 / Phase 4` as the visible environment tuning surface with quick studio controls, honest preset divergence, and the selected-preset reapply path, while keeping the startup baseline and later Browser/HDRI work out of scope
-- [2245] 2026-04-18: Prepared `Environment-1 / Phase 2c` for implementation in `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 Phase 2c - Environment Section Organization Pass.md`, locking the visible organization scope, target section order, implementation seams, and done condition for the remaining `Phase 4` and `Phase 5` slices. No runtime behavior changed, and no changelog entry was added because this was prep only.

@@ -27,6 +27,8 @@ type ViewportFrameProps = {
   availableSurfaceKinds?: readonly WorkspaceSurfaceKind[]
   enableHeaderStripContextMenu?: boolean
   isPrimary?: boolean
+  headerSupplement?: ReactNode
+  headerSupplementAlignment?: 'start' | 'end'
   onActivateSurface?: () => void
   onPrimaryButtonClick?: () => void
   primaryButtonLabel?: string
@@ -56,6 +58,7 @@ const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
   notepad: 'Notepad',
   dashboard: 'Dashboard',
   homePage: 'Home Page',
+  settings: 'Settings',
   editHistory: 'Edit History',
 }
 
@@ -77,6 +80,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
     availableSurfaceKinds,
     enableHeaderStripContextMenu = false,
     isPrimary = false,
+    headerSupplement,
+    headerSupplementAlignment = 'end',
     onActivateSurface,
     onPrimaryButtonClick,
     onRequestSurfaceKind,
@@ -125,6 +130,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
           'notepad',
           'dashboard',
           'homePage',
+          'settings',
           'editHistory',
         ] as const)
       ).map((kind) => ({
@@ -407,6 +413,17 @@ export function ViewportFrame(props: ViewportFrameProps) {
           </button>
           <span className="ViewportFrameTitle">{surfaceKindLabels[surfaceKind]}</span>
         </div>
+        {headerSupplement !== undefined ? (
+          <div
+            className={`ViewportFrameHeaderSupplement ${
+              headerSupplementAlignment === 'start'
+                ? 'ViewportFrameHeaderSupplement--start'
+                : 'ViewportFrameHeaderSupplement--end'
+            }`}
+          >
+            {headerSupplement}
+          </div>
+        ) : null}
         {onPopOut !== undefined ? (
           <button
             ref={actionMenuButtonRef}

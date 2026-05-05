@@ -26,6 +26,7 @@ const createReaderEntry = (
   transactionId: options.transactionId ?? 'reader-transaction-1',
   coalesceKey: options.coalesceKey ?? 'node-reader:position',
   childSummaries: options.childSummaries,
+  childRestorePoints: options.childRestorePoints,
   undo: options.undo ?? vi.fn(),
   redo: options.redo ?? vi.fn(),
 })
@@ -312,25 +313,46 @@ describe('EditHistoryReaderSurface', () => {
     expect(container?.textContent).toContain('Reader Catalog')
   })
 
-  it('renders the public snapshot log for captured undo and redo activity', async () => {
+  it('renders the public diagnostic activity log for captured undo and redo activity', async () => {
     editHistoryStore.commitEntry(createReaderEntry('reader-entry-1'))
     editHistoryStore.undo()
     editHistoryStore.redo()
 
     await renderSurface()
 
-    const snapshotLog = container?.querySelector(
-      '[aria-label="History snapshot log"]',
+    const activityLog = container?.querySelector(
+      '[aria-label="Diagnostic activity log"]',
     ) as HTMLElement | null
 
-    expect(snapshotLog?.textContent).toContain('Snapshot log')
-    expect(snapshotLog?.textContent).toContain('#1 Captured: Move graph node')
-    expect(snapshotLog?.textContent).toContain('#2 Undo: Move graph node')
-    expect(snapshotLog?.textContent).toContain('#3 Redo: Move graph node')
-    expect(snapshotLog?.textContent).toContain('Graph Node Position')
-    expect(snapshotLog?.textContent).toContain('Reader node')
-    expect(snapshotLog?.textContent).toContain('Undo 1 / Redo 0')
-    expect(snapshotLog?.textContent).toContain('Undo 0 / Redo 1')
+    expect(activityLog?.textContent).toContain('Diagnostic activity')
+    expect(activityLog?.textContent).toContain('#1 Captured: Move graph node')
+    expect(activityLog?.textContent).toContain('#2 Undo: Move graph node')
+    expect(activityLog?.textContent).toContain('#3 Redo: Move graph node')
+    expect(activityLog?.textContent).toContain('Graph Node Position')
+    expect(activityLog?.textContent).toContain('Reader node')
+    expect(activityLog?.textContent).toContain('Undo 1 / Redo 0')
+    expect(activityLog?.textContent).toContain('Undo 0 / Redo 1')
+    expect(container?.querySelector('[aria-label="History snapshot log"]')).toBeNull()
+    expect(activityLog?.textContent).not.toContain('Snapshot log')
+  })
+
+  it('keeps diagnostic activity rows out of the timeline scrub rail targets', async () => {
+    editHistoryStore.commitEntry(createReaderEntry('reader-entry-1'))
+    editHistoryStore.undo()
+    editHistoryStore.redo()
+
+    await renderSurface()
+
+    const timeline = container?.querySelector('[aria-label="Timeline history"]') as HTMLElement | null
+    const activityLog = container?.querySelector(
+      '[aria-label="Diagnostic activity log"]',
+    ) as HTMLElement | null
+
+    expect(container?.textContent).toContain('Timeline (1)')
+    expect(timeline?.textContent).toContain('Marker index 1')
+    expect(timeline?.textContent?.match(/Move graph node/g)).toHaveLength(1)
+    expect(activityLog?.textContent?.match(/Move graph node/g)).toHaveLength(3)
+    expect(container?.querySelectorAll('.EditHistoryReaderTimelineRailDot')).toHaveLength(1)
   })
 
   it('renders applied rows marker and redoable rows with a no-op marker click', async () => {
@@ -620,6 +642,146 @@ describe('EditHistoryReaderSurface', () => {
     )
     expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).toContain(
       'Draw sketch line',
+    )
+  })
+
+  it('restores expanded Sketch Draw child rows through the store without moving canonical ownership', async () => {
+    const events: string[] = []
+    const openGeometrySketchHistoryScrub = vi.fn(() => true)
+    useSpaghettiStore.setState({
+      activeGraphDocumentId: 'graph-document-reader-test',
+      openGeometrySketchHistoryScrub,
+    })
+    editHistoryStore.commitEntry(createSketchCommitEntry('reader-entry-1', {
+      childRestorePoints: [
+        {
+          childId: 'draw-command-1',
+          restore: () => events.push('restore:draw-command-1'),
+        },
+      ],
+      undo: () => events.push('undo:reader-entry-1'),
+      redo: () => events.push('redo:reader-entry-1'),
+    }))
+
+    await renderSurface()
+
+    const expandButton = container?.querySelector(
+      '[aria-label="Expand Commit sketch draw changes"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      expandButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const childButton = container?.querySelector(
+      '[data-timeline-rail-child-id="draw-command-1"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      childButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(events).toEqual(['restore:draw-command-1'])
+    expect(openGeometrySketchHistoryScrub).toHaveBeenCalledWith({
+      parentEntryId: 'reader-entry-1',
+      childId: 'draw-command-1',
+      graphDocumentId: 'graph-document-reader-test',
+      nodeId: 'node-sketch-1',
+      childLabel: 'Draw sketch line',
+      childSequence: 1,
+    })
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.entryId)).toEqual([
+      'reader-entry-1',
+    ])
+    expect(editHistoryStore.getRedoEntries()).toEqual([])
+    expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).toContain(
+      'Restored child marker',
+    )
+  })
+
+  it('shows Sketch Draw history scrub status when a restored child opens scrub state', async () => {
+    const events: string[] = []
+    useSpaghettiStore.setState({
+      openGeometrySketchHistoryScrub: (input) => {
+        useSpaghettiStore.setState({ geometrySketchHistoryScrub: input })
+        return true
+      },
+    })
+    editHistoryStore.commitEntry(createSketchCommitEntry('reader-entry-1', {
+      childRestorePoints: [
+        {
+          childId: 'draw-command-1',
+          restore: () => events.push('restore:draw-command-1'),
+        },
+      ],
+    }))
+
+    await renderSurface()
+
+    const expandButton = container?.querySelector(
+      '[aria-label="Expand Commit sketch draw changes"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      expandButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const childButton = container?.querySelector(
+      '[data-timeline-rail-child-id="draw-command-1"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      childButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).toContain(
+      'Sketch Draw history scrub',
+    )
+  })
+
+  it('clears selected child detail when undo moves away from the parent boundary', async () => {
+    const events: string[] = []
+    editHistoryStore.commitEntry(createSketchCommitEntry('reader-entry-1', {
+      undo: () => events.push('undo:reader-entry-1'),
+      redo: () => events.push('redo:reader-entry-1'),
+    }))
+
+    await renderSurface()
+
+    const expandButton = container?.querySelector(
+      '[aria-label="Expand Commit sketch draw changes"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      expandButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const childButton = container?.querySelector(
+      '[data-timeline-rail-child-id="draw-command-1"]',
+    ) as HTMLButtonElement
+    await act(async () => {
+      childButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).toContain(
+      'Read only child marker',
+    )
+
+    await act(async () => {
+      getToolbarButton('Undo').dispatchEvent(new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }))
+    })
+
+    expect(events).toEqual(['undo:reader-entry-1'])
+    expect(useSpaghettiStore.getState().geometrySketchHistoryScrub).toBeNull()
+    expect(editHistoryStore.getUndoEntries()).toEqual([])
+    expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual([
+      'reader-entry-1',
+    ])
+    expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).not.toContain(
+      'Read only child marker',
+    )
+    expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).toContain(
+      'Current position',
+    )
+    expect(container?.querySelector('[aria-label="History entry details"]')?.textContent).toContain(
+      'Marker index0',
     )
   })
 

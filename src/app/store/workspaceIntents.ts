@@ -42,6 +42,7 @@ type WorkspaceIntentSpaghettiDeps = {
   setActiveEditorViewportId: (editorViewportId: string) => void
   setEditorViewportPosition: (editorViewportId: string, position: ViewportPosition) => void
   setSelectedNodeId: (nodeId: string | null) => void
+  requestEditorViewportCanvasFit: (editorViewportId: string) => void
   requestEditorViewportNodeFit: (editorViewportId: string, nodeId: string) => void
   startSketchPlanePick?: (nodeId: string) => void
   startGeometrySketchSession?: (nodeId: string, mode: 'draw' | 'review') => void
@@ -77,6 +78,7 @@ export const buildWorkspaceIntentDepsFromCurrentStoreState = (): WorkspaceIntent
       setActiveEditorViewportId: spaghettiState.setActiveEditorViewportId,
       setEditorViewportPosition: spaghettiState.setEditorViewportPosition,
       setSelectedNodeId: spaghettiState.setSelectedNodeId,
+      requestEditorViewportCanvasFit: spaghettiState.requestEditorViewportCanvasFit,
       requestEditorViewportNodeFit: spaghettiState.requestEditorViewportNodeFit,
       startSketchPlanePick: spaghettiState.startSketchPlanePick,
       startGeometrySketchSession: spaghettiState.startGeometrySketchSession,
@@ -92,6 +94,7 @@ export type OpenGraphDocumentIntentStrategy =
 export type OpenGraphDocumentIntentOptions = {
   strategy?: OpenGraphDocumentIntentStrategy
   spawnPosition?: ViewportPosition
+  fitCanvasInViewport?: boolean
 }
 
 export type OpenGraphDocumentIntentResult = {
@@ -221,6 +224,9 @@ export const activateGraphDocumentIntent = (
     graphDocumentId,
   })
   activateSurfaceIntent(deps, 'spaghetti')
+  if (options.fitCanvasInViewport && result.editorViewportId !== null) {
+    deps.spaghetti.requestEditorViewportCanvasFit(result.editorViewportId)
+  }
   return result
 }
 
@@ -257,7 +263,9 @@ export const activateGraphNodeIntent = (
     nodeId,
   })
   activateSurfaceIntent(deps, 'spaghetti')
-  if (options.fitNodeInViewport && result.editorViewportId !== null) {
+  if (options.fitCanvasInViewport && result.editorViewportId !== null) {
+    deps.spaghetti.requestEditorViewportCanvasFit(result.editorViewportId)
+  } else if (options.fitNodeInViewport && result.editorViewportId !== null) {
     deps.spaghetti.requestEditorViewportNodeFit(result.editorViewportId, nodeId)
   }
   return {

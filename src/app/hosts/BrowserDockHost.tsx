@@ -102,6 +102,7 @@ type BrowserDockHostProps = {
     clientY: number,
   ) => LeftDockPanelId | null
   onActivateBrowserFloatingWindow: () => void
+  onOpenSettings?: (initialSectionId?: import('../workspace/SettingsSurface').SettingsSectionId) => void
   newEditorSpawnPosition: {
     x: number
     y: number
@@ -128,6 +129,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     suppressDockedSurface = false,
     resolveLeftDockPreviewPanelId,
     onActivateBrowserFloatingWindow,
+    onOpenSettings,
     newEditorSpawnPosition,
     workspaceActiveSurface,
     slotHeaderDragSeed,
@@ -1279,6 +1281,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         ? createPortal(
             <div className="BrowserViewportSplitWindow">
               <BrowserPanel
+                fillHostHeight
                 presentationMode={browserPresentationMode}
                 onCyclePresentationMode={handleCycleBrowserPresentationMode}
                 isCollapsed={isBrowserCollapsed}
@@ -1314,6 +1317,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               popoutButtonMode="popout"
               showQuickDockButton
               onQuickDock={handleQuickDockBrowser}
+              onOpenSettings={() => onOpenSettings?.('browser')}
               onTogglePopout={handleOpenBrowserPopout}
               onTitleBarContextMenu={handleOpenFloatingSplitMenu}
               onTitleBarPointerDown={handleBrowserDragStart}

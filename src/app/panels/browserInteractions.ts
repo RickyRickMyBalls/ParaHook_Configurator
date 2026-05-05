@@ -488,7 +488,7 @@ export const createBrowserRowInteractionHandlers = (
       activateGraphNodeIntent(deps.workspaceIntentDeps, row.authoringGraphDocumentId, row.authoringNodeId, {
         strategy: 'open-or-focus',
         spawnPosition: deps.newEditorSpawnPosition,
-        fitNodeInViewport: true,
+        fitCanvasInViewport: true,
       })
       return
     }
@@ -498,6 +498,7 @@ export const createBrowserRowInteractionHandlers = (
         activateGraphDocumentIntent(deps.workspaceIntentDeps, row.authoringGraphDocumentId, {
           strategy: 'open-or-focus',
           spawnPosition: deps.newEditorSpawnPosition,
+          fitCanvasInViewport: true,
         })
       } else {
         activateGraphNodeIntent(
@@ -507,7 +508,7 @@ export const createBrowserRowInteractionHandlers = (
           {
             strategy: 'open-or-focus',
             spawnPosition: deps.newEditorSpawnPosition,
-            fitNodeInViewport: row.rowKind === 'graph-node',
+            fitCanvasInViewport: true,
           },
         )
       }
@@ -539,6 +540,7 @@ export const createBrowserRowInteractionHandlers = (
       activateGraphDocumentIntent(deps.workspaceIntentDeps, row.graphDocumentId, {
         strategy: 'open-new',
         spawnPosition: deps.newEditorSpawnPosition,
+        fitCanvasInViewport: true,
       })
       return
     }
@@ -586,6 +588,7 @@ export const createBrowserRowInteractionHandlers = (
       activateGraphDocumentIntent(deps.workspaceIntentDeps, row.authoringGraphDocumentId, {
         strategy: 'open-or-focus',
         spawnPosition: deps.newEditorSpawnPosition,
+        fitCanvasInViewport: true,
       })
     } else {
       activateGraphNodeIntent(
@@ -595,7 +598,7 @@ export const createBrowserRowInteractionHandlers = (
         {
           strategy: 'open-or-focus',
           spawnPosition: deps.newEditorSpawnPosition,
-          fitNodeInViewport: true,
+          fitCanvasInViewport: true,
         },
       )
     }

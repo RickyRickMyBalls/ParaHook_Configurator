@@ -3,6 +3,15 @@
 ## Doc Header
 
 ### Doc History
+44. 2026-05-01 16:18:46: Marked `Edit-History-Workspace-4 / Phase 13` shipped after read-only Sketch Draw history-scrub state, restore-then-open child target wiring, viewport scrub panel display, focused tests, and TypeScript build proof landed.
+43. 2026-05-01 16:05:22: Marked `Edit-History-Workspace-4 / Phase 13` prepped for implementation with a separate read-only `geometrySketchHistoryScrub` state, restore-then-open ordering, parent Undo/Redo clearing rules, and focused tests for child-to-child Sketch Draw scrub behavior without child canonical ownership.
+42. 2026-05-01 11:11:52: Added `Edit-History-Workspace-4 / Phase 13` to the Gen1 ladder for automatic Sketch Draw history-scrub opening from expanded child command targets while keeping normal canonical Undo/Redo parent-owned.
+41. 2026-05-01 10:52:28: Marked `Edit-History-Workspace-4 / Phase 12` shipped after private Sketch Draw child restore points landed under parent canonical entries with store-owned restore execution and no independent child undo/redo ownership.
+40. 2026-05-01 10:44:34: Re-prepped `Edit-History-Workspace-4 / Phase 12` after Phases 11A through 11C shipped, locking child restore to temporary in-parent state over parent canonical entries and preserving parent-only Ctrl+Z/Ctrl+Y ownership.
+39. 2026-05-01 10:34:53: Marked `Edit-History-Workspace-4 / Phase 11C` shipped after selected child detail began revalidating against the parent canonical marker boundary and tests proved child summaries stay inside parent timeline entries.
+38. 2026-05-01 10:23:49: Marked `Edit-History-Workspace-4 / Phase 11C` prepped for implementation with an inspectable-only child-row policy, parent-boundary Ctrl+Z/Ctrl+Y proof requirements, and no child entries in canonical timeline models.
+37. 2026-05-01 10:19:34: Marked `Edit-History-Workspace-4 / Phase 11B` shipped after the visible snapshot section became diagnostic activity and tests proved activity rows do not own Timeline scrub entries or counts.
+36. 2026-05-01 10:12:11: Marked `Edit-History-Workspace-4 / Phase 11B` prepped for implementation with diagnostic activity wording, Timeline-versus-snapshot separation tests, and no store ownership or stack behavior changes.
 35. 2026-05-01 09:32:23: Marked `Edit-History-Workspace-4 / Phase 11A` shipped after regression coverage proved scrub marker jumps preserve the canonical undo/redo pointer, Undo/Redo buttons continue from the scrubbed marker index, and no marker-move pseudo-entry is created.
 34. 2026-05-01 09:10:55: Marked `Edit-History-Workspace-4 / Phase 11A` prepped for implementation with canonical scrub pointer regression coverage, shared jump-helper reuse, Ctrl+Z/Ctrl+Y after scrub expectations, and no marker-move pseudo-entry ownership.
 33. 2026-05-01 08:41:07: Added pre-Phase-12 bridge phases 11A, 11B, and 11C to make the Timeline scrub list the canonical undo/redo projection, separate snapshot activity from scrub ownership, and reconcile expanded child rows before true child restore work starts.
@@ -141,9 +150,7 @@ Goal:
 - Replace the two-list Undo/Redo mental model with one chronological timeline and a visible current-position marker.
 
 Status:
-- Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, and Phase 11A shipped.
-- Phase 11B and Phase 11C added as required bridge phases before Phase 12.
-- Phase 12 prepped for implementation.
+- Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, Phase 11A, Phase 11B, Phase 11C, Phase 12, and Phase 13 shipped.
 
 Likely scope:
 - One combined public timeline model derived from canonical undo and redo entries. Shipped in Phase 1.
@@ -158,9 +165,10 @@ Likely scope:
 - Public Sketch Draw commit child summaries so expanded committed sketch cards can show real sub-commands. Shipped in Phase 10.
 - Expanded Sketch Draw child-summary rows as read-only scrub preview and selection targets. Shipped in Phase 11.
 - Canonical scrub pointer alignment so marker movement is equivalent to canonical Undo/Redo steps instead of its own undoable marker entry. Shipped in Phase 11A.
-- Snapshot activity separation so diagnostic rows cannot become the canonical scrub-list owner. Planned in Phase 11B.
-- Expanded child-row policy reconciliation before true child restore, keeping Ctrl+Z/Ctrl+Y on parent canonical entries. Planned in Phase 11C.
-- True partial Sketch Draw child restore points under the parent canonical entry. Prepped for Phase 12 with a private parent-owned restore contract.
+- Snapshot activity separation so diagnostic rows cannot become the canonical scrub-list owner. Shipped in Phase 11B.
+- Expanded child-row policy reconciliation before true child restore, keeping Ctrl+Z/Ctrl+Y on parent canonical entries. Shipped in Phase 11C.
+- True partial Sketch Draw child restore points under the parent canonical entry. Shipped in Phase 12.
+- Automatic Sketch Draw history-scrub opening when the current-position marker targets an expanded Sketch Draw child command. Shipped in Phase 13.
 - Clear pending state before a multi-step jump.
 
 Exclusions:

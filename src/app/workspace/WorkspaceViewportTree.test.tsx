@@ -4,6 +4,7 @@ import { act, createRef } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorkspaceViewportTree } from './WorkspaceViewportTree'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 
 vi.mock('./PrimaryViewportLeftDock', () => ({
@@ -44,6 +45,7 @@ describe('WorkspaceViewportTree', () => {
 
   beforeEach(() => {
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
   })
 
   afterEach(async () => {
@@ -119,5 +121,100 @@ describe('WorkspaceViewportTree', () => {
 
     expect(catalogSlotFrame).not.toBeNull()
     expect(catalogSlotFrame?.querySelector('.ViewportFrameActionMenuButton')).toBeNull()
+  })
+
+  it('surfaces overlay state and exit controls in the model viewport titlebar', async () => {
+    const workspaceState = useWorkspaceStore.getState()
+
+    await act(async () => {
+      useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-primary')
+      useSpaghettiStore.setState((state) => ({
+        ...state,
+        activeEditorViewportId: 'editor-viewport-1',
+        editorViewportsById: {
+          ...state.editorViewportsById,
+          'editor-viewport-1': {
+            ...state.editorViewportsById['editor-viewport-1'],
+            editorViewportId: 'editor-viewport-1',
+            graphDocumentId: 'graph-document-1',
+          },
+        },
+        editorViewportOverlayModeById: {
+          ...state.editorViewportOverlayModeById,
+          'editor-viewport-1': true,
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={() => {}}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    const controls = container?.querySelector(
+      '.ViewportFrame[data-workspace-surface-kind="modelViewer"] .ViewportOverlayModeControls',
+    ) as HTMLDivElement | null
+    const exitButton = controls?.querySelector(
+      '.ViewportOverlayModeButton:not(.ViewportOverlayModeCanvasToggle)',
+    ) as HTMLButtonElement | null
+    const canvasToggleButton = controls?.querySelector(
+      '.ViewportOverlayModeCanvasToggle',
+    ) as HTMLButtonElement | null
+
+    expect(controls?.textContent).toContain('Graph 1')
+    expect(exitButton?.textContent).toBe('O')
+    expect(canvasToggleButton?.getAttribute('aria-label')).toBe('Hide overlay canvas')
+
+    await act(async () => {
+      canvasToggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useSpaghettiStore.getState().editorViewportOverlayCanvasHiddenById['editor-viewport-1'],
+    ).toBe(true)
+
+    await act(async () => {
+      exitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().editorViewportOverlayModeById['editor-viewport-1']).toBe(false)
+    expect(
+      useSpaghettiStore.getState().editorViewportOverlayCanvasHiddenById['editor-viewport-1'],
+    ).toBe(false)
   })
 })

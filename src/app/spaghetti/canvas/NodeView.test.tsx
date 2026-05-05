@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
+import {
+  MIN_SPAGHETTI_NODE_WIDTH,
+  type PortSpec,
+  type SpaghettiNode,
+} from '../schema/spaghettiTypes'
 import type {
   DriverControlRowVm,
   InputEndpointRowVm,
@@ -109,6 +113,8 @@ const renderPartNode = (
     featureRowIndexById?: Record<string, number>
     internalDependencyEdges?: FeatureDependencyEdge[]
     collapsedSections?: Array<'drivers' | 'inputs' | 'featureStack' | 'outputs'>
+    width?: number
+    selected?: boolean
   },
 ): string => {
   seedGraphForRender(node, options?.nodeMode)
@@ -126,6 +132,7 @@ const renderPartNode = (
       node={node}
       x={0}
       y={0}
+      width={options?.width}
       title="Baseplate"
       nodeMode={options?.nodeMode ?? 'essentials'}
       template="part"
@@ -149,7 +156,7 @@ const renderPartNode = (
       setCompositeExpanded={() => {
         // no-op in static render test
       }}
-      selected={false}
+      selected={options?.selected ?? false}
       getInputDropState={() => null}
       getOutputDropState={() => null}
       onPresetChange={() => {
@@ -182,6 +189,9 @@ const renderPartNode = (
         // no-op in static render test
       }}
       onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeResizeHandlePointerDown={() => {
         // no-op in static render test
       }}
       onNodeTitleClick={() => {
@@ -320,6 +330,9 @@ const renderOutputPreviewNode = (
       onNodeBodyPointerDown={() => {
         // no-op in static render test
       }}
+      onNodeResizeHandlePointerDown={() => {
+        // no-op in static render test
+      }}
       onNodeTitleClick={() => {
         // no-op in static render test
       }}
@@ -370,7 +383,7 @@ const renderUtilityNode = (options: {
       setCompositeExpanded={() => {
         // no-op in static render test
       }}
-      selected={false}
+      selected={options?.selected ?? false}
       getInputDropState={() => null}
       getOutputDropState={() => null}
       onPresetChange={() => {
@@ -400,6 +413,9 @@ const renderUtilityNode = (options: {
         // no-op in static render test
       }}
       onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeResizeHandlePointerDown={() => {
         // no-op in static render test
       }}
       onNodeTitleClick={() => {
@@ -453,7 +469,7 @@ const renderLegacyPortNode = (options: {
       setCompositeExpanded={() => {
         // no-op in static render test
       }}
-      selected={false}
+      selected={options?.selected ?? false}
       getInputDropState={() => null}
       getOutputDropState={() => null}
       onPresetChange={() => {
@@ -483,6 +499,9 @@ const renderLegacyPortNode = (options: {
         // no-op in static render test
       }}
       onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeResizeHandlePointerDown={() => {
         // no-op in static render test
       }}
       onNodeTitleClick={() => {
@@ -538,7 +557,7 @@ const renderSketchNode = (options: {
       setCompositeExpanded={() => {
         // no-op in static render test
       }}
-      selected={false}
+      selected={options?.selected ?? false}
       getInputDropState={() => null}
       getOutputDropState={() => null}
       onPresetChange={() => {
@@ -568,6 +587,9 @@ const renderSketchNode = (options: {
         // no-op in static render test
       }}
       onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeResizeHandlePointerDown={() => {
         // no-op in static render test
       }}
       onNodeTitleClick={() => {
@@ -623,7 +645,7 @@ const renderExtrudeNode = (options: {
       setCompositeExpanded={() => {
         // no-op in static render test
       }}
-      selected={false}
+      selected={options?.selected ?? false}
       getInputDropState={() => null}
       getOutputDropState={() => null}
       onPresetChange={() => {
@@ -653,6 +675,9 @@ const renderExtrudeNode = (options: {
         // no-op in static render test
       }}
       onNodeBodyPointerDown={() => {
+        // no-op in static render test
+      }}
+      onNodeResizeHandlePointerDown={() => {
         // no-op in static render test
       }}
       onNodeTitleClick={() => {
@@ -718,6 +743,27 @@ describe('NodeView part section order', () => {
     expect(html.includes('SpaghettiNodeTitleText')).toBe(true)
     expect(html.includes('>e<')).toBe(true)
     expect(html.includes('>i<')).toBe(false)
+  })
+
+  it('renders graph-authored node width on the outer node shell', () => {
+    const html = renderPartNode(baseNode({}), { width: 320 })
+
+    expect(html).toContain('width:320px')
+    expect(html).toContain(`min-width:${MIN_SPAGHETTI_NODE_WIDTH}px`)
+  })
+
+  it('renders eight resize handles for a selected node', () => {
+    const html = renderPartNode(baseNode({}), { selected: true })
+
+    expect((html.match(/data-sp-node-resize-handle=/g) ?? [])).toHaveLength(8)
+    expect(html).toContain('data-sp-node-resize-handle="e"')
+    expect(html).toContain('data-sp-node-resize-handle="sw"')
+  })
+
+  it('does not render resize handles for an unselected node', () => {
+    const html = renderPartNode(baseNode({}), { selected: false })
+
+    expect(html.includes('data-sp-node-resize-handle=')).toBe(false)
   })
 
   it('renders nodes using their own stored mode', () => {
@@ -1421,6 +1467,31 @@ describe('NodeView part section order', () => {
     expect((html.match(/data-sp-output-preview-attached-body="essentials"/g) ?? []).length).toBe(2)
   })
 
+  it('renders OutputPreview inside the shared geometry shell without inventing a fake outputs rail', () => {
+    const html = renderOutputPreviewNode([
+      {
+        rowId: 'op-slot:s001',
+        nodeId: 'node-output-preview-1',
+        slotId: 's001',
+        port: outputPreviewPort('s001'),
+        slotStatus: 'ok',
+        statusPrimary: 'Toe Hook',
+        statusSecondary: 'Part/ToeHook | toeLoft',
+        isTrailingEmpty: false,
+      },
+    ])
+
+    expect(html.includes('SpaghettiGeometryNodeShell')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeHeaderTitle">Preview<')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeHeaderBadge">Output<')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="inputs"')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Inputs<')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="content"')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Component<')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="outputs"')).toBe(false)
+    expect(html.includes('>Name</span>')).toBe(true)
+  })
+
   it('renders split OutputPreview collection publication as child published objects under one slot', () => {
     const html = renderOutputPreviewNode([
       {
@@ -1590,7 +1661,7 @@ describe('NodeView part section order', () => {
 
     expect(html.includes('Parts List')).toBe(false)
     expect((html.match(/Subcomponent/g) ?? []).length).toBe(2)
-    expect((html.match(/>Name</g) ?? []).length).toBe(2)
+    expect((html.match(/>Name</g) ?? []).length).toBe(3)
     expect(html.includes('Pedal Body')).toBe(true)
     expect(html.includes('Pedal Hook')).toBe(true)
     expect((html.match(/data-sp-port-attached-body="input"/g) ?? []).length).toBe(2)

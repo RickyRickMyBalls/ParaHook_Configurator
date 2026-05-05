@@ -2538,6 +2538,17 @@ describe('BrowserPanel', () => {
     expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
   })
 
+  it('can stretch the browser root to fill a hosted dock height without leaving outer dead space', async () => {
+    ;({ container, root } = await renderBrowserPanel({ fillHostHeight: true }))
+
+    const browserRoot = container?.querySelector('.BrowserPanelRoot') as HTMLElement | null
+    expect(browserRoot).not.toBeNull()
+    expect(browserRoot?.style.flex).toBe('1 1 auto')
+    expect(browserRoot?.style.height).toBe('100%')
+    expect(browserRoot?.style.maxHeight).toBe('100%')
+    expect(browserRoot?.style.overflow).toBe('hidden')
+  })
+
   it('does not render User References or its empty string when no imported references exist', async () => {
     currentAppState = {
       ...currentAppState,

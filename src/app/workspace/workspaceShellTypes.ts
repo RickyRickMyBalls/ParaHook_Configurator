@@ -12,6 +12,8 @@ import type { ProjectionMode } from '../../shared/viewSettingsTypes'
 
 export type LeftDockPanelId = 'browser' | 'meatball-editor'
 
+export type LeftDockVerticalResizeTarget = 'width' | 'stack-height' | 'stack-split'
+
 export type LeftDockResizeMenuState = {
   x: number
   y: number
@@ -58,6 +60,7 @@ export type WorkspaceSurfaceKind =
   | 'notepad'
   | 'dashboard'
   | 'homePage'
+  | 'settings'
   | 'editHistory'
 
 export type WorkspaceSurfaceInstanceId = string
@@ -141,7 +144,7 @@ export type EditorSurfaceSize = {
 }
 
 export type EditorSurfaceRestoreFromCollapsed = {
-  windowMode: 'expanded' | 'maximized' | 'split view'
+  windowMode: 'expanded' | 'maximized' | 'split view' | 'meatball editor view'
   position?: EditorSurfacePosition
   size?: EditorSurfaceSize
   splitRatio?: number
@@ -264,6 +267,8 @@ export type WorkspaceLayoutNode = WorkspaceLayoutLeafNode | WorkspaceLayoutSplit
 export type PersistedWorkspaceLayout = {
   version: 1
   leftDockWidth: number
+  leftDockStackHeight: number
+  leftDockStackSplitRatio: number
   isLeftDockViewportSplit: boolean
   browserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId | null
   browserShell: BrowserShellState
@@ -280,6 +285,8 @@ export type PersistedWorkspaceLayout = {
 }
 
 export const defaultLeftDockWidth = 320
+export const defaultLeftDockStackHeight = 700
+export const defaultLeftDockStackSplitRatio = 0.6
 export const defaultPrimaryWorkspaceViewportId: WorkspaceViewportId = 'model-viewer-primary'
 export const defaultPrimaryViewportSlotId: WorkspaceViewportSlotId = 'workspace-slot-primary'
 export const defaultSecondaryViewportSlotId: WorkspaceViewportSlotId = 'workspace-slot-secondary'
@@ -402,6 +409,9 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   if (surfaceKind === 'homePage') {
     return `home-page-${slotId}`
   }
+  if (surfaceKind === 'settings') {
+    return `settings-${slotId}`
+  }
   if (surfaceKind === 'editHistory') {
     return `edit-history-${slotId}`
   }
@@ -419,6 +429,7 @@ export const workspacePrimarySlotSupportsSurfaceKind = (
   surfaceKind === 'notepad' ||
   surfaceKind === 'dashboard' ||
   surfaceKind === 'homePage' ||
+  surfaceKind === 'settings' ||
   surfaceKind === 'editHistory'
 
 export const resolveWorkspaceActiveSurfaceInstanceId = ({

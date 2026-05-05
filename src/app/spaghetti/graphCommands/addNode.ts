@@ -44,6 +44,7 @@ export const addNode = (options: {
           [node.nodeId]: {
             x: Math.round(position.x),
             y: Math.round(position.y),
+            ...(typeof position.width === 'number' ? { width: Math.round(position.width) } : {}),
           },
         },
       },

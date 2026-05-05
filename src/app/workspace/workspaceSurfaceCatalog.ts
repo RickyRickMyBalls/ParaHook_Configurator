@@ -12,6 +12,7 @@ export type WorkspaceSurfaceRenderFamily =
   | 'dashboard'
   | 'notepad'
   | 'homePage'
+  | 'settings'
   | 'editHistory'
 
 export type WorkspaceSurfaceScope = 'core' | 'optional'
@@ -47,6 +48,7 @@ export type OptionalWorkspaceSurfaceKind =
   | 'dashboard'
   | 'notepad'
   | 'homePage'
+  | 'settings'
   | 'editHistory'
 
 const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = [
@@ -157,6 +159,20 @@ const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = 
       slotted: true,
       floating: true,
       popout: true,
+      split: true,
+    },
+    participatesInPersistence: true,
+    coordination: 'plain',
+  },
+  {
+    kind: 'settings',
+    defaultLabel: 'Settings',
+    renderFamily: 'settings',
+    scope: 'optional',
+    supports: {
+      slotted: true,
+      floating: false,
+      popout: false,
       split: true,
     },
     participatesInPersistence: true,

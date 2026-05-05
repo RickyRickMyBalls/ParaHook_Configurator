@@ -10,6 +10,10 @@ import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { serializePersistedUiPrefs } from './uiPrefsPersistence'
 import { useUiPrefsStore } from './uiPrefsStore'
 import { type EditHistoryEntry, editHistoryStore } from './editHistoryStore'
+import {
+  defaultSpaghettiWindowAppearance,
+  normalizeSpaghettiWindowAppearance,
+} from '../panels/spaghettiWindowAppearance'
 
 const redoEntryId = 'workspace-layout-preference-readiness-redo'
 
@@ -291,22 +295,30 @@ describe('workspace layout and preference edit-history readiness', () => {
     prefs.toggleEnvironmentLookComparison()
 
     const state = useUiPrefsStore.getState()
-    const serialized = serializePersistedUiPrefs(state.view, state.workspaceStartupSurface, {
-      workspaceRestorePersistence: state.workspaceRestorePersistence,
-      viewSettingsPersistence: state.viewSettingsPersistence,
-      environmentPersistence: state.environmentPersistence,
-      dashboardPersistence: state.dashboardPersistence,
-      notepadPersistence: state.notepadPersistence,
-    })
+    const serialized = serializePersistedUiPrefs(
+      state.view,
+      state.workspaceStartupSurface,
+      defaultSpaghettiWindowAppearance,
+      {
+        workspaceRestorePersistence: state.workspaceRestorePersistence,
+        viewSettingsPersistence: state.viewSettingsPersistence,
+        environmentPersistence: state.environmentPersistence,
+        dashboardPersistence: state.dashboardPersistence,
+        notepadPersistence: state.notepadPersistence,
+      },
+    )
 
     expect(serialized).toEqual(expect.objectContaining({
-      version: 2,
+      version: 3,
       workspaceStartupSurface: 'modelViewer',
       workspaceRestorePersistence: false,
       viewSettingsPersistence: false,
       environmentPersistence: false,
       dashboardPersistence: false,
       notepadPersistence: false,
+      spaghettiWindowAppearanceDefaults: normalizeSpaghettiWindowAppearance(
+        defaultSpaghettiWindowAppearance,
+      ),
     }))
     expect(serialized.view.envPreset).toBe('studio')
     expect(serialized.view.environmentGrade).toEqual(expect.objectContaining({

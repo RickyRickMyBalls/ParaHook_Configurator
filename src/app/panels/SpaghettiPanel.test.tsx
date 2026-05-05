@@ -121,6 +121,7 @@ describe('SpaghettiPanel', () => {
       },
       sharedViewerComposition: null,
       applyGraphCommand: vi.fn(),
+      addGraphNodeWithHistory: vi.fn(() => true),
       createGraphDocument: vi.fn(() => 'graph-document-3'),
       setActiveEditorViewportId: vi.fn(),
       bindEditorViewportToGraphDocument: vi.fn(),
@@ -190,6 +191,38 @@ describe('SpaghettiPanel', () => {
     expect(container?.textContent).toContain('Focus Node')
     expect(container?.textContent).toContain('New Part Node')
     expect(container?.textContent).toContain('number')
+  })
+
+  it('adds part nodes through graph edit history while preserving panel selection feedback', async () => {
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    const addButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Add Part Node',
+    ) as HTMLButtonElement | undefined
+    expect(addButton).toBeDefined()
+
+    await act(async () => {
+      addButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.addGraphNodeWithHistory).toHaveBeenCalledTimes(1)
+    expect(currentSpaghettiState.addGraphNodeWithHistory).toHaveBeenCalledWith({
+      node: {
+        nodeId: expect.stringMatching(/^node-/),
+        type: 'Part/Baseplate',
+        params: expect.any(Object),
+      },
+    })
+    expect(currentSpaghettiState.applyGraphCommand).not.toHaveBeenCalled()
+    const createdNodeId = currentSpaghettiState.addGraphNodeWithHistory.mock.calls[0][0].node.nodeId
+    expect(currentSpaghettiState.setEditorViewportSelectedNodeId).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      createdNodeId,
+    )
+    expect(currentSpaghettiState.setUiMessage).toHaveBeenCalledWith({
+      level: 'info',
+      text: 'Added Part/Baseplate node.',
+    })
   })
 
   it('publishes editor-context activation from the panel root when requested', async () => {
@@ -841,5 +874,26 @@ describe('SpaghettiPanel', () => {
     expect(container.querySelector('.SpaghettiPanelCanvasWrap')?.className).toContain('isEssentials')
     expect(container.textContent).not.toContain('Focus Node')
     expect(container.textContent).not.toContain('Part Nodes')
+  })
+
+  it('applies the essentials canvas background opacity onto the panel root style variable', async () => {
+    const essentialsContainer = document.createElement('div')
+    document.body.appendChild(essentialsContainer)
+    root = createRoot(essentialsContainer)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          isEssentials
+          canvasBackgroundOpacity={0.35}
+        />,
+      )
+    })
+
+    container = essentialsContainer
+
+    const panelRoot = container.querySelector('.SpaghettiPanelRoot') as HTMLElement | null
+    expect(panelRoot?.style.getPropertyValue('--sp-essentials-canvas-bg-opacity')).toBe('0.35')
   })
 })

@@ -7,6 +7,7 @@ import type {
 import { PrimaryViewportLeftDock } from './PrimaryViewportLeftDock'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportFrame, type ViewportFrameHeaderDragOutPayload } from './ViewportFrame'
+import { ViewportOverlayModeTitlebarControls } from './ViewportOverlayModeTitlebarControls'
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './ViewportWorkspaceHost'
 import { workspaceSurfaceSupportsHostMode } from './workspaceSurfaceCatalog'
@@ -31,6 +32,8 @@ type WorkspaceViewportTreeProps = {
   viewportSlotsById: Record<string, WorkspaceViewportSlot>
   viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>
   leftDockWidth: number
+  leftDockStackHeight: number
+  leftDockStackSplitRatio: number
   primaryViewportSlotIsConstrained: boolean
   isLeftDockViewportSplit: boolean
   isBrowserDockPreviewActive: boolean
@@ -61,6 +64,7 @@ type WorkspaceViewportTreeProps = {
     surfaceKind: WorkspaceSurfaceKind,
   ) => void
   onOpenDashboardNoteInNotepad: (surfaceInstanceId: string, noteId: string) => void
+  settingsInitialSectionId?: import('./SettingsSurface').SettingsSectionId
   onSplitViewportSlot: (slotId: WorkspaceViewportSlotId, dockSide: WorkspaceSplitDockSide) => void
   onFloatViewportSlot: (slotId: WorkspaceViewportSlotId) => void
   onPopOutViewportSlot: (slotId: WorkspaceViewportSlotId) => void
@@ -86,6 +90,8 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     viewportSlotsById,
     viewportLayoutNodesById,
     leftDockWidth,
+    leftDockStackHeight,
+    leftDockStackSplitRatio,
     primaryViewportSlotIsConstrained,
     isLeftDockViewportSplit,
     isBrowserDockPreviewActive,
@@ -103,6 +109,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onCycleBrowserPresentationMode,
     onRequestViewportSlotSurfaceKind,
     onOpenDashboardNoteInNotepad,
+    settingsInitialSectionId = 'all',
     onSplitViewportSlot,
     onFloatViewportSlot,
     onPopOutViewportSlot,
@@ -214,6 +221,12 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             ? undefined
             : () => onCloseViewportSlot(slot.slotId)
         }
+        headerSupplement={
+          slot.surfaceKind === 'modelViewer' ? (
+            <ViewportOverlayModeTitlebarControls viewportId={slot.surfaceInstanceId} />
+          ) : undefined
+        }
+        headerSupplementAlignment={slot.surfaceKind === 'modelViewer' ? 'start' : 'end'}
         onHeaderDragOut={
           !isPrimarySlot && slot.surfaceKind !== 'modelViewer'
             ? (payload) => onViewportSlotHeaderDragOut(slot.slotId, payload)
@@ -226,6 +239,8 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
               <PrimaryViewportLeftDock
                 viewportId={slot.surfaceInstanceId}
                 leftDockWidth={leftDockWidth}
+                leftDockStackHeight={leftDockStackHeight}
+                leftDockStackSplitRatio={leftDockStackSplitRatio}
                 bottomInset={resolvePrimaryLeftDockBottomInset(slot.leafNodeId)}
                 isConstrained={primaryViewportSlotIsConstrained}
                 isViewportSplitHandleConstrained={false}
@@ -255,6 +270,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             onOpenHomePageSurface={onOpenHomePageSurface}
             onActivateSpaghettiSurface={onActivateSpaghettiSurface}
             spaghettiWindowSettingsOpen={windowSettingsOpenByViewportId[slot.surfaceInstanceId] ?? false}
+            settingsInitialSectionId={settingsInitialSectionId}
           />
         )}
       </ViewportFrame>

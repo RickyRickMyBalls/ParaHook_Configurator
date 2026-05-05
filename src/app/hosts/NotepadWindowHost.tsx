@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { FloatingWindowSettingsButton } from '../components/FloatingWindowSettingsButton'
 import { FloatingWindowQuickDockButton } from '../components/FloatingWindowQuickDockButton'
 import { NotepadSurface } from '../notepad/NotepadSurface'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
@@ -31,6 +32,7 @@ type NotepadWindowHostProps = {
   popoutSurfaces: WorkspaceDetachedSlotSurfaceState[]
   onClearDetachedSurface: (surfaceInstanceId: string) => void
   onQuickDock: (surfaceInstanceId: string) => void
+  onOpenSettings?: (initialSectionId?: import('../workspace/SettingsSurface').SettingsSectionId) => void
 }
 
 type NotepadPopoutWindowProps = {
@@ -144,6 +146,7 @@ function NotepadPopoutWindow(props: NotepadPopoutWindowProps) {
 
 export function NotepadWindowHost(props: NotepadWindowHostProps) {
   const { viewportRef, floatingSurfaces, popoutSurfaces, onClearDetachedSurface, onQuickDock } = props
+  const { onOpenSettings } = props
   const floatingRectsRef = useRef<Record<string, NotepadFloatingRect>>({})
   const floatingWindowRefBySurfaceId = useRef<Record<string, HTMLDivElement | null>>({})
   const dragStateRef = useRef<{
@@ -305,6 +308,12 @@ export function NotepadWindowHost(props: NotepadWindowHostProps) {
           }}
         >
           <span>Floating Notepad</span>
+          {onOpenSettings !== undefined ? (
+            <FloatingWindowSettingsButton
+              className="NotepadFloatingWindowSettings"
+              onClick={() => onOpenSettings('storage')}
+            />
+          ) : null}
           <FloatingWindowQuickDockButton
             className="NotepadFloatingWindowQuickDock"
             onClick={() => onQuickDock(surface.surfaceInstanceId)}

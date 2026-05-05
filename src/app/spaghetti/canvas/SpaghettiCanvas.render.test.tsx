@@ -4,7 +4,10 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SketchFeature } from '../features/featureTypes'
-import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import {
+  MIN_SPAGHETTI_NODE_WIDTH,
+  type SpaghettiGraph,
+} from '../schema/spaghettiTypes'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -35,8 +38,10 @@ class MockWorker {
 
 let SpaghettiCanvas!: typeof import('./SpaghettiCanvas').SpaghettiCanvas
 let useSpaghettiStore!: typeof import('../store/useSpaghettiStore').useSpaghettiStore
+let editHistoryStore!: typeof import('../../store/editHistoryStore').editHistoryStore
 let useWorkspaceStore!: typeof import('../../workspace/useWorkspaceStore').useWorkspaceStore
 const originalWorker = globalThis.Worker
+const PointerEventCtor = globalThis.PointerEvent ?? MouseEvent
 
 const createSketchFeature = (
   components: SketchFeature['components'] = [],
@@ -97,6 +102,13 @@ const findPrimitiveInputValue = (
   return input instanceof HTMLInputElement ? input.value : null
 }
 
+const findPortAnchor = (
+  row: HTMLElement | null | undefined,
+): HTMLElement | null => {
+  const anchor = row?.querySelector('.SpaghettiPortAnchor')
+  return anchor instanceof HTMLElement ? anchor : null
+}
+
 describe('SpaghettiCanvas live extrude row rendering', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -106,8 +118,10 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     globalThis.Worker = MockWorker as unknown as typeof Worker
     ;({ SpaghettiCanvas } = await import('./SpaghettiCanvas'))
     ;({ useSpaghettiStore } = await import('../store/useSpaghettiStore'))
+    ;({ editHistoryStore } = await import('../../store/editHistoryStore'))
     ;({ useWorkspaceStore } = await import('../../workspace/useWorkspaceStore'))
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    editHistoryStore.clear()
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -125,6 +139,457 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     container = null
     document.body.innerHTML = ''
     globalThis.Worker = originalWorker
+  })
+
+  it('commits menu-created Sketch and Extrude nodes through graph edit history', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [],
+      edges: [],
+    })
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const openNodeMenu = async () => {
+      const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+      expect(scroller).not.toBeNull()
+      if (scroller === null) {
+        return
+      }
+      scroller.getBoundingClientRect = () => ({
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: 800,
+          bottom: 600,
+          width: 800,
+          height: 600,
+          toJSON: () => ({}),
+        } as DOMRect)
+
+      await act(async () => {
+        scroller.dispatchEvent(
+          new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX: 100,
+            clientY: 80,
+          }),
+        )
+      })
+    }
+
+    const clickMenuItem = async (label: string) => {
+      const button = Array.from(
+        container?.querySelectorAll('.SpaghettiNodeAddMenuItem') ?? [],
+      ).find((candidate) => candidate.textContent?.includes(label)) as HTMLButtonElement | undefined
+      expect(button).toBeDefined()
+      await act(async () => {
+        button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      })
+    }
+
+    await openNodeMenu()
+    await clickMenuItem('Sketch')
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.type === 'Geometry/Sketch'),
+    ).toBe(true)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Add graph node',
+      targetLabel: 'Geometry/Sketch',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.type === 'Geometry/Sketch'),
+    ).toBe(false)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.type === 'Geometry/Sketch'),
+    ).toBe(true)
+
+    await openNodeMenu()
+    await clickMenuItem('Extrude')
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.type === 'Geometry/Extrude'),
+    ).toBe(true)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      label: 'Add graph node',
+      targetLabel: 'Geometry/Extrude',
+    })
+  })
+
+  it('restores a remembered graph viewport instead of overwriting it with an open-time fit request', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 120,
+          y: 80,
+          zoom: 1.5,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          fitCanvasRequestKey={1}
+          fitNodeId="node-sketch-1"
+          fitNodeRequestKey={1}
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    expect(stage).not.toBeNull()
+    expect(stage?.style.transform).toContain('translate(120px, 80px)')
+    expect(stage?.style.transform).toContain('scale(1.5)')
+  })
+
+  it('commits selected Sketch and Extrude node deletion through graph edit history', async () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-extrude',
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: 'profiles',
+          },
+          to: {
+            nodeId: 'node-extrude-1',
+            portId: 'profile',
+          },
+        },
+      ],
+    }
+    useSpaghettiStore.getState().setGraph(graph)
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const dispatchCanvasKey = async (key: 'Backspace' | 'Delete') => {
+      const canvasRoot = container?.querySelector('.SpaghettiCanvasRoot') as HTMLElement | null
+      expect(canvasRoot).not.toBeNull()
+      await act(async () => {
+        canvasRoot?.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      })
+    }
+
+    await act(async () => {
+      useSpaghettiStore
+        .getState()
+        .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-sketch-1')
+    })
+    await dispatchCanvasKey('Delete')
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(false)
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(0)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Remove graph node',
+      targetId: 'node-sketch-1',
+      targetLabel: 'node-sketch-1',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(true)
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(1)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(false)
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph(graph)
+      useSpaghettiStore
+        .getState()
+        .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-extrude-1')
+    })
+    editHistoryStore.clear()
+    await dispatchCanvasKey('Backspace')
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-extrude-1'),
+    ).toBe(false)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Remove graph node',
+      targetId: 'node-extrude-1',
+      targetLabel: 'node-extrude-1',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-extrude-1'),
+    ).toBe(true)
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph(graph)
+      useSpaghettiStore
+        .getState()
+        .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-sketch-1')
+      useSpaghettiStore
+        .getState()
+        .setEditorViewportSelectedEdgeId(editorViewportId ?? '', 'edge-sketch-extrude')
+    })
+    editHistoryStore.clear()
+    await dispatchCanvasKey('Delete')
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(true)
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(0)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Remove graph wire',
+      targetId: 'edge-sketch-extrude',
+      targetLabel: 'edge-sketch-extrude',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(1)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(0)
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph(graph)
+      useSpaghettiStore.getState().setEditorViewportSelectedNodeId(editorViewportId ?? '', null)
+      useSpaghettiStore.getState().setEditorViewportSelectedEdgeId(editorViewportId ?? '', null)
+    })
+    editHistoryStore.clear()
+    await dispatchCanvasKey('Delete')
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-sketch-1'),
+    ).toBe(true)
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === 'node-extrude-1'),
+    ).toBe(true)
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(0)
+  })
+
+  it('commits canvas-created wires through graph edit history', async () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 40, y: 40 },
+          'node-extrude-1': { x: 360, y: 40 },
+        },
+        nodeModesByNodeId: {
+          'node-sketch-1': 'expanded',
+          'node-extrude-1': 'expanded',
+        },
+      },
+    }
+
+    useSpaghettiStore.getState().setGraph(graph)
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    const outputRow = findPortRow(sketchNode, 'out', 'SketchProfiles')
+    const inputRow = findPortRow(extrudeNode, 'in', 'SketchProfiles')
+    const outputAnchor = findPortAnchor(outputRow)
+    const inputAnchor = findPortAnchor(inputRow)
+    expect(outputAnchor).not.toBeNull()
+    expect(inputRow).not.toBeNull()
+    expect(inputAnchor).not.toBeNull()
+
+    await act(async () => {
+      outputAnchor?.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 180,
+          clientY: 140,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 460,
+          clientY: 140,
+        }),
+      )
+      inputRow?.dispatchEvent(
+        new PointerEventCtor('pointerover', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 460,
+          clientY: 140,
+        }),
+      )
+      inputAnchor?.dispatchEvent(
+        new PointerEventCtor('pointerover', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 460,
+          clientY: 140,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 460,
+          clientY: 140,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Connect graph wire',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(0)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(useSpaghettiStore.getState().graph.edges).toHaveLength(1)
   })
 
   it('renders resolved aggregate SketchProfiles and Ready SolidBodies through the real canvas path', async () => {
@@ -273,5 +738,358 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
 
     expect(afterNode).toBe(beforeNode)
     expect(findPrimitiveInputValue(afterDepthRow)).toBe('30.0')
+  })
+
+  it('commits one width-aware history entry when a selected node resize completes', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 120, y: 80, width: 260 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-sketch-1')
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const eastHandle = container?.querySelector(
+      '[data-sp-node-id="node-sketch-1"] [data-sp-node-resize-handle="e"]',
+    ) as HTMLElement | null
+    expect(eastHandle).not.toBeNull()
+
+    await act(async () => {
+      eastHandle?.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 380,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 440,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 440,
+          clientY: 120,
+        }),
+      )
+    })
+
+    const resizedPos = useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']
+    expect(resizedPos).toMatchObject({
+      x: 120,
+      y: 80,
+      width: 320,
+    })
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Resize graph node',
+      targetId: 'node-sketch-1',
+      targetLabel: 'node-sketch-1',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']).toMatchObject({
+      x: 120,
+      y: 80,
+      width: 260,
+    })
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']).toMatchObject({
+      x: 120,
+      y: 80,
+      width: 320,
+    })
+  })
+
+  it('keeps a plain node drag on the move-history label when the node already has a stored width', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 120, y: 80, width: 260 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-sketch-1')
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const nodeHeader = container?.querySelector(
+      '[data-sp-node-id="node-sketch-1"] [data-sp-node-header-zone="1"]',
+    ) as HTMLElement | null
+    expect(nodeHeader).not.toBeNull()
+
+    await act(async () => {
+      nodeHeader?.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 160,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 220,
+          clientY: 170,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 220,
+          clientY: 170,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']).toMatchObject({
+      x: 180,
+      y: 130,
+      width: 260,
+    })
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Move graph node',
+      targetId: 'node-sketch-1',
+      targetLabel: 'node-sketch-1',
+    })
+  })
+
+  it('clamps selected node resize to the shared minimum width floor', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 120, y: 80, width: 260 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-sketch-1')
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const eastHandle = container?.querySelector(
+      '[data-sp-node-id="node-sketch-1"] [data-sp-node-resize-handle="e"]',
+    ) as HTMLElement | null
+    expect(eastHandle).not.toBeNull()
+
+    await act(async () => {
+      eastHandle?.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 380,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 80,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 80,
+          clientY: 120,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']).toMatchObject({
+      x: 120,
+      y: 80,
+      width: MIN_SPAGHETTI_NODE_WIDTH,
+    })
+  })
+
+  it('shifts x when a west-handle resize clamps to the shared minimum width floor', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 120, y: 80, width: 260 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportSelectedNodeId(editorViewportId ?? '', 'node-sketch-1')
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const westHandle = container?.querySelector(
+      '[data-sp-node-id="node-sketch-1"] [data-sp-node-resize-handle="w"]',
+    ) as HTMLElement | null
+    expect(westHandle).not.toBeNull()
+
+    await act(async () => {
+      westHandle?.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 120,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 220,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 220,
+          clientY: 120,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']).toMatchObject({
+      x: 160,
+      y: 80,
+      width: MIN_SPAGHETTI_NODE_WIDTH,
+    })
   })
 })

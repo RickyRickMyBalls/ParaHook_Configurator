@@ -20,6 +20,10 @@ import type {
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
 import {
+  DEFAULT_SPAGHETTI_NODE_WIDTH,
+  MIN_SPAGHETTI_NODE_WIDTH,
+} from '../schema/spaghettiTypes'
+import {
   selectEditorViewportConsolePreviewNodeId,
   selectEditorViewportSelectedEdgeId,
   selectEditorViewportSelectedNodeId,
@@ -51,10 +55,7 @@ import {
   resolveEffectiveOutputPort,
 } from '../features/effectivePorts'
 import {
-  addNode as addNodeCommand,
-  connectEdgeWithAutoReplace,
   planConnectEdgeWithAutoReplace,
-  removeEdge as removeEdgeCommand,
   setNodeParams as setNodeParamsCommand,
 } from '../graphCommands'
 import type {
@@ -121,6 +122,18 @@ type CanvasViewState = {
   panY: number
   zoom: number
 }
+
+const defaultCanvasViewState: CanvasViewState = {
+  panX: 16,
+  panY: 16,
+  zoom: 1,
+}
+
+const serializeCanvasViewState = (view: CanvasViewState): CanvasViewState => ({
+  panX: Number(view.panX.toFixed(3)),
+  panY: Number(view.panY.toFixed(3)),
+  zoom: Number(view.zoom.toFixed(4)),
+})
 
 type ConnectionDragAnchor = {
   direction: PortDirection
@@ -456,6 +469,11 @@ type SpaghettiCanvasProps = {
   onSetViewMode?: (viewMode: 'expanded' | 'essentials' | 'collapsed') => void
 }
 
+type NodeResizeHandleDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+
+const isWestResizeDirection = (direction: NodeResizeHandleDirection): boolean =>
+  direction === 'w' || direction === 'nw' || direction === 'sw'
+
 export function SpaghettiCanvas({
   editorViewportId,
   graphDocumentId,
@@ -488,6 +506,10 @@ export function SpaghettiCanvas({
   const edgeWaypoints = useSpaghettiStore((state) => state.edgeWaypoints)
   const ensureNodePositions = useSpaghettiStore((state) => state.ensureNodePositions)
   const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
+  const addGraphNodeWithHistory = useSpaghettiStore((state) => state.addGraphNodeWithHistory)
+  const removeGraphNodeWithHistory = useSpaghettiStore((state) => state.removeGraphNodeWithHistory)
+  const connectGraphEdgeWithHistory = useSpaghettiStore((state) => state.connectGraphEdgeWithHistory)
+  const removeGraphEdgeWithHistory = useSpaghettiStore((state) => state.removeGraphEdgeWithHistory)
   const applyGraphPatch = useSpaghettiStore((state) => state.applyGraphPatch)
   const setManyNodePos = useSpaghettiStore((state) => state.setManyNodePos)
   const commitGraphNodeMoveWithHistory = useSpaghettiStore(
@@ -564,11 +586,7 @@ export function SpaghettiCanvas({
     edgeId: string
     waypointId: string
   } | null>(null)
-  const [view, setView] = useState<CanvasViewState>({
-    panX: 16,
-    panY: 16,
-    zoom: 1,
-  })
+  const [view, setView] = useState<CanvasViewState>(defaultCanvasViewState)
 
   const dragStateRef = useRef<{
     nodeId: string
@@ -577,7 +595,15 @@ export function SpaghettiCanvas({
     startNodeX: number
     startNodeY: number
   } | null>(null)
-  const queuedNodePosRef = useRef<Record<string, { x: number; y: number }>>({})
+  const resizeStateRef = useRef<{
+    nodeId: string
+    direction: NodeResizeHandleDirection
+    startPointerX: number
+    startNodeX: number
+    startNodeY: number
+    startWidth: number
+  } | null>(null)
+  const queuedNodePosRef = useRef<Record<string, { x: number; y: number; width?: number }>>({})
   const dragRafRef = useRef<number | null>(null)
   const connectionDragRef = useRef<ConnectionDragState | null>(connectionDrag)
   const hoverInputTargetRef = useRef<InputTarget | null>(hoverInputTarget)
@@ -595,6 +621,9 @@ export function SpaghettiCanvas({
   const evaluationRunCountRef = useRef(0)
   const lastFitCanvasRequestKeyRef = useRef<number>(fitCanvasRequestKey)
   const lastFitNodeRequestKeyRef = useRef<number>(fitNodeRequestKey)
+  const suppressInitialFitRequestRef = useRef(false)
+  const viewportPersistenceTimerRef = useRef<number | null>(null)
+  const viewportHasBeenInitializedRef = useRef(false)
   const nodeRowMode = useSpaghettiStore((state) => {
     if (nodeRowModeMenu === null) {
       return null
@@ -640,6 +669,87 @@ export function SpaghettiCanvas({
     viewRef.current = view
   }, [view])
 
+  // Rehydrate the canvas only when the opened graph document changes.
+  // We intentionally do not depend on graph.ui.viewport here, because the
+  // viewport persistence write below updates that field after the user pans.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const nextGraphViewport = graph?.ui?.viewport ?? null
+    viewportHasBeenInitializedRef.current = false
+
+    if (nextGraphViewport === null) {
+      suppressInitialFitRequestRef.current = false
+      setView(defaultCanvasViewState)
+      return
+    }
+
+    viewportHasBeenInitializedRef.current = true
+    suppressInitialFitRequestRef.current = true
+    setView({
+      panX: nextGraphViewport.x,
+      panY: nextGraphViewport.y,
+      zoom: nextGraphViewport.zoom,
+    })
+
+    const canvasWindow = getCanvasWindow()
+    const clearOpenFitSuppression = canvasWindow.setTimeout(() => {
+      suppressInitialFitRequestRef.current = false
+    }, 0)
+
+    return () => {
+      canvasWindow.clearTimeout(clearOpenFitSuppression)
+    }
+  }, [getCanvasWindow, graphDocumentId])
+
+  useEffect(() => {
+    if (!viewportHasBeenInitializedRef.current) {
+      if (viewportPersistenceTimerRef.current !== null) {
+        window.clearTimeout(viewportPersistenceTimerRef.current)
+        viewportPersistenceTimerRef.current = null
+      }
+      return
+    }
+
+    if (viewportPersistenceTimerRef.current !== null) {
+      window.clearTimeout(viewportPersistenceTimerRef.current)
+    }
+
+    viewportPersistenceTimerRef.current = window.setTimeout(() => {
+      viewportPersistenceTimerRef.current = null
+      const nextViewport = serializeCanvasViewState(view)
+      const currentViewport = graph?.ui?.viewport
+      if (
+        currentViewport !== undefined &&
+        currentViewport.x === nextViewport.panX &&
+        currentViewport.y === nextViewport.panY &&
+        currentViewport.zoom === nextViewport.zoom
+      ) {
+        return
+      }
+
+      applyGraphPatch((prevGraph) => {
+        return {
+          ...prevGraph,
+          ui: {
+            ...(prevGraph.ui ?? {}),
+            viewport: {
+              x: nextViewport.panX,
+              y: nextViewport.panY,
+              zoom: nextViewport.zoom,
+            },
+          },
+        }
+      })
+    }, 200)
+
+    return () => {
+      if (viewportPersistenceTimerRef.current !== null) {
+        window.clearTimeout(viewportPersistenceTimerRef.current)
+        viewportPersistenceTimerRef.current = null
+      }
+    }
+  }, [applyGraphPatch, graph?.ui?.viewport, view])
+
   const fitStageBounds = useCallback(
     (bounds: { x: number; y: number; width: number; height: number }) => {
       const viewportElement = viewportRef.current
@@ -675,6 +785,7 @@ export function SpaghettiCanvas({
       )
       const nextPanY = Math.round(topPadding - bounds.y * nextZoom)
 
+      viewportHasBeenInitializedRef.current = true
       setView({
         panX: nextPanX,
         panY: nextPanY,
@@ -686,6 +797,10 @@ export function SpaghettiCanvas({
 
   useLayoutEffect(() => {
     if (!supportsOverlayCanvasMode) {
+      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+      return
+    }
+    if (suppressInitialFitRequestRef.current) {
       lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
       return
     }
@@ -730,6 +845,10 @@ export function SpaghettiCanvas({
       lastFitNodeRequestKeyRef.current = fitNodeRequestKey
       return
     }
+    if (suppressInitialFitRequestRef.current) {
+      lastFitNodeRequestKeyRef.current = fitNodeRequestKey
+      return
+    }
     if (lastFitNodeRequestKeyRef.current === fitNodeRequestKey) {
       return
     }
@@ -750,6 +869,7 @@ export function SpaghettiCanvas({
       width: nodeRect.width / viewRef.current.zoom,
       height: nodeRect.height / viewRef.current.zoom,
     })
+    viewportHasBeenInitializedRef.current = true
     lastFitNodeRequestKeyRef.current = fitNodeRequestKey
   }, [fitNodeId, fitNodeRequestKey, fitStageBounds, graph?.nodes, supportsOverlayCanvasMode])
 
@@ -1013,13 +1133,18 @@ export function SpaghettiCanvas({
         nodeId,
         x: pos.x,
         y: pos.y,
+        ...(typeof pos.width === 'number' ? { width: pos.width } : {}),
       })),
     )
   }, [setManyNodePos])
 
   const queueNodePos = useCallback(
-    (nodeId: string, x: number, y: number) => {
-      queuedNodePosRef.current[nodeId] = { x, y }
+    (nodeId: string, x: number, y: number, width?: number) => {
+      queuedNodePosRef.current[nodeId] = {
+        x,
+        y,
+        ...(typeof width === 'number' ? { width } : {}),
+      }
       if (dragRafRef.current !== null) {
         return
       }
@@ -1301,6 +1426,103 @@ export function SpaghettiCanvas({
       graph.nodes,
       nodePos,
       queueNodePos,
+      setSelectedEdgeId,
+      setSelectedNodeId,
+      setSelectedWaypoint,
+    ],
+  )
+
+  const handleNodeResizeHandlePointerDown = useCallback(
+    (
+      event: ReactPointerEvent<HTMLElement>,
+      nodeId: string,
+      direction: NodeResizeHandleDirection,
+    ) => {
+      if (event.button !== 0) {
+        return
+      }
+      if (isInteractiveTarget(event.target)) {
+        return
+      }
+      event.stopPropagation()
+
+      const pos = nodePos[nodeId]
+      if (pos === undefined) {
+        return
+      }
+
+      setSelectedNodeId(nodeId)
+      setSelectedEdgeId(null)
+      setSelectedWaypoint(null)
+      clearUiMessage()
+
+      resizeStateRef.current = {
+        nodeId,
+        direction,
+        startPointerX: event.clientX,
+        startNodeX: pos.x,
+        startNodeY: pos.y,
+        startWidth:
+          typeof pos.width === 'number' && Number.isFinite(pos.width)
+            ? pos.width
+            : DEFAULT_SPAGHETTI_NODE_WIDTH,
+      }
+
+      const canvasWindow = getCanvasWindow()
+      const handleMove = (moveEvent: PointerEvent) => {
+        const resizeState = resizeStateRef.current
+        if (resizeState === null) {
+          return
+        }
+        const zoom = viewRef.current.zoom
+        const deltaX = (moveEvent.clientX - resizeState.startPointerX) / zoom
+        const nextWidth = Math.max(
+          MIN_SPAGHETTI_NODE_WIDTH,
+          isWestResizeDirection(resizeState.direction)
+            ? resizeState.startWidth - deltaX
+            : resizeState.startWidth + deltaX,
+        )
+        const nextX = isWestResizeDirection(resizeState.direction)
+          ? resizeState.startNodeX + (resizeState.startWidth - nextWidth)
+          : resizeState.startNodeX
+        queueNodePos(resizeState.nodeId, nextX, resizeState.startNodeY, nextWidth)
+      }
+
+      const handleUp = () => {
+        const resizeState = resizeStateRef.current
+        resizeStateRef.current = null
+        flushQueuedNodePos()
+        if (resizeState !== null) {
+          const finalPos = useSpaghettiStore.getState().graph.ui?.nodes?.[resizeState.nodeId]
+          if (finalPos !== undefined) {
+            commitGraphNodeMoveWithHistory({
+              nodeId: resizeState.nodeId,
+              from: {
+                x: resizeState.startNodeX,
+                y: resizeState.startNodeY,
+                width: resizeState.startWidth,
+              },
+              to: finalPos,
+            })
+          }
+        }
+        canvasWindow.removeEventListener('pointermove', handleMove)
+        canvasWindow.removeEventListener('pointerup', handleUp)
+        canvasWindow.removeEventListener('pointercancel', handleUp)
+      }
+
+      canvasWindow.addEventListener('pointermove', handleMove)
+      canvasWindow.addEventListener('pointerup', handleUp)
+      canvasWindow.addEventListener('pointercancel', handleUp)
+      event.preventDefault()
+    },
+    [
+      clearUiMessage,
+      flushQueuedNodePos,
+      getCanvasWindow,
+      nodePos,
+      queueNodePos,
+      commitGraphNodeMoveWithHistory,
       setSelectedEdgeId,
       setSelectedNodeId,
       setSelectedWaypoint,
@@ -1675,18 +1897,18 @@ export function SpaghettiCanvas({
                 text: 'Connection would introduce a cycle.',
               })
             } else {
-              applyGraphCommand(
-                connectEdgeWithAutoReplace({
-                  edgeId,
-                  from: toEdgeEndpoint(sourceEndpoint),
-                  to: toEdgeEndpoint(resolvedTargetEndpoint),
-                }),
-              )
-              setSelectedEdgeId(insertPlan.insertedEdge.edgeId)
-              setUiMessage({
-                level: 'info',
-                text: insertPlan.removedEdgeIds.length > 0 ? 'Connection replaced.' : 'Connection created.',
+              const committed = connectGraphEdgeWithHistory({
+                edgeId,
+                from: toEdgeEndpoint(sourceEndpoint),
+                to: toEdgeEndpoint(resolvedTargetEndpoint),
               })
+              if (committed) {
+                setSelectedEdgeId(insertPlan.insertedEdge.edgeId)
+                setUiMessage({
+                  level: 'info',
+                  text: insertPlan.removedEdgeIds.length > 0 ? 'Connection replaced.' : 'Connection created.',
+                })
+              }
             }
           }
         }
@@ -1706,9 +1928,9 @@ export function SpaghettiCanvas({
       canvasWindow.addEventListener('pointerup', handleUp)
     },
     [
-      applyGraphCommand,
       clearConnectionDrag,
       clearUiMessage,
+      connectGraphEdgeWithHistory,
       getCanvasWindow,
       setConnectionDrag,
       setSelectedEdgeId,
@@ -1761,8 +1983,8 @@ export function SpaghettiCanvas({
         return
       }
 
-      applyGraphCommand(removeEdgeCommand(existing.edgeId))
-      if (selectedEdgeId === existing.edgeId) {
+      const detached = removeGraphEdgeWithHistory(existing.edgeId)
+      if (detached && selectedEdgeId === existing.edgeId) {
         setSelectedEdgeId(null)
       }
       const detachedGraph: SpaghettiGraph = {
@@ -1787,9 +2009,9 @@ export function SpaghettiCanvas({
       event.preventDefault()
     },
     [
-      applyGraphCommand,
       beginConnectionDrag,
       graph,
+      removeGraphEdgeWithHistory,
       selectedEdgeId,
       setSelectedEdgeId,
       sortedEdges,
@@ -1845,7 +2067,10 @@ export function SpaghettiCanvas({
     if (selectedEdgeId === null) {
       return
     }
-    applyGraphCommand(removeEdgeCommand(selectedEdgeId))
+    const committed = removeGraphEdgeWithHistory(selectedEdgeId)
+    if (!committed) {
+      return
+    }
     setSelectedEdgeId(null)
     setHoveredEdgeId(null)
     if (selectedWaypoint?.edgeId === selectedEdgeId) {
@@ -1856,11 +2081,36 @@ export function SpaghettiCanvas({
       text: 'Edge deleted.',
     })
   }, [
-    applyGraphCommand,
+    removeGraphEdgeWithHistory,
     selectedEdgeId,
     selectedWaypoint,
     setHoveredEdgeId,
     setSelectedEdgeId,
+    setUiMessage,
+  ])
+
+  const handleDeleteSelectedNode = useCallback(() => {
+    if (selectedNodeId === null) {
+      return
+    }
+    const committed = removeGraphNodeWithHistory(selectedNodeId)
+    if (!committed) {
+      return
+    }
+    setSelectedNodeId(null)
+    setSelectedEdgeId(null)
+    setHoveredEdgeId(null)
+    setSelectedWaypoint(null)
+    setUiMessage({
+      level: 'info',
+      text: 'Node deleted.',
+    })
+  }, [
+    removeGraphNodeWithHistory,
+    selectedNodeId,
+    setHoveredEdgeId,
+    setSelectedEdgeId,
+    setSelectedNodeId,
     setUiMessage,
   ])
 
@@ -2015,17 +2265,15 @@ export function SpaghettiCanvas({
       const nodeId = generateUniqueNodeId(graph)
       const x = Math.round(nodeAddMenu.stageX)
       const y = Math.round(nodeAddMenu.stageY)
-      applyGraphCommand(
-        addNodeCommand({
-          node: {
-            nodeId,
-            type,
-            params: getDefaultNodeParams(type),
-          },
-          position: { x, y },
-          nodeMode: newNodeSpawnMode,
-        }),
-      )
+      addGraphNodeWithHistory({
+        node: {
+          nodeId,
+          type,
+          params: getDefaultNodeParams(type),
+        },
+        position: { x, y },
+        nodeMode: newNodeSpawnMode,
+      })
       setSelectedNodeId(nodeId)
       setSelectedEdgeId(null)
       setUiMessage({
@@ -2035,7 +2283,7 @@ export function SpaghettiCanvas({
       setNodeAddMenu(null)
     },
     [
-      applyGraphCommand,
+      addGraphNodeWithHistory,
       graph,
       newNodeSpawnMode,
       nodeAddMenu,
@@ -2424,6 +2672,11 @@ export function SpaghettiCanvas({
         if ((event.key === 'Delete' || event.key === 'Backspace') && selectedEdgeId !== null) {
           event.preventDefault()
           handleDeleteSelectedEdge()
+          return
+        }
+        if ((event.key === 'Delete' || event.key === 'Backspace') && selectedNodeId !== null) {
+          event.preventDefault()
+          handleDeleteSelectedNode()
         }
       }}
     >
@@ -2557,6 +2810,7 @@ export function SpaghettiCanvas({
           }
           const zoomFactor = event.deltaY < 0 ? 1.08 : 0.92
           setView((current) => {
+            viewportHasBeenInitializedRef.current = true
             const nextZoom = clampNumber(current.zoom * zoomFactor, 0.4, 2.6)
             const rect = viewportElement.getBoundingClientRect()
             const pointerX = event.clientX - rect.left
@@ -2610,6 +2864,7 @@ export function SpaghettiCanvas({
           const startView = viewRef.current
           startWindowPointerDrag(
             (moveEvent) => {
+              viewportHasBeenInitializedRef.current = true
               setView({
                 ...viewRef.current,
                 panX: startView.panX + (moveEvent.clientX - startX),
@@ -2757,6 +3012,7 @@ export function SpaghettiCanvas({
                 node={node}
                 x={pos.x}
                 y={pos.y}
+                width={pos.width}
                 title={nodeVm?.title ?? node.type}
                 nodeMode={nodeMode}
                 template={nodeVm?.template}
@@ -2814,6 +3070,7 @@ export function SpaghettiCanvas({
                 onMoveSectionRow={handleMoveSectionRow}
                 onNodeHeaderPointerDown={handleNodePointerDown}
                 onNodeBodyPointerDown={handleNodeBodyPointerDown}
+                onNodeResizeHandlePointerDown={handleNodeResizeHandlePointerDown}
                 onNodeTitleClick={handleNodeTitleClick}
                 onRegisterPortElement={handleRegisterPortElement}
                 onOutputPointerDown={handleOutputPointerDown}

@@ -20,8 +20,8 @@ type GeometryNodeShellProps = {
   onContentToggle?: () => void
   outputRailOpen?: boolean
   onOutputRailToggle?: () => void
-  inputRail: ReactNode
-  outputRail: ReactNode
+  inputRail?: ReactNode
+  outputRail?: ReactNode
   children?: ReactNode
   diagnostics?: ReactNode
 }
@@ -57,7 +57,9 @@ export function GeometryNodeShell({
   children,
   diagnostics,
 }: GeometryNodeShellProps) {
+  const showInputRail = inputRail !== undefined && inputRail !== null
   const showContent = children !== undefined && children !== null
+  const showOutputRail = outputRail !== undefined && outputRail !== null
 
   return (
     <div
@@ -88,23 +90,27 @@ export function GeometryNodeShell({
       ) : null}
 
       <div className="SpaghettiGeometryNodeMain">
-        <section
-          className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--inputs"
-          data-sp-geometry-block="inputs"
-          data-sp-geometry-block-open={inputRailOpen ? '1' : '0'}
-        >
-          <button
-            type="button"
-            className="SpaghettiGeometryNodeRailToggle"
-            onClick={onInputRailToggle}
+        {showInputRail ? (
+          <section
+            className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--inputs"
+            data-sp-geometry-block="inputs"
+            data-sp-geometry-block-open={inputRailOpen ? '1' : '0'}
           >
-            <span className="SpaghettiGeometryNodeRailChevron" aria-hidden="true">
-              {inputRailOpen ? '\u25BE' : '\u25B8'}
-            </span>
-            <span className="SpaghettiGeometryNodeRailLabel">Inputs</span>
-          </button>
-          {inputRailOpen ? <div className="SpaghettiGeometryNodeRailBody">{inputRail}</div> : null}
-        </section>
+            <button
+              type="button"
+              className="SpaghettiGeometryNodeRailToggle"
+              onClick={onInputRailToggle}
+            >
+              <span className="SpaghettiGeometryNodeRailChevron" aria-hidden="true">
+                {inputRailOpen ? '\u25BE' : '\u25B8'}
+              </span>
+              <span className="SpaghettiGeometryNodeRailLabel">Inputs</span>
+            </button>
+            {inputRailOpen ? (
+              <div className="SpaghettiGeometryNodeRailBody">{inputRail}</div>
+            ) : null}
+          </section>
+        ) : null}
 
         {showContent ? (
           <section
@@ -126,25 +132,27 @@ export function GeometryNodeShell({
           </section>
         ) : null}
 
-        <section
-          className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--outputs"
-          data-sp-geometry-block="outputs"
-          data-sp-geometry-block-open={outputRailOpen ? '1' : '0'}
-        >
-          <button
-            type="button"
-            className="SpaghettiGeometryNodeRailToggle"
-            onClick={onOutputRailToggle}
+        {showOutputRail ? (
+          <section
+            className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--outputs"
+            data-sp-geometry-block="outputs"
+            data-sp-geometry-block-open={outputRailOpen ? '1' : '0'}
           >
-            <span className="SpaghettiGeometryNodeRailChevron" aria-hidden="true">
-              {outputRailOpen ? '\u25BE' : '\u25B8'}
-            </span>
-            <span className="SpaghettiGeometryNodeRailLabel">Outputs</span>
-          </button>
-          {outputRailOpen ? (
-            <div className="SpaghettiGeometryNodeRailBody">{outputRail}</div>
-          ) : null}
-        </section>
+            <button
+              type="button"
+              className="SpaghettiGeometryNodeRailToggle"
+              onClick={onOutputRailToggle}
+            >
+              <span className="SpaghettiGeometryNodeRailChevron" aria-hidden="true">
+                {outputRailOpen ? '\u25BE' : '\u25B8'}
+              </span>
+              <span className="SpaghettiGeometryNodeRailLabel">Outputs</span>
+            </button>
+            {outputRailOpen ? (
+              <div className="SpaghettiGeometryNodeRailBody">{outputRail}</div>
+            ) : null}
+          </section>
+        ) : null}
       </div>
 
       {diagnostics !== undefined ? (

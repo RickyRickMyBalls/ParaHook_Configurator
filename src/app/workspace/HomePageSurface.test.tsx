@@ -465,6 +465,7 @@ describe('HomePageSurface', () => {
       'Spaghetti Editor',
       'Dashboard',
       'Notepad',
+      'Settings',
       'Edit History',
     ])
     expect(launchButtons.map((button) => button.textContent)).not.toEqual(
@@ -486,6 +487,7 @@ describe('HomePageSurface', () => {
     )
     const openDashboardButton = launchButtons.find((button) => button.textContent === 'Dashboard')
     const openNotepadButton = launchButtons.find((button) => button.textContent === 'Notepad')
+    const openSettingsButton = launchButtons.find((button) => button.textContent === 'Settings')
     const openEditHistoryButton = launchButtons.find(
       (button) => button.textContent === 'Edit History',
     )
@@ -497,6 +499,7 @@ describe('HomePageSurface', () => {
       openSpaghettiEditorButton?.click()
       openDashboardButton?.click()
       openNotepadButton?.click()
+      openSettingsButton?.click()
       openEditHistoryButton?.click()
     })
 
@@ -508,6 +511,7 @@ describe('HomePageSurface', () => {
       ['spaghettiEditor'],
       ['dashboard'],
       ['notepad'],
+      ['settings'],
       ['editHistory'],
     ])
   })

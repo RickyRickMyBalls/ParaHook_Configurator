@@ -23,6 +23,7 @@ export const setNodePosition = (options: {
         nodes: {
           ...(graph.ui?.nodes ?? {}),
           [nodeId]: {
+            ...(current?.width === undefined ? {} : { width: current.width }),
             x: roundedX,
             y: roundedY,
           },

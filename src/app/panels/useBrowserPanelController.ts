@@ -269,6 +269,9 @@ export function useBrowserPanelController(
     (state) => state.setViewerTargetGraphDocumentId,
   )
   const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
+  const requestEditorViewportCanvasFit = useSpaghettiStore(
+    (state) => state.requestEditorViewportCanvasFit,
+  )
   const requestEditorViewportNodeFit = useSpaghettiStore(
     (state) => state.requestEditorViewportNodeFit,
   )
@@ -756,14 +759,15 @@ export function useBrowserPanelController(
         activeEditorViewportId,
         editorViewportsById,
         openGraphDocumentInViewport,
-        openGraphDocumentInNewViewport,
-        swapFocusedEditorViewportToGraphDocument,
-        setActiveEditorViewportId,
-        setEditorViewportPosition,
-        setSelectedNodeId,
-        requestEditorViewportNodeFit,
-      },
-    }),
+      openGraphDocumentInNewViewport,
+      swapFocusedEditorViewportToGraphDocument,
+      setActiveEditorViewportId,
+      setEditorViewportPosition,
+      setSelectedNodeId,
+      requestEditorViewportCanvasFit,
+      requestEditorViewportNodeFit,
+    },
+  }),
     [
       activeEditorViewportId,
       beginReferenceTransformShell,
@@ -772,6 +776,7 @@ export function useBrowserPanelController(
       openGraphDocumentInNewViewport,
       requestConsoleContextSync,
       requestConsoleWorkspaceContextHandoff,
+      requestEditorViewportCanvasFit,
       requestEditorViewportNodeFit,
       requestFloatingShellActivation,
       selectPart,
@@ -1055,6 +1060,7 @@ export function useBrowserPanelController(
       options: {
         strategy?: 'open-or-focus' | 'swap-focused-or-open' | 'open-new'
         fitNodeInViewport?: boolean
+        fitCanvasInViewport?: boolean
       } = {},
     ): string | null => {
       return activateGraphTargetIntent(
@@ -1067,6 +1073,7 @@ export function useBrowserPanelController(
           strategy: options.strategy ?? 'open-or-focus',
           spawnPosition: newEditorSpawnPosition,
           fitNodeInViewport: options.fitNodeInViewport ?? false,
+          fitCanvasInViewport: options.fitCanvasInViewport ?? false,
         },
       ).editorViewportId
     },

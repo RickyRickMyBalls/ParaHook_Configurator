@@ -17,6 +17,8 @@ import {
   defaultBrowserViewportSplitDockSide,
   defaultBrowserViewportSplitRatio,
   defaultLeftDockWidth,
+  defaultLeftDockStackHeight,
+  defaultLeftDockStackSplitRatio,
   defaultPrimaryWorkspaceViewportId,
   defaultPrimaryViewportSlotId,
   defaultSecondaryViewportSlotId,
@@ -59,6 +61,8 @@ import { resolveWorkspaceViewportResultModeBehavior } from './workspaceViewportR
 
 export type WorkspaceStoreState = {
   leftDockWidth: number
+  leftDockStackHeight: number
+  leftDockStackSplitRatio: number
   isLeftDockViewportSplit: boolean
   activeLeftDockPreviewPanelId: LeftDockPanelId | null
   leftDockResizeMenu: LeftDockResizeMenuState | null
@@ -77,6 +81,8 @@ export type WorkspaceStoreState = {
   editorSurfacePlacementById: Record<string, EditorWorkspaceSurfaceState>
   editorSurfaceBindingById: Record<string, WorkspaceEditorSurfaceBinding>
   setLeftDockWidth: (width: number) => void
+  setLeftDockStackHeight: (height: number) => void
+  setLeftDockStackSplitRatio: (ratio: number) => void
   setLeftDockViewportSplit: (isSplit: boolean) => void
   setActiveLeftDockPreviewPanelId: (panelId: LeftDockPanelId | null) => void
   setLeftDockResizeMenu: (menu: LeftDockResizeMenuState | null) => void
@@ -190,6 +196,8 @@ export type WorkspaceStoreState = {
 const createInitialState = (): Omit<
   WorkspaceStoreState,
   | 'setLeftDockWidth'
+  | 'setLeftDockStackHeight'
+  | 'setLeftDockStackSplitRatio'
   | 'setLeftDockViewportSplit'
   | 'setActiveLeftDockPreviewPanelId'
   | 'setLeftDockResizeMenu'
@@ -237,6 +245,8 @@ const createInitialState = (): Omit<
 > => {
   const baseState = {
     leftDockWidth: defaultLeftDockWidth,
+    leftDockStackHeight: defaultLeftDockStackHeight,
+    leftDockStackSplitRatio: defaultLeftDockStackSplitRatio,
     isLeftDockViewportSplit: false,
     activeLeftDockPreviewPanelId: null,
     leftDockResizeMenu: null,
@@ -454,6 +464,16 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
   setLeftDockWidth: (leftDockWidth) => {
     set({
       leftDockWidth: Math.round(leftDockWidth),
+    })
+  },
+  setLeftDockStackHeight: (leftDockStackHeight) => {
+    set({
+      leftDockStackHeight: Math.max(250, Math.round(leftDockStackHeight)),
+    })
+  },
+  setLeftDockStackSplitRatio: (leftDockStackSplitRatio) => {
+    set({
+      leftDockStackSplitRatio: Math.min(0.8, Math.max(0.2, leftDockStackSplitRatio)),
     })
   },
   setLeftDockViewportSplit: (isLeftDockViewportSplit) => {
@@ -1378,52 +1398,61 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
     }
     set((state) =>
       withDerivedBrowserContract(state, {
-      leftDockWidth: Math.round(layout.leftDockWidth),
-      isLeftDockViewportSplit: layout.isLeftDockViewportSplit,
-      browserToolbarOwnerSurfaceInstanceId:
-        layout.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId,
-      browserShell: {
-        presentationMode:
-          layout.browserShell.presentationMode ??
-          (layout.browserShell.isCollapsed ? 'collapsed' : 'expanded'),
-        isCollapsed: layout.browserShell.isCollapsed,
-        isFloating: layout.browserShell.isFloating,
-        isPoppedOut: layout.browserShell.isPoppedOut,
-        isViewportSplit: layout.browserShell.isViewportSplit,
-        position: {
-          x: Math.round(layout.browserShell.position.x),
-          y: Math.round(layout.browserShell.position.y),
+        leftDockWidth: Math.round(layout.leftDockWidth),
+        leftDockStackHeight: Math.max(
+          250,
+          Math.round(layout.leftDockStackHeight ?? defaultLeftDockStackHeight),
+        ),
+        leftDockStackSplitRatio: Math.min(
+          0.8,
+          Math.max(0.2, layout.leftDockStackSplitRatio ?? defaultLeftDockStackSplitRatio),
+        ),
+        isLeftDockViewportSplit: layout.isLeftDockViewportSplit,
+        browserToolbarOwnerSurfaceInstanceId:
+          layout.browserToolbarOwnerSurfaceInstanceId ??
+          defaultBrowserToolbarOwnerSurfaceInstanceId,
+        browserShell: {
+          presentationMode:
+            layout.browserShell.presentationMode ??
+            (layout.browserShell.isCollapsed ? 'collapsed' : 'expanded'),
+          isCollapsed: layout.browserShell.isCollapsed,
+          isFloating: layout.browserShell.isFloating,
+          isPoppedOut: layout.browserShell.isPoppedOut,
+          isViewportSplit: layout.browserShell.isViewportSplit,
+          position: {
+            x: Math.round(layout.browserShell.position.x),
+            y: Math.round(layout.browserShell.position.y),
+          },
+          size: {
+            width: Math.round(layout.browserShell.size.width),
+            height: Math.round(layout.browserShell.size.height),
+          },
+          viewportSplitRatio: layout.browserShell.viewportSplitRatio,
+          viewportSplitDockSide: layout.browserShell.viewportSplitDockSide,
+          popoutState: layout.browserShell.popoutState,
         },
-        size: {
-          width: Math.round(layout.browserShell.size.width),
-          height: Math.round(layout.browserShell.size.height),
-        },
-        viewportSplitRatio: layout.browserShell.viewportSplitRatio,
-        viewportSplitDockSide: layout.browserShell.viewportSplitDockSide,
-        popoutState: layout.browserShell.popoutState,
-      },
-      activeViewerViewportId: resolveWorkspaceActiveSurfaceInstanceId({
-        preferredSurfaceInstanceId: layout.activeViewerViewportId ?? null,
-        viewportSlotsById: nextViewportSlotsById,
-        detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+        activeViewerViewportId: resolveWorkspaceActiveSurfaceInstanceId({
+          preferredSurfaceInstanceId: layout.activeViewerViewportId ?? null,
+          viewportSlotsById: nextViewportSlotsById,
+          detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+          primaryViewportId: layout.primaryViewportId,
+        }),
         primaryViewportId: layout.primaryViewportId,
-      }),
-      primaryViewportId: layout.primaryViewportId,
-      viewportChromeById:
-        Object.keys(nextViewportChromeById).length > 0
-          ? nextViewportChromeById
-          : {
-              [layout.primaryViewportId]: createDefaultWorkspaceViewportChromeState(
-                layout.primaryViewportId,
-              ),
-            },
-      viewportSlotRootNodeId: layout.viewportSlotRootNodeId ?? defaultViewportLayoutRootNodeId,
-      viewportSlotsById: nextViewportSlotsById,
-      viewportLayoutNodesById: nextViewportLayoutNodesById,
-      detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
-      editorSurfacePlacementById: {
-        ...layout.editorSurfacePlacementById,
-      },
+        viewportChromeById:
+          Object.keys(nextViewportChromeById).length > 0
+            ? nextViewportChromeById
+            : {
+                [layout.primaryViewportId]: createDefaultWorkspaceViewportChromeState(
+                  layout.primaryViewportId,
+                ),
+              },
+        viewportSlotRootNodeId: layout.viewportSlotRootNodeId ?? defaultViewportLayoutRootNodeId,
+        viewportSlotsById: nextViewportSlotsById,
+        viewportLayoutNodesById: nextViewportLayoutNodesById,
+        detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+        editorSurfacePlacementById: {
+          ...layout.editorSurfacePlacementById,
+        },
       }),
     )
   },

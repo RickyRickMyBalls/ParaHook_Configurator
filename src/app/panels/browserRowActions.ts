@@ -7,6 +7,7 @@ import type { OpenGraphDocumentIntentStrategy } from '../store/workspaceIntents'
 export type BrowserGraphTargetActionOptions = {
   strategy?: OpenGraphDocumentIntentStrategy
   fitNodeInViewport?: boolean
+  fitCanvasInViewport?: boolean
 }
 
 export type BrowserRowActionHandlers = {
@@ -36,6 +37,7 @@ export const runBrowserRowAction = (
     if (action.actionId === 'open') {
       handlers.onActivateGraphTarget(row.graphDocumentId, null, {
         strategy: 'open-or-focus',
+        fitCanvasInViewport: true,
       })
       return
     }
@@ -46,12 +48,14 @@ export const runBrowserRowAction = (
     if (action.actionId === 'new-editor') {
       handlers.onActivateGraphTarget(row.graphDocumentId, null, {
         strategy: 'open-new',
+        fitCanvasInViewport: true,
       })
       return
     }
     if (action.actionId === 'swap-editor') {
       handlers.onActivateGraphTarget(row.graphDocumentId, null, {
         strategy: 'swap-focused-or-open',
+        fitCanvasInViewport: true,
       })
     }
     return
@@ -60,7 +64,7 @@ export const runBrowserRowAction = (
   if (row.rowKind === 'graph-rebuild-object' || row.rowKind === 'graph-node') {
     if (action.actionId === 'view-in-graph') {
       handlers.onActivateGraphTarget(row.authoringGraphDocumentId, row.authoringNodeId, {
-        fitNodeInViewport: true,
+        fitCanvasInViewport: true,
       })
     }
     return
@@ -86,7 +90,7 @@ export const runBrowserRowAction = (
   if (row.rowKind === 'component' || row.rowKind === 'object' || row.rowKind === 'sketch') {
     if (action.actionId === 'view-in-graph' && row.authoringGraphDocumentId !== null) {
       handlers.onActivateGraphTarget(row.authoringGraphDocumentId, row.authoringNodeId, {
-        fitNodeInViewport: row.authoringNodeId !== null,
+        fitCanvasInViewport: row.authoringNodeId !== null,
       })
     }
     return

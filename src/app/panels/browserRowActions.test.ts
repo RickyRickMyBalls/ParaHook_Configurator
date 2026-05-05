@@ -176,7 +176,7 @@ describe('runBrowserRowAction', () => {
     runBrowserRowAction(graphRebuildRow, action('view-in-graph'), nextHandlers)
 
     expect(nextHandlers.onActivateGraphTarget).toHaveBeenCalledWith('graph-document-1', 'node-a', {
-      fitNodeInViewport: true,
+      fitCanvasInViewport: true,
     })
   })
 
@@ -186,7 +186,7 @@ describe('runBrowserRowAction', () => {
     runBrowserRowAction(graphNodeRow, action('view-in-graph'), nextHandlers)
 
     expect(nextHandlers.onActivateGraphTarget).toHaveBeenCalledWith('graph-document-1', 'node-a', {
-      fitNodeInViewport: true,
+      fitCanvasInViewport: true,
     })
   })
 
@@ -236,7 +236,7 @@ describe('runBrowserRowAction', () => {
     )
 
     expect(nextHandlers.onActivateGraphTarget).toHaveBeenCalledWith('graph-document-1', 'node-a', {
-      fitNodeInViewport: true,
+      fitCanvasInViewport: true,
     })
     expect(nextHandlers.onRevealGraph).not.toHaveBeenCalled()
   })
@@ -278,6 +278,7 @@ describe('runBrowserRowAction', () => {
       null,
       {
         strategy: 'open-or-focus',
+        fitCanvasInViewport: true,
       },
     )
     expect(nextHandlers.onActivateGraphTarget).toHaveBeenNthCalledWith(
@@ -286,6 +287,7 @@ describe('runBrowserRowAction', () => {
       null,
       {
         strategy: 'open-new',
+        fitCanvasInViewport: true,
       },
     )
     expect(nextHandlers.onActivateGraphTarget).toHaveBeenNthCalledWith(
@@ -294,6 +296,7 @@ describe('runBrowserRowAction', () => {
       null,
       {
         strategy: 'swap-focused-or-open',
+        fitCanvasInViewport: true,
       },
     )
   })

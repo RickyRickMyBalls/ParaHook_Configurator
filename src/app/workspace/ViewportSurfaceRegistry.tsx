@@ -7,6 +7,7 @@ import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
 import { EditHistoryReaderSurface } from './EditHistoryReaderSurface'
 import { HomePageSurface } from './HomePageSurface'
+import { SettingsSurface } from './SettingsSurface'
 import {
   getWorkspaceSurfaceRenderFamily,
 } from './workspaceSurfaceCatalog'
@@ -29,6 +30,7 @@ type ViewportSurfaceRegistryProps = {
     },
   ) => void
   spaghettiWindowSettingsOpen?: boolean
+  settingsInitialSectionId?: import('./SettingsSurface').SettingsSectionId
 }
 
 export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
@@ -40,6 +42,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     onOpenHomePageSurface,
     onActivateSpaghettiSurface,
     spaghettiWindowSettingsOpen = false,
+    settingsInitialSectionId = 'all',
   } = props
   const editorViewport = useSpaghettiStore((state) =>
     selectEditorViewportById(state, surfaceInstanceId),
@@ -122,6 +125,16 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         slotId={slotId}
         surfaceInstanceId={surfaceInstanceId}
         onOpenSurface={onOpenHomePageSurface}
+      />
+    )
+  }
+
+  if (renderFamily === 'settings') {
+    return (
+      <SettingsSurface
+        slotId={slotId}
+        surfaceInstanceId={surfaceInstanceId}
+        initialSectionId={settingsInitialSectionId}
       />
     )
   }

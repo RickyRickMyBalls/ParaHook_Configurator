@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { FloatingWindowSettingsButton } from '../components/FloatingWindowSettingsButton'
 import { FloatingWindowQuickDockButton } from '../components/FloatingWindowQuickDockButton'
 import { DashboardSurface } from '../workspace/DashboardSurface'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
@@ -33,6 +34,7 @@ type DashboardWindowHostProps = {
   onClearDetachedSurface: (surfaceInstanceId: string) => void
   onOpenNoteInNotepad: (surfaceInstanceId: string, noteId: string) => void
   onQuickDock: (surfaceInstanceId: string) => void
+  onOpenSettings?: (initialSectionId?: import('../workspace/SettingsSurface').SettingsSectionId) => void
 }
 
 type DashboardPopoutWindowProps = {
@@ -161,6 +163,7 @@ export function DashboardWindowHost(props: DashboardWindowHostProps) {
     onClearDetachedSurface,
     onOpenNoteInNotepad,
     onQuickDock,
+    onOpenSettings,
   } = props
   const floatingRectsRef = useRef<Record<string, DashboardFloatingRect>>({})
   const floatingWindowRefBySurfaceId = useRef<Record<string, HTMLDivElement | null>>({})
@@ -338,6 +341,12 @@ export function DashboardWindowHost(props: DashboardWindowHostProps) {
               }}
             >
               <span>Floating Dashboard</span>
+              {onOpenSettings !== undefined ? (
+                <FloatingWindowSettingsButton
+                  className="DashboardFloatingWindowSettings"
+                  onClick={() => onOpenSettings('workspace')}
+                />
+              ) : null}
               <FloatingWindowQuickDockButton
                 className="DashboardFloatingWindowQuickDock"
                 onClick={() => onQuickDock(surface.surfaceInstanceId)}

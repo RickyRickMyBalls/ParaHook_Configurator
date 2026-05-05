@@ -7,7 +7,6 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { addNode as addNodeCommand } from '../spaghetti/graphCommands'
 import { getDefaultNodeParams, type NodeTypeId } from '../spaghetti/registry/nodeRegistry'
 import type { SpaghettiNode } from '../spaghetti/schema/spaghettiTypes'
 import {
@@ -171,6 +170,7 @@ type SpaghettiPanelProps = {
   isCanvasToolbarVisible?: boolean
   headerToggleRevision?: number
   onSetHeaderCollapsed?: (collapsed: boolean) => void
+  canvasBackgroundOpacity?: number
 }
 
 export function SpaghettiPanel({
@@ -188,6 +188,7 @@ export function SpaghettiPanel({
   isCanvasToolbarVisible = true,
   headerToggleRevision = 0,
   onSetHeaderCollapsed,
+  canvasBackgroundOpacity = 0,
 }: SpaghettiPanelProps) {
   const [isDebugVisible, setIsDebugVisible] = useState(false)
   const [toolbarHeight, setToolbarHeight] = useState<number | null>(null)
@@ -230,7 +231,7 @@ export function SpaghettiPanel({
   const bindEditorViewportToGraphDocument = useSpaghettiStore(
     (state) => state.bindEditorViewportToGraphDocument,
   )
-  const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
+  const addGraphNodeWithHistory = useSpaghettiStore((state) => state.addGraphNodeWithHistory)
   const addEditorViewportGraphToSharedViewerComposition = useSpaghettiStore(
     (state) => state.addEditorViewportGraphToSharedViewerComposition,
   )
@@ -796,15 +797,13 @@ export function SpaghettiPanel({
       return
     }
     const nodeId = createNodeId()
-    applyGraphCommand(
-      addNodeCommand({
-        node: {
-          nodeId,
-          type: newPartType,
-          params: getDefaultNodeParams(newPartType),
-        },
-      }),
-    )
+    addGraphNodeWithHistory({
+      node: {
+        nodeId,
+        type: newPartType,
+        params: getDefaultNodeParams(newPartType),
+      },
+    })
     setEditorViewportSelectedNodeId(editorViewportId, nodeId)
     setFocusNodeId(nodeId)
     setUiMessage({
@@ -914,6 +913,11 @@ export function SpaghettiPanel({
       className={`V15Panel SpaghettiPanelRoot ${isEssentials ? 'isEssentials' : ''}`}
       data-editor-viewport-id={editorViewportId}
       data-graph-document-id={graphDocumentId ?? ''}
+      style={
+        {
+          '--sp-essentials-canvas-bg-opacity': `${canvasBackgroundOpacity}`,
+        } as CSSProperties
+      }
       onPointerDownCapture={
         activateOnPointerDownCapture
           ? () => {
@@ -1304,7 +1308,7 @@ export function SpaghettiPanel({
                   5. Rewire quickly: click a connected input anchor to detach and drag that wire to a new input.
                 </div>
                 <div className="V15Meta">
-                  6. Use the square build icon to compile the graph and build it when validation passes.
+                  6. Use the build icon to compile the graph and build it when validation passes.
                 </div>
                 <div className="V15Meta">
                   7. Review diagnostics below if the build icon does not complete successfully.

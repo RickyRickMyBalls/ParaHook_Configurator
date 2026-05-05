@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { EditHistoryEntry, EditHistorySnapshot } from './editHistoryStore'
+import type {
+  EditHistoryEntry,
+  EditHistorySnapshot,
+  EditHistorySnapshotLogEntry,
+} from './editHistoryStore'
 import {
   createEditHistoryReaderModel,
   createEditHistoryReaderTimelineModel,
@@ -23,6 +27,7 @@ const createEntry = (
   transactionId: options.transactionId ?? `transaction-${entryId}`,
   coalesceKey: options.coalesceKey ?? `coalesce-${entryId}`,
   childSummaries: options.childSummaries,
+  childRestorePoints: options.childRestorePoints,
   undo: options.undo ?? vi.fn(),
   redo: options.redo ?? vi.fn(),
 })
@@ -30,10 +35,11 @@ const createEntry = (
 const createSnapshot = (
   undoEntries: EditHistoryEntry[] = [],
   redoEntries: EditHistoryEntry[] = [],
+  snapshotLog: EditHistorySnapshotLogEntry[] = [],
 ): EditHistorySnapshot => ({
   undoEntries,
   redoEntries,
-  snapshotLog: [],
+  snapshotLog,
   activeTransaction: null,
   canUndo: undoEntries.length > 0,
   canRedo: redoEntries.length > 0,
@@ -131,6 +137,43 @@ describe('editHistoryReaderViewModel', () => {
     )
   })
 
+  it('keeps diagnostic snapshot activity out of the canonical timeline model', () => {
+    const snapshot = createSnapshot(
+      [createEntry('entry-a', 'First edit')],
+      [],
+      [
+        {
+          logId: 'activity-1',
+          sequence: 1,
+          action: 'commit',
+          entryId: 'activity-only-entry',
+          label: 'Activity-only edit',
+          source: {
+            surface: 'diagnostic',
+            sourceId: 'diagnostic-activity',
+            sourceLabel: 'Diagnostic Activity',
+          },
+          targetId: 'activity-target',
+          targetLabel: 'Activity Target',
+          timestamp: '2026-05-01T10:12:11.000Z',
+          entryTimestamp: null,
+          transactionId: 'activity-transaction',
+          coalesceKey: 'activity-key',
+          undoDepth: 1,
+          redoDepth: 0,
+        },
+      ],
+    )
+
+    const model = createEditHistoryReaderModel(snapshot)
+
+    expect(model.timeline.entries.map((entry) => entry.entryId)).toEqual(['entry-a'])
+    expect(model.timeline.markerIndex).toBe(1)
+    expect(model.timeline.appliedCount).toBe(1)
+    expect(model.timeline.redoableCount).toBe(0)
+    expect(model.snapshotLog.map((entry) => entry.entryId)).toEqual(['activity-only-entry'])
+  })
+
   it('exposes cloned public child summaries on stack and timeline entries', () => {
     const sourceChildSummaries = [
       {
@@ -148,13 +191,94 @@ describe('editHistoryReaderViewModel', () => {
 
     const model = createEditHistoryReaderModel(snapshot)
 
-    expect(model.undo.entries[0].childSummaries).toEqual(sourceChildSummaries)
-    expect(model.timeline.entries[0].childSummaries).toEqual(sourceChildSummaries)
+    expect(model.undo.entries[0].childSummaries).toEqual([
+      {
+        ...sourceChildSummaries[0],
+        canRestore: false,
+      },
+    ])
+    expect(model.timeline.entries[0].childSummaries).toEqual([
+      {
+        ...sourceChildSummaries[0],
+        canRestore: false,
+      },
+    ])
     expect(model.undo.entries[0].childSummaries).not.toBe(sourceChildSummaries)
     expect(model.timeline.entries[0].childSummaries).not.toBe(sourceChildSummaries)
     expect('undo' in model.timeline.entries[0].childSummaries[0]).toBe(false)
     expect('redo' in model.timeline.entries[0].childSummaries[0]).toBe(false)
+    expect('restore' in model.timeline.entries[0].childSummaries[0]).toBe(false)
     expect('beforeParams' in model.timeline.entries[0].childSummaries[0]).toBe(false)
     expect('afterParams' in model.timeline.entries[0].childSummaries[0]).toBe(false)
+  })
+
+  it('marks restorable public child summaries without exposing restore callbacks', () => {
+    const snapshot = createSnapshot([
+      createEntry('entry-a', 'Commit sketch draw changes', {
+        childSummaries: [
+          {
+            childId: 'draw-command-1',
+            label: 'Draw sketch line',
+            kind: 'geometry',
+            sequence: 1,
+          },
+          {
+            childId: 'tool-command-1',
+            label: 'Select sketch rectangle tool',
+            kind: 'tool-selection',
+            sequence: 2,
+          },
+        ],
+        childRestorePoints: [
+          {
+            childId: 'draw-command-1',
+            restore: vi.fn(),
+          },
+        ],
+      }),
+    ])
+
+    const model = createEditHistoryReaderModel(snapshot)
+
+    expect(model.timeline.entries[0].childSummaries).toMatchObject([
+      {
+        childId: 'draw-command-1',
+        canRestore: true,
+      },
+      {
+        childId: 'tool-command-1',
+        canRestore: false,
+      },
+    ])
+    expect('restore' in model.timeline.entries[0].childSummaries[0]).toBe(false)
+  })
+
+  it('keeps child summaries inside parent entries instead of adding child timeline entries', () => {
+    const snapshot = createSnapshot([
+      createEntry('entry-a', 'Commit sketch draw changes', {
+        childSummaries: [
+          {
+            childId: 'draw-command-1',
+            label: 'Draw sketch line',
+            kind: 'geometry',
+            sequence: 1,
+          },
+          {
+            childId: 'tool-command-1',
+            label: 'Select sketch rectangle tool',
+            kind: 'tool-selection',
+            sequence: 2,
+          },
+        ],
+      }),
+    ])
+
+    const model = createEditHistoryReaderModel(snapshot)
+
+    expect(model.timeline.entries).toHaveLength(1)
+    expect(model.timeline.entries.map((entry) => entry.entryId)).toEqual(['entry-a'])
+    expect(model.timeline.entries[0].childSummaries).toHaveLength(2)
+    expect(model.timeline.appliedCount).toBe(1)
+    expect(model.timeline.redoableCount).toBe(0)
   })
 })

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { editHistoryStore } from '../../store/editHistoryStore'
-import type { GraphNodePos, SpaghettiGraph } from '../schema/spaghettiTypes'
+import {
+  DEFAULT_SPAGHETTI_NODE_WIDTH,
+  type GraphNodePos,
+  type SpaghettiGraph,
+} from '../schema/spaghettiTypes'
 import { useSpaghettiStore } from './useSpaghettiStore'
 
 const emptyGraph: SpaghettiGraph = {
@@ -206,7 +210,7 @@ describe('graph edit history store adapters', () => {
       { nodeId: 'node-a', x: 40.2, y: 50.7 },
     ])
 
-    expect(graphNodePos('node-a')).toEqual({ x: 40, y: 51 })
+    expect(graphNodePos('node-a')).toEqual({ x: 40, y: 51, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
     expect(editHistoryStore.getUndoEntries()).toEqual([])
 
     const committed = useSpaghettiStore.getState().commitGraphNodeMoveWithHistory({
@@ -224,10 +228,90 @@ describe('graph edit history store adapters', () => {
     })
 
     editHistoryStore.undo()
-    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20 })
+    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
 
     editHistoryStore.redo()
-    expect(graphNodePos('node-a')).toEqual({ x: 40, y: 51 })
+    expect(graphNodePos('node-a')).toEqual({ x: 40, y: 51, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
+  })
+
+  it('keeps completed node movement on the move-history label when the live graph position carries width', () => {
+    useSpaghettiStore.getState().setGraph({
+      ...baseGraph(),
+      ui: {
+        nodes: {
+          'node-a': { x: 10, y: 20, width: 260 },
+          'node-b': { x: 300, y: 20 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+
+    useSpaghettiStore.getState().setManyNodePos([
+      { nodeId: 'node-a', x: 40.2, y: 50.7 },
+    ])
+
+    const finalPos = graphNodePos('node-a')
+    expect(finalPos).toEqual({ x: 40, y: 51, width: 260 })
+
+    const committed = useSpaghettiStore.getState().commitGraphNodeMoveWithHistory({
+      nodeId: 'node-a',
+      from: { x: 10, y: 20 },
+      to: finalPos!,
+    })
+
+    expect(committed).toBe(true)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Move graph node',
+      targetId: 'node-a',
+      targetLabel: 'node-a',
+    })
+
+    editHistoryStore.undo()
+    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20, width: 260 })
+
+    editHistoryStore.redo()
+    expect(graphNodePos('node-a')).toEqual({ x: 40, y: 51, width: 260 })
+  })
+
+  it('commits completed node resize as one undoable and redoable graph entry', () => {
+    useSpaghettiStore.getState().setGraph({
+      ...baseGraph(),
+      ui: {
+        nodes: {
+          'node-a': { x: 10, y: 20, width: 260 },
+          'node-b': { x: 300, y: 20 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+
+    useSpaghettiStore.getState().setManyNodePos([
+      { nodeId: 'node-a', x: -20, y: 20, width: 290 },
+    ])
+
+    expect(graphNodePos('node-a')).toEqual({ x: -20, y: 20, width: 290 })
+    expect(editHistoryStore.getUndoEntries()).toEqual([])
+
+    const committed = useSpaghettiStore.getState().commitGraphNodeMoveWithHistory({
+      nodeId: 'node-a',
+      from: { x: 10, y: 20, width: 260 },
+      to: { x: -20, y: 20, width: 290 },
+    })
+
+    expect(committed).toBe(true)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Resize graph node',
+      targetId: 'node-a',
+      targetLabel: 'node-a',
+    })
+
+    editHistoryStore.undo()
+    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20, width: 260 })
+
+    editHistoryStore.redo()
+    expect(graphNodePos('node-a')).toEqual({ x: -20, y: 20, width: 290 })
   })
 
   it('commits graph node parameter changes as one undoable and redoable entry', () => {
@@ -340,7 +424,7 @@ describe('graph edit history store adapters', () => {
     })).toBe(false)
 
     expect(editHistoryStore.getUndoEntries()).toEqual([])
-    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20 })
+    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
   })
 
   it('does not create entries for no-op graph structure mutations', () => {
@@ -485,7 +569,7 @@ describe('graph edit history store adapters', () => {
     })
 
     expect(committed).toBe(true)
-    expect(graphNodePos('node-a')).toEqual({ x: 80, y: 91 })
+    expect(graphNodePos('node-a')).toEqual({ x: 80, y: 91, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
     expect(useSpaghettiStore.getState()).toMatchObject({
       selectedNodeId: 'node-c',
       selectedEdgeId: 'edge-unrelated',
@@ -502,7 +586,7 @@ describe('graph edit history store adapters', () => {
 
     editHistoryStore.undo()
 
-    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20 })
+    expect(graphNodePos('node-a')).toEqual({ x: 10, y: 20, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
     expect(useSpaghettiStore.getState()).toMatchObject({
       selectedNodeId: 'node-c',
       selectedEdgeId: 'edge-unrelated',

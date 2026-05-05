@@ -11,6 +11,7 @@ export type EditHistoryReaderChildSummaryModel = {
   label: string
   kind: string | null
   sequence: number
+  canRestore: boolean
 }
 
 export type EditHistoryReaderEntryModel = {
@@ -88,7 +89,10 @@ export const createEditHistoryReaderEntryModel = (
   timestamp: entry.timestamp ?? null,
   transactionId: entry.transactionId ?? null,
   coalesceKey: entry.coalesceKey ?? null,
-  childSummaries: (entry.childSummaries ?? []).map((summary) => ({ ...summary })),
+  childSummaries: (entry.childSummaries ?? []).map((summary) => ({
+    ...summary,
+    canRestore: entry.childRestorePoints?.some((point) => point.childId === summary.childId) ?? false,
+  })),
 })
 
 export const createEditHistoryReaderTimelineEntryModel = (

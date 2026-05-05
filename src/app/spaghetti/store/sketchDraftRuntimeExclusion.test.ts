@@ -338,6 +338,123 @@ describe('sketch draft and runtime edit-history exclusions', () => {
     ])
   })
 
+  it('restores committed Sketch Draw child boundaries from the parent history entry', () => {
+    useSpaghettiStore.getState().setGraph(graphWithPartAndGeometrySketch([]))
+    editHistoryStore.clear()
+
+    startDrawSession()
+
+    useSpaghettiStore.getState().setGeometrySketchSessionTool('line')
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 0, y: 0 }, null)
+    useSpaghettiStore.getState().confirmGeometrySketchDrawPoint({ x: 10, y: 0 }, null)
+    drawRectangleByFinish()
+    drawCircleByPoint()
+    drawCircleByRadius()
+    drawPolyline()
+    useSpaghettiStore.getState().closeGeometrySketchSession()
+
+    const parentEntry = editHistoryStore.getUndoEntries()[0]
+    expect(parentEntry).toBeDefined()
+    if (parentEntry === undefined) {
+      throw new Error('Expected a committed Sketch Draw parent entry')
+    }
+    const childSummaries = parentEntry?.childSummaries ?? []
+    const selectRectangleTool = childSummaries.find(
+      (summary) => summary.label === 'Select sketch rectangle tool',
+    )
+    const drawRectangle = childSummaries.find(
+      (summary) => summary.label === 'Draw sketch rectangle',
+    )
+    const drawPolylineSummary = childSummaries.find(
+      (summary) => summary.label === 'Draw sketch polyline',
+    )
+
+    expect(parentEntry?.childRestorePoints?.map((point) => point.childId)).toEqual(
+      childSummaries.map((summary) => summary.childId),
+    )
+    expect(selectRectangleTool).toBeDefined()
+    expect(drawRectangle).toBeDefined()
+    expect(drawPolylineSummary).toBeDefined()
+
+    expect(
+      editHistoryStore.restoreChild(parentEntry.entryId, selectRectangleTool?.childId ?? ''),
+    ).toBe(parentEntry)
+    expect(geometrySketchTypes()).toEqual(['line'])
+
+    expect(
+      editHistoryStore.restoreChild(parentEntry.entryId, drawRectangle?.childId ?? ''),
+    ).toBe(parentEntry)
+    expect(geometrySketchTypes()).toEqual(['line', 'rectangle'])
+
+    expect(
+      editHistoryStore.restoreChild(parentEntry.entryId, drawPolylineSummary?.childId ?? ''),
+    ).toBe(parentEntry)
+    expect(geometrySketchTypes()).toEqual([
+      'line',
+      'rectangle',
+      'circle',
+      'circle',
+      'line',
+      'line',
+    ])
+    expect(editHistoryStore.getUndoEntries().map((entry) => entry.entryId)).toEqual([
+      parentEntry.entryId,
+    ])
+    expect(editHistoryStore.getRedoEntries()).toEqual([])
+  })
+
+  it('opens and clears read-only Sketch Draw history scrub without creating local authoring history', () => {
+    useSpaghettiStore.getState().setGraph(graphWithPartAndGeometrySketch([]))
+    editHistoryStore.clear()
+
+    const opened = useSpaghettiStore.getState().openGeometrySketchHistoryScrub({
+      parentEntryId: 'history-entry-1',
+      childId: 'draw-command-1',
+      graphDocumentId: useSpaghettiStore.getState().activeGraphDocumentId,
+      nodeId: 'node-sketch-1',
+      childLabel: 'Draw sketch line',
+      childSequence: 1,
+    })
+
+    expect(opened).toBe(true)
+    expect(useSpaghettiStore.getState().geometrySketchHistoryScrub).toMatchObject({
+      parentEntryId: 'history-entry-1',
+      childId: 'draw-command-1',
+      nodeId: 'node-sketch-1',
+      childLabel: 'Draw sketch line',
+      childSequence: 1,
+    })
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
+    expect(stagedUndoLabels()).toEqual([])
+    expect(stagedRedoLabels()).toEqual([])
+
+    useSpaghettiStore.getState().clearGeometrySketchHistoryScrub()
+    expect(useSpaghettiStore.getState().geometrySketchHistoryScrub).toBeNull()
+  })
+
+  it('rejects Sketch Draw history scrub targets that are not active geometry sketch nodes', () => {
+    useSpaghettiStore.getState().setGraph(graphWithPartAndGeometrySketch([]))
+
+    expect(useSpaghettiStore.getState().openGeometrySketchHistoryScrub({
+      parentEntryId: 'history-entry-1',
+      childId: 'draw-command-1',
+      graphDocumentId: 'other-graph-document',
+      nodeId: 'node-sketch-1',
+      childLabel: 'Draw sketch line',
+      childSequence: 1,
+    })).toBe(false)
+
+    expect(useSpaghettiStore.getState().openGeometrySketchHistoryScrub({
+      parentEntryId: 'history-entry-1',
+      childId: 'draw-command-1',
+      graphDocumentId: useSpaghettiStore.getState().activeGraphDocumentId,
+      nodeId: 'missing-sketch-node',
+      childLabel: 'Draw sketch line',
+      childSequence: 1,
+    })).toBe(false)
+    expect(useSpaghettiStore.getState().geometrySketchHistoryScrub).toBeNull()
+  })
+
   it('stages Sketch Draw delete-selected as one undoable in-session command', () => {
     useSpaghettiStore.getState().setGraph(graphWithPartAndGeometrySketch([
       line('row-line-1'),

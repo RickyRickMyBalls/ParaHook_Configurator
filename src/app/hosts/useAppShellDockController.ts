@@ -9,6 +9,7 @@ import {
 import {
   type LeftDockPanelId,
   type LeftDockResizeMenuState,
+  type LeftDockVerticalResizeTarget,
   type WorkspaceSplitMenuState,
 } from '../workspace/workspaceShellTypes'
 import { resetLeftDockWidthWithHistory } from '../store/workspaceLayoutEditHistory'
@@ -16,6 +17,10 @@ import { resetLeftDockWidthWithHistory } from '../store/workspaceLayoutEditHisto
 const dockGhostHeight = 72
 const minLeftDockWidth = 260
 const maxLeftDockWidth = 1000
+const leftDockStackDividerSize = 10
+const minLeftDockStackHeight = 250
+const maxLeftDockStackHeight = 1200
+const minLeftDockPanelHeight = 120
 
 type DockTargetRect = {
   left: number
@@ -42,6 +47,9 @@ type UseAppShellDockControllerInput = {
   dockedMeatballHostRef: RefObject<HTMLDivElement | null>
   leftDockWidth: number
   setLeftDockWidth: (nextWidth: number) => void
+  leftDockStackHeight: number
+  setLeftDockStackHeight: (nextHeight: number) => void
+  setLeftDockStackSplitRatio: (nextRatio: number) => void
   leftDockResizeMenu: LeftDockResizeMenuState | null
   setLeftDockResizeMenu: (menu: LeftDockResizeMenuState | null) => void
   workspaceSplitMenu: WorkspaceSplitMenuState | null
@@ -56,16 +64,33 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
     dockedMeatballHostRef,
     leftDockWidth,
     setLeftDockWidth,
+    leftDockStackHeight,
+    setLeftDockStackHeight,
+    setLeftDockStackSplitRatio,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,
     setWorkspaceSplitMenu,
     onLeftDockWidthPreview,
   } = input
-  const leftDockResizeRef = useRef<{
-    startPointerX: number
-    startWidth: number
-  } | null>(null)
+  const leftDockResizeRef = useRef<
+    | {
+        target: 'width'
+        startPointerX: number
+        startWidth: number
+      }
+    | {
+        target: 'stack-height'
+        startPointerY: number
+        startHeight: number
+      }
+    | {
+        target: 'stack-split'
+        stackTop: number
+        stackHeight: number
+      }
+    | null
+  >(null)
 
   const clampLeftDockWidth = useCallback(
     (nextWidth: number) => {
@@ -77,6 +102,31 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
       return Math.min(cappedMaxWidth, Math.max(minLeftDockWidth, Math.round(nextWidth)))
     },
     [appShellRef],
+  )
+
+  const clampLeftDockStackHeight = useCallback(
+    (nextHeight: number) => {
+      const shellHeight = appShellRef.current?.clientHeight ?? 900
+      const cappedMaxHeight = Math.min(
+        maxLeftDockStackHeight,
+        Math.max(minLeftDockStackHeight, shellHeight - 120),
+      )
+      return Math.min(cappedMaxHeight, Math.max(minLeftDockStackHeight, Math.round(nextHeight)))
+    },
+    [appShellRef],
+  )
+
+  const clampLeftDockStackSplitRatio = useCallback(
+    (nextRatio: number, stackHeight: number) => {
+      const availableHeight = Math.max(
+        minLeftDockPanelHeight * 2,
+        stackHeight - leftDockStackDividerSize,
+      )
+      const minRatio = minLeftDockPanelHeight / availableHeight
+      const maxRatio = 1 - minRatio
+      return Math.min(maxRatio, Math.max(minRatio, nextRatio))
+    },
+    [],
   )
 
   const getLeftDockTargetRect = useCallback(
@@ -221,12 +271,29 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
       if (leftDockResizeRef.current === null) {
         return
       }
-      const nextWidth = clampLeftDockWidth(
-        leftDockResizeRef.current.startWidth +
-          (event.clientX - leftDockResizeRef.current.startPointerX),
+      if (leftDockResizeRef.current.target === 'width') {
+        const nextWidth = clampLeftDockWidth(
+          leftDockResizeRef.current.startWidth +
+            (event.clientX - leftDockResizeRef.current.startPointerX),
+        )
+        setLeftDockWidth(nextWidth)
+        onLeftDockWidthPreview?.(nextWidth)
+        return
+      }
+      if (leftDockResizeRef.current.target === 'stack-height') {
+        const nextHeight = clampLeftDockStackHeight(
+          leftDockResizeRef.current.startHeight +
+            (event.clientY - leftDockResizeRef.current.startPointerY),
+        )
+        setLeftDockStackHeight(nextHeight)
+        return
+      }
+      const ratio =
+        (event.clientY - leftDockResizeRef.current.stackTop) /
+        Math.max(1, leftDockResizeRef.current.stackHeight - leftDockStackDividerSize)
+      setLeftDockStackSplitRatio(
+        clampLeftDockStackSplitRatio(ratio, leftDockResizeRef.current.stackHeight),
       )
-      setLeftDockWidth(nextWidth)
-      onLeftDockWidthPreview?.(nextWidth)
     }
 
     const handlePointerUp = () => {
@@ -239,7 +306,15 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
     }
-  }, [clampLeftDockWidth, onLeftDockWidthPreview, setLeftDockWidth])
+  }, [
+    clampLeftDockStackHeight,
+    clampLeftDockStackSplitRatio,
+    clampLeftDockWidth,
+    onLeftDockWidthPreview,
+    setLeftDockStackHeight,
+    setLeftDockStackSplitRatio,
+    setLeftDockWidth,
+  ])
 
   const handleLeftDockResizeStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -247,14 +322,34 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
         return
       }
       setLeftDockResizeMenu(null)
-      leftDockResizeRef.current = {
-        startPointerX: event.clientX,
-        startWidth: leftDockWidth,
+      const resizeTarget = (
+        event.currentTarget.dataset.leftDockResizeTarget as LeftDockVerticalResizeTarget | undefined
+      ) ?? 'width'
+      if (resizeTarget === 'stack-height') {
+        leftDockResizeRef.current = {
+          target: 'stack-height',
+          startPointerY: event.clientY,
+          startHeight: leftDockStackHeight,
+        }
+      } else if (resizeTarget === 'stack-split') {
+        const stackShell = event.currentTarget.closest('.PrimaryViewportLeftDockPanelStackShell')
+        const stackRect = stackShell?.getBoundingClientRect()
+        leftDockResizeRef.current = {
+          target: 'stack-split',
+          stackTop: stackRect?.top ?? event.clientY,
+          stackHeight: stackRect?.height ?? leftDockStackHeight,
+        }
+      } else {
+        leftDockResizeRef.current = {
+          target: 'width',
+          startPointerX: event.clientX,
+          startWidth: leftDockWidth,
+        }
       }
       event.preventDefault()
       event.stopPropagation()
     },
-    [leftDockWidth, setLeftDockResizeMenu],
+    [leftDockStackHeight, leftDockWidth, setLeftDockResizeMenu],
   )
 
   const handleLeftDockResizeContextMenu = useCallback(

@@ -17,6 +17,7 @@ import {
   mergePersistedUiPrefsView,
   serializePersistedUiPrefs,
 } from './uiPrefsPersistence'
+import { defaultSpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 import { useUiPrefsStore } from './uiPrefsStore'
 import { setProjectionModeCommand } from '../viewCommands'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
@@ -136,13 +137,18 @@ describe('scene presentation edit-history readiness', () => {
     })
 
     const currentView = useUiPrefsStore.getState().view
-    const serialized = serializePersistedUiPrefs(currentView, 'modelViewer', {
-      workspaceRestorePersistence: true,
-      viewSettingsPersistence: false,
-      environmentPersistence: true,
-      dashboardPersistence: true,
-      notepadPersistence: true,
-    })
+    const serialized = serializePersistedUiPrefs(
+      currentView,
+      'modelViewer',
+      defaultSpaghettiWindowAppearance,
+      {
+        workspaceRestorePersistence: true,
+        viewSettingsPersistence: false,
+        environmentPersistence: true,
+        dashboardPersistence: true,
+        notepadPersistence: true,
+      },
+    )
 
     expect(serialized.view.envPreset).toBe(currentView.envPreset)
     expect(serialized.view.environmentGrade).toEqual(currentView.environmentGrade)
@@ -307,13 +313,18 @@ describe('scene presentation edit-history readiness', () => {
     ])
     expect(editHistoryStore.canRedo()).toBe(true)
 
-    const serializedView = serializePersistedUiPrefs(useUiPrefsStore.getState().view, 'modelViewer', {
-      workspaceRestorePersistence: true,
-      viewSettingsPersistence: true,
-      environmentPersistence: false,
-      dashboardPersistence: true,
-      notepadPersistence: true,
-    }).view
+    const serializedView = serializePersistedUiPrefs(
+      useUiPrefsStore.getState().view,
+      'modelViewer',
+      defaultSpaghettiWindowAppearance,
+      {
+        workspaceRestorePersistence: true,
+        viewSettingsPersistence: true,
+        environmentPersistence: false,
+        dashboardPersistence: true,
+        notepadPersistence: true,
+      },
+    ).view
     expect(serializedView.ground).toEqual(useUiPrefsStore.getState().view.ground)
 
     const environmentOnlyView = applyPersistedUiPrefsView(DEFAULT_VIEW_SETTINGS, {

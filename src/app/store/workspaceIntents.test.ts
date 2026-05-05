@@ -167,6 +167,45 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
   })
 
+  it('can request a canvas fit when opening a graph node through the shared workspace intent seam', async () => {
+    const { activateGraphNodeIntent } = await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+      ],
+      edges: [],
+    })
+
+    const result = activateGraphNodeIntent(
+      {
+        app: useAppStore.getState(),
+        spaghetti: useSpaghettiStore.getState(),
+      },
+      'graph-document-1',
+      'node-sketch-1',
+      {
+        strategy: 'open-or-focus',
+        fitCanvasInViewport: true,
+      },
+    )
+
+    expect(result.editorViewportId).not.toBeNull()
+    expect(useSpaghettiStore.getState().editorViewportCanvasFitRequest).toMatchObject({
+      editorViewportId: result.editorViewportId,
+    })
+  })
+
   it('routes graph-document targets through the shared graph-target intent helper', async () => {
     const { activateGraphTargetIntent } = await import('./workspaceIntents')
     const { useAppStore } = await import('./useAppStore')

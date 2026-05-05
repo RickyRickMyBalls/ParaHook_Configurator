@@ -7,7 +7,12 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react'
-import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
+import {
+  MIN_SPAGHETTI_NODE_WIDTH,
+  type PortSpec,
+  type SpaghettiGraph,
+  type SpaghettiNode,
+} from '../schema/spaghettiTypes'
 import type { SketchComponent, SketchFeature } from '../features/featureTypes'
 import type { PartRowOrderSection } from '../parts/partRowOrder'
 import {
@@ -137,6 +142,7 @@ type NodeViewProps = {
   node: SpaghettiNode
   x: number
   y: number
+  width?: number
   title: string
   nodeMode?: ViewMode
   template?: 'part' | 'sketch' | 'extrude'
@@ -219,6 +225,11 @@ type NodeViewProps = {
     nodeId: string,
   ) => void
   onNodeBodyPointerDown: (event: PointerEvent<HTMLElement>, nodeId: string) => void
+  onNodeResizeHandlePointerDown: (
+    event: PointerEvent<HTMLElement>,
+    nodeId: string,
+    direction: NodeResizeHandleDirection,
+  ) => void
   onNodeTitleClick: (nodeId: string) => void
   onRegisterPortElement: (
     nodeId: string,
@@ -268,6 +279,8 @@ const leafLabel = (path: string[], fallback?: string): string => {
   }
   return 'Value'
 }
+
+type NodeResizeHandleDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
 const formatCompositeContractLabel = (label: string): string =>
   label.length > 0 ? label : 'Composite'
@@ -386,6 +399,7 @@ function NodeViewComponent({
   node,
   x,
   y,
+  width,
   title,
   nodeMode = 'essentials',
   template,
@@ -439,6 +453,7 @@ function NodeViewComponent({
   onPinDotSizeChange,
   onNodeHeaderPointerDown,
   onNodeBodyPointerDown,
+  onNodeResizeHandlePointerDown,
   onNodeTitleClick,
   onRegisterPortElement,
   onOutputPointerDown,
@@ -465,6 +480,8 @@ function NodeViewComponent({
   const isPartTemplate = template === 'part'
   const isSketchTemplate = template === 'sketch'
   const isExtrudeTemplate = template === 'extrude'
+  const isOutputPreviewTemplate =
+    node.type === OUTPUT_PREVIEW_NODE_TYPE && outputPreviewRows !== undefined
   const showPresetPicker = isPartTemplate
 
   const nodeElementRef = useRef<HTMLElement | null>(null)
@@ -649,8 +666,9 @@ function NodeViewComponent({
     getManagedStructuredWirePortConfig(direction, portId) !== null
 
   const isGeometryBlockManaged = (blockId: GeometryBlockId): boolean =>
-    (isSketchTemplate || isExtrudeTemplate) &&
-    (blockId === 'inputs' || blockId === 'content' || blockId === 'outputs')
+    ((isSketchTemplate || isExtrudeTemplate) &&
+      (blockId === 'inputs' || blockId === 'content' || blockId === 'outputs')) ||
+    (isOutputPreviewTemplate && (blockId === 'inputs' || blockId === 'content'))
 
   const isGeometryBlockOpenByDefault = (blockId: GeometryBlockId): boolean => {
     if (!isGeometryBlockManaged(blockId)) {
@@ -778,6 +796,12 @@ function NodeViewComponent({
     event.stopPropagation()
     onNodeBodyPointerDown(event, node.nodeId)
   }
+
+  const handleResizeHandlePointerDown =
+    (direction: NodeResizeHandleDirection) => (event: PointerEvent<HTMLElement>) => {
+      event.stopPropagation()
+      onNodeResizeHandlePointerDown(event, node.nodeId, direction)
+    }
 
   const handleNodeTitlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     event.stopPropagation()
@@ -3304,14 +3328,29 @@ function NodeViewComponent({
         }),
       )
     }
+    const updateExtrudeParamsWithHistory = (
+      nextParams: Record<string, unknown>,
+      targetId: string,
+      targetLabel: string,
+    ) => {
+      const beforeGraph = useSpaghettiStore.getState().graph
+      updateExtrudeParams(nextParams)
+      commitGraphNodeParameterWithHistory({
+        nodeId: node.nodeId,
+        beforeGraph,
+        targetId,
+        targetLabel,
+      })
+    }
     const depthRowProps = createStructuredWireNumericRowProps({
       effectiveValue: effectiveDepthMm,
       localFallbackValue: localDepthMm,
       unitLabel: 'mm',
       driven: extrudeVm?.depthDriven === true,
       editorEnabled: showEditors,
-      onInteractionStart: beginGraphParameterInteraction,
-      onInteractionEnd: endGraphParameterInteraction,
+      onInteractionStart: () =>
+        beginGenericGraphParameterInteraction(`${node.nodeId}:extrude:depthMm`, 'Extrude depth'),
+      onInteractionEnd: endGenericGraphParameterInteraction,
       inputRange: {
         min: 0.1,
         max: 100,
@@ -3331,8 +3370,12 @@ function NodeViewComponent({
       unitLabel: 'mm',
       driven: extrudeVm?.startDepthDriven === true,
       editorEnabled: showEditors,
-      onInteractionStart: beginGraphParameterInteraction,
-      onInteractionEnd: endGraphParameterInteraction,
+      onInteractionStart: () =>
+        beginGenericGraphParameterInteraction(
+          `${node.nodeId}:extrude:startDepthMm`,
+          'Extrude start depth',
+        ),
+      onInteractionEnd: endGenericGraphParameterInteraction,
       inputRange: {
         min: 0.1,
         max: 100,
@@ -3352,8 +3395,12 @@ function NodeViewComponent({
       unitLabel: 'mm',
       driven: extrudeVm?.endDepthDriven === true,
       editorEnabled: showEditors,
-      onInteractionStart: beginGraphParameterInteraction,
-      onInteractionEnd: endGraphParameterInteraction,
+      onInteractionStart: () =>
+        beginGenericGraphParameterInteraction(
+          `${node.nodeId}:extrude:endDepthMm`,
+          'Extrude end depth',
+        ),
+      onInteractionEnd: endGenericGraphParameterInteraction,
       inputRange: {
         min: 0.1,
         max: 100,
@@ -3373,8 +3420,12 @@ function NodeViewComponent({
       unitLabel: 'deg',
       driven: extrudeVm?.taperDriven === true,
       editorEnabled: showEditors,
-      onInteractionStart: beginGraphParameterInteraction,
-      onInteractionEnd: endGraphParameterInteraction,
+      onInteractionStart: () =>
+        beginGenericGraphParameterInteraction(
+          `${node.nodeId}:extrude:taperAngleDeg`,
+          'Extrude taper angle',
+        ),
+      onInteractionEnd: endGenericGraphParameterInteraction,
       inputRange: {
         min: -45,
         max: 45,
@@ -3401,10 +3452,14 @@ function NodeViewComponent({
         if (value !== 'Body' && value !== 'Walls') {
           return
         }
-        updateExtrudeParams({
-          ...node.params,
-          extrudeType: value,
-        })
+        updateExtrudeParamsWithHistory(
+          {
+            ...node.params,
+            extrudeType: value,
+          },
+          `${node.nodeId}:extrude:extrudeType`,
+          'Extrude type',
+        )
       },
     })
     const directionRowProps = createStructuredWireEnumRowProps({
@@ -3421,10 +3476,14 @@ function NodeViewComponent({
         if (value !== 'OneSide' && value !== 'TwoSides' && value !== 'Symmetric') {
           return
         }
-        updateExtrudeParams({
-          ...node.params,
-          extrudeDirection: value,
-        })
+        updateExtrudeParamsWithHistory(
+          {
+            ...node.params,
+            extrudeDirection: value,
+          },
+          `${node.nodeId}:extrude:extrudeDirection`,
+          'Extrude direction',
+        )
       },
     })
     const bodyGenerationModeOptions = [
@@ -3583,10 +3642,14 @@ function NodeViewComponent({
                       if (nextValue !== 'Combine' && nextValue !== 'NewObjects') {
                         return
                       }
-                      updateExtrudeParams({
-                        ...node.params,
-                        bodyGenerationMode: nextValue,
-                      })
+                      updateExtrudeParamsWithHistory(
+                        {
+                          ...node.params,
+                          bodyGenerationMode: nextValue,
+                        },
+                        `${node.nodeId}:extrude:bodyGenerationMode`,
+                        'Extrude output',
+                      )
                     }}
                     menuMode="custom"
                     capGlyph="chevron"
@@ -3610,21 +3673,16 @@ function NodeViewComponent({
   }
 
   const renderOutputPreviewTemplate = () => (
-    <div className="SpaghettiNodeTemplate SpaghettiOutputPreviewTemplate">
-      <section className="SpaghettiNodeSection SpaghettiTemplateSection SpaghettiOutputPreviewSection">
-        <label className="SpaghettiOutputPreviewComponentRow" {...SP_INTERACTIVE_PROPS}>
-          <span className="SpaghettiNodeSectionLabel">Component</span>
-          <input
-            className="SpaghettiOutputPreviewComponentInput"
-            type="text"
-            value={outputPreviewComponentLabel ?? ''}
-            disabled={!showEditors}
-            onPointerDown={(event) => event.stopPropagation()}
-            onChange={(event) => {
-              onOutputPreviewComponentLabelChange?.(node.nodeId, event.target.value)
-            }}
-          />
-        </label>
+    <GeometryNodeShell
+      className="SpaghettiOutputPreviewTemplate"
+      title="Preview"
+      badge="Output"
+      contentLabel="Component"
+      inputRailOpen={isGeometryBlockOpen('inputs')}
+      onInputRailToggle={() => toggleGeometryBlock('inputs')}
+      contentOpen={isGeometryBlockOpen('content')}
+      onContentToggle={() => toggleGeometryBlock('content')}
+      inputRail={
         <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
           {(outputPreviewRows ?? []).map((row, rowIndex, allRows) => {
             const activeOutputPreviewRowCount = allRows.filter(
@@ -3752,8 +3810,22 @@ function NodeViewComponent({
             )
           })}
         </div>
-      </section>
-    </div>
+      }
+    >
+      <label className="SpaghettiOutputPreviewComponentRow" {...SP_INTERACTIVE_PROPS}>
+        <span>Name</span>
+        <input
+          className="SpaghettiOutputPreviewComponentInput"
+          type="text"
+          value={outputPreviewComponentLabel ?? ''}
+          disabled={!showEditors}
+          onPointerDown={(event) => event.stopPropagation()}
+          onChange={(event) => {
+            onOutputPreviewComponentLabelChange?.(node.nodeId, event.target.value)
+          }}
+        />
+      </label>
+    </GeometryNodeShell>
   )
 
   const renderUtilityNodeTemplate = () => {
@@ -3883,8 +3955,23 @@ function NodeViewComponent({
       } ${
         showInternalWiring ? 'SpaghettiNode--showInternalWiring' : ''
       }`}
-      style={{ left: `${x}px`, top: `${y}px` }}
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+        minWidth: `${MIN_SPAGHETTI_NODE_WIDTH}px`,
+        ...(typeof width === 'number' ? { width: `${width}px` } : {}),
+      }}
     >
+      {selected
+        ? (['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((direction) => (
+            <div
+              key={direction}
+              className={`SpaghettiNodeResizeHandle SpaghettiNodeResizeHandle--${direction}`}
+              data-sp-node-resize-handle={direction}
+              onPointerDown={handleResizeHandlePointerDown(direction)}
+            />
+          ))
+        : null}
       <header
         className="SpaghettiNodeHeader"
         data-sp-node-header-zone="1"
@@ -4015,7 +4102,7 @@ function NodeViewComponent({
           </section>
         ) : null}
 
-        {node.type === OUTPUT_PREVIEW_NODE_TYPE && outputPreviewRows !== undefined
+        {isOutputPreviewTemplate
           ? renderOutputPreviewTemplate()
           : isPartTemplate
             ? renderPartTemplate()

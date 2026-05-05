@@ -56,6 +56,7 @@ export type PortSpec = {
 export type NodeUI = {
   x: number
   y: number
+  width?: number
   collapsed?: boolean
   color?: string
   zIndex?: number
@@ -117,9 +118,13 @@ export type SpaghettiEdge = {
   to: EdgeEndpoint
 }
 
+export const DEFAULT_SPAGHETTI_NODE_WIDTH = 260
+export const MIN_SPAGHETTI_NODE_WIDTH = 220
+
 export type GraphNodePos = {
   x: number
   y: number
+  width?: number
 }
 
 export type NodeRowMode = 'collapsed' | 'essentials' | 'expanded'
@@ -168,7 +173,7 @@ export type EditorViewportSize = {
 }
 
 export type EditorViewportRestoreFromCollapsed = {
-  windowMode: 'expanded' | 'maximized' | 'split view'
+  windowMode: 'expanded' | 'maximized' | 'split view' | 'meatball editor view'
   position?: EditorViewportPosition
   size?: EditorViewportSize
   splitRatio?: number

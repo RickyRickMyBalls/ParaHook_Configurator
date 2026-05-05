@@ -44,6 +44,7 @@ import {
 } from '../graphCommands'
 import {
   editHistoryStore,
+  type EditHistoryEntryChildRestorePoint,
   type EditHistoryEntryChildSummary,
 } from '../../store/editHistoryStore'
 import { isPartNodeType, normalizePartSlots } from '../parts/partSlots'
@@ -70,6 +71,10 @@ import {
   type GeometrySketchDrawCommand,
   type PrimarySketchDrawTool,
 } from '../sketchCommands/drawCommands'
+import {
+  DEFAULT_SPAGHETTI_NODE_WIDTH,
+  MIN_SPAGHETTI_NODE_WIDTH,
+} from '../schema/spaghettiTypes'
 import type {
   EdgeEndpoint,
   EditorViewport,
@@ -148,6 +153,7 @@ type NodePosUpdate = {
   nodeId: string
   x: number
   y: number
+  width?: number
 }
 
 type EdgeWaypoint = {
@@ -213,6 +219,7 @@ type CommitGeometrySketchFeatureHistoryOptions = {
   targetId?: string
   targetLabel?: string
   childSummaries?: readonly EditHistoryEntryChildSummary[]
+  childRestorePoints?: readonly EditHistoryEntryChildRestorePoint[]
 }
 
 export type GraphCompileBuildState = {
@@ -792,6 +799,15 @@ export type GeometrySketchSession = {
   sessionRedoCommands: GeometrySketchSessionHistoryCommand[]
 }
 
+export type GeometrySketchHistoryScrubState = {
+  parentEntryId: string
+  childId: string
+  graphDocumentId: string
+  nodeId: string
+  childLabel: string
+  childSequence: number
+}
+
 export type SpaghettiStoreState = {
   graph: SpaghettiGraph
   graphDocumentsById: Record<string, GraphDocument>
@@ -808,6 +824,9 @@ export type SpaghettiStoreState = {
   activeEditorViewportId: string
   editorViewportHeaderCollapsedById: Record<string, boolean>
   editorViewportCanvasToolbarVisibleById: Record<string, boolean>
+  editorViewportOverlayModeById: Record<string, boolean>
+  editorViewportOverlayCanvasHiddenById: Record<string, boolean>
+  editorViewportOverlayBackgroundOpacityById: Record<string, number>
   newNodeSpawnMode: NodeRowMode
   editorViewportSelectedNodeIdById: Record<string, string | null>
   editorViewportSelectedEdgeIdById: Record<string, string | null>
@@ -824,6 +843,7 @@ export type SpaghettiStoreState = {
   connectionDrag: ConnectionDragState | null
   sketchPlanePickSession: SketchPlanePickSession | null
   geometrySketchSession: GeometrySketchSession | null
+  geometrySketchHistoryScrub: GeometrySketchHistoryScrubState | null
   geometrySketchLocalHistoryByTargetId: Record<string, GeometrySketchLocalHistoryState>
   uiMessage: CanvasUiMessage | null
   setGraph: (next: SpaghettiGraph) => void
@@ -905,6 +925,8 @@ export type SpaghettiStoreState = {
   setGeometrySketchPlaneInPlaneRotation: (nodeId: string, rotationDeg: number) => void
   startGeometrySketchSession: (nodeId: string, mode: GeometrySketchSession['mode']) => void
   closeGeometrySketchSession: () => void
+  openGeometrySketchHistoryScrub: (input: GeometrySketchHistoryScrubState) => boolean
+  clearGeometrySketchHistoryScrub: () => void
   returnActiveSketchSessionOneLevel: () => void
   runGeometrySketchDrawCommand: (command: GeometrySketchDrawCommand) => void
   setGeometrySketchSessionTool: (tool: GeometrySketchTool) => void
@@ -1059,8 +1081,10 @@ export type SpaghettiStoreState = {
   setEditorViewportCanvasToolbarVisible: (editorViewportId: string, visible: boolean) => void
   setEditorViewportPresentationMode: (
     editorViewportId: string,
-    mode: 'collapsed' | 'essentials' | 'expanded',
+    mode: 'collapsed' | 'essentials' | 'expanded' | 'overlay',
   ) => void
+  setEditorViewportOverlayCanvasHidden: (editorViewportId: string, hidden: boolean) => void
+  setEditorViewportOverlayBackgroundOpacity: (editorViewportId: string, opacity: number) => void
   setEditorViewportSplitRatio: (editorViewportId: string, splitRatio: number) => void
   setEditorViewportSplitDirection: (
     editorViewportId: string,
@@ -1166,6 +1190,9 @@ type ViewportStateSlice = Pick<
   | 'activeEditorViewportId'
   | 'editorViewportHeaderCollapsedById'
   | 'editorViewportCanvasToolbarVisibleById'
+  | 'editorViewportOverlayModeById'
+  | 'editorViewportOverlayCanvasHiddenById'
+  | 'editorViewportOverlayBackgroundOpacityById'
 >
 
 const defaultGridColumns = 4
@@ -1185,6 +1212,18 @@ const EMPTY_PART_ARTIFACTS: PartArtifact[] = []
 const EMPTY_GRAPH_RECEIVE_REFERENCES: GraphReceiveReference[] = []
 const EMPTY_RESOLVED_GRAPH_RECEIVE_REFERENCES: ResolvedGraphReceiveReference[] = []
 const EMPTY_SHARED_VIEWER_COMPOSITION_GRAPH_DOCUMENT_IDS: string[] = []
+const overlayBackgroundOpacityMin = 0
+const overlayBackgroundOpacityMax = 1
+const overlayBackgroundOpacityStep = 0.05
+
+const normalizeOverlayBackgroundOpacity = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  const clamped = Math.min(overlayBackgroundOpacityMax, Math.max(overlayBackgroundOpacityMin, value))
+  const steps = Math.round((clamped - overlayBackgroundOpacityMin) / overlayBackgroundOpacityStep)
+  return Number((overlayBackgroundOpacityMin + steps * overlayBackgroundOpacityStep).toFixed(4))
+}
 
 const compareNodes = (a: SpaghettiNode, b: SpaghettiNode): number =>
   a.nodeId.localeCompare(b.nodeId) || a.type.localeCompare(b.type)
@@ -1196,6 +1235,11 @@ const isNodeRowMode = (value: unknown): value is NodeRowMode =>
   value === 'collapsed' || value === 'essentials' || value === 'expanded'
 
 const roundPos = (value: number): number => Math.round(value)
+const roundNodeWidth = (value: number): number => Math.round(value)
+const normalizeNodeWidth = (value: unknown): number =>
+  isFiniteNumber(value) && value > 0
+    ? Math.max(MIN_SPAGHETTI_NODE_WIDTH, roundNodeWidth(value))
+    : DEFAULT_SPAGHETTI_NODE_WIDTH
 
 const defaultPosForIndex = (index: number): GraphNodePos => ({
   x: defaultXStart + (index % defaultGridColumns) * defaultXStep,
@@ -1588,6 +1632,7 @@ const normalizeGraphUiPositions = (graph: SpaghettiGraph): SpaghettiGraph => {
       normalizedNodePos[node.nodeId] = {
         x: roundPos(canonical.x),
         y: roundPos(canonical.y),
+        width: normalizeNodeWidth(canonical.width),
       }
       return
     }
@@ -1596,11 +1641,15 @@ const normalizeGraphUiPositions = (graph: SpaghettiGraph): SpaghettiGraph => {
       normalizedNodePos[node.nodeId] = {
         x: roundPos(node.ui.x),
         y: roundPos(node.ui.y),
+        width: normalizeNodeWidth(node.ui.width),
       }
       return
     }
 
-    normalizedNodePos[node.nodeId] = defaultPosForIndex(index)
+    normalizedNodePos[node.nodeId] = {
+      ...defaultPosForIndex(index),
+      width: DEFAULT_SPAGHETTI_NODE_WIDTH,
+    }
   })
 
   const normalizedEdges = graph.edges.map((edge) => ({
@@ -1803,10 +1852,25 @@ const getGeometrySketchToolSelectionHistoryLabel = (tool: GeometrySketchTool): s
 const roundGraphNodePos = (pos: GraphNodePos): GraphNodePos => ({
   x: roundPos(pos.x),
   y: roundPos(pos.y),
+  ...(typeof pos.width === 'number' && Number.isFinite(pos.width)
+    ? { width: roundPos(pos.width) }
+    : {}),
+})
+
+const normalizeGraphNodeHistoryPos = (
+  pos: GraphNodePos,
+  fallbackWidth: number,
+): GraphNodePos => ({
+  x: roundPos(pos.x),
+  y: roundPos(pos.y),
+  width:
+    typeof pos.width === 'number' && Number.isFinite(pos.width)
+      ? normalizeNodeWidth(pos.width)
+      : fallbackWidth,
 })
 
 const areGraphNodePositionsEqual = (left: GraphNodePos, right: GraphNodePos): boolean =>
-  left.x === right.x && left.y === right.y
+  left.x === right.x && left.y === right.y && left.width === right.width
 
 const areNormalizedGraphsEqual = (left: SpaghettiGraph, right: SpaghettiGraph): boolean =>
   JSON.stringify(left) === JSON.stringify(right)
@@ -2010,6 +2074,10 @@ const restoreGeometrySketchNodeParameterSnapshot = (
       return {
         ...withUpdatedActiveGraphDocumentState(current, nextGraph),
         geometrySketchSession: pruneGeometrySketchSession(nextGraph, current.geometrySketchSession),
+        geometrySketchHistoryScrub: pruneGeometrySketchHistoryScrub(
+          nextGraph,
+          current.geometrySketchHistoryScrub,
+        ),
         geometrySketchLocalHistoryByTargetId: nextHistoryByTargetId,
       }
     })
@@ -2275,6 +2343,9 @@ const commitGeometrySketchFeatureHistoryCommand = (
     ...(options.childSummaries === undefined || options.childSummaries.length === 0
       ? {}
       : { childSummaries: options.childSummaries }),
+    ...(options.childRestorePoints === undefined || options.childRestorePoints.length === 0
+      ? {}
+      : { childRestorePoints: options.childRestorePoints }),
     undo: () =>
       restoreGeometrySketchNodeParameterSnapshot(
         graphDocumentId,
@@ -2339,6 +2410,36 @@ const createGeometrySketchChildSummaries = (
     kind: command.kind,
     sequence: index + 1,
   }))
+
+const createGeometrySketchChildRestorePoints = (options: {
+  graphDocumentId: string
+  nodeId: string
+  baselineParams: SpaghettiNode['params']
+  commands: readonly GeometrySketchSessionHistoryCommand[]
+}): EditHistoryEntryChildRestorePoint[] => {
+  let boundaryParams = cloneNodeParams(options.baselineParams)
+  return options.commands.map((command, index) => {
+    if (command.kind === 'geometry') {
+      boundaryParams = cloneNodeParams(command.afterParams)
+    }
+
+    const restoreParams = cloneNodeParams(boundaryParams)
+    const restoreLocalHistory = buildGeometrySketchLocalHistoryState(
+      options.commands.slice(0, index + 1),
+      options.commands.slice(index + 1),
+    )
+    return {
+      childId: command.commandId,
+      restore: () =>
+        restoreGeometrySketchNodeParameterSnapshot(
+          options.graphDocumentId,
+          options.nodeId,
+          restoreParams,
+          restoreLocalHistory,
+        ),
+    }
+  })
+}
 
 const commitPartFeatureParameterHistoryCommand = (
   options: CommitPartFeatureParameterHistoryOptions,
@@ -2427,17 +2528,22 @@ const commitGraphNodeMoveHistoryCommand = (
     return false
   }
 
-  const from = roundGraphNodePos(options.from)
-  const to = roundGraphNodePos(options.to)
+  const currentPos = graph.ui?.nodes?.[options.nodeId]
+  const fallbackWidth = normalizeNodeWidth(
+    options.to.width ?? options.from.width ?? currentPos?.width,
+  )
+  const from = normalizeGraphNodeHistoryPos(options.from, fallbackWidth)
+  const to = normalizeGraphNodeHistoryPos(options.to, fallbackWidth)
   if (areGraphNodePositionsEqual(from, to)) {
     return false
   }
+  const widthChanged = from.width !== to.width
 
   restoreGraphNodePositionSnapshot(graphDocumentId, options.nodeId, to)
 
   return editHistoryStore.commitEntry({
     entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
-    label: 'Move graph node',
+    label: widthChanged ? 'Resize graph node' : 'Move graph node',
     source: graphNodeMoveHistorySource,
     targetId: options.nodeId,
     targetLabel: options.nodeId,
@@ -3179,12 +3285,22 @@ const upsertNodePos = (
     if (!canonical.nodes.some((node) => node.nodeId === nodeId)) {
       continue
     }
+    const prev = nextPos[nodeId]
     const rounded = {
       x: roundPos(pos.x),
       y: roundPos(pos.y),
+      ...((typeof pos.width === 'number' && Number.isFinite(pos.width))
+        ? { width: roundPos(pos.width) }
+        : typeof prev?.width === 'number'
+          ? { width: prev.width }
+          : {}),
     }
-    const prev = nextPos[nodeId]
-    if (prev !== undefined && prev.x === rounded.x && prev.y === rounded.y) {
+    if (
+      prev !== undefined &&
+      prev.x === rounded.x &&
+      prev.y === rounded.y &&
+      prev.width === rounded.width
+    ) {
       continue
     }
     nextPos[nodeId] = rounded
@@ -3284,6 +3400,18 @@ const pruneGeometrySketchSession = (
     selectedComponentIds: nextSelectedComponentIds,
     hoveredComponentId: nextHoveredComponentId,
   }
+}
+
+const pruneGeometrySketchHistoryScrub = (
+  graph: SpaghettiGraph,
+  scrub: GeometrySketchHistoryScrubState | null,
+): GeometrySketchHistoryScrubState | null => {
+  if (scrub === null) {
+    return null
+  }
+
+  const node = graph.nodes.find((candidate) => candidate.nodeId === scrub.nodeId)
+  return node !== undefined && isGeometrySketchNode(node) ? scrub : null
 }
 
 const normalizeGeometrySketchSelectionIds = (rowIds: readonly string[]): string[] => {
@@ -3510,6 +3638,13 @@ const snapshotExpandedRestoreState = (
 const snapshotCollapsedRestoreState = (
   viewport: EditorViewport,
 ): EditorViewportRestoreFromCollapsed => {
+  if (viewport.windowMode === 'meatball editor view') {
+    return {
+      windowMode: 'meatball editor view',
+      position: viewport.position,
+      size: viewport.size,
+    }
+  }
   if (viewport.windowMode === 'split view') {
     return {
       windowMode: 'split view',
@@ -3891,6 +4026,8 @@ type BrowserViewportState = Pick<
   | 'activeEditorViewportId'
   | 'editorViewportHeaderCollapsedById'
   | 'editorViewportCanvasToolbarVisibleById'
+  | 'editorViewportOverlayModeById'
+  | 'editorViewportOverlayBackgroundOpacityById'
   | 'editorViewportSelectedNodeIdById'
   | 'editorViewportSelectedEdgeIdById'
   | 'editorViewportConsolePreviewNodeIdById'
@@ -3948,6 +4085,9 @@ const withBrowserViewportState = (
     activeEditorViewportId?: string
     editorViewportHeaderCollapsedById?: Record<string, boolean>
     editorViewportCanvasToolbarVisibleById?: Record<string, boolean>
+    editorViewportOverlayModeById?: Record<string, boolean>
+    editorViewportOverlayCanvasHiddenById?: Record<string, boolean>
+    editorViewportOverlayBackgroundOpacityById?: Record<string, number>
     editorViewportSelectedNodeIdById?: Record<string, string | null>
     editorViewportSelectedEdgeIdById?: Record<string, string | null>
     editorViewportConsolePreviewNodeIdById?: Record<string, string | null>
@@ -3986,6 +4126,25 @@ const withBrowserViewportState = (
   const editorViewportCanvasToolbarVisibleById = pruneViewportBooleanRecord(
     next.editorViewportCanvasToolbarVisibleById ?? state.editorViewportCanvasToolbarVisibleById,
     editorViewportsById,
+  )
+  const editorViewportOverlayModeById = pruneViewportBooleanRecord(
+    next.editorViewportOverlayModeById ?? state.editorViewportOverlayModeById,
+    editorViewportsById,
+  )
+  const editorViewportOverlayCanvasHiddenById = pruneViewportBooleanRecord(
+    next.editorViewportOverlayCanvasHiddenById ?? state.editorViewportOverlayCanvasHiddenById,
+    editorViewportsById,
+  )
+  const editorViewportOverlayBackgroundOpacityById = Object.fromEntries(
+    Object.entries(
+      next.editorViewportOverlayBackgroundOpacityById ??
+        state.editorViewportOverlayBackgroundOpacityById,
+    )
+      .filter(([editorViewportId]) => editorViewportsById[editorViewportId] !== undefined)
+      .map(([editorViewportId, opacity]) => [
+        editorViewportId,
+        normalizeOverlayBackgroundOpacity(opacity),
+      ]),
   )
   const editorViewportSelectedNodeIdById = pruneViewportNullableStringRecord(
     next.editorViewportSelectedNodeIdById ?? state.editorViewportSelectedNodeIdById,
@@ -4061,6 +4220,9 @@ const withBrowserViewportState = (
     activeEditorViewportId,
     editorViewportHeaderCollapsedById,
     editorViewportCanvasToolbarVisibleById,
+    editorViewportOverlayModeById,
+    editorViewportOverlayCanvasHiddenById,
+    editorViewportOverlayBackgroundOpacityById,
     editorViewportSelectedNodeIdById,
     editorViewportSelectedEdgeIdById,
     editorViewportConsolePreviewNodeIdById,
@@ -4125,6 +4287,9 @@ const appendFocusedViewport = (
     | 'graphDocumentsById'
     | 'editorViewportHeaderCollapsedById'
     | 'editorViewportCanvasToolbarVisibleById'
+    | 'editorViewportOverlayModeById'
+    | 'editorViewportOverlayCanvasHiddenById'
+    | 'editorViewportOverlayBackgroundOpacityById'
   >,
   graphDocumentId: string,
 ): {
@@ -4133,6 +4298,9 @@ const appendFocusedViewport = (
   editorViewportOrder: string[]
   editorViewportHeaderCollapsedById: Record<string, boolean>
   editorViewportCanvasToolbarVisibleById: Record<string, boolean>
+  editorViewportOverlayModeById: Record<string, boolean>
+  editorViewportOverlayCanvasHiddenById: Record<string, boolean>
+  editorViewportOverlayBackgroundOpacityById: Record<string, number>
 } | null => {
   if (state.graphDocumentsById[graphDocumentId] === undefined) {
     return null
@@ -4161,6 +4329,17 @@ const appendFocusedViewport = (
     editorViewportCanvasToolbarVisibleById: {
       ...state.editorViewportCanvasToolbarVisibleById,
       [editorViewportId]: false,
+    },
+    editorViewportOverlayModeById: {
+      ...state.editorViewportOverlayModeById,
+      [editorViewportId]: false,
+    },
+    editorViewportOverlayCanvasHiddenById: {
+      ...state.editorViewportOverlayCanvasHiddenById,
+      [editorViewportId]: false,
+    },
+    editorViewportOverlayBackgroundOpacityById: {
+      ...state.editorViewportOverlayBackgroundOpacityById,
     },
   }
 }
@@ -4193,6 +4372,9 @@ const withInitialGraphDocumentState = (
       activeEditorViewportId: '',
       editorViewportHeaderCollapsedById: {},
       editorViewportCanvasToolbarVisibleById: {},
+      editorViewportOverlayModeById: {},
+      editorViewportOverlayCanvasHiddenById: {},
+      editorViewportOverlayBackgroundOpacityById: {},
       editorViewportSelectedNodeIdById: {},
       editorViewportSelectedEdgeIdById: {},
       editorViewportConsolePreviewNodeIdById: {},
@@ -4225,6 +4407,8 @@ const withUpdatedActiveGraphDocumentState = (
     | 'activeEditorViewportId'
     | 'editorViewportHeaderCollapsedById'
     | 'editorViewportCanvasToolbarVisibleById'
+    | 'editorViewportOverlayModeById'
+    | 'editorViewportOverlayBackgroundOpacityById'
     | 'editorViewportSelectedNodeIdById'
     | 'editorViewportSelectedEdgeIdById'
     | 'editorViewportConsolePreviewNodeIdById'
@@ -4255,6 +4439,8 @@ const withUpdatedGraphDocumentState = (
     | 'activeEditorViewportId'
     | 'editorViewportHeaderCollapsedById'
     | 'editorViewportCanvasToolbarVisibleById'
+    | 'editorViewportOverlayModeById'
+    | 'editorViewportOverlayBackgroundOpacityById'
     | 'editorViewportSelectedNodeIdById'
     | 'editorViewportSelectedEdgeIdById'
     | 'editorViewportConsolePreviewNodeIdById'
@@ -4706,6 +4892,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   editorViewportCanvasFitRequest: null,
   editorViewportHeaderCollapsedById: {},
   editorViewportCanvasToolbarVisibleById: {},
+  editorViewportOverlayModeById: {},
+  editorViewportOverlayCanvasHiddenById: {},
+  editorViewportOverlayBackgroundOpacityById: {},
   newNodeSpawnMode: defaultNodeRowMode,
   editorViewportSelectedNodeIdById: {},
   editorViewportSelectedEdgeIdById: {},
@@ -4715,6 +4904,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   connectionDrag: null,
   sketchPlanePickSession: null,
   geometrySketchSession: null,
+  geometrySketchHistoryScrub: null,
   geometrySketchLocalHistoryByTargetId: {},
   uiMessage: null,
   setGraph: (next) => {
@@ -4747,6 +4937,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           nextGraph,
           state.geometrySketchSession,
         ),
+        geometrySketchHistoryScrub: null,
         geometrySketchLocalHistoryByTargetId: {},
         edgeWaypoints: {},
         uiMessage: null,
@@ -4760,6 +4951,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
         sketchPlanePickSession: pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession),
+        geometrySketchHistoryScrub: pruneGeometrySketchHistoryScrub(
+          nextGraph,
+          state.geometrySketchHistoryScrub,
+        ),
         edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
       }
     })
@@ -4771,6 +4966,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return {
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
         sketchPlanePickSession: pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession),
+        geometrySketchHistoryScrub: pruneGeometrySketchHistoryScrub(
+          nextGraph,
+          state.geometrySketchHistoryScrub,
+        ),
         edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
       }
     })
@@ -4795,6 +4994,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         updatesByNodeId[update.nodeId] = {
           x: update.x,
           y: update.y,
+          ...(typeof update.width === 'number' ? { width: update.width } : {}),
         }
       }
       const nextGraph = upsertNodePos(state.graph, updatesByNodeId)
@@ -6250,6 +6450,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 undoCommands: stagedBaselineHistory.undoCommands,
                 redoCommands: stagedBaselineHistory.redoCommands,
               }),
+        geometrySketchHistoryScrub: null,
         sketchPlanePickSession: null,
       }
     })
@@ -6300,6 +6501,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         ),
       }))
       if (hasAcceptedParamChange) {
+        const activeGraphDocumentId = get().activeGraphDocumentId
         commitGeometrySketchFeatureHistoryCommand({
           nodeId: session.nodeId,
           beforeGraph,
@@ -6310,6 +6512,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           targetId: `${session.nodeId}:sketch:components`,
           targetLabel: 'Sketch Draw changes',
           childSummaries: createGeometrySketchChildSummaries(session.sessionUndoCommands),
+          childRestorePoints: createGeometrySketchChildRestorePoints({
+            graphDocumentId: activeGraphDocumentId,
+            nodeId: session.nodeId,
+            baselineParams: session.stagedBaselineParams,
+            commands: session.sessionUndoCommands,
+          }),
         })
       }
     }
@@ -6321,6 +6529,34 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     ) {
       get().setEditorViewportWindowMode(session.editorViewportId, 'collapsed')
     }
+  },
+  openGeometrySketchHistoryScrub: (input) => {
+    let didOpen = false
+    set((state) => {
+      if (state.activeGraphDocumentId !== input.graphDocumentId) {
+        return state
+      }
+      const node = state.graph.nodes.find((candidate) => candidate.nodeId === input.nodeId)
+      if (node === undefined || !isGeometrySketchNode(node)) {
+        return state
+      }
+      didOpen = true
+      return {
+        geometrySketchHistoryScrub: { ...input },
+        geometrySketchSession: null,
+        sketchPlanePickSession: null,
+      }
+    })
+    return didOpen
+  },
+  clearGeometrySketchHistoryScrub: () => {
+    set((state) =>
+      state.geometrySketchHistoryScrub === null
+        ? state
+        : {
+          geometrySketchHistoryScrub: null,
+        },
+    )
   },
   returnActiveSketchSessionOneLevel: () => {
     const state = get()
@@ -8342,10 +8578,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           ? focusViewportCollection(nextViewportsById, fallbackViewportId)
           : nextViewportsById
 
+      const nextOverlayModeByViewportId = { ...state.editorViewportOverlayModeById }
+      delete nextOverlayModeByViewportId[editorViewportId]
+
       return withBrowserViewportState(state, {
         editorViewportsById: focusedViewportsById,
         editorViewportOrder: nextEditorViewportOrder,
         activeEditorViewportId: fallbackViewportId,
+        editorViewportOverlayModeById: nextOverlayModeByViewportId,
       })
     })
     useWorkspaceStore.getState().removeEditorSurfacePlacement(editorViewportId)
@@ -8786,6 +9026,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
   },
+  setEditorViewportOverlayCanvasHidden: (editorViewportId, hidden) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return {
+        editorViewportOverlayCanvasHiddenById: {
+          ...state.editorViewportOverlayCanvasHiddenById,
+          [editorViewportId]: hidden,
+        },
+      }
+    })
+  },
   setEditorViewportPresentationMode: (editorViewportId, mode) => {
     const state = get()
     const viewport = state.editorViewportsById[editorViewportId]
@@ -8793,7 +9046,26 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return
     }
 
+    const setOverlayMode = (isOverlay: boolean) => {
+      set((currentState) => {
+        if (currentState.editorViewportsById[editorViewportId] === undefined) {
+          return currentState
+        }
+        return {
+          editorViewportOverlayModeById: {
+            ...currentState.editorViewportOverlayModeById,
+            [editorViewportId]: isOverlay,
+          },
+          editorViewportOverlayCanvasHiddenById: {
+            ...currentState.editorViewportOverlayCanvasHiddenById,
+            [editorViewportId]: false,
+          },
+        }
+      })
+    }
+
     if (mode === 'collapsed') {
+      setOverlayMode(false)
       if (viewport.windowMode !== 'collapsed') {
         get().setEditorViewportWindowMode(editorViewportId, 'collapsed')
       }
@@ -8803,6 +9075,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     }
 
     if (mode === 'essentials') {
+      setOverlayMode(false)
+      if (viewport.windowMode === 'collapsed') {
+        get().setEditorViewportWindowMode(editorViewportId, 'collapsed')
+      } else if (viewport.windowMode === 'maximized') {
+        get().setEditorViewportWindowMode(editorViewportId, 'maximized')
+      }
+      get().setEditorViewportHeaderCollapsed(editorViewportId, true)
+      get().setEditorViewportCanvasToolbarVisible(editorViewportId, false)
+      return
+    }
+
+    if (mode === 'overlay') {
+      setOverlayMode(true)
       if (viewport.windowMode !== 'maximized') {
         get().setEditorViewportWindowMode(editorViewportId, 'maximized')
       }
@@ -8810,11 +9095,28 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       get().setEditorViewportCanvasToolbarVisible(editorViewportId, false)
       return
     }
-    if (viewport.windowMode !== 'expanded') {
-      get().setEditorViewportWindowMode(editorViewportId, 'expanded')
+
+    setOverlayMode(false)
+    if (viewport.windowMode === 'collapsed') {
+      get().setEditorViewportWindowMode(editorViewportId, 'collapsed')
+    } else if (viewport.windowMode === 'maximized') {
+      get().setEditorViewportWindowMode(editorViewportId, 'maximized')
     }
     get().setEditorViewportHeaderCollapsed(editorViewportId, false)
     get().setEditorViewportCanvasToolbarVisible(editorViewportId, true)
+  },
+  setEditorViewportOverlayBackgroundOpacity: (editorViewportId, opacity) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return {
+        editorViewportOverlayBackgroundOpacityById: {
+          ...state.editorViewportOverlayBackgroundOpacityById,
+          [editorViewportId]: normalizeOverlayBackgroundOpacity(opacity),
+        },
+      }
+    })
   },
   setEditorViewportSplitRatio: (editorViewportId, splitRatio) => {
     let nextPlacement: EditorWorkspaceSurfaceState | null = null

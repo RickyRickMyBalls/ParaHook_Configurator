@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+22. 2026-05-05 12:43:52: Implemented and closed `Edit-History-2 / Phase 1.1 - Wire Surface History Parity` by routing the live canvas wire-create, selected-edge delete, and occupied-input detach surfaces through the accepted `connectGraphEdgeWithHistory(...)` and `removeGraphEdgeWithHistory(...)` seams, then adding focused canvas undo/redo parity proof so the remaining user-facing wire paths now create canonical `Connect graph wire` and `Remove graph wire` entries.
+21. 2026-05-05 12:36:47: Added `Edit-History-2 / Phase 1.1 - Wire Surface History Parity` after user review clarified that accepted graph-structure history coverage is not enough if any user-facing wire create/remove surface still bypasses the canonical `connectGraphEdgeWithHistory(...)` or `removeGraphEdgeWithHistory(...)` seams; the new follow-up keeps wire parity in `Edit-History-2` instead of widening into a separate family lane.
 20. 2026-04-22 01:45:48: Manager accepted `Edit-History-2 / Phase 4` after rerunning the focused console add/delete parity and command-recall exclusion tests, rerunning the graph-history regression suite, and rerunning the production build gate; `Edit-History-2` is complete and family-index closeout can mark `Edit-History-CLG-11` and `Edit-History-HLG-1` complete.
 19. 2026-04-22 01:43:40: Implemented `Edit-History-2 / Phase 4 - Console Parity` by routing staged console graph node delete through `removeGraphNodeWithHistory(...)`, proving console-created graph nodes still create exactly one canonical add entry through the accepted add-node seam, proving console node delete creates exactly one canonical remove entry with undo/redo restoration, and proving console command recall remains outside canonical history; targeted console parity tests, graph-history regression tests, and production build passed while the broader `ConsoleDock.test.tsx` command still shows unrelated existing failures in other console branches.
 18. 2026-04-22 01:41:22: Manager approved the `Edit-History-2 / Phase 4 - Console Parity` prep after confirming the live staged console `node.delete` path still bypasses canonical graph history via `applyGraphCommand(removeNodeCommand(...))`, while console-created graph nodes already route through `createGraphNodeInDocumentAndSelect(...)` and the accepted `addGraphNodeWithHistory(...)` seam.
@@ -257,6 +259,138 @@ Stop and report if existing graph command no-op or auto-replace behavior is ambi
 Phase 1 is done when node add/remove and wire connect/remove mutations commit canonical edit-history entries at a shared graph mutation boundary, undo/redo restore the expected normalized graph shape and related edges, no-op graph structure mutations do not create entries, auto-replace wire connect restores deterministically, focused tests pass, and production build passes.
 
 The closeout should mark `Edit-History-CLG-6` and `Edit-History-CLG-7` complete only if node add/remove and wire connect/remove are both covered. Leave `Edit-History-CLG-8`, `Edit-History-CLG-9`, `Edit-History-CLG-10`, and `Edit-History-CLG-11` open for later phases.
+
+## [x] `Edit-History-2 / Phase 1.1` - `Wire Surface History Parity`
+
+Close any remaining user-facing wire create/remove paths that still bypass the accepted graph-history helpers.
+
+### Phase 1.1 Summary
+
+#### Purpose
+
+Keep wire history ownership in the same `Edit-History-2` graph-structure lane while proving that real user-facing wire creation and wire removal surfaces create canonical history entries instead of only relying on the lower-level store seam.
+
+Phase 1 proved the canonical helper path and store restoration semantics. Phase 1.1 should only cover parity for live wire surfaces that may still call raw graph commands or other history-free graph mutation paths.
+
+#### Owns
+
+- user-facing wire creation parity through the accepted `connectGraphEdgeWithHistory(...)` seam
+- user-facing wire removal parity through the accepted `removeGraphEdgeWithHistory(...)` seam
+- one canonical entry per accepted wire create/remove action from supported user-facing surfaces
+- preservation of accepted Phase 1 labels, metadata shape, auto-replace behavior, and normalized graph restore behavior
+- focused proof that supported user actions create canonical `Connect graph wire` and `Remove graph wire` entries instead of mutating graph structure silently
+
+#### Does Not Own
+
+- graph-structure helper semantics already accepted in Phase 1 unless a tiny parity repair is required
+- node add/remove parity, node movement, graph parameter commits, typed numeric commits, or console graph/parameter parity
+- feature-stack, committed sketch entity, Browser/project, Viewer Transform, Build Path, history UI, persistence, branching, collaboration, or later-generation history work
+- edge waypoint history as its own authored lane
+- new user-facing wire workflows or new wire commands beyond parity for already-supported surfaces
+
+#### Current Live Seams
+
+The accepted canonical wire helpers already exist in `src/app/spaghetti/store/useSpaghettiStore.ts`:
+- `connectGraphEdgeWithHistory(...)`
+- `removeGraphEdgeWithHistory(...)`
+
+The likely live user-facing wire surfaces remain in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`:
+- pointer-release wire creation through the existing connection drag flow
+- selected-edge Delete/Backspace removal or other direct edge-removal callbacks
+- any context-menu or click-path edge removal surface that still calls raw graph commands
+
+`src/app/spaghetti/store/graphEditHistoryStore.test.ts` already proves canonical add/remove/move/parameter history behavior at the store seam. Phase 1.1 should add or extend focused canvas/user-surface proof only where it is needed to show real user parity.
+
+#### First Pass Decisions
+
+- Prefer parity wiring at the live user-facing surface boundary, not a second broad graph-history abstraction.
+- Reuse the accepted Phase 1 store helpers and labels instead of inventing new wire-specific history entry types.
+- Preserve current no-op behavior: invalid connects, unchanged auto-replace no-ops, and missing-edge deletes should not create entries.
+- Preserve selected-edge precedence and existing selection/hover/focus/user-feedback behavior unless a tiny parity repair requires a narrow adjustment.
+
+Implementation direction:
+- audit every supported user-facing wire create/remove path
+- route any bypassing path into `connectGraphEdgeWithHistory(...)` or `removeGraphEdgeWithHistory(...)`
+- keep raw helper/store tests as the reference truth and add focused user-surface proof only where parity was missing
+
+Acceptance:
+- creating a wire from the supported user surface creates one canonical `Connect graph wire` entry
+- removing a wire from the supported user surface creates one canonical `Remove graph wire` entry
+- undo and redo restore the same authored graph shape through the accepted store seam
+
+### Phase 1.1 Implementation Spec
+
+#### Likely Files
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - likely live wire create/remove UI boundary if any path still bypasses the accepted history helper seam
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - read-only reference seam unless a tiny parity helper adjustment is required
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+  - likely place for focused user-surface wire parity proof
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - accepted store-history regression seam if parity repair changes helper behavior
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-2 - Graph And Parameter Undo Coverage.md`
+  - update for implementation closeout after verification
+- `docs/CHANGELOG.md`
+  - required when runtime behavior ships
+- `docs/Doc-Log.md`
+  - required for doc maintenance in this planning pass and later implementation closeout
+
+#### No-Widening Rule
+
+Do not reopen broad Phase 1 graph-structure restoration design. The accepted helpers, snapshot direction, and labels are already the canonical reference unless a tiny parity repair proves necessary.
+
+Do not widen into node delete parity, node movement, graph parameter commits, console parity, new wire affordances, edge waypoint authored history, Browser/project undo, Viewer Transform undo, Build Path sync, history UI, persistence, or later-generation history features.
+
+#### Implementation Risks
+
+- A surface can look history-covered because the store helper exists while the live UI still calls `applyGraphCommand(...)` or another raw mutation path.
+- Edge removal parity can hide behind keyboard or selection routing rather than a dedicated remove button, so focused tests should exercise the real user path.
+- Auto-replace wire connect must keep the accepted no-op and deterministic restore behavior from Phase 1; parity routing must not silently change that contract.
+- A broad graph-wrapper attempt would duplicate the accepted seam and risk reopening already-closed ownership decisions.
+
+#### Checklist
+
+- [x] Audit the current user-facing wire create paths and confirm which already use `connectGraphEdgeWithHistory(...)`.
+- [x] Audit the current user-facing wire remove paths and confirm which already use `removeGraphEdgeWithHistory(...)`.
+- [x] Route any bypassing wire create path through the accepted canonical helper seam.
+- [x] Route any bypassing wire remove path through the accepted canonical helper seam.
+- [x] Preserve no-op behavior, auto-replace behavior, and current non-history UI behavior outside authored graph shape.
+- [x] Add focused user-surface tests proving one canonical entry for supported wire create/remove actions.
+- [x] Keep node, parameter, console, and non-graph surfaces out of scope.
+
+#### Focused Verification
+
+Focused command run:
+
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+Covered parity paths:
+
+- live canvas connection-drag pointer release now commits through `connectGraphEdgeWithHistory(...)`
+- selected-edge Delete/Backspace removal now commits through `removeGraphEdgeWithHistory(...)`
+- occupied-input detach during rewiring now commits through `removeGraphEdgeWithHistory(...)`
+
+#### Tracking Docs
+
+Implementation closeout should update:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-2 - Graph And Parameter Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Implementation closeout updated this active phase doc plus the required changelog and doc-log surfaces.
+
+#### Stop Condition
+
+Stop and report instead of widening if the apparent missing parity path depends on introducing a brand-new wire authoring workflow, a broad graph-command wrapper, edge-waypoint ownership changes, or unrelated node-selection/input-routing rewrites.
+
+Stop and report if the only way to prove parity is to change already-accepted Phase 1 helper semantics beyond a tiny repair.
+
+#### Done Shape
+
+Phase 1.1 is done when every currently supported user-facing wire create/remove path routes through the accepted canonical helper seam, supported user actions create one canonical wire history entry, undo/redo restores the authored graph shape through the existing normalized restore path, focused parity tests pass, and the change stays inside `Edit-History-2`.
 
 ## [x] `Edit-History-2 / Phase 2` - `Node Movement Commit Entries`
 

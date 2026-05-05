@@ -13,6 +13,11 @@ export type EditHistoryEntryChildSummary = {
   sequence: number
 }
 
+export type EditHistoryEntryChildRestorePoint = {
+  childId: string
+  restore: EditHistoryOperation
+}
+
 export type EditHistoryEntry = {
   entryId: string
   label: string
@@ -24,6 +29,7 @@ export type EditHistoryEntry = {
   coalesceKey?: string
   isNoop?: boolean
   childSummaries?: readonly EditHistoryEntryChildSummary[]
+  childRestorePoints?: readonly EditHistoryEntryChildRestorePoint[]
   undo: EditHistoryOperation
   redo: EditHistoryOperation
 }
@@ -105,6 +111,7 @@ export type EditHistoryOwner = {
   cancelTransaction: (transactionId: string) => boolean
   undo: () => EditHistoryEntry | null
   redo: () => EditHistoryEntry | null
+  restoreChild: (entryId: string, childId: string) => EditHistoryEntry | null
   clear: () => void
   canUndo: () => boolean
   canRedo: () => boolean
@@ -136,11 +143,23 @@ const cloneEntryChildSummaries = (
   return Object.freeze(childSummaries.map((summary) => ({ ...summary })))
 }
 
+const cloneEntryChildRestorePoints = (
+  childRestorePoints: readonly EditHistoryEntryChildRestorePoint[] | undefined,
+): readonly EditHistoryEntryChildRestorePoint[] | undefined => {
+  if (childRestorePoints === undefined) {
+    return undefined
+  }
+
+  return Object.freeze(childRestorePoints.map((point) => Object.freeze({ ...point })))
+}
+
 const withEntryTimestamp = (entry: EditHistoryEntry): EditHistoryEntry => {
   const childSummaries = cloneEntryChildSummaries(entry.childSummaries)
+  const childRestorePoints = cloneEntryChildRestorePoints(entry.childRestorePoints)
   return {
     ...entry,
     ...(childSummaries === undefined ? {} : { childSummaries }),
+    ...(childRestorePoints === undefined ? {} : { childRestorePoints }),
     timestamp: entry.timestamp ?? new Date().toISOString(),
   }
 }
@@ -348,6 +367,17 @@ export const createEditHistoryStore = (): EditHistoryOwner => {
       redoEntries = redoEntries.slice(0, -1)
       undoEntries = [...undoEntries, entry]
       recordSnapshotLogEntry('redo', entry)
+      emitChange()
+      return entry
+    },
+    restoreChild: (entryId, childId) => {
+      const entry = undoEntries.find((candidate) => candidate.entryId === entryId)
+      const restorePoint = entry?.childRestorePoints?.find((point) => point.childId === childId)
+      if (entry === undefined || restorePoint === undefined) {
+        return null
+      }
+
+      restorePoint.restore()
       emitChange()
       return entry
     },

@@ -6,7 +6,10 @@ Numbering rule for major entries:
 - Increment by 1 for every new Codex-added section.
 
 ### Doc History
-10. 2026-05-01 01:19:08: Cleaned the recent Edit History workspace changelog phase entries `[1710]` through `[1722]` so their canonical prefix and phase-doc paths use `Edit-History-Workspace-4` instead of colliding with the separate broader `Edit-History-4` architecture plan.
+13. 2026-05-02 09:53:41: Removed the top-right read-only status callout from the `Settings` workspace shell so the right pane now flows directly into the section content without the extra badge card.
+12. 2026-05-02 09:39:15: Shipped the float-window Settings shortcut phase by wiring floating browser, dashboard, notepad, catalog, and settings-launch surfaces into the Settings workspace and contextual section landing instead of leaving the `i` affordance Spaghetti-only.
+11. 2026-05-02 08:50:57: Extended the viewport title-bar right-click type picker to include `Settings` so the canonical workspace surface now appears in the runtime menu alongside Model Viewport, Browser, Catalog, Console, Spaghetti Editor, Notepad, Dashboard, Home Page, and Edit History.
+10. 2026-05-02 08:46:13: Shipped the `Settings-1` phase-1 workspace shell and section router by registering the new `Settings` surface kind, adding the Unreal-style left rail and read-only right-pane projection surface, wiring the viewport registry and Home Page launcher, and adding focused surface/catalog tests.
 9. 2026-04-22 10:30:12: Cleaned this changelog's Doc History so it only tracks changelog document structure, rule, and cleanup changes instead of duplicating permanent shipped-work body entries.
 8. 2026-04-22 10:21:56: Cleaned up the in-progress `Edit-History-Gen3-1 / Phase 2` changelog repair by removing the duplicate replayed Gen 1 through Gen 2 body entries that were accidentally inserted during the Phase 2 repair and renumbering the current Phase 2 repair body entry from `[1717]` to the next sequential `[1691]`.
 7. 2026-03-08 10:23: Removed planning-only entries `[132]` through `[139]` from the live changelog after moving that batch tracking back into the active `N_CodexChat.md` planning surface
@@ -68,6 +71,1440 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 1775 -->
+
+### [1775] - 2026-05-05 12:43 - `SP - Edit-History-2 / Phase 1.1 - Wire Surface History Parity`
+
+HUMAN SUMMARY: `Live Spaghetti wire creation and wire removal now land in canonical edit history from the real canvas surfaces instead of only being covered at the lower-level store seam. Connection-drag release, selected-edge delete, and occupied-input detach now produce the accepted \`Connect graph wire\` and \`Remove graph wire\` entries with focused undo/redo proof.`
+
+<!-- ENTRY 1775 -->
+
+#### Scope / Constraints Honored
+
+- Kept the work inside `Edit-History-2` as a narrow wire-surface parity pass instead of reopening broader graph-history design.
+- Reused the accepted `connectGraphEdgeWithHistory(...)` and `removeGraphEdgeWithHistory(...)` seams instead of inventing new history entry types.
+- Preserved existing no-op, auto-replace, selection, hover, and user-feedback behavior outside authored graph shape.
+
+#### Summary of Implementation
+
+- Audited the live canvas wire create/remove surfaces and found remaining raw graph-command bypasses in `SpaghettiCanvas`.
+- Routed connection-drag pointer release into `connectGraphEdgeWithHistory(...)` so supported canvas-created wires now create one canonical `Connect graph wire` entry.
+- Routed selected-edge keyboard removal and occupied-input detach during rewiring into `removeGraphEdgeWithHistory(...)` so supported canvas removal flows now create one canonical `Remove graph wire` entry.
+- Extended focused canvas render proof to cover undo/redo parity for supported wire removal and supported canvas wire creation.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-2 - Graph And Parameter Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Creating a wire from the live canvas connection-drag surface now adds one canonical `Connect graph wire` edit-history entry.
+- Removing a selected wire from the live canvas now adds one canonical `Remove graph wire` edit-history entry.
+- Detaching an occupied input during rewiring now routes through the same canonical remove-helper seam before the replacement connection is committed.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+<!-- ENTRY 1774 -->
+
+### [1774] - 2026-05-05 12:33 - `SP - Graph Edit History - Node Move Label Width Fallback Repair`
+
+HUMAN SUMMARY: `Plain spaghetti-node drags no longer land in edit history as \`Resize graph node\` just because the live graph position already carries a stored width. The move-history seam now fills missing width fields from the canonical node frame before classifying the entry, so ordinary node movement stays labeled honestly while resize commits keep their existing behavior.`
+
+#### Scope / Constraints Honored
+- Kept the repair local to graph-node move history classification and regression proof without widening into new resize behavior, new history entry types, or broader edit-history reader changes.
+- Reused the existing canonical graph UI node-frame width as the fallback seam instead of adding a second move/resize tracking format.
+- Preserved the shipped resize history path so real width changes still commit as `Resize graph node`.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so graph-node move history snapshots normalize missing `width` values from the canonical node frame before equality checks, label selection, and undo/redo snapshot storage.
+- Added focused store proof in `src/app/spaghetti/store/graphEditHistoryStore.test.ts` covering the real bug shape where a move commit receives a width-bearing live graph position but an x/y-only starting frame.
+- Added focused canvas proof in `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` showing that dragging a width-bearing node through the live header drag surface produces `Move graph node` instead of `Resize graph node`.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+- Ordinary node drags now stay labeled as `Move graph node` even when the node already has a stored width in graph UI state.
+- Undo and redo for those move entries continue to preserve the node's width instead of depending on whether the caller passed `width` explicitly.
+
+#### Verification Steps
+- Passed `npm.cmd exec -- vitest run src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+<!-- ENTRY 1773 -->
+
+### [1773] - 2026-05-04 15:09 - `SP - Nodes-6 / Phase 6 - Hardening, Regression Proof, And Family Handoff`
+
+HUMAN SUMMARY: `The `Nodes-6` lane is now closed with final regression proof and a cleaned-up family handoff. The node-frame contract gained a focused west-edge width-floor fence, and the umbrella node-family index now reads as a shipped shared-shell/frame system that later families should inherit rather than reopen.`
+
+#### Scope / Constraints Honored
+- Kept the work inside `Nodes-6 / Phase 6` by focusing on regression proof and family handoff wording rather than widening into new shell behavior, later node-family rollout, or another resize/persistence redesign.
+- Reused the existing focused test seams instead of replacing them with one broad fragile integration harness.
+- Preserved the shipped node-frame, resize-history, and shared-shell contract while tightening the proof around the final west-handle clamp edge case.
+
+#### Summary of Implementation
+- Added one more focused live-canvas regression in `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` proving that west-handle resize clamps to the shared width floor and shifts `x` honestly when the left edge moves inward.
+- Marked `Nodes-6 / Phase 6` complete in the dedicated future doc and refreshed the umbrella `Nodes-Index.md` handoff so `Nodes-6` now reads as a closed shipped lane instead of a pending follow-on.
+- Tightened the umbrella summary to point later families at the finished shared frame-width, resize, history, shell, and overflow contract instead of leaving that guidance implied.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+
+#### Behavior Changes
+- No new runtime behavior beyond stronger regression coverage for the shipped node-frame contract.
+- The family planning surfaces now explicitly treat `Nodes-6` as completed shared infrastructure future node families should inherit.
+
+#### Verification Steps
+- Passed `npm.cmd exec -- vitest run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- Passed `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1772 -->
+
+### [1772] - 2026-05-04 10:13 - `SP - Nodes-6 / Phase 5 - Family Frame Parity And Overflow Honesty`
+
+HUMAN SUMMARY: `The shared node families now use one explicit frame-readability policy instead of a mix of legacy width and overflow assumptions. Sketch, Extrude, and Output Preview all honor the same 220px minimum frame width floor, and attached-body/detail content now scrolls in a readable bounded lane instead of spilling unpredictably when the node gets dense or narrow.`
+
+#### Scope / Constraints Honored
+- Kept the work inside `Nodes-6 / Phase 5` by tightening frame parity, minimum-width ownership, and overflow behavior without reopening resize-history semantics, width persistence ownership, or later-family rollout.
+- Preserved the existing slot, publication, and row contracts while making constrained-width behavior explicit and shared.
+- Reused the existing geometry-shell and node render seams instead of creating a second shell family or a new frame-state map.
+
+#### Summary of Implementation
+- Added `MIN_SPAGHETTI_NODE_WIDTH` to `src/app/spaghetti/schema/spaghettiTypes.ts` and applied that one shared floor across render, resize, and normalized persisted graph state.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` to render the shared minimum width explicitly on the outer node shell so the frame contract stays aligned with live resize and stored graph UI state.
+- Updated `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` and `src/app/spaghetti/store/useSpaghettiStore.ts` so interactive resize clamping and graph normalization both honor the same `220px` width floor.
+- Tightened `src/app/theme/surfaces/spaghetti.css` so the outer node shell, shared geometry shell, and attached-body/detail surfaces use one calmer readability policy: constrained chips and labels truncate deterministically, text-heavy metadata can wrap, and expanded detail boxes scroll vertically inside a bounded lane.
+- Added focused proof for the shared minimum width render contract, resize clamping behavior, and persisted-width normalization.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`
+
+#### Behavior Changes
+- Sketch, Extrude, and Output Preview now share one `220px` minimum node width floor.
+- Nodes no longer depend on accidental overflow when opened attached-body content becomes tall or dense; those detail areas now scroll inside a bounded readable lane.
+- Long shared-shell labels and chips now resolve more predictably under narrow widths instead of spilling inconsistently across the main node families.
+
+#### Verification Steps
+- Passed `npm.cmd exec -- vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- Passed `npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "normalizes persisted node width up to the shared minimum frame width floor"`
+- Passed `npm.cmd exec -- tsc --noEmit`
+- Note: the broader `src/app/spaghetti/store/useSpaghettiStore.test.ts` file still has 2 existing `OutputPreview` expectation failures in this branch, so store verification for this phase stayed focused on the new width-floor case.
+
+<!-- ENTRY 1771 -->
+
+### [1771] - 2026-05-04 09:49 - `SP - Nodes-6 / Phase 4 - Output Preview Shared Shell Adoption`
+
+HUMAN SUMMARY: `Output Preview now renders inside the shared geometry node shell instead of its older custom wrapper. The component label editor moved into the shared content lane, the slot rows stayed intact in the shared input rail, and the migration landed without inventing a fake outputs rail or reopening the published-object semantics from earlier node work.`
+
+#### Scope / Constraints Honored
+- Kept the work inside `Nodes-6 / Phase 4` by migrating only the `Output Preview` outer shell and section rhythm without widening into Phase 5 overflow cleanup, resize-history changes, or broader node-family rollout.
+- Preserved the existing slot-row subtree, unresolved warning chrome, attached-body metadata, and published-object grouping semantics instead of rewriting the row contracts from `Nodes-5`.
+- Extended `GeometryNodeShell` only at the generic rail-ownership level so shared-shell consumers can omit unused rails honestly rather than rendering one-off fake sections.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/GeometryNodeShell.tsx` so shared-shell consumers can omit unused input or output rails while keeping the same header, summary, and content-lane contract.
+- Rebuilt the `Output Preview` template path in `src/app/spaghetti/canvas/NodeView.tsx` around `GeometryNodeShell`, moving the component editor into the shared content lane and keeping the managed slot rows in the shared input rail.
+- Refreshed `src/app/theme/surfaces/spaghetti.css` so the migrated `Output Preview` shell keeps its existing row spacing and content-lane read without depending on the retired custom wrapper structure.
+- Added focused `NodeView` proof that `Output Preview` now uses the shared geometry shell, exposes `Inputs` plus `Component` lanes, and does not invent a fake `Outputs` rail.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/GeometryNodeShell.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`
+
+#### Behavior Changes
+- `Output Preview` now shares the same outer shell family as `Sketch` and `Extrude`.
+- The component editor now appears inside the shared shell content lane, while the slot rows remain in the shared input lane.
+- `Output Preview` no longer relies on its older standalone template wrapper and no longer implies an outputs section it does not actually own.
+
+#### Verification Steps
+- Passed `npm.cmd exec -- vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Passed `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1770 -->
+
+### [1770] - 2026-05-02 17:22 - `SP - Nodes-6 - Invisible Full-Edge Node Resize Hit Areas`
+
+HUMAN SUMMARY: `Selected nodes no longer show the visible resize grip pills and corner dots. The resize hit zones are now invisible and stretched across the full node edges, so resizing feels more like grabbing the Spaghetti editor window frame itself while keeping the existing node-resize behavior intact.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup limited to selected-node resize chrome and hit-area sizing without changing node frame persistence, resize history behavior, or shell migration work.
+- Preserved the existing resize directions and pointer-routing contract instead of introducing a new interaction owner.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the selected-node resize handles render as invisible hit areas instead of visible blue grip pills and corner dots.
+- Expanded the north, south, east, and west hit zones to span the full edge length, with slightly larger invisible corner targets retained for diagonal resize behavior.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- Selected nodes no longer show visible resize grip chrome.
+- The full selected node border is now easier to grab for resize, closer to the existing Spaghetti window-frame interaction feel.
+
+#### Verification Steps
+- Not run (CSS-only interaction hit-area cleanup).
+
+<!-- ENTRY 1769 -->
+
+### [1769] - 2026-05-02 14:35 - `SP - Nodes-6 / Phase 3 - Resize Commit Persistence And Edit-History Seam`
+
+HUMAN SUMMARY: `Completed node resize now commits one honest width-aware graph history entry on pointer release instead of staying as an invisible persistence side effect. Undo and redo restore the full node frame snapshot, including west-handle x shifts that accompany width changes, while ordinary move entries keep their existing label and path.`
+
+#### Scope / Constraints Honored
+- Kept the work inside `Nodes-6 / Phase 3` by adding release-time resize history commits without widening into authored node height, family shell migration, or generic workspace window history.
+- Reused the existing canonical `graph.ui.nodes[nodeId]` frame owner and the existing move-history seam instead of creating a second persistence format.
+- Preserved plain drag behavior as `Move graph node` while making width-changing commits read honestly as resize entries.
+
+#### Summary of Implementation
+- Widened graph node position rounding and equality checks in `src/app/spaghetti/store/useSpaghettiStore.ts` so width participates in canonical frame snapshots and no-op detection.
+- Updated the existing node history commit seam to label width-changing commits as `Resize graph node` while keeping ordinary position-only commits on the existing `Move graph node` path.
+- Finished the Phase 3 canvas release behavior in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` so the live resize session now commits one width-aware history entry when the pointer is released.
+- Added focused graph edit-history and live resize undo/redo proof in `src/app/spaghetti/store/graphEditHistoryStore.test.ts` and `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+- Completing a resize now creates one undoable `Resize graph node` history entry when the node frame actually changed.
+- Undo and redo restore full frame snapshots, including width and any accompanying x shift from west-side resize handles.
+- Ordinary node drag still commits through the existing `Move graph node` path.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1768 -->
+
+### [1768] - 2026-05-02 13:51 - `SP - Nodes-6 / Phase 2 - Selected Node Resize Handles And Pointer Routing`
+
+HUMAN SUMMARY: `Selected spaghetti nodes now show visible edge and corner resize handles, and dragging those handles updates graph-authored node width live through the canonical graph UI frame path. This first resize pass stays width-only and intentionally does not create a resize history commit yet, keeping Phase 2 honest about what is and is not shipped.`
+
+#### Scope / Constraints Honored
+- Kept the work inside `Nodes-6 / Phase 2` by adding selected-node handle chrome plus live pointer routing without widening into authored node height, resize-history commits, or shared-shell migration.
+- Reused the existing graph UI node frame contract and canvas drag infrastructure instead of creating a second resize persistence surface.
+- Preserved ordinary header drag ownership so move and resize stay separated at pointer-down time.
+
+#### Summary of Implementation
+- Added eight selected-node resize handles in `src/app/spaghetti/canvas/NodeView.tsx` and the matching cursor plus placement styling in `src/app/theme/surfaces/spaghetti.css`.
+- Extended `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` with a parallel live resize session that routes handle drags into width updates while keeping the existing header drag path as the move owner.
+- Widened the queued node-position write path in `src/app/spaghetti/store/useSpaghettiStore.ts` so live canvas updates can carry optional width and fixed `upsertNodePos` to honor incoming width changes instead of preserving only the previous width.
+- Added focused selected-handle and live resize proof in `src/app/spaghetti/canvas/NodeView.test.tsx` and `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+- Selected nodes now render visible edge and corner resize handles.
+- Handle drag updates canonical node width live, while ordinary header drag remains the move interaction path.
+- Phase 2 resize does not yet create a dedicated undoable resize commit entry.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1767 -->
+
+### [1767] - 2026-05-02 13:22 - `SP - Nodes-6 / Phase 1 - Node Frame State Contract`
+
+HUMAN SUMMARY: `Nodes now persist graph-authored frame width beside their existing graph UI position, and the spaghetti canvas reads that width directly on render instead of relying only on fixed CSS. Existing graphs stay valid through default-width normalization while node height remains content-derived.`
+
+#### Scope / Constraints Honored
+- Kept the change inside the `Nodes-6 / Phase 1` graph UI frame contract without widening into visible resize handles, pointer routing, edit-history width commits, or shared-shell migration.
+- Preserved node height as content-derived layout truth instead of introducing a persisted frame-height owner.
+- Reused the existing graph normalization and document persistence seams instead of creating a second frame-storage surface.
+
+#### Summary of Implementation
+- Added persisted node-width support to the graph UI node entry contract in `src/app/spaghetti/schema/spaghettiTypes.ts` and `src/app/spaghetti/schema/spaghettiSchema.ts`, including one shared default node width constant.
+- Updated graph normalization and node-position write paths in `src/app/spaghetti/store/useSpaghettiStore.ts` plus graph commands so canonical `graph.ui.nodes[nodeId]` entries now carry width through normalization and position edits without dropping it.
+- Taught `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` and `src/app/spaghetti/canvas/NodeView.tsx` to pass and render graph-authored node width on the outer node shell while leaving CSS as the legacy fallback for graphs that have not yet been normalized.
+- Added focused persistence, schema, store, history, and node-shell proofs so the new width field round-trips cleanly and renders as the canonical frame width.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/graphCommands/addNode.ts`
+- `src/app/spaghetti/graphCommands/setNodePosition.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/io/graphDocumentPersistence.test.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.test.ts`
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes
+- Graph UI node entries now persist `width` alongside `x` and `y`.
+- Existing graphs that do not yet store node width normalize to the prior `260px` node width automatically.
+- The spaghetti node shell now renders the graph-authored width directly, while node height continues to follow section/body content.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/spaghetti/schema/spaghettiSchema.test.ts src/app/io/graphDocumentPersistence.test.ts src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "createGraphNodeInDocumentAndSelect opens the target graph, creates the node, and selects it|createGraphNodeInDocumentAndSelect derives the next label and placement from the target graph|keeps document revision moving for node-position edits without advancing geometry revision"`
+- `npm.cmd exec -- vitest run src/app/spaghetti/canvas/NodeView.test.tsx -t "renders graph-authored node width on the outer node shell"`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1766 -->
+
+### [1766] - 2026-05-02 11:59 - `SP - Phase 3.1 - Overlay Canvas Visibility Toggle`
+
+HUMAN SUMMARY: `Overlay mode now keeps its gold viewport titlebar controls visible while letting the user temporarily hide the Spaghetti canvas with a new eye toggle. This makes it easy to click straight through to normal model-viewport controls and then bring the overlay canvas back without leaving \`O\` mode.`
+
+#### Scope / Constraints Honored
+- Kept the change inside overlay presentation-state ownership without widening into authored graph state or edit-history entries.
+- Preserved the existing overlay-mode titlebar lane so the model viewport still exposes direct overlay controls while the canvas is hidden.
+
+#### Summary of Implementation
+- Added a viewport-local overlay-canvas hidden flag to the Spaghetti store and reset that flag whenever overlay mode is entered or exited.
+- Taught the viewport workspace host to skip mounting the overlay panel when the new hidden flag is enabled, which restores normal click-through interaction with the model viewport.
+- Added a new eye-style button to the overlay titlebar controls so users can toggle the overlay canvas on and off without leaving overlay mode, plus a subtle inactive visual state for the hidden branch.
+- Extended the overlay titlebar and viewport host tests to prove both the new hide/show toggle and the existing leave-overlay action still behave correctly.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/workspace/ViewportOverlayModeTitlebarControls.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.test.tsx`
+
+#### Behavior Changes
+- In overlay mode, the gold overlay titlebar now includes a new eye toggle that temporarily hides the overlay canvas while keeping the titlebar controls visible.
+- While the overlay canvas is hidden, the model viewport receives normal interaction again until the user re-enables the overlay canvas or leaves overlay mode.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/workspace/WorkspaceViewportTree.test.tsx src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1765 -->
+
+### [1765] - 2026-05-02 11:38 - `Viewport Chrome - Left Anchor Overlay Titlebar Controls`
+
+HUMAN SUMMARY: `The model-viewport overlay titlebar controls now anchor on the left side of the viewport header instead of the right. This keeps the overlay graph chip visually grouped with the viewport title and leaves the pop-out action alone on the far edge.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to viewport-header supplement alignment instead of reshaping overlay mode behavior.
+- Left non-overlay viewport header supplements on their existing right-aligned path.
+
+#### Summary of Implementation
+- Added explicit start-versus-end alignment support to the shared `ViewportFrame` header supplement lane.
+- Opted model-viewport overlay titlebar controls into the left-aligned supplement path in both the workspace tree and popup workspace shell.
+- Added a focused frame regression covering the new left-aligned supplement class path.
+
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/ViewportFrame.test.tsx`
+
+#### Tests
+- `npm.cmd exec -- vitest run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1764 -->
+
+### [1764] - 2026-05-02 11:29 - `Viewport Chrome - Raise Left And Right Docks Above Spaghetti Overlay`
+
+HUMAN SUMMARY: `The left and right dock rails now render above the Spaghetti overlay layer instead of underneath it. This keeps the overlay editor above the model viewport content while preserving docked Browser and right-dock chrome usability on top of the overlay.`
+
+#### Scope / Constraints Honored
+- Kept the fix limited to viewport-layer z-order cleanup.
+- Preserved the existing overlay-above-viewer contract instead of lowering the overlay below viewport content.
+
+#### Summary of Implementation
+- Raised the primary left dock z-index above the Spaghetti overlay layer.
+- Raised the right dock z-index to the same band so both dock rails stay interactable over overlay mode.
+- Left the existing higher header and menu layers untouched.
+
+#### Files Changed
+- `src/app/theme/shell/docks.css`
+
+#### Tests
+- Not run (CSS z-index cleanup only).
+
+<!-- ENTRY 1763 -->
+
+### [1763] - 2026-05-02 11:24 - `SP - Phase 9 - Essentials Canvas Background Default To 50 Percent`
+
+HUMAN SUMMARY: `New Spaghetti editor sessions that open in default essentials mode now start with the titlebar BG background fill at 50% instead of 0%. This keeps the compact editor readable on first open without changing the rest of the essentials transparency controls or user-adjusted behavior.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the host-owned default essentials canvas background opacity.
+- Preserved the existing slider range, step size, and per-viewport adjustment behavior.
+
+#### Summary of Implementation
+- Added an explicit default Spaghetti essentials canvas background opacity constant at `0.5`.
+- Switched the host fallback and first-load viewport initialization path from `0` to that new 50% default.
+- Updated the focused host regression that locks the essentials slider and panel opacity data to the startup default.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+
+#### Tests
+- `npm.cmd exec -- vitest run src/app/hosts/SpaghettiWindowHost.test.tsx -t "shows a titlebar canvas background slider in essentials mode only"`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1762 -->
+
+### [1762] - 2026-05-02 11:21 - `SP - Phase 9 - Docked Meatball Collapse Occupancy Follow-Up`
+
+HUMAN SUMMARY: `Collapsed Meatball editors now stay visibly docked in the left toolbar instead of disappearing. The follow-up fix keeps the left-dock Meatball lane marked occupied when a collapsed viewport is restoring back to Meatball mode, so the toolbar host no longer gets clamped to zero height by the shell.`
+
+#### Scope / Constraints Honored
+- Kept the follow-up narrow to the left-toolbar occupancy bug introduced during the docked Meatball collapse cleanup.
+- Preserved the earlier collapsed-Meatball host routing and left the floating collapsed-window path unchanged.
+
+#### Summary of Implementation
+- Fixed the AppShell Meatball-lane occupancy read so it treats `collapsed` viewports with `restoreFromCollapsed.windowMode === 'meatball editor view'` as active dock occupants.
+- Added an AppShell regression that covers the real left-toolbar visibility contract for a collapsed Meatball restore shell.
+
+#### Files Changed
+- `src/app/AppShell.test.tsx`
+- `src/app/AppShell.tsx`
+
+#### Tests
+- `npm.cmd exec -- vitest run src/app/AppShell.test.tsx -t "keeps the meatball dock target occupied when a collapsed viewport is restoring back to meatball editor view"`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 1761 -->
+
+### [1761] - 2026-05-02 11:16 - `SP - Phase 9 - Docked Meatball Collapse Retains Left Toolbar Host`
+
+HUMAN SUMMARY: `Minimizing a docked Meatball editor now keeps the Spaghetti editor in the left toolbar instead of sending it into the generic floating collapsed window lane. The minimized state renders as a one-line titlebar shell in the dock, and restoring it reuses the existing compact-cycle behavior from that same docked host.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup focused on the docked Meatball collapse contract.
+- Preserved the existing floating-window collapsed behavior for non-docked Spaghetti editors.
+
+#### Summary of Implementation
+- Widened collapsed restore typing so the editor can remember when a collapsed shell came from `meatball editor view`.
+- Updated the Spaghetti host viewport classification so collapsed Meatball shells stay in the left-toolbar dock path instead of the floating-window layer.
+- Changed the docked Meatball host to render as a titlebar-only shell while collapsed and to restore through the existing `- / e / +` presentation cycle.
+- Added a focused regression that locks the minimized docked Meatball behavior to the left toolbar host.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/workspace/workspaceShellTypes.ts`
+
+#### Tests
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd exec -- vitest run src/app/hosts/SpaghettiWindowHost.test.tsx -t "keeps minimized meatball editors docked in the left toolbar as a titlebar-only shell"`
+
+<!-- ENTRY 1760 -->
+
+### [1760] - 2026-05-02 10:52 - `Left-Dock - Browser-Only Startup Height Cap Cleanup`
+
+HUMAN SUMMARY: `The browser-only left toolbar now treats its stored startup height as a cap instead of forcing a fixed pane on first load. That means the left-dock scrollbar stays hidden until the actual browser content is taller than the visible model-viewport lane, while the exact-height split behavior still remains in place for Browser plus Meatball stacks.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup focused on the browser-only left-dock startup contract.
+- Preserved the explicit two-panel Browser/Meatball stack sizing behavior from `Left-Dock-1 / Phase 1`.
+
+#### Summary of Implementation
+- Changed the browser-only left-dock shell to use the stored stack height as a maximum visible cap instead of an immediate fixed height.
+- Kept exact fixed-height sizing only for the multi-panel Browser/Meatball stack where the shared divider needs real pane heights.
+- Added an explicit left-dock class split so docked Browser roots only stretch to fill their host when the stack is actually in a sized multi-panel state.
+- Added a focused left-dock regression that locks the browser-only capped-height startup behavior.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+
+#### Tests
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd exec -- vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx -t "treats the browser-only stack height as a cap instead of forcing an exact fixed-height shell"`
+
+<!-- ENTRY 1759 -->
+
+### [1759] - 2026-05-02 10:37 - `Left-Dock - Docked Browser Host Height Cleanup`
+
+HUMAN SUMMARY: `The first-load left-dock browser no longer leaves a tall empty tail under the visible browser card. The docked and split browser roots now stretch to the host height they are given so scrolling stays inside the browser body instead of leaking out as an outer dock-stack scrollbar.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup limited to browser host-height behavior in the docked and split browser seams.
+- Preserved the new left-dock shared stack model and did not widen this follow-up into another resize-system change.
+
+#### Summary of Implementation
+- Added an explicit BrowserPanel fill-host-height mode so hosted browser surfaces can stretch to their assigned shell height.
+- Enabled that mode for the docked and viewport-split browser hosts.
+- Updated the dock-target browser CSS contract so the hosted browser root fills the reserved height instead of content-sizing and leaving dead space underneath.
+- Added a focused BrowserPanel regression that locks the hosted fill-height style contract.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Tests
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "can stretch the browser root to fill a hosted dock height without leaving outer dead space"`
+
+<!-- ENTRY 1758 -->
+
+### [1758] - 2026-05-02 10:28 - `Left-Dock-1 - Phase 1 - Read-Only Shared Stack Resizing Baseline`
+
+HUMAN SUMMARY: `The primary left dock now owns explicit vertical stack sizing instead of relying on flex-only Browser-first expansion. Users can resize the docked Browser height when it is alone, and when the Meatball editor is attached they can resize both the shared Browser/Meatball divider and the total hosted stack height from the same shell-owned dock model.`
+
+#### Scope / Constraints Honored
+- Kept the first implementation slice shell-owned by the left-dock layout, controller, and persistence seams instead of pushing sizing logic into Browser or Meatball content hosts.
+- Stayed within the Phase 1 read-only baseline by proving Browser-only bottom-edge resizing plus shared Browser/Meatball divider and stack-height resizing without widening into a multi-divider stack engine.
+- Kept Runtime Inspector in the same future participant contract through naming and state ownership without widening this pass into new Runtime Inspector content hosting work.
+
+#### Summary of Implementation
+- Added explicit persisted `leftDockStackHeight` and `leftDockStackSplitRatio` workspace-shell state, defaults, and restore wiring so the left dock now owns one real vertical stack model alongside its existing width state.
+- Extended the left-dock shell and controller to render and drag a bottom-edge stack-height handle for Browser-only hosting and a shared middle divider plus bottom-edge handle when the Meatball editor occupies the lower hosted slot.
+- Updated the left-dock CSS sizing contract so Browser and Meatball participate through explicit heights with matching minimums instead of implicit flex-open behavior.
+- Added focused AppShell regressions that prove Browser-only bottom-edge resizing and the shared Browser/Meatball divider plus total stack-height resize flow.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/theme/shell/docks.css`
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/workspaceShellTypes.ts`
+
+#### Tests
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd exec -- vitest run src/app/AppShell.test.tsx:9240 src/app/AppShell.test.tsx:9293`
+
+<!-- ENTRY 1756 -->
+
+### [1757] - 2026-05-02 10:07 - `SP - Phase 9 - Floating Spaghetti Build Reload Glyph`
+
+<!-- ENTRY 1757 -->
+HUMAN SUMMARY: `The floating Spaghetti editor build button now uses a circular reload-style arrow glyph instead of the temporary square icon. The nearby help copy was also generalized so the UI text still matches the control after the icon refresh.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the floating build control presentation and its directly related helper copy.
+- Preserved the existing build action behavior and titlebar layout.
+
+#### Summary of Implementation
+- Replaced the floating build button glyph with a circular reload-style arrow in the shared Spaghetti window titlebar.
+- Updated the focused host regression to lock the new build glyph and keep the old placeholder text from returning.
+- Changed the Spaghetti panel helper text from `square build icon` to `build icon` so the instructional copy stays accurate.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+
+#### Tests
+- `npm.cmd exec vitest run src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+### [1756] - 2026-05-02 10:04 - `SP - Phase 9 - Floating Spaghetti Build Glyph Cleanup`
+
+<!-- ENTRY 1756 -->
+HUMAN SUMMARY: `The floating Spaghetti editor build button now uses a dedicated square build glyph instead of the old bracket placeholder text. This keeps the left titlebar action cluster cleaner while staying aligned with the existing in-product language that refers to the build control as the square build icon.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to the floating build button presentation.
+- Preserved the existing build action behavior and titlebar layout.
+
+#### Summary of Implementation
+- Replaced the floating build button's `[]` placeholder label with a dedicated square build glyph in the shared Spaghetti window titlebar.
+- Reused the existing glyph-icon styling pattern and added a small build-specific alignment tweak for visual balance.
+- Added a focused host regression that asserts the new build glyph renders and the old bracket text does not return.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/theme/shell/windows.css`
+
+#### Tests
+- `npm.cmd exec vitest run src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+### [1755] - 2026-05-02 10:01 - `SP - Phase 9 - Floating Spaghetti Build Button Reorder`
+
+<!-- ENTRY 1755 -->
+HUMAN SUMMARY: `The floating Spaghetti editor build button now sits in the left titlebar cluster immediately after the \`O\` button and before the editor title. This keeps the primary graph actions grouped together on the left while preserving the rest of the titlebar controls.`
+
+#### Scope / Constraints Honored
+- Kept the change limited to titlebar button ordering.
+- Preserved the existing build action behavior and all other window controls.
+
+#### Summary of Implementation
+- Moved the build button markup from the broader titlebar actions row into the left titlebar cluster.
+- Positioned the build control directly after the overlay button and before the `Spaghetti Editor` title text.
+- Added focused host coverage that locks the left-cluster child order for the overlay button, build button, and title label.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- Floating Spaghetti editor windows now show the build button to the right of the `O` button and before the title text.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+<!-- ENTRY 1754 -->
+
+### [1754] - 2026-05-02 10:00 - `SP - Phase 9 - Floating Spaghetti Popout Glyph Cleanup`
+
+<!-- ENTRY 1754 -->
+HUMAN SUMMARY: `The floating Spaghetti editor pop-out button now uses a top-right arrow glyph instead of the old \`PO\` text label, keeping the titlebar controls a little cleaner and more icon-consistent. Focused host coverage now locks the new pop-out glyph so the text label does not quietly come back.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup limited to the floating Spaghetti titlebar pop-out affordance.
+- Preserved the existing dock-state button behavior and pop-out action semantics.
+
+#### Summary of Implementation
+- Added a shared top-right pop-out glyph constant alongside the existing maximize and restore glyphs in the Spaghetti window host.
+- Swapped the floating pop-out button label from `PO` to the new arrow glyph while leaving the dock-state `DK` label unchanged.
+- Added a focused host assertion that verifies the floating pop-out button renders the arrow glyph instead of the old text label.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- Floating Spaghetti editor windows now show a top-right arrow icon on the pop-out button instead of `PO`.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+<!-- ENTRY 1753 -->
+
+### [1753] - 2026-05-02 09:57 - `SP - Phase 9 - Floating Spaghetti Split Button Cleanup`
+
+<!-- ENTRY 1753 -->
+HUMAN SUMMARY: `The floating Spaghetti editor titlebar no longer shows the inline \`==\` split-view button, trimming redundant chrome while preserving the existing right-click split menu and other workspace split paths. Focused host and AppShell coverage now assert the button stays gone while the shared split menu still opens from the floating header.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup limited to the floating Spaghetti titlebar affordance instead of changing the underlying split behavior.
+- Preserved the shared floating-header context menu and popup split flows so existing split entry points still work.
+
+#### Summary of Implementation
+- Removed the inline split-view button from the shared Spaghetti titlebar component and deleted the now-unused titlebar split props.
+- Left the workspace split handlers and floating-header context-menu routing intact so split actions still come from the shared menu surfaces.
+- Added focused assertions in the Spaghetti host and AppShell tests to verify the button is absent while the floating split menu remains available.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Floating Spaghetti editor windows no longer show the top-right `==` split-view button.
+- Users still can split floating Spaghetti editors through the existing right-click split menu and other workspace split entry points.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd exec vitest run src/app/AppShell.test.tsx`
+
+<!-- ENTRY 1752 -->
+
+### [1752] - 2026-05-02 09:46 - `SP - Phase 9 - Meatball Dock Portal Retargeting Across Split Remounts`
+
+<!-- ENTRY 1752 -->
+HUMAN SUMMARY: `The docked meatball editor now survives primary model-viewport split remounts by re-targeting its portal host when the workspace layout changes. This closes the split-right disappearance repro and adds a focused AppShell regression for keeping the dock occupied after the model viewport is split right.`
+
+#### Scope / Constraints Honored
+- Kept the fix narrow to meatball host persistence during workspace layout remounts.
+- Preserved the existing meatball editor mode and dock presentation instead of widening into a larger dock-ownership rewrite.
+
+#### Summary of Implementation
+- Updated the Spaghetti window host to re-sync its docked meatball and floating portal targets when workspace placement and slot layout state changes.
+- Kept the meatball dock rendering path intact while allowing the left dock host DOM node to remount during model viewport split changes.
+- Added an AppShell regression that exercises the exact repro path of docking the meatball editor and then splitting the primary model viewport right.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- The docked meatball editor now stays visible after the user splits the primary model viewport right.
+- Workspace layout remounts no longer strand the meatball editor portal on a stale left-dock host node.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd exec vitest run src/app/AppShell.test.tsx` *(currently reports unrelated pre-existing failures in this branch; the new regression was added alongside the existing suite)*
+
+<!-- ENTRY 1751 -->
+
+### [1751] - 2026-05-02 09:24 - `SP - Phase 8 - Graph Opens Restore Remembered Viewports And Fall Back To Canvas Fit`
+
+<!-- ENTRY 1751 -->
+HUMAN SUMMARY: `Graph opens now restore the last saved canvas pan and zoom when available, and otherwise open by fitting the full graph canvas so users do not land zoomed into a single node. The browser graph-target handoff now requests canvas-fit for graph jumps, and the spaghetti canvas persists viewport state back into graph UI metadata after navigation.`
+
+#### Scope / Constraints Honored
+- Kept the fix behavior-first and limited to graph open / graph-jump viewport handling.
+- Preserved the existing graph document and browser action handoff paths instead of introducing a second viewport model.
+
+#### Summary of Implementation
+- Added canvas viewport fit intent support to the shared workspace intent path.
+- Routed browser graph open and view-in-graph actions through canvas-fit graph activation when appropriate.
+- Rehydrated the spaghetti canvas from saved `graph.ui.viewport` state and persisted pan / zoom changes back into graph UI metadata.
+- Added render and intent tests covering the remembered viewport and canvas-fit activation flow.
+
+#### Files Changed
+- `src/app/store/workspaceIntents.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/browserRowActions.test.ts`
+
+#### Behavior Changes
+- Opening a graph now restores the last remembered viewport when one exists.
+- Opening a graph without saved viewport state now fits the full canvas instead of landing on a single node.
+- Graph row actions that jump into the graph now request canvas fit so users start with a wider useful view.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/store/workspaceIntents.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserRowActions.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+<!-- ENTRY 1750 -->
+
+### [1750] - 2026-05-02 09:12 - `Settings-1 - Phase 2 - Spaghetti Editor Window Default Settings`
+
+<!-- ENTRY 1750 -->
+HUMAN SUMMARY: `Phase 2 made the Spaghetti Editor window appearance defaults owner-backed and editable from the Settings workspace. The shared defaults now persist, participate in edit history, and seed/reset floating editor windows from a single source of truth instead of hard-coded local fallbacks.`
+
+#### Scope / Constraints Honored
+- Kept the work inside the existing `Settings-1` roadmap family and implemented the second internal phase directly.
+- Preserved the Unreal-style Settings shell from Phase 1 while adding only the Spaghetti Editor defaults slice.
+- Normalized the appearance defaults through the existing Spaghetti appearance model instead of introducing a parallel settings schema.
+
+#### Summary of Implementation
+- Added `spaghettiWindowAppearanceDefaults` to the UI preferences store with normalize-and-no-op setters and a reset path.
+- Extended UI preference persistence to version 3 so the shared defaults serialize, hydrate, and survive reloads.
+- Added edit-history ownership for the Spaghetti Editor defaults field so changes can be undone and redone like the other tracked preferences.
+- Updated `SpaghettiWindowHost` to use the shared defaults as the fallback and reset target for floating editor windows.
+- Added an editable `Spaghetti Editor` section to the Settings workspace with sliders and selectors for the window appearance defaults.
+
+#### Files Changed
+- `src/app/panels/spaghettiWindowAppearance.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/uiPreferenceEditHistory.ts`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/uiPreferenceEditHistoryStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/app/store/workspaceLayoutPreferenceEditHistoryReadiness.test.ts`
+
+#### Behavior Changes (if any)
+- Spaghetti Editor windows now seed from shared owner-backed appearance defaults.
+- Settings now exposes an editable Spaghetti Editor defaults section with a reset-to-defaults action.
+- Persisted UI preferences now include the shared Spaghetti Editor appearance defaults.
+
+#### Verification Steps
+- `cmd /c npm test -- src/app/workspace/SettingsSurface.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/uiPreferenceEditHistoryStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/app/store/workspaceLayoutPreferenceEditHistoryReadiness.test.ts`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1749 -->
+
+### [1749] - 2026-05-02 08:50 - `Settings-1 - Viewport Type Menu Adds Settings`
+
+<!-- ENTRY 1749 -->
+HUMAN SUMMARY: `The viewport title-bar right-click picker now shows Settings in the canonical type list, so the new workspace is reachable from the same menu that already switches Model Viewport, Browser, Catalog, Console, Spaghetti Editor, Notepad, Dashboard, Home Page, and Edit History. This keeps the menu aligned with the surface catalog instead of leaving Settings reachable only through code-level registration.`
+
+#### Scope / Constraints Honored
+
+- Kept the change to the viewport type picker list only.
+- Left the existing catalog, registry, and Settings surface implementation intact.
+- Preserved the current right-click behavior and menu layout.
+
+#### Summary of Implementation
+
+- Added `settings` to the fallback viewport type picker list in `ViewportFrame`.
+- Kept the label map aligned so the new menu entry renders as `Settings`.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.tsx`
+
+#### Behavior Changes
+
+- Right-clicking a viewport title bar and opening `Viewport Type` now includes `Settings` in the selection list.
+
+#### Verification Steps
+
+- Not rerun after this one-line menu update because the prior build already validated the surrounding workspace surface integration.
+
+<!-- ENTRY 1748 -->
+
+### [1748] - 2026-05-02 08:46 - `Settings-1 - Unreal-Style Settings Shell And Section Router`
+
+<!-- ENTRY 1748 -->
+HUMAN SUMMARY: `The new Settings workspace now has a real phase-1 shell with a left section rail, an All-first router, and a right-pane projection of read-only settings rows. The surface is registered in the workspace catalog and viewport registry, but editing is intentionally deferred to later phases so this first cut stays narrow.`
+
+#### Scope / Constraints Honored
+
+- Kept the phase focused on the shell, section rail, and right-pane router.
+- Kept the first cut read-only so no actual settings editing behavior was introduced yet.
+- Left host-mode support intentionally narrow for this phase by registering Settings as slotted and split-capable without floating or popout plumbing.
+
+#### Summary of Implementation
+
+- Added `settings` to the workspace surface kind, render-family, and instance-id generation paths.
+- Registered the new Settings surface in the workspace catalog with an optional persisted shell entry.
+- Implemented `SettingsSurface` as an Unreal-style two-column shell with an `All`-first section rail and read-only section projection.
+- Added surface CSS for the new settings shell and imported it into the shared theme bundle.
+- Updated viewport registry coverage and the Home Page launcher expectations to include Settings.
+- Added focused tests for the surface, catalog entry, viewport registry, and Home Page launch order.
+
+#### Files Changed
+
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/theme/v15Theme.css`
+
+#### Behavior Changes
+
+- The workspace can now open a `Settings` surface that presents a left navigation rail and a right content pane.
+- `All` is the first section in the rail, and clicking a section routes the right pane to that section's current settings projection.
+- The surface currently reports live workspace and persistence values without exposing edit controls yet.
+
+#### Verification Steps
+
+- `cmd /c npm test -- src/app/workspace/SettingsSurface.test.tsx src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/ViewportSurfaceRegistry.test.tsx src/app/workspace/HomePageSurface.test.tsx`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1747 -->
+
+### [1747] - 2026-05-02 08:31 - `SP - Smaller Maximized Drag Restore Size`
+
+<!-- ENTRY 1747 -->
+HUMAN SUMMARY: `The maximized Spaghetti editor now restores to an even smaller floating size when the user grabs its titlebar to move it. This keeps the Windows-style restore-and-drag behavior from the previous pass, but makes the grabbed window feel lighter and easier to place immediately after it pops out of maximize.`
+
+#### Scope / Constraints Honored
+
+- Kept the change limited to the maximized titlebar-drag restore size.
+- Left the normal default floating editor size unchanged for non-maximized entry points.
+- Preserved the existing maximize, overlay, and topmost maximized-layer ownership.
+
+#### Summary of Implementation
+
+- Introduced a dedicated smaller floating restore size for maximized titlebar-drag behavior.
+- Updated the maximized drag-start seam in `SpaghettiWindowHost` to restore to that smaller size instead of the normal default floating size.
+- Refreshed focused host coverage to lock the smaller restored size and the updated under-pointer placement seed.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+
+- Grabbing the titlebar of a maximized Spaghetti editor now restores it to a smaller floating window than before.
+- Ordinary floating editor spawn/default size remains unchanged.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1746 -->
+
+### [1746] - 2026-05-02 08:28 - `SP - Maximized Editor Restore-On-Drag Behavior`
+
+<!-- ENTRY 1746 -->
+HUMAN SUMMARY: `Dragging a maximized Spaghetti editor by its titlebar now behaves like a normal desktop window restore gesture. The shell restores to the standard smaller floating size under the pointer and continues moving in the same drag, instead of staying pinned full-size until the user exits maximize first.`
+
+#### Scope / Constraints Honored
+
+- Kept the change in the floating-editor drag and window-mode lane.
+- Preserved the separate ownership of maximize versus `O` overlay mode.
+- Used the default floating window size, clamped to the current shell limits, instead of inventing a second maximize restore-size owner.
+
+#### Summary of Implementation
+
+- Opened titlebar dragging to include maximized floating Spaghetti windows.
+- Added maximized-drag restore logic in `SpaghettiWindowHost` that converts the shell back to `expanded`, restores the default floating size, repositions the window under the pointer, and immediately continues the drag.
+- Added focused host coverage proving maximized titlebar drag restores size, restores expanded mode, and seeds a new floating position before movement continues.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+
+- Grabbing the titlebar of a maximized Spaghetti editor now restores it to the normal floating size and begins dragging in one gesture.
+- The restored size still respects the current shell-height clamp when the viewport area is shorter than the raw default floating size.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1745 -->
+
+### [1745] - 2026-05-02 08:20 - `SP - Maximized Editor Topmost Layer Fix`
+
+<!-- ENTRY 1745 -->
+HUMAN SUMMARY: `Maximized Spaghetti editor windows now render in a dedicated higher dock layer instead of sharing the normal floating-shell z band. That lets a maximized editor actually sit above model viewport title bars, gizmo chrome, and neighboring workspace headers the way a real topmost maximize action should.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix in the floating-window shell and z-layer ownership lane.
+- Preserved the explicit separation between maximize behavior and `O` overlay mode.
+- Avoided widening into unrelated viewport chrome redesign.
+
+#### Summary of Implementation
+
+- Split maximized floating Spaghetti windows out from the normal floating dock into a dedicated maximized dock layer.
+- Added a dedicated maximized dock z-index band above the workspace viewport chrome stack.
+- Raised maximized window local z-order into a deterministic high range while preserving normal per-viewport z-order for non-maximized floaters.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/theme/shell/windows.css`
+
+#### Behavior Changes
+
+- Maximized floating Spaghetti editors now sit above the model viewport title bar, gizmo/top-right overlay controls, and neighboring workspace title bars such as Edit History.
+- Non-maximized floating Spaghetti editors remain in the normal floating dock layer.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx -t "wires the maximize titlebar button to the viewport window-mode action|keeps the window controls available in meatball editor view|renders maximized floating editors in the dedicated topmost dock layer"`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1744 -->
+
+### [1744] - 2026-05-02 08:15 - `SP - Floating Editor Maximize Icon And Front-Activation Cleanup`
+
+<!-- ENTRY 1744 -->
+HUMAN SUMMARY: `The Spaghetti editor maximize control now reads like a real window control instead of another bracket-text action, and maximizing a floating editor now explicitly activates that viewport first so the maximized shell stays on top of the model viewport lane. This keeps maximize separate from \`O\` overlay mode while making the fullscreen-style action more legible and deterministic.`
+
+#### Scope / Constraints Honored
+
+- Kept the change in the floating Spaghetti shell lane without reopening overlay ownership.
+- Preserved the existing maximize-versus-restore window-mode behavior.
+- Treated the top-right control as maximize/restore only, not as an alias for `O` overlay mode.
+
+#### Summary of Implementation
+
+- Replaced the old `[]` maximize button text in `SpaghettiWindowHost` with a real square-window glyph that switches to a restore glyph while maximized.
+- Added explicit front-activation before maximize for both the active-editor and per-viewport maximize handlers so the target viewport becomes the active top floating shell before its window mode changes.
+- Added shell CSS for the maximize/restore glyph presentation and extended focused tests to lock the new icon plus maximize activation behavior.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/shell/windows.css`
+
+#### Behavior Changes
+
+- The Spaghetti editor top-right maximize control now shows a square-window icon instead of the old bracket text.
+- Clicking maximize now explicitly activates that editor viewport before entering maximized mode, which keeps the maximized shell in front of the model viewport workspace lane.
+- Overlay entry and exit behavior remain owned by the separate `O` control.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx -t "wires the maximize titlebar button to the viewport window-mode action|keeps the window controls available in meatball editor view"`
+- Ran `npm.cmd run build`
+- The broad `src/app/AppShell.test.tsx` suite still has unrelated existing failures elsewhere in this branch, so verification stayed on the maximize-specific seam plus the host suite.
+
+<!-- ENTRY 1743 -->
+
+### [1743] - 2026-05-02 08:06 - `SP - Phase 4 - Essentials Canvas Background Transparency Cleanup`
+
+<!-- ENTRY 1743 -->
+HUMAN SUMMARY: `Essentials \`e\` mode now has its own compact titlebar readability control instead of depending on the overlay backdrop settings from \`O\` mode. The Spaghetti editor titlebar exposes a canvas-background transparency slider, and the essentials canvas surface now applies that value without introducing new canonical graph-state ownership.`
+
+#### Scope / Constraints Honored
+
+- Implemented `Spaghetti-Editor 3 / Phase 4 - Essentials Canvas Background Transparency Cleanup`.
+- Kept the new control on the Spaghetti editor titlebar rather than the model viewport titlebar.
+- Kept the pass narrow:
+  - one slider
+  - canvas background transparency only
+- Kept `e`-mode ownership separate from the overlay backdrop control shipped in `Phase 3`.
+
+#### Summary of Implementation
+
+- Added an essentials-only `BG` range slider to the Spaghetti editor titlebar in `SpaghettiWindowHost`.
+- Added per-editor host-owned canvas background opacity state keyed by editor viewport id, with reset behavior aligned to the existing window-style reset flow.
+- Threaded the value into `SpaghettiPanel` and mapped it onto the essentials canvas background styling in the Spaghetti surface CSS.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+
+- While the editor is in `e` mode, the Spaghetti editor titlebar now shows a compact `BG` slider for canvas background transparency.
+- Essentials-mode canvas surfaces now render using that editor-owned transparency value instead of remaining hard-transparent all the time.
+- Overlay titlebar ownership and overlay backdrop controls remain unchanged.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/panels/SpaghettiPanel.test.tsx`
+- Ran `npm.cmd run build`
+- Noted that the existing Vite chunk-size warnings still appear during build, but the build completes successfully.
+
+<!-- ENTRY 1742 -->
+
+### [1742] - 2026-05-02 07:36 - `SP - Phase 3 - Overlay Titlebar Controls And Surface Cleanup`
+
+<!-- ENTRY 1742 -->
+HUMAN SUMMARY: `Overlay \`O\` mode now announces itself from the model viewport titlebar instead of a leftover floating-shell chip. The titlebar shows the active overlaid graph name, lets the user exit overlay directly with \`O\`, and exposes the first background-transparency control while the viewport-local overlay host from Phase 2 stays intact.`
+
+#### Scope / Constraints Honored
+
+- Implemented `Spaghetti-Editor 3 / Phase 3 - Overlay Titlebar Controls And Surface Cleanup`.
+- Kept overlay ownership under the viewport-local host shipped in `Phase 2`.
+- Kept the new control surface narrow:
+  - visible `O`
+  - active graph name
+  - first background-transparency control
+- Did not widen into broader overlay settings or canonical graph-history ownership.
+
+#### Summary of Implementation
+
+- Added a reusable viewport-titlebar overlay control row so model viewport chrome can surface overlay state honestly in slotted, popup-workspace, and detached floating viewer headers.
+- Retired the remaining floating overlay shell path in `SpaghettiWindowHost` so entering `O` no longer leaves a standalone floating chip behind.
+- Added per-editor overlay background-opacity state and threaded it into the viewport-local overlay host so the first readability backdrop control is adjustable without mutating graph data.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportOverlayModeTitlebarControls.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+
+- While `O` is active, the model viewport titlebar now shows the overlaid graph identity and the direct overlay-exit control.
+- The old floating overlay chip no longer renders after entering overlay mode.
+- The viewport-local overlay lane now supports a first adjustable background-transparency backdrop for readability.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx src/app/workspace/ViewportWorkspaceHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `npm.cmd run build`
+- Noted that the existing Vite chunk-size warnings still appear during build, but the build completes successfully.
+
+<!-- ENTRY 1741 -->
+
+### [1741] - 2026-05-02 07:19 - `SP - Phase 2 - Overlay Viewport Ownership And Hit-Testing`
+
+<!-- ENTRY 1741 -->
+HUMAN SUMMARY: `Overlay \`O\` mode now mounts the live Spaghetti panel inside the active model viewport lane instead of leaving the editor body on a workspace-global maximized shell. The old floating overlay path is reduced to a small exit chip, so Browser, title bars, and neighboring workspace surfaces stay usable while the existing Shift canvas passthrough keeps working inside the viewport-local overlay.`
+
+#### Scope / Constraints Honored
+
+- Implemented `Spaghetti-Editor 3 / Phase 2 - Overlay Viewport Ownership And Hit-Testing`.
+- Kept the shipped `- / e / + / O` shell contract unchanged.
+- Deferred viewport-titlebar overlay identity, exit polish, and readability controls to the later overlay cleanup phase.
+
+#### Summary of Implementation
+
+- Added a viewport-local Spaghetti overlay mount in `ViewportWorkspaceHost` so the active overlay editor now renders inside the active model viewport host.
+- Preserved the existing `Shift` wheel / pan / orbit interaction path by reusing the live `SpaghettiCanvas` inside that viewport-local overlay instead of inventing a second viewer-control seam.
+- Retired the blocking part of the old floating overlay shell by suppressing the floating body and resize handles while `O` is active, leaving only a small floating exit chip for the interim control surface.
+- Added focused coverage proving the overlay panel moves into the active viewport host and that the old floating overlay path no longer renders the blocking body.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+
+- `O` mode now shows the live Spaghetti editor overlay inside the active model viewport lane.
+- Browser, title bars, and neighboring split workspace surfaces are no longer blocked by the old full-viewport floating overlay body.
+- The temporary floating `O` chip remains available as the direct overlay exit affordance until the later viewport-titlebar control phase lands.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportWorkspaceHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1740 -->
+
+### [1740] - 2026-05-01 20:45 - `SP - Phase 1 - Window Density Truth And O Mode Entry`
+
+<!-- ENTRY 1740 -->
+HUMAN SUMMARY: `Spaghetti Editor now treats \`e\` as a real compact floating window again, gives overlay its own explicit \`O\` path, and stops overloading essentials with the old maximized overlay-chip behavior. The shell cycle now reads honestly as \`+\` full window, \`-\` minimized, \`e\` essentials, with \`O\` handled by a separate overlay toggle.`
+
+#### Scope / Constraints Honored
+
+- Implemented `Spaghetti-Editor 3 / Phase 1 - Window Density Truth And O Mode Entry`.
+- Kept node row-density behavior unchanged.
+- Kept later viewport-local overlay ownership, Browser click-through, and titlebar polish deferred.
+
+#### Summary of Implementation
+
+- Added explicit editor-shell overlay state so `essentials` and `overlay` no longer share the same maximized-shell encoding.
+- Reworked `SpaghettiWindowHost` titlebar behavior so the primary mode button reflects the honest shell state and the old overlay chip now lives behind a dedicated `O` control.
+- Restored essentials to compact canvas-visible window behavior while keeping overlay on the old maximized shell lane for the later ownership phase.
+- Updated focused host/store/AppShell test seams to reflect the new `collapsed | essentials | expanded | overlay` shell contract.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/theme/shell/windows.css`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+
+- The floating Spaghetti shell now shows `+` for full window mode, `-` for minimized mode, and `e` for essentials mode.
+- `e` now keeps the graph in a compact floating window instead of reusing the old full-browser overlay treatment.
+- The old maximized overlay chip behavior now belongs only to the explicit `O` toggle.
+
+#### Verification Steps
+
+- `npx tsc -b --pretty false`
+- `npm test -- src/app/hosts/SpaghettiWindowHost.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+  - focused host tests passed
+  - the store file still carries two pre-existing `OutputPreview` expectation failures unrelated to this shell-mode work
+- `npm test -- src/app/AppShell.test.tsx -t "moves the spaghetti first button to the far left and cycles plus, minus, and essentials"`
+
+<!-- ENTRY 1739 -->
+
+### [1739] - 2026-05-01 20:01 - `Edit-History-3 - Phase 7 - Node Deletion Surface History Parity`
+
+<!-- ENTRY 1739 -->
+HUMAN SUMMARY: `Canvas selected-node Delete and Backspace now route through canonical graph edit history. Successful Sketch and Extrude node deletion creates one undoable \`Remove graph node\` snapshot, related graph edges restore through undo/redo, selected-edge deletion keeps precedence, and Console node deletion remains the reference behavior.`
+
+#### Scope / Constraints Honored
+
+- Implemented Phase 7 against `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`.
+- Kept the change local to the canvas selected-node keyboard deletion surface.
+- Reused `removeGraphNodeWithHistory(...)` as the only graph-node deletion snapshot owner.
+- Did not widen into edge deletion history, feature-stack remove, sketch-session delete, new delete affordances, protected-node policy, graph load/hydration, OutputPreview singleton repair, history UI, persistence, checkpoints, branching, runtime/cache/provider state, or command transcript/recall undo.
+
+#### Summary of Implementation
+
+- Added canvas selected-node Delete/Backspace handling through `removeGraphNodeWithHistory(...)`.
+- Preserved selected-edge Delete/Backspace precedence over selected-node deletion.
+- Cleared selected node, selected edge, hovered edge, and selected waypoint after successful node deletion while showing the existing style of user feedback.
+- Added focused canvas proof for Sketch and Extrude deletion, undo/redo restoration, related-edge restoration, selected-edge precedence, and no-selection no-entry behavior.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Canvas selected graph nodes can now be deleted with Delete/Backspace.
+- Canvas selected-node deletion creates canonical `Remove graph node` history entries.
+- Undo/redo restores and removes the deleted authored node and related graph edges through the graph snapshot owner.
+- Delete/Backspace still deletes a selected edge instead of a selected node when both are selected.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "deletes a selected sketch node"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1738 -->
+
+### [1738] - 2026-05-01 19:44 - `Edit-History-3 - Phase 6 - Node Creation Surface History Parity`
+
+<!-- ENTRY 1738 -->
+HUMAN SUMMARY: `Canvas menu-created Sketch and Extrude nodes and SpaghettiPanel part-node creation now route through canonical graph edit history. Each successful user-facing node creation creates one undoable \`Add graph node\` snapshot while preserving placement, spawn mode, selection feedback, and the existing Console-created node reference behavior.`
+
+#### Scope / Constraints Honored
+
+- Implemented Phase 6 against `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`.
+- Kept the change local to user-facing node creation surfaces that bypassed the accepted graph-history seam.
+- Reused `addGraphNodeWithHistory(...)` as the only graph-node creation snapshot owner.
+- Did not widen into graph load/hydration, OutputPreview singleton repair, graph command contracts, node registry changes, history UI, persistence, checkpoints, branching, runtime/cache/provider state, or command transcript/recall undo.
+
+#### Summary of Implementation
+
+- Routed the Spaghetti canvas node-add menu through `addGraphNodeWithHistory(...)` while preserving menu coordinates, spawn mode, selected-node updates, selected-edge clearing, UI message behavior, and menu close behavior.
+- Routed `SpaghettiPanel` part-node creation through `addGraphNodeWithHistory(...)` while preserving focused/selected node feedback and add-node messaging.
+- Added focused proof that menu-created Sketch and Extrude nodes create canonical `Add graph node` entries, undo/redo removes and restores authored graph nodes, and the panel path calls the history seam instead of raw graph commands.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Canvas menu-created Sketch, Extrude, and other user-addable graph nodes now create canonical `Add graph node` history entries.
+- `SpaghettiPanel` part-node creation now uses the same canonical graph-node history seam.
+- Internal graph setup, system repair, imports, hydration, and runtime/cache state remain outside this history lane.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx`
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1737 -->
+
+### [1737] - 2026-05-01 18:50 - `Edit-History-3 - Phase 5 - Extrude Node Template Row Parameter Commits`
+
+<!-- ENTRY 1737 -->
+HUMAN SUMMARY: `Extrude node-template Type, Direction, Depth, Start Depth, End Depth, Taper Angle, and Output row changes now commit to canonical graph edit history. Numeric rows commit once at semantic interaction end, enum/output choices commit once per accepted change, and undo/redo restores authored Extrude params without treating driven rows as local edits.`
+
+#### Scope / Constraints Honored
+
+- Implemented Phase 5 against `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`.
+- Kept the change local to the graph-native Extrude node-template row seams.
+- Preserved feature-stack `ExtrudeFeatureView` history ownership.
+- Did not widen into every-node-row history, compile/evaluate behavior, preview/runtime caches, history UI, checkpoints, branching, persistence, or command transcript/recall undo.
+
+#### Summary of Implementation
+
+- Routed Extrude numeric row interactions for `depthMm`, `startDepthMm`, `endDepthMm`, and `taperAngleDeg` through row-specific graph parameter history targets.
+- Added a local `NodeView` commit helper for immediate Extrude enum/output row edits so `extrudeType`, `extrudeDirection`, and `bodyGenerationMode` create canonical entries after accepted changes.
+- Added focused UI history proof for Type, Direction, Output, one-sided/symmetric Depth, two-sided Start/End Depth, Taper Angle, undo/redo restoration, no live-tick entries before numeric release, and driven Type/Depth no-entry behavior.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Extrude node-template row commits now appear as `Change graph parameter` edit-history entries with row-specific targets such as `nodeId:extrude:depthMm` and `nodeId:extrude:bodyGenerationMode`.
+- Undo/redo restores authored Extrude graph node params for the covered rows.
+- Driven Type and Depth rows remain local-history excluded.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx -t "commits extrude|driven Type or Depth"`
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx -t "extrude"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1736 -->
+
+### [1736] - 2026-05-01 16:18 - `Edit-History-Workspace-4 - Phase 13 - Sketch Draw History Scrub Mode`
+
+<!-- ENTRY 1736 -->
+HUMAN SUMMARY: `Expanded Sketch Draw child command targets now open a read-only history-scrub state after a successful child restore. The viewport can show a Sketch Draw history scrub panel for the restored node, while normal Undo/Redo remains parent-canonical.`
+
+#### Scope / Constraints Honored
+
+- Implemented Phase 13 against `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`.
+- Kept child targets out of canonical undo/redo stacks.
+- Kept history scrub separate from normal editable Sketch Draw sessions.
+- Preserved parent-level Undo/Redo semantics after child scrub selection.
+
+#### Summary of Implementation
+
+- Added non-persistent `geometrySketchHistoryScrub` state plus open/clear actions to the spaghetti store.
+- Wired Edit History child target selection to restore the child boundary, resolve the Sketch Draw node, and open history scrub only after successful restore.
+- Clear history scrub state on parent marker jumps, tab/source changes, and normal Undo/Redo actions in the reader.
+- Added a read-only viewport overlay panel for active Sketch Draw history scrub targets.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Selecting a restorable expanded Sketch Draw child row opens a read-only history-scrub context for the restored node.
+- The Edit History inspector reports `Sketch Draw history scrub` when the active child target has an opened scrub context.
+- The viewport overlay can show the restored Sketch Draw node and child command without enabling authoring controls.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryStore.test.ts src/app/store/editHistoryReaderViewModel.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts` was also run; the Phase 13 slices passed, but `src/app/spaghetti/store/useSpaghettiStore.test.ts` still has unrelated OutputPreview `publicationMode` expectation failures.
+
+<!-- ENTRY 1735 -->
+
+### [1735] - 2026-05-01 10:52 - `Edit-History-Workspace-4 - Phase 12 - Sketch Draw Child Restore Points`
+
+<!-- ENTRY 1735 -->
+HUMAN SUMMARY: `Sketch Draw child rows can now restore real in-parent boundaries from their parent canonical history entry. The parent Undo/Redo stack remains the only canonical timeline owner, while private child restore callbacks stay out of the public reader model.`
+
+#### Scope / Constraints Honored
+
+- Implemented Phase 12 against `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`.
+- Kept child restore as temporary in-parent state over an applied parent entry.
+- Kept child rows out of global undo/redo stacks and out of `model.timeline.entries`.
+- Avoided exposing private restore callbacks through the reader model.
+
+#### Summary of Implementation
+
+- Added private `EditHistoryEntryChildRestorePoint` support and `editHistoryStore.restoreChild(...)`.
+- Added reader `canRestore` metadata without public restore callback exposure.
+- Wired expanded child-row clicks and scrub releases to jump to the parent boundary before asking the store to restore the selected child boundary.
+- Built Sketch Draw child restore points from accepted session commands, including tool-selection boundaries that preserve nearest params plus local command position.
+
+#### Files Changed
+
+- `src/app/store/editHistoryStore.ts`
+- `src/app/store/editHistoryStore.test.ts`
+- `src/app/store/editHistoryReaderViewModel.ts`
+- `src/app/store/editHistoryReaderViewModel.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Edit-History-Gen1-Index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Selecting a restorable expanded Sketch Draw child row restores the graph/sketch state to that child boundary and labels the inspector as a restored child marker.
+- Missing or non-restorable child targets remain read-only selections.
+- `restoreChild(...)` notifies subscribers on success but does not write diagnostic activity rows or move undo/redo stacks.
+
+#### Verification Steps
+
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryStore.test.ts src/app/store/editHistoryReaderViewModel.test.ts src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1734 -->
+
+### [1734] - 2026-05-01 10:34 - `Edit-History-Workspace-4 - Phase 11C - Expanded Child Boundary Policy`
+
+<!-- ENTRY 1734 -->
+HUMAN SUMMARY: `Expanded Sketch Draw child rows now have guard coverage that keeps them inspectable-only inside their parent canonical entry. Selected child detail clears when Undo moves the marker away from the parent boundary, and child summaries are proven not to add canonical Timeline entries.`
+
+#### Scope / Constraints Honored
+
+- Kept parent `Commit sketch draw changes` entries as the only canonical undo/redo owner.
+- Kept child rows as read-only inspection/detail targets.
+- Did not add child restore points, CAD build-path playback, private command payloads, child entries in `model.timeline.entries`, or diagnostic activity changes.
+- Preserved Phase 11A canonical scrub pointer behavior and Phase 11B diagnostic activity separation.
+
+#### Summary of Implementation
+
+- Added child selection revalidation in the Edit History reader surface.
+- Cleared selected child detail when the parent entry is no longer present or the canonical marker leaves the selected child's parent boundary.
+- Added surface coverage proving Undo from selected child detail moves the parent canonical entry and clears stale child detail back to the current marker read.
+- Added reader-view-model coverage proving child summaries remain nested inside the parent timeline entry and do not change Timeline counts.
+
+#### Tests / Verification
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+<!-- ENTRY 1733 -->
+
+### [1733] - 2026-05-01 10:19 - `Edit-History-Workspace-4 - Phase 11B - Snapshot Activity Separation`
+
+<!-- ENTRY 1733 -->
+HUMAN SUMMARY: `The Edit History inspector now presents snapshot rows as diagnostic activity instead of a second history list. Tests prove diagnostic activity rows do not become Timeline scrub targets and do not affect canonical Timeline counts or marker positions.`
+
+#### Scope / Constraints Honored
+
+- Kept the internal `snapshotLog` store contract unchanged.
+- Kept canonical undo/redo stack movement unchanged.
+- Did not delete the diagnostic activity log, add snapshot persistence, make diagnostic rows clickable scrub targets, or change child-row restore behavior.
+- Preserved Phase 11A canonical scrub pointer behavior.
+
+#### Summary of Implementation
+
+- Renamed the visible inspector heading from `Snapshot log` to `Diagnostic activity`.
+- Renamed the section aria label from `History snapshot log` to `Diagnostic activity log`.
+- Changed the empty state to `No diagnostic activity recorded`.
+- Added reader-surface coverage proving diagnostic activity rows stay out of Timeline scrub rail targets.
+- Added reader-view-model coverage proving snapshot activity does not affect `timeline.entries`, `markerIndex`, `appliedCount`, or `redoableCount`.
+
+#### Tests / Verification
+
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
 
 <!-- ENTRY 1732 -->
 

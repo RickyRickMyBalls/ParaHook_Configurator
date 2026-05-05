@@ -37,6 +37,7 @@ import { useAppShellSurfaceActivation } from './hosts/useAppShellSurfaceActivati
 import { useAppShellViewportActions } from './hosts/useAppShellViewportActions'
 import { useAppShellWorkspaceSelectors } from './hosts/useAppShellWorkspaceSelectors'
 import { RadioPanel } from './panels/RadioPanel'
+import type { SettingsSectionId } from './workspace/SettingsSurface'
 import {
   selectActiveEditorViewport,
   useSpaghettiStore,
@@ -52,6 +53,7 @@ import { useWorkspaceChildWindow } from './workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { cycleBrowserPresentationModeWithHistory } from './store/workspaceLayoutEditHistory'
 import { WorkspaceViewportTree } from './workspace/WorkspaceViewportTree'
+import { ViewportOverlayModeTitlebarControls } from './workspace/ViewportOverlayModeTitlebarControls'
 import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
 import {
   floatWorkspaceSurface,
@@ -286,6 +288,10 @@ export function AppShell() {
   const [viewportSpawnMenu, setViewportSpawnMenu] = useState<ViewportSpawnMenuState | null>(null)
   const leftDockWidth = useWorkspaceStore((state) => state.leftDockWidth)
   const setLeftDockWidth = useWorkspaceStore((state) => state.setLeftDockWidth)
+  const leftDockStackHeight = useWorkspaceStore((state) => state.leftDockStackHeight)
+  const setLeftDockStackHeight = useWorkspaceStore((state) => state.setLeftDockStackHeight)
+  const leftDockStackSplitRatio = useWorkspaceStore((state) => state.leftDockStackSplitRatio)
+  const setLeftDockStackSplitRatio = useWorkspaceStore((state) => state.setLeftDockStackSplitRatio)
   const isLeftDockViewportSplit = useWorkspaceStore((state) => state.isLeftDockViewportSplit)
   const setIsLeftDockViewportSplit = useWorkspaceStore((state) => state.setLeftDockViewportSplit)
   const activeLeftDockPreviewPanelId = useWorkspaceStore(
@@ -383,6 +389,9 @@ export function AppShell() {
     dockedMeatballHostRef,
     leftDockWidth,
     setLeftDockWidth,
+    leftDockStackHeight,
+    setLeftDockStackHeight,
+    setLeftDockStackSplitRatio,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,
@@ -398,7 +407,10 @@ export function AppShell() {
   const isMeatballDockOccupied = useMemo(
     () =>
       Object.values(editorViewportsById).some(
-        (viewport) => viewport.windowMode === 'meatball editor view',
+        (viewport) =>
+          viewport.windowMode === 'meatball editor view' ||
+          (viewport.windowMode === 'collapsed' &&
+            viewport.restoreFromCollapsed?.windowMode === 'meatball editor view'),
       ),
     [editorViewportsById],
   )
@@ -408,6 +420,8 @@ export function AppShell() {
   const [windowSettingsOpenByViewportId, setWindowSettingsOpenByViewportId] = useState<
     Record<string, boolean>
   >({})
+  const [settingsSurfaceInitialSectionId, setSettingsSurfaceInitialSectionId] =
+    useState<SettingsSectionId>('all')
   const {
     spaghetti: {
       hasVisibleSpaghettiInAppShell,
@@ -797,6 +811,14 @@ export function AppShell() {
     splitViewportSlot,
   })
 
+  const handleOpenSettingsSurface = useCallback(
+    (initialSectionId: SettingsSectionId = 'all') => {
+      setSettingsSurfaceInitialSectionId(initialSectionId)
+      handleViewportSlotSurfaceKindChange(defaultPrimaryViewportSlotId, 'settings')
+    },
+    [handleViewportSlotSurfaceKindChange],
+  )
+
   const {
     handleFloatingSplitMenu,
     handleOpenViewportSpawnMenu,
@@ -957,6 +979,8 @@ export function AppShell() {
       viewportSlotsById={viewportSlotsById}
       viewportLayoutNodesById={viewportLayoutNodesById}
       leftDockWidth={leftDockWidth}
+      leftDockStackHeight={leftDockStackHeight}
+      leftDockStackSplitRatio={leftDockStackSplitRatio}
       primaryViewportSlotIsConstrained={primaryViewportSlotIsConstrained}
       isLeftDockViewportSplit={isLeftDockViewportSplit}
       isBrowserDockPreviewActive={isBrowserDockPreviewActive}
@@ -965,6 +989,7 @@ export function AppShell() {
       browserPresentationMode={browserPresentationMode}
       isBrowserCollapsed={isBrowserCollapsed}
       windowSettingsOpenByViewportId={windowSettingsOpenByViewportId}
+      settingsInitialSectionId={settingsSurfaceInitialSectionId}
       dockedBrowserHostRef={dockedBrowserHostRef}
       dockedMeatballHostRef={dockedMeatballHostRef}
       onOpenHomePageSurface={handleOpenHomePageSurface}
@@ -1055,7 +1080,18 @@ export function AppShell() {
             cursor: 'grab',
           }}
         >
-          <span>Floating Model Viewport</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: 0,
+              flex: '1 1 auto',
+            }}
+          >
+            <span>Floating Model Viewport</span>
+            <ViewportOverlayModeTitlebarControls viewportId={surface.surfaceInstanceId} />
+          </div>
           <FloatingWindowQuickDockButton
             className="DetachedViewerFloatingWindowQuickDock"
             onClick={() => {
@@ -1099,11 +1135,13 @@ export function AppShell() {
           onClearDetachedSurface={clearDetachedSlotSurface}
           onOpenNoteInNotepad={handleOpenDashboardNoteInNotepad}
           onQuickDock={redockDetachedSurface}
+          onOpenSettings={handleOpenSettingsSurface}
         />
         <SimpleFloatingSurfaceHost
           viewportRef={viewportRef}
           floatingSurfaces={detachedCatalogFloatingSurfaces}
           onQuickDock={redockDetachedSurface}
+          onOpenSettings={handleOpenSettingsSurface}
           title="Floating Catalog"
           windowClassName="CatalogFloatingWindow"
           headerClassName="CatalogFloatingWindowHeader"
@@ -1121,6 +1159,7 @@ export function AppShell() {
           popoutSurfaces={detachedNotepadPopoutSurfaces}
           onClearDetachedSurface={clearDetachedSlotSurface}
           onQuickDock={redockDetachedSurface}
+          onOpenSettings={handleOpenSettingsSurface}
         />
         <SpaghettiWindowHost
           appShellRef={appShellRef}
@@ -1186,6 +1225,7 @@ export function AppShell() {
         suppressDockedSurface={suppressLegacyDockedBrowserSurface}
         resolveLeftDockPreviewPanelId={resolveLeftDockPreviewPanelId}
         onActivateBrowserFloatingWindow={handleActivateBrowserFloatingWindow}
+        onOpenSettings={handleOpenSettingsSurface}
         newEditorSpawnPosition={newEditorSpawnPosition}
         workspaceActiveSurface={workspaceActiveSurface}
         slotHeaderDragSeed={browserSlotHeaderDragSeed}

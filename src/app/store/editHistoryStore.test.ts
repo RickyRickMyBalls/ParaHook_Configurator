@@ -156,6 +156,95 @@ describe('editHistoryStore', () => {
     expect(Object.isFrozen(committedEntry.childSummaries)).toBe(true)
   })
 
+  it('restores private child points without moving canonical undo and redo stacks', () => {
+    const store = createEditHistoryStore()
+    const events: string[] = []
+    const listener = vi.fn()
+    const unsubscribe = store.subscribe(listener)
+
+    expect(store.commitEntry(createTestEntry('entry-1', 'Commit sketch draw changes', events, {
+      childSummaries: [
+        {
+          childId: 'draw-command-1',
+          label: 'Draw sketch line',
+          kind: 'geometry',
+          sequence: 1,
+        },
+      ],
+      childRestorePoints: [
+        {
+          childId: 'draw-command-1',
+          restore: () => events.push('restore:draw-command-1'),
+        },
+      ],
+    }))).toBe(true)
+    listener.mockClear()
+    const snapshotLogBeforeRestore = store.getSnapshotLog()
+
+    expect(store.restoreChild('entry-1', 'draw-command-1')?.entryId).toBe('entry-1')
+
+    unsubscribe()
+    expect(events).toEqual(['restore:draw-command-1'])
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(store.getUndoEntries().map((entry) => entry.entryId)).toEqual(['entry-1'])
+    expect(store.getRedoEntries()).toEqual([])
+    expect(store.getSnapshotLog()).toEqual(snapshotLogBeforeRestore)
+  })
+
+  it('returns null for unavailable child restore targets', () => {
+    const store = createEditHistoryStore()
+    const events: string[] = []
+    const listener = vi.fn()
+    store.subscribe(listener)
+
+    store.commitEntry(createTestEntry('entry-1', 'Commit sketch draw changes', events, {
+      childRestorePoints: [
+        {
+          childId: 'draw-command-1',
+          restore: () => events.push('restore:draw-command-1'),
+        },
+      ],
+    }))
+    store.undo()
+    listener.mockClear()
+
+    expect(store.restoreChild('entry-1', 'draw-command-1')).toBeNull()
+    expect(store.restoreChild('missing-entry', 'draw-command-1')).toBeNull()
+    expect(store.restoreChild('entry-1', 'missing-child')).toBeNull()
+    expect(events).toEqual(['undo:entry-1'])
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('stores child restore points without sharing caller arrays', () => {
+    const store = createEditHistoryStore()
+    const events: string[] = []
+    const childRestorePoints = [
+      {
+        childId: 'draw-command-1',
+        restore: () => events.push('restore:draw-command-1'),
+      },
+    ]
+
+    expect(store.commitEntry(createTestEntry('entry-1', 'Commit sketch draw changes', events, {
+      childRestorePoints,
+    }))).toBe(true)
+
+    childRestorePoints[0] = {
+      childId: 'mutated-child',
+      restore: () => events.push('restore:mutated-child'),
+    }
+
+    const committedEntry = store.getUndoEntries()[0]
+    expect(committedEntry.childRestorePoints?.map((point) => point.childId)).toEqual([
+      'draw-command-1',
+    ])
+    expect(Object.isFrozen(committedEntry.childRestorePoints)).toBe(true)
+    expect(Object.isFrozen(committedEntry.childRestorePoints?.[0])).toBe(true)
+
+    store.restoreChild('entry-1', 'draw-command-1')
+    expect(events).toEqual(['restore:draw-command-1'])
+  })
+
   it('publishes stable read snapshots to subscribers when canonical stacks change', () => {
     const store = createEditHistoryStore()
     const events: string[] = []

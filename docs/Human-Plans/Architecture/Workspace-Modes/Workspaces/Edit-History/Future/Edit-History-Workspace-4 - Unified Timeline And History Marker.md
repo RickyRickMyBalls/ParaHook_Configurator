@@ -3,6 +3,15 @@
 ## Doc Header
 
 ### Doc History
+44. 2026-05-01 16:18:46: Marked `Edit-History-Workspace-4 / Phase 13` shipped after adding read-only Sketch Draw history-scrub store state, restore-then-open child target wiring, viewport scrub panel display, focused tests, and TypeScript build proof while preserving parent-only canonical Undo/Redo behavior.
+43. 2026-05-01 16:05:22: Prepped `Edit-History-Workspace-4 / Phase 13` for implementation by locking the first slice to a separate read-only Sketch Draw history-scrub state opened only after successful Phase 12 child restore, with parent Undo/Redo clearing the scrub state and focused tests covering child-to-child scrub updates without child canonical ownership.
+42. 2026-05-01 11:11:52: Added `Edit-History-Workspace-4 / Phase 13` to plan automatic Sketch Draw history scrub mode when a user expands a committed Sketch Draw parent entry and moves the current-position marker onto one of its child commands, while preserving parent-only canonical Undo/Redo ownership.
+41. 2026-05-01 10:52:28: Marked `Edit-History-Workspace-4 / Phase 12` shipped after private parent-owned child restore points, `editHistoryStore.restoreChild(...)`, Sketch Draw boundary restore construction, restored-child reader selection, and focused verification landed without adding child rows to canonical timeline ownership.
+40. 2026-05-01 10:44:34: Re-prepped `Edit-History-Workspace-4 / Phase 12` after shipped Phases 11A through 11C, tightening the child-restore slice around temporary in-parent restore state only, parent-entry Ctrl+Z/Ctrl+Y ownership, store-contract-first implementation order, Sketch Draw boundary snapshots from accepted session commands, and explicit no-second-timeline safeguards.
+39. 2026-05-01 10:34:53: Marked `Edit-History-Workspace-4 / Phase 11C` shipped after child detail selection gained canonical marker revalidation, Undo moving away from the selected child parent now clears stale child detail back to the current marker read, child summaries were proven to stay inside parent timeline entries, and focused verification passed.
+38. 2026-05-01 10:23:49: Prepped `Edit-History-Workspace-4 / Phase 11C` for implementation with the existing read-only child selection and parent-boundary jump seams, explicit inspectable-only child policy before Phase 12, Ctrl+Z/Ctrl+Y parent-stop regression coverage, child-selection revalidation/clearing requirements, and hard exclusions for child restore points, CAD build-path playback, or child entries in `model.timeline.entries`.
+37. 2026-05-01 10:19:34: Marked `Edit-History-Workspace-4 / Phase 11B` shipped after the inspector snapshot section was relabelled as diagnostic activity, old history/snapshot ownership wording was removed from the visible section, reader tests proved activity rows stay out of Timeline scrub rail targets, reader-model tests proved snapshot activity does not affect canonical timeline counts, and focused verification passed.
+36. 2026-05-01 10:12:11: Prepped `Edit-History-Workspace-4 / Phase 11B` for implementation with live snapshot-log wording seams, a conservative visible rename from history/snapshot language to diagnostic activity language, reader-model proofs that Timeline counts ignore snapshot activity, surface tests that activity rows are not rail dot sources, and exclusions for deleting the log or changing canonical store ownership.
 35. 2026-05-01 09:32:23: Marked `Edit-History-Workspace-4 / Phase 11A` shipped after focused reader-surface regression coverage proved scrub marker jumps keep the canonical undo/redo pointer, Undo/Redo buttons continue from the scrubbed marker index, same marker movement never creates a pseudo-entry, and focused verification passed.
 34. 2026-05-01 09:10:55: Prepped `Edit-History-Workspace-4 / Phase 11A` for implementation with the current `jumpToTimelineMarkerIndex(...)` surface seam, canonical stack assertions after scrub release, Ctrl+Z/Ctrl+Y follow-up expectations, no marker-move pseudo-entry creation, child-selection cleanup, and focused regression tests for the `10 -> 5 -> undo goes 4` behavior.
 33. 2026-05-01 08:41:07: Added pre-Phase-12 bridge phases for canonical scrub pointer alignment so the Timeline scrub list is treated as the canonical undo/redo projection, current-position movement never creates its own undoable marker action, snapshot activity stays diagnostic-only, and expanded child rows remain non-canonical until a later build-path or restore-specific lane owns them.
@@ -1896,7 +1905,7 @@ Verified:
 - `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryStore.test.ts`
 - `node_modules\.bin\tsc.cmd -b`
 
-## [ ] `Edit-History-Workspace-4 / Phase 11B` - `Snapshot Activity Separation`
+## [x] `Edit-History-Workspace-4 / Phase 11B` - `Snapshot Activity Separation`
 
 ### Phase 11B Summary
 
@@ -1905,6 +1914,16 @@ Separate diagnostic snapshot activity from the canonical Timeline scrub list.
 The snapshot log can remain useful for debugging and reader audit, but it must not be the source of truth for scrub positions, and marker movement must not create new user-facing history entries.
 
 ### Phase 11B Implementation Spec
+
+Phase 11B is prepped for implementation as a narrow reader wording and proof pass over the existing snapshot-log data.
+
+Live seams:
+- `EditHistoryReaderSurface` currently renders `<section className="EditHistoryReaderSnapshotLog" aria-label="History snapshot log">`.
+- The visible heading is currently `Snapshot log`.
+- The empty state is currently `No snapshots captured`.
+- `renderSnapshotLogAction(...)` renders commit activity as `Captured`.
+- `createEditHistoryReaderModel(...)` exposes `snapshotLog` beside `timeline`; the `timeline` model is derived only from canonical undo/redo entries.
+- `editHistoryStore` currently records commit, undo, and redo activity in `snapshotLog`; Phase 11B should not change stack movement.
 
 #### Scope
 
@@ -1926,12 +1945,20 @@ Phase 11B should not:
 - make snapshot rows clickable canonical scrub targets
 - change the existing Undo/Redo stack contract
 - create persistence for snapshot activity
+- rename the internal `snapshotLog` store field unless a tiny local alias is needed for readability
+- change the Phase 11A canonical scrub pointer behavior
+- change expanded child-row targeting or child restore behavior
 
 #### UI Wording Rule
 
 If the diagnostic log remains visible in the inspector, label it so users do not confuse it with the canonical Timeline.
 
-Allowed labels:
+Selected first-pass label:
+- visible heading: `Diagnostic activity`
+- section aria label: `Diagnostic activity log`
+- empty state: `No diagnostic activity recorded`
+
+Allowed alternate labels if implementation review finds the selected label awkward:
 - `Activity log`
 - `Diagnostic log`
 - `Snapshot activity`
@@ -1949,6 +1976,9 @@ Add or update coverage for:
 - the Timeline count derives from canonical entries, not snapshot activity count
 - snapshot/activity rows are not used as scrub rail dot sources
 - inspector wording distinguishes diagnostic activity from canonical timeline entries
+- the old visible `Snapshot log` heading and `History snapshot log` aria label are no longer used
+- commit/undo/redo activity details remain readable after the wording change
+- `createEditHistoryReaderTimelineModel(...)` ignores `snapshot.snapshotLog` entries when deriving `entries`, `markerIndex`, `appliedCount`, and `redoableCount`
 
 #### Verification
 
@@ -1959,7 +1989,24 @@ node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test
 node_modules\.bin\tsc.cmd -b
 ```
 
-## [ ] `Edit-History-Workspace-4 / Phase 11C` - `Expanded Child Boundary Policy`
+### Phase 11B Shipped Read
+
+Shipped as a narrow reader wording and proof pass.
+
+Implemented:
+- Renamed the visible inspector section from `Snapshot log` to `Diagnostic activity`.
+- Renamed the section aria label from `History snapshot log` to `Diagnostic activity log`.
+- Changed the empty state to `No diagnostic activity recorded`.
+- Kept the internal `snapshotLog` contract and canonical undo/redo stack ownership unchanged.
+- Added reader-surface proof that diagnostic activity rows stay out of Timeline scrub rail targets and do not inflate Timeline entry display.
+- Added reader-view-model proof that `snapshot.snapshotLog` entries do not affect `timeline.entries`, `markerIndex`, `appliedCount`, or `redoableCount`.
+
+Verified:
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+## [x] `Edit-History-Workspace-4 / Phase 11C` - `Expanded Child Boundary Policy`
 
 ### Phase 11C Summary
 
@@ -1968,6 +2015,16 @@ Reconcile expanded Sketch Draw child rows with the canonical scrub-list rule bef
 Expanded child rows are useful detail inside a parent canonical entry, but they are not currently independent canonical undo/redo entries. This phase decides and enforces how they appear in the canonical scrub list so Phase 12 does not accidentally turn them into a second timeline.
 
 ### Phase 11C Implementation Spec
+
+Phase 11C is prepped for implementation as a focused policy/proof pass over the already-shipped Phase 11 child-row interaction.
+
+Live seams:
+- `EditHistoryReaderSurface` stores child detail selection in `selectedChildTarget`.
+- `jumpToTimelineChildTarget(entry, summary)` currently jumps to `entry.timelineIndex + 1`, then selects the child target.
+- Scrub release with `previewChildTarget` currently jumps to the parent boundary and then selects the child target.
+- Expanded child rows render `data-timeline-rail-child-entry-id` and `data-timeline-rail-child-id` only when the group card is expanded.
+- The inspector currently labels selected child detail as `Read only child marker`.
+- `createEditHistoryReaderTimelineModel(...)` derives `entries` only from canonical undo and redo entries; `childSummaries` live inside parent entries.
 
 #### Scope
 
@@ -1979,6 +2036,12 @@ Recommended policy:
 - dragging near a child row may select or preview the child detail only after the marker has landed on the parent boundary
 - Ctrl+Z/Ctrl+Y always moves between parent canonical entries
 - true per-child build/playback belongs to the future CAD build-path timeline unless Phase 12 explicitly restores a temporary in-parent view without changing canonical ownership
+
+Selected Phase 11C policy:
+- child rows are inspectable-only in the canonical Edit History Timeline
+- targeting a child row may select child detail, but the canonical marker remains at the parent boundary
+- Undo/Redo buttons and global Ctrl+Z/Ctrl+Y continue from the parent boundary, never from the child row
+- child selection should clear or revalidate when the parent canonical marker moves away from the selected child parent
 
 Primary file targets:
 - `src/app/workspace/EditHistoryReaderSurface.tsx`
@@ -1992,6 +2055,9 @@ Phase 11C should not:
 - make Ctrl+Z stop on child summary rows
 - implement true child restore points
 - implement CAD build-path timeline playback
+- add private command payloads to the reader model
+- change diagnostic activity behavior from Phase 11B
+- change the Phase 11A canonical scrub pointer behavior
 
 #### Decision Gate For Phase 12
 
@@ -2009,6 +2075,11 @@ Add or update coverage for:
 - Ctrl+Y after selecting or previewing a child row moves to the next parent canonical marker when available
 - collapsed and expanded parent cards produce the same canonical marker index when targeted
 - child selection state clears or revalidates when the parent canonical marker changes
+- selected child detail uses honest inspectable/read-only wording, not `Applied`, `Redoable`, or `Restored`
+- selecting a child row does not add an undo or redo stack entry
+- expanded child rows stay absent from `model.timeline.entries`
+- targeting a child on a redoable parent first redoes through the parent boundary, then selection remains read-only
+- after Undo moves away from a selected child parent, the inspector returns to the canonical marker or parent-entry state rather than stale child detail
 
 #### Verification
 
@@ -2019,7 +2090,22 @@ node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test
 node_modules\.bin\tsc.cmd -b
 ```
 
-## [~] `Edit-History-Workspace-4 / Phase 12` - `Sketch Draw Child Restore Points`
+### Phase 11C Shipped Read
+
+Shipped as a focused child-boundary policy and guard pass.
+
+Implemented:
+- Added child selection revalidation so selected child detail clears when the Timeline tab is no longer active, the parent entry is no longer present, or the canonical marker is no longer at the selected child's parent boundary.
+- Preserved read-only child row selection and parent-boundary targeting.
+- Added reader-surface coverage proving Undo from a selected child detail moves the canonical parent entry and clears stale child detail back to the current marker read.
+- Added reader-view-model coverage proving child summaries stay inside the parent canonical timeline entry and do not inflate `timeline.entries`, `appliedCount`, or `redoableCount`.
+
+Verified:
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts`
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+## [x] `Edit-History-Workspace-4 / Phase 12` - `Sketch Draw Child Restore Points`
 
 ### Phase 12 Summary
 
@@ -2029,7 +2115,14 @@ Phase 12 should only start after Phase 11 proves the reader interaction and Phas
 
 ### Phase 12 Implementation Spec
 
-Phase 12 is prepped for implementation as a narrow restore-contract pass over the already-shipped Phase 11 child scrub targeting.
+Phase 12 is prepped for implementation as a narrow restore-contract pass over the already-shipped Phase 11 child scrub targeting and the shipped Phase 11A through 11C canonical scrub guards.
+
+Post-11C policy:
+- child rows remain inspectable details inside parent canonical entries
+- a child restore is temporary in-parent state over an already-applied parent entry
+- Ctrl+Z/Ctrl+Y and Undo/Redo buttons still move between parent canonical entries only
+- child rows still do not appear in `model.timeline.entries`
+- Phase 12 may show a restored child detail only after a real store-owned restore succeeds
 
 Selected approach:
 - keep `childSummaries` public and read-only
@@ -2063,6 +2156,20 @@ Phase 12 should not:
 - create a new history reader store
 - restore on pointer move
 - make collapsed child rows restorable targets
+- make Ctrl+Z or Ctrl+Y stop on child rows
+- make child restore state persist as its own branch, checkpoint, or diagnostic activity item
+- reuse diagnostic activity rows as restore points
+
+#### Implementation Order
+
+Implement in this order:
+1. Add the private `EditHistoryEntryChildRestorePoint` contract and store-level `restoreChild(...)` method.
+2. Add store tests proving private restore execution, missing-target nulls, subscriber notification, and no public callback exposure through snapshots/read models.
+3. Wire reader release to call `restoreChild(...)` only after `jumpToTimelineMarkerIndex(parentIndex + 1)` has landed the canonical marker at the parent boundary.
+4. Build Sketch Draw child restore points from accepted session command boundaries before `closeGeometrySketchSession()` clears the session.
+5. Add integration tests that restore first child, last child, and tool-selection boundaries without changing global undo/redo ownership.
+
+Stop after step 2 if the private store contract exposes an ownership problem; do not fake the UI restore.
 
 #### Required Data Contract
 
@@ -2097,6 +2204,8 @@ Store behavior:
 - run the restore operation
 - notify subscribers after a successful restore
 - return the parent entry on success, otherwise `null`
+- do not move entries between undo/redo stacks
+- do not write a diagnostic activity row for restoreChild in Phase 12
 
 The reader model may expose whether a public child summary has a restore point, but it must not expose the restore callback itself.
 
@@ -2134,6 +2243,7 @@ Implementation direction:
 - use cloned node params and local history snapshots, not raw mutable session references
 - attach private child restore points to the parent `Commit sketch draw changes` entry
 - restore through `restoreGeometrySketchNodeParameterSnapshot(...)` so graph params and local Sketch Draw history stay aligned
+- preserve Phase 11C child selection revalidation, so child detail clears when the parent marker boundary is no longer current
 
 Suggested helper shape:
 
@@ -2173,8 +2283,9 @@ Reader integration:
 - keep Phase 11 pointer-move preview-only behavior
 - on release, jump to the parent boundary first
 - call `editHistoryStore.restoreChild(parentEntryId, childId)`
-- only show selected child detail as restored when the store restore succeeds
+- only show selected child detail as restored/readable when the store restore succeeds
 - if restore fails, fall back to Phase 11 read-only child selection wording
+- if a normal Undo/Redo button or Ctrl+Z/Ctrl+Y moves away from the parent boundary, keep the Phase 11C clearing behavior
 
 #### Acceptance Checks
 
@@ -2183,6 +2294,7 @@ Reader integration:
 - Undoing past the parent entry clears any in-parent child marker state.
 - Redoing the parent can restore the full committed parent state unless the user explicitly targets a child again.
 - The reader clearly distinguishes parent canonical position from in-parent child position.
+- Ctrl+Z/Ctrl+Y after a child restore moves to the previous/next parent canonical marker, not to another child row.
 - Public reader metadata never exposes private command payloads or restore functions.
 - `editHistoryStore.restoreChild(...)` returns `null` for missing parent entries, missing child ids, and non-restorable children.
 - Store subscribers are notified after successful child restore.
@@ -2209,6 +2321,270 @@ Run:
 node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/store/editHistoryReaderViewModel.test.ts src/app/store/editHistoryStore.test.ts src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts
 node_modules\.bin\tsc.cmd -b
 ```
+
+### Phase 12 Shipped Read
+
+Phase 12 shipped the private parent-owned child restore contract.
+
+Implemented:
+- `EditHistoryEntryChildRestorePoint` and `editHistoryStore.restoreChild(entryId, childId)`.
+- Store-owned restore execution from applied parent entries only, with subscriber notification and no undo/redo stack movement.
+- Reader `canRestore` metadata that does not expose private restore callbacks.
+- Expanded child-row click and scrub release restore after the canonical marker first lands at the parent boundary.
+- Sketch Draw child restore points derived from accepted session commands, including tool-selection boundaries that restore the nearest sketch params and local history position.
+
+Verification:
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryStore.test.ts src/app/store/editHistoryReaderViewModel.test.ts src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+## [x] `Edit-History-Workspace-4 / Phase 13` - `Sketch Draw History Scrub Mode`
+
+### Phase 13 Summary
+
+Open Sketch Draw automatically when the user expands a committed `Commit sketch draw changes` parent entry and moves the current-position marker onto one of that parent entry's child Sketch Draw commands.
+
+The normal collapsed timeline should keep working exactly as it does now:
+- the canonical marker moves between parent entries
+- Ctrl+Z and Ctrl+Y move between parent entries
+- `Commit sketch draw changes` remains one canonical history entry
+
+The expanded Sketch Draw path adds an in-parent scrub experience:
+- expanded child rows are local command boundaries inside the parent entry
+- moving the marker onto a child command opens the related Sketch Draw context
+- the model viewport shows the restored sketch state for that child command boundary
+- the user can scrub among those expanded child rows to move through the sketch line-by-line or command-by-command
+
+### Phase 13 Implementation Spec
+
+Phase 13 should build on Phase 12's private restore points. It should not invent a second canonical edit-history timeline.
+
+Selected approach:
+- use Phase 12 child restore points as the restore source
+- add a distinct Sketch Draw history-scrub viewing mode or preview state
+- open Sketch Draw automatically only after a child target restore succeeds
+- keep the active child target owned by the Edit History reader selection state
+- let normal parent Undo/Redo clear or replace the history-scrub view
+
+Phase 13 is prepped as a first usable history-scrub slice, not the full future CAD build-path scrubber. The goal is to make expanded Sketch Draw child rows open the Sketch Draw visual context and restore command boundaries while keeping all edit-history semantics parent-canonical.
+
+Implementation decision:
+- use a separate `geometrySketchHistoryScrub` store state instead of extending normal `GeometrySketchSession['mode']`
+- leave normal Sketch Draw authoring sessions alone unless they must be cleared to avoid conflicting visible context
+- make `geometrySketchHistoryScrub` read-only metadata for viewport/editor presentation, not a source of graph truth
+- restore graph/sketch state through Phase 12 child restore points before setting history-scrub state
+- clear history-scrub state when canonical parent marker movement moves away from the selected child parent
+
+#### Scope
+
+Implement automatic Sketch Draw opening for expanded child scrub targets.
+
+Primary file targets:
+- `src/app/workspace/EditHistoryReaderSurface.tsx`
+- `src/app/workspace/EditHistoryReaderSurface.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `src/app/components/ViewportOverlay.tsx` only if the existing Sketch Draw UI must read the new history-scrub state for visible open-context behavior
+- `src/app/store/editHistoryStore.ts` only if `restoreChild(...)` needs to return a small restored-target descriptor
+
+Secondary file targets if needed:
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/store/editHistoryReaderViewModel.ts` only if the reader needs node id or target metadata that is not currently available
+
+Phase 13 should not:
+- make child rows independent canonical timeline entries
+- make Ctrl+Z or Ctrl+Y stop on child rows
+- create pending uncommitted Sketch Draw edits when entering history-scrub mode
+- allow normal Sketch Draw editing from a restored child boundary in this phase
+- persist history-scrub state as a project/document artifact
+- write diagnostic activity rows when changing child scrub targets
+- restore on pointer move unless a later phase explicitly proves live restore is safe
+- create a new workspace tab or separate edit-history reader store
+- make history-scrub mode editable or commit-capable
+- persist the selected child command in saved graph documents
+
+#### User Flow
+
+Collapsed flow stays unchanged:
+1. User sees parent entries such as `#6 Commit sketch draw changes`, `#5 Add graph node`, and `#4 Move graph node`.
+2. User moves the current-position marker between those parent entries.
+3. Canonical Undo/Redo stays high level.
+
+Expanded Sketch Draw flow:
+1. User expands the chevron on `#6 Commit sketch draw changes`.
+2. User drags or clicks the current-position marker onto a child row such as `#3 Draw sketch line`.
+3. Edit History jumps to the parent boundary first.
+4. Edit History calls the Phase 12 child restore point.
+5. ParaHook opens Sketch Draw for the restored node in history-scrub mode.
+6. The model viewport shows the sketch state after that child command.
+7. Moving to another child row restores that child boundary and keeps Sketch Draw open in history-scrub mode.
+8. Pressing normal Undo/Redo exits or overwrites the child scrub view by moving parent canonical history.
+
+#### Implementation Order
+
+Implement in this order:
+
+1. Add a private, non-persistent `geometrySketchHistoryScrub` state to `useSpaghettiStore`.
+2. Add store actions:
+   - `openGeometrySketchHistoryScrub(input)`
+   - `clearGeometrySketchHistoryScrub()`
+3. Keep the state small and read-only:
+   - parent entry id
+   - child id
+   - graph document id
+   - node id
+   - child label
+   - child sequence
+   - timestamp or opened-at marker only if useful for tests
+4. Update the Edit History child-target success path so:
+   - `jumpToTimelineMarkerIndex(parentIndex + 1)` runs first
+   - `editHistoryStore.restoreChild(...)` runs second
+   - `openGeometrySketchHistoryScrub(...)` runs only when restore succeeds and the parent target resolves to a Sketch Draw node
+5. Clear history-scrub state when:
+   - selected child target is cleared by Phase 11C parent-boundary revalidation
+   - tab/source changes clear child selection
+   - normal Undo/Redo button movement changes canonical marker away from the parent boundary
+   - a collapsed parent entry is selected through normal timeline movement
+6. Add the smallest UI/viewer read needed to show Sketch Draw as open for the restored node without enabling authoring controls.
+7. Add focused tests proving no child canonical entries and no pending Sketch Draw authoring history.
+
+Stop before step 6 if the existing viewport/editor surface needs a larger Sketch Draw mode refactor; record that as a Phase 14 visual polish/follow-on instead of hiding it inside Phase 13.
+
+#### Sketch Draw Mode Contract
+
+Prefer a distinct state instead of reusing normal authoring `draw` mode.
+
+Locked first-pass shape:
+
+```ts
+type GeometrySketchHistoryScrubState = {
+  parentEntryId: string
+  childId: string
+  graphDocumentId: string
+  nodeId: string
+  childLabel: string
+  childSequence: number
+}
+```
+
+Use a separate `geometrySketchHistoryScrub` state for Phase 13. Do not extend normal `GeometrySketchSession['mode']` in this phase unless implementation proves there is already a safer existing session shell for read-only review.
+
+The key rule is that entering history scrub must not create editable local undo commands or a pending sketch draw commit.
+
+Read-only behavior:
+- `geometrySketchSession` should remain `null` unless existing viewport/editor code truly requires a session to show the sketch context
+- local staged undo/redo command lists should not be created
+- existing Sketch Draw authoring commands should no-op or stay unavailable while `geometrySketchHistoryScrub` is active
+- clearing history-scrub state should not change graph params by itself; graph params are owned by canonical undo/redo or Phase 12 child restore
+
+#### Restore And Open Ordering
+
+The release/click path should be:
+
+```text
+jump parent canonical marker
+restore child boundary
+open Sketch Draw history-scrub view for restored node
+select child detail in Edit History
+```
+
+If restore fails:
+- do not open Sketch Draw history scrub
+- keep the child selection as read-only
+- leave canonical history at the parent boundary if the jump already happened
+
+If the user switches to a different parent entry, normal tab, or source filter:
+- clear the selected child target
+- close or clear the Sketch Draw history-scrub view unless the real active Sketch Draw authoring session should remain untouched
+
+If the selected child summary has `canRestore: false`:
+- do not call `openGeometrySketchHistoryScrub(...)`
+- keep current Phase 12 read-only child marker behavior
+
+If the parent entry does not identify a Sketch Draw target node:
+- restore may still succeed
+- do not open Sketch Draw history scrub
+- keep the child detail readable and restored if the store restore succeeded
+
+#### Canonical Undo/Redo Rule
+
+Normal Undo/Redo must remain parent-owned.
+
+After the user restores child `#3` inside parent `#6`:
+- Ctrl+Z should move from parent marker `6` to parent marker `5`
+- Ctrl+Y should move from parent marker `5` back through parent `#6`
+- Ctrl+Z should not step from child `#3` to child `#2`
+
+Child-to-child movement only happens through the expanded Edit History scrub interaction.
+
+#### UI Read
+
+When history-scrub mode is active:
+- the expanded child row remains visibly selected
+- the inspector can say `Sketch Draw history scrub`
+- Sketch Draw should visually read as open and tied to the selected child command
+- editing controls that would mutate geometry should be disabled or hidden unless already safe in read-only mode
+
+Do not use explanatory in-app text for implementation details. Keep labels short and workspace-native.
+
+Minimal acceptable Phase 13 UI:
+- inspector status changes from `Restored child marker` to `Sketch Draw history scrub` for opened scrub targets
+- Sketch Draw/viewport state can identify the active history-scrub node and selected child command in tests
+- if a full visible Sketch Draw panel open requires a broader shell change, keep Phase 13 store/reader behavior shipped and plan the visual shell opening as a follow-up phase
+
+#### Acceptance Checks
+
+- Expanding a Sketch Draw parent and selecting a child opens Sketch Draw for that node.
+- The viewport/model shows the restored child boundary from Phase 12.
+- Moving between expanded child rows updates the restored Sketch Draw state without creating canonical child entries.
+- Collapsed parent timeline behavior remains unchanged.
+- Ctrl+Z/Ctrl+Y after a child scrub target move parent canonical history, not child rows.
+- Normal parent Undo/Redo clears or replaces the active history-scrub state.
+- Failed child restore does not open Sketch Draw history scrub.
+- History scrub mode does not create pending local Sketch Draw commands or commit prompts.
+- Clearing selected child detail clears history-scrub state.
+- Collapsed timeline parent jumps never open history-scrub state.
+- Non-Sketch-Draw restored children do not try to open Sketch Draw.
+
+#### Focused Tests
+
+Add or update coverage for:
+- Selecting an expanded restorable child row calls child restore and opens Sketch Draw history-scrub state for the restored node.
+- Selecting a second child row updates the same history-scrub state and restored model.
+- Undo after child scrub clears history-scrub state and moves to the previous parent marker.
+- Redo after parent undo restores the parent full commit, not an automatic child row, unless the user targets a child again.
+- Non-restorable child selection stays read-only and does not open Sketch Draw history scrub.
+- Normal collapsed timeline marker movement does not create Sketch Draw history-scrub state.
+- Store actions set and clear `geometrySketchHistoryScrub` without mutating graph params.
+- Existing Sketch Draw local history remains empty when entering history scrub.
+
+#### Verification
+
+Run:
+
+```powershell
+node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts
+node_modules\.bin\tsc.cmd -b
+```
+
+### Phase 13 Shipped Read
+
+Phase 13 shipped the first Sketch Draw history-scrub slice.
+
+Implemented:
+- non-persistent `geometrySketchHistoryScrub` state on `useSpaghettiStore`
+- `openGeometrySketchHistoryScrub(...)` and `clearGeometrySketchHistoryScrub()`
+- Edit History child target restore-then-open wiring for Sketch Draw child rows
+- history-scrub clearing when normal parent marker movement takes over
+- read-only viewport overlay panel for the active restored Sketch Draw child command
+
+Verification:
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `node_modules\.bin\vitest.cmd run src/app/store/editHistoryStore.test.ts src/app/store/editHistoryReaderViewModel.test.ts`
+- `node_modules\.bin\tsc.cmd -b`
+
+Known unrelated verification note:
+- `node_modules\.bin\vitest.cmd run src/app/workspace/EditHistoryReaderSurface.test.tsx src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts` was run. The Phase 13 suites passed, but `src/app/spaghetti/store/useSpaghettiStore.test.ts` has unrelated OutputPreview `publicationMode` expectation failures.
 
 ## [x] `Edit-History-Workspace-4 / Phase 3` - `Marker Jump Routing`
 

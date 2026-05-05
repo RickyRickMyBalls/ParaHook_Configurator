@@ -25,6 +25,8 @@ export function useUiPrefsPersistenceBridge() {
       useUiPrefsStore.setState({
         view: applyPersistedUiPrefsView(currentUiPrefs.view, persistedUiPrefs),
         workspaceStartupSurface: persistedUiPrefs.workspaceStartupSurface,
+        spaghettiWindowAppearanceDefaults:
+          persistedUiPrefs.spaghettiWindowAppearanceDefaults,
         workspaceRestorePersistence: persistedUiPrefs.workspaceRestorePersistence,
         viewSettingsPersistence: persistedUiPrefs.viewSettingsPersistence,
         environmentPersistence: persistedUiPrefs.environmentPersistence,
@@ -51,6 +53,7 @@ export function useUiPrefsPersistenceBridge() {
     const nextSnapshot = serializePersistedUiPrefs(
       viewToPersist,
       currentUiPrefs.workspaceStartupSurface,
+      currentUiPrefs.spaghettiWindowAppearanceDefaults,
       currentPolicy,
     )
     writePersistedUiPrefs(nextSnapshot)
@@ -70,13 +73,18 @@ export function useUiPrefsPersistenceBridge() {
               viewSettingsPersistence: state.viewSettingsPersistence,
               environmentPersistence: state.environmentPersistence,
             })
-      const nextSnapshot = serializePersistedUiPrefs(viewToPersist, state.workspaceStartupSurface, {
-        workspaceRestorePersistence: state.workspaceRestorePersistence,
-        viewSettingsPersistence: state.viewSettingsPersistence,
-        environmentPersistence: state.environmentPersistence,
-        dashboardPersistence: state.dashboardPersistence,
-        notepadPersistence: state.notepadPersistence,
-      })
+      const nextSnapshot = serializePersistedUiPrefs(
+        viewToPersist,
+        state.workspaceStartupSurface,
+        state.spaghettiWindowAppearanceDefaults,
+        {
+          workspaceRestorePersistence: state.workspaceRestorePersistence,
+          viewSettingsPersistence: state.viewSettingsPersistence,
+          environmentPersistence: state.environmentPersistence,
+          dashboardPersistence: state.dashboardPersistence,
+          notepadPersistence: state.notepadPersistence,
+        },
+      )
       lastPersistedUiPrefsRef.current = nextSnapshot
       writePersistedUiPrefs(
         nextSnapshot,

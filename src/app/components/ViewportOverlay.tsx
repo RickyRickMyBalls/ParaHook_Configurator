@@ -506,6 +506,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
+  const geometrySketchHistoryScrub = useSpaghettiStore((state) => state.geometrySketchHistoryScrub)
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
@@ -534,7 +535,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     ) ?? null
   })
   const activeGeometrySketchNode = useSpaghettiStore((state) => {
-    const nodeId = state.geometrySketchSession?.nodeId
+    const nodeId = state.geometrySketchSession?.nodeId ?? state.geometrySketchHistoryScrub?.nodeId
     if (nodeId === undefined) {
       return null
     }
@@ -577,6 +578,9 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     (state) => state.deleteGeometrySketchSelectedComponents,
   )
   const closeGeometrySketchSession = useSpaghettiStore((state) => state.closeGeometrySketchSession)
+  const clearGeometrySketchHistoryScrub = useSpaghettiStore(
+    (state) => state.clearGeometrySketchHistoryScrub,
+  )
   const runGeometrySketchDrawCommand = useSpaghettiStore(
     (state) => state.runGeometrySketchDrawCommand,
   )
@@ -2193,6 +2197,8 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       ? 'sketch plane pick'
       : geometrySketchSession !== null
         ? `sketch ${geometrySketchSession.mode}`
+        : geometrySketchHistoryScrub !== null
+          ? 'sketch history scrub'
         : 'preview'
 
   const sketchFeature = activeGeometrySketchNode?.params.sketch as SketchFeature | undefined
@@ -3604,6 +3610,69 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
               />
             ) : null}
           </ViewportOverlayToolPanel>
+        </div>
+      ) : null}
+      {activeGeometrySketchNode !== null &&
+      geometrySketchSession === null &&
+      geometrySketchHistoryScrub !== null ? (
+        <div
+          className="ViewportOverlayWidget ViewportOverlaySketchSessionWindow ViewportOverlayToolPanel"
+          style={
+            {
+              left: `${sketchSessionWindowPosition.left}px`,
+              top: `${sketchSessionWindowPosition.top}px`,
+              width:
+                sketchSessionWindowSize === null ? undefined : `${sketchSessionWindowSize.width}px`,
+              '--overlay-tool-accent': sketchSessionAccent,
+            } as React.CSSProperties
+          }
+        >
+          <div className="ViewportOverlaySketchSessionTitleBar ViewportOverlayToolPanelTitleBar">
+            <div className="ViewportOverlaySketchSessionTitleBlock ViewportOverlayToolPanelTitleBlock">
+              <div className="ViewportOverlaySketchSessionTitle ViewportOverlayToolPanelTitle">
+                Sketch Draw
+              </div>
+              <div className="ViewportOverlaySketchSessionSubTitle ViewportOverlayToolPanelTitleMeta">
+                History scrub
+              </div>
+            </div>
+            <div className="ViewportOverlayToolPanelTrailingActions">
+              <button
+                type="button"
+                className="ViewportOverlaySketchPlaneSessionAction isPrimary ViewportOverlayToolPanelTitleDone"
+                onClick={clearGeometrySketchHistoryScrub}
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                className="ViewportOverlaySketchSessionClose ViewportOverlayToolPanelClose ViewportOverlaySketchPlaneSessionAction"
+                onClick={clearGeometrySketchHistoryScrub}
+                aria-label="Close sketch history scrub"
+                title="Close sketch history scrub"
+              >
+                X
+              </button>
+            </div>
+          </div>
+          <div className="ViewportOverlaySketchSessionBody ViewportOverlayToolPanelBody">
+            <ViewportOverlayToolSection
+              className="ViewportOverlaySketchPlaneDockSection"
+              label="History scrub"
+            >
+              <div className="ViewportOverlaySketchPlaneSessionMeta">
+                <span className="ViewportOverlaySketchPlaneSessionMetaNode">
+                  {activeGeometrySketchNode.nodeId}
+                </span>
+                <span className="ViewportOverlaySketchPlaneSessionMetaStage">
+                  {`#${geometrySketchHistoryScrub.childSequence} ${geometrySketchHistoryScrub.childLabel}`}
+                </span>
+              </div>
+              <div className="ViewportOverlaySketchEntitySummary">
+                <span>{`${sketchComponents.length} entities`}</span>
+              </div>
+            </ViewportOverlayToolSection>
+          </div>
         </div>
       ) : null}
       {activeGeometrySketchNode !== null && geometrySketchSession !== null ? (

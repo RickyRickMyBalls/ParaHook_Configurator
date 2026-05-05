@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+39. 2026-05-01 18:50:31: Marked the `Edit-History-3 / Phase 5 - Extrude Node Template Row Parameter Commits` follow-up as shipped after Extrude node-template row commits gained canonical graph-parameter history coverage for Type, Direction, Depth, Start Depth, End Depth, Taper Angle, and Output.
+38. 2026-05-01 18:35:27: Reopened the `Edit-History-3` planning surface with a Phase 5 follow-up for newer Extrude node-template row parameter commits covering Type, Direction, Depth, Taper Angle, and Output as the first explicit every-authored-node-row history coverage marker.
 37. 2026-04-22 18:29:20: Closed Generation 5 after implementing target-scoped durable Sketch Draw local history batches, canonical before/after batch snapshots, reopen hydration, and geometry-first same-tool local undo/redo while keeping Viewer Transform as the shared reference pattern and `editHistoryStore` as the only app-wide owner.
 36. 2026-04-22 17:56:30: Added Generation 5 routing for durable CAD-local history batches after user review clarified Sketch Draw and Viewer Transform should store replayable local command histories inside or beside authored CAD targets, preserving canonical app history as the app-wide owner while allowing local CAD undo/redo after committed sessions are reopened.
 35. 2026-04-22 16:28:35: Closed the promoted Gen4 focused-console undo lane after `Edit-History-Gen4-3` implemented active Sketch Draw ownership from focused Console, completed staged geometry undo/redo, submitted tool-selection undo/redo, focused tests, and production build proof.
@@ -424,11 +426,14 @@ Standalone phase doc:
 - cover feature parameter commits using the same transaction semantics as graph parameters
 - cover committed sketch entity edits while keeping local draft sketch points outside canonical undo
 - cover `Edit-History-CLG-12` through `Edit-History-CLG-16`
+- shipped follow-up scope:
+  - `Edit-History-3 / Phase 5 - Extrude Node Template Row Parameter Commits` covers the newer Extrude node-template row parameter gap for Type, Direction, one-sided/symmetric Depth, two-sided Start Depth, two-sided End Depth, Taper Angle, and Output
 
 Recommended first proof:
 - node-owned feature-stack edits
 - feature parameter commit behavior
 - committed sketch entity create/delete/modify behavior
+- newer Extrude node-template row commits are the first explicit every-authored-node-row history marker
 
 Standalone phase doc:
 - `Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`

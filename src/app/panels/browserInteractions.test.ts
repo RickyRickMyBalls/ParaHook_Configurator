@@ -650,7 +650,7 @@ describe('createBrowserRowInteractionHandlers', () => {
       {
         strategy: 'open-or-focus',
         spawnPosition: { x: 100, y: 200 },
-        fitNodeInViewport: true,
+        fitCanvasInViewport: true,
       },
     )
   })
@@ -668,6 +668,7 @@ describe('createBrowserRowInteractionHandlers', () => {
       {
         strategy: 'open-new',
         spawnPosition: { x: 100, y: 200 },
+        fitCanvasInViewport: true,
       },
     )
   })
@@ -686,7 +687,7 @@ describe('createBrowserRowInteractionHandlers', () => {
       {
         strategy: 'open-or-focus',
         spawnPosition: { x: 100, y: 200 },
-        fitNodeInViewport: true,
+        fitCanvasInViewport: true,
       },
     )
   })

@@ -1,0 +1,626 @@
+import { useEffect, useMemo, useState } from 'react'
+import { readGraphBrowserStoragePolicy } from '../spaghetti/store/graphBrowserStoragePersistence'
+import { readRecentItemsPolicy } from '../recentItems/recentItemsPersistence'
+import { readPubPartsDownloadsStorage } from '../catalog/pubPartsDownloadsStorage'
+import { ParaSelect } from '../components/ParaSelect'
+import { ParaSlider } from '../components/ParaSlider'
+import {
+  defaultSpaghettiWindowAppearance,
+  spaghettiWindowSliderBounds,
+  type SpaghettiWindowAppearance,
+} from '../panels/spaghettiWindowAppearance'
+import { setSpaghettiWindowAppearanceDefaultsWithHistory } from '../store/uiPreferenceEditHistory'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from './useWorkspaceStore'
+import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
+
+export type SettingsSectionId =
+  | 'all'
+  | 'general'
+  | 'workspace'
+  | 'viewport'
+  | 'spaghettiEditor'
+  | 'browser'
+  | 'storage'
+
+type SettingsSection = {
+  id: SettingsSectionId
+  label: string
+  eyebrow: string
+  description: string
+}
+
+type SettingsRow = {
+  id: string
+  label: string
+  value: string
+  description: string
+  sectionIds: Exclude<SettingsSectionId, 'all'>[]
+}
+
+const settingsSections: readonly SettingsSection[] = [
+  {
+    id: 'all',
+    label: 'All',
+    eyebrow: 'Overview',
+    description: 'Read-only phase 1 shell showing the current workspace settings surface.',
+  },
+  {
+    id: 'general',
+    label: 'General',
+    eyebrow: 'Startup',
+    description: 'Entry preference and persistence defaults.',
+  },
+  {
+    id: 'workspace',
+    label: 'Workspace',
+    eyebrow: 'Layout',
+    description: 'Workspace shell behavior and dock sizing.',
+  },
+  {
+    id: 'viewport',
+    label: 'Viewport',
+    eyebrow: 'View',
+    description: 'Current view and projection state.',
+  },
+  {
+    id: 'spaghettiEditor',
+    label: 'Spaghetti Editor',
+    eyebrow: 'Defaults',
+    description: 'Window appearance defaults that seed new Spaghetti Editor windows.',
+  },
+  {
+    id: 'browser',
+    label: 'Browser',
+    eyebrow: 'Dock',
+    description: 'Browser shell presentation controls.',
+  },
+  {
+    id: 'storage',
+    label: 'Storage',
+    eyebrow: 'Persistence',
+    description: 'Stored working-set and content ownership toggles.',
+  },
+] as const
+
+const settingsSectionsById = new Map(settingsSections.map((section) => [section.id, section]))
+const settingsContentSections = settingsSections.filter((section) => section.id !== 'all')
+
+const titlebarTintOptions: Array<{
+  value: SpaghettiWindowAppearance['titlebarTint']
+  label: string
+}> = [
+  { value: 'default', label: 'Default' },
+  { value: 'slate', label: 'Slate' },
+  { value: 'blue', label: 'Blue' },
+  { value: 'green', label: 'Green' },
+  { value: 'red', label: 'Red' },
+]
+
+const bodyTintOptions: Array<{
+  value: SpaghettiWindowAppearance['bodyTint']
+  label: string
+}> = [
+  { value: 'default', label: 'Default' },
+  { value: 'cool-dark', label: 'Cool Dark' },
+  { value: 'neutral-dark', label: 'Neutral Dark' },
+  { value: 'glass-dark', label: 'Glass Dark' },
+]
+
+const fontScaleOptions: Array<{
+  value: SpaghettiWindowAppearance['fontScale']
+  label: string
+}> = [
+  { value: 'sm', label: 'Small' },
+  { value: 'md', label: 'Normal' },
+  { value: 'lg', label: 'Large' },
+]
+
+const fontFamilyOptions: Array<{
+  value: SpaghettiWindowAppearance['fontFamily']
+  label: string
+}> = [
+  { value: 'default', label: 'Default' },
+  { value: 'mono', label: 'Mono' },
+  { value: 'serif', label: 'Serif' },
+]
+
+const paddingScaleOptions: Array<{
+  value: SpaghettiWindowAppearance['paddingScale']
+  label: string
+}> = [
+  { value: 'tight', label: 'Tight' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'loose', label: 'Loose' },
+]
+
+const formatOnOff = (value: boolean): string => (value ? 'On' : 'Off')
+
+const formatStartupSurface = (value: 'homePage' | 'modelViewer'): string =>
+  value === 'modelViewer' ? 'Model Viewport' : 'Home Page'
+
+const formatProjectionMode = (value: string): string =>
+  value === 'orthographic' ? 'Orthographic' : 'Perspective'
+
+const formatBrowserPresentationMode = (value: string): string =>
+  value === 'collapsed'
+    ? 'Collapsed'
+    : value === 'essentials'
+      ? 'Essentials'
+      : 'Expanded'
+
+const formatLibraryStatus = (value: string): string =>
+  value === 'enabled' ? 'Connected' : value === 'disabled' ? 'Disabled' : 'Not configured'
+
+const buildSettingsRows = (options: {
+  workspaceStartupSurface: 'homePage' | 'modelViewer'
+  workspaceRestorePersistence: boolean
+  viewSettingsPersistence: boolean
+  environmentPersistence: boolean
+  dashboardPersistence: boolean
+  notepadPersistence: boolean
+  leftDockWidth: number
+  projectionMode: string
+  axisOverlayEnabled: boolean
+  browserPresentationMode: string
+  browserIsFloating: boolean
+  browserIsViewportSplit: boolean
+}): readonly SettingsRow[] => [
+  {
+    id: 'startup-surface',
+    label: 'Startup surface',
+    value: formatStartupSurface(options.workspaceStartupSurface),
+    description: 'Where the workspace opens first.',
+    sectionIds: ['general'],
+  },
+  {
+    id: 'workspace-restore',
+    label: 'Workspace restore',
+    value: formatOnOff(options.workspaceRestorePersistence),
+    description: 'Keeps the workspace layout persistence bridge on.',
+    sectionIds: ['general', 'workspace'],
+  },
+  {
+    id: 'view-settings',
+    label: 'View settings persistence',
+    value: formatOnOff(options.viewSettingsPersistence),
+    description: 'Persists projection and viewport view defaults.',
+    sectionIds: ['general', 'viewport'],
+  },
+  {
+    id: 'environment-persistence',
+    label: 'Environment persistence',
+    value: formatOnOff(options.environmentPersistence),
+    description: 'Persists the current environment look and HDRI source.',
+    sectionIds: ['general', 'viewport', 'storage'],
+  },
+  {
+    id: 'left-dock-width',
+    label: 'Left dock width',
+    value: `${Math.round(options.leftDockWidth)} px`,
+    description: 'Current workspace shell dock width.',
+    sectionIds: ['workspace'],
+  },
+  {
+    id: 'dashboard-persistence',
+    label: 'Dashboard persistence',
+    value: formatOnOff(options.dashboardPersistence),
+    description: 'Keeps dashboard cards and layout state between sessions.',
+    sectionIds: ['workspace', 'storage'],
+  },
+  {
+    id: 'notepad-persistence',
+    label: 'Notepad persistence',
+    value: formatOnOff(options.notepadPersistence),
+    description: 'Keeps notepad notes and selection state between sessions.',
+    sectionIds: ['workspace', 'storage'],
+  },
+  {
+    id: 'projection-mode',
+    label: 'Projection mode',
+    value: formatProjectionMode(options.projectionMode),
+    description: 'Current viewport projection setting.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'axis-overlay',
+    label: 'Axis overlay',
+    value: formatOnOff(options.axisOverlayEnabled),
+    description: 'Shows the viewport axis overlay.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'browser-presentation',
+    label: 'Browser presentation',
+    value: formatBrowserPresentationMode(options.browserPresentationMode),
+    description: 'Browser shell presentation mode.',
+    sectionIds: ['browser'],
+  },
+  {
+    id: 'browser-floating',
+    label: 'Browser floating',
+    value: formatOnOff(options.browserIsFloating),
+    description: 'Whether the browser shell is detached into a floating window.',
+    sectionIds: ['browser'],
+  },
+  {
+    id: 'browser-split',
+    label: 'Browser viewport split',
+    value: formatOnOff(options.browserIsViewportSplit),
+    description: 'Whether the browser shell is split into the viewport.',
+    sectionIds: ['browser'],
+  },
+  {
+    id: 'graph-working-set',
+    label: 'Graph working set',
+    value: formatOnOff(readGraphBrowserStoragePolicy().rememberGraphWorkingSet),
+    description: 'Keeps the graph working set remembered across sessions.',
+    sectionIds: ['storage'],
+  },
+  {
+    id: 'recent-items',
+    label: 'Recent items',
+    value: formatOnOff(readRecentItemsPolicy().rememberRecentItems),
+    description: 'Keeps recent items remembered across sessions.',
+    sectionIds: ['storage'],
+  },
+  {
+    id: 'pubparts-library',
+    label: 'PubParts library',
+    value: formatLibraryStatus(readPubPartsDownloadsStorage().library.status),
+    description: 'Current PubParts local library mirror state.',
+    sectionIds: ['storage'],
+  },
+]
+
+type SettingsSurfaceProps = {
+  slotId?: WorkspaceViewportSlotId
+  surfaceInstanceId: string
+  initialSectionId?: SettingsSectionId
+}
+
+export function SettingsSurface(props: SettingsSurfaceProps) {
+  const { slotId, surfaceInstanceId, initialSectionId = 'all' } = props
+  const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId>(initialSectionId)
+  const spaghettiWindowAppearanceDefaults = useUiPrefsStore(
+    (state) => state.spaghettiWindowAppearanceDefaults,
+  )
+  const workspaceStartupSurface = useUiPrefsStore((state) => state.workspaceStartupSurface)
+  const workspaceRestorePersistence = useUiPrefsStore(
+    (state) => state.workspaceRestorePersistence,
+  )
+  const viewSettingsPersistence = useUiPrefsStore((state) => state.viewSettingsPersistence)
+  const environmentPersistence = useUiPrefsStore((state) => state.environmentPersistence)
+  const dashboardPersistence = useUiPrefsStore((state) => state.dashboardPersistence)
+  const notepadPersistence = useUiPrefsStore((state) => state.notepadPersistence)
+  const leftDockWidth = useWorkspaceStore((state) => state.leftDockWidth)
+  const projectionMode = useUiPrefsStore((state) => state.view.projectionMode)
+  const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
+  const browserPresentationMode = useWorkspaceStore(
+    (state) => state.browserShell.presentationMode,
+  )
+  const browserIsFloating = useWorkspaceStore((state) => state.browserShell.isFloating)
+  const browserIsViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
+
+  useEffect(() => {
+    setActiveSectionId(initialSectionId)
+  }, [initialSectionId, surfaceInstanceId])
+
+  const updateSpaghettiWindowAppearanceDefaults = (
+    patch: Partial<SpaghettiWindowAppearance>,
+  ) => {
+    setSpaghettiWindowAppearanceDefaultsWithHistory({
+      ...spaghettiWindowAppearanceDefaults,
+      ...patch,
+    })
+  }
+
+  const resetSpaghettiWindowAppearanceDefaults = () => {
+    setSpaghettiWindowAppearanceDefaultsWithHistory(defaultSpaghettiWindowAppearance)
+  }
+
+  const settingsRows = useMemo(
+    () =>
+      buildSettingsRows({
+        workspaceStartupSurface,
+        workspaceRestorePersistence,
+        viewSettingsPersistence,
+        environmentPersistence,
+        dashboardPersistence,
+        notepadPersistence,
+        leftDockWidth,
+        projectionMode,
+        axisOverlayEnabled,
+        browserPresentationMode,
+        browserIsFloating,
+        browserIsViewportSplit,
+      }),
+    [
+      axisOverlayEnabled,
+      browserIsFloating,
+      browserIsViewportSplit,
+      browserPresentationMode,
+      dashboardPersistence,
+      environmentPersistence,
+      leftDockWidth,
+      notepadPersistence,
+      projectionMode,
+      viewSettingsPersistence,
+      workspaceRestorePersistence,
+      workspaceStartupSurface,
+    ],
+  )
+
+  const visibleSections = useMemo(() => {
+    if (activeSectionId === 'all') {
+      return settingsContentSections
+        .map((section) => ({
+          section,
+          rows:
+            section.id === 'spaghettiEditor'
+              ? []
+              : settingsRows.filter((row) =>
+                  row.sectionIds.includes(section.id as Exclude<SettingsSectionId, 'all'>),
+                ),
+        }))
+        .filter((group) => group.rows.length > 0 || group.section.id === 'spaghettiEditor')
+    }
+
+    const section = settingsSectionsById.get(activeSectionId)
+    if (section === undefined) {
+      return []
+    }
+
+    return [
+      {
+        section,
+        rows:
+          section.id === 'spaghettiEditor'
+            ? []
+            : settingsRows.filter((row) =>
+                row.sectionIds.includes(section.id as Exclude<SettingsSectionId, 'all'>),
+              ),
+      },
+    ]
+  }, [activeSectionId, settingsRows])
+
+  return (
+    <div
+      className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--settings SettingsSurface"
+      data-workspace-slot-id={slotId}
+      data-workspace-surface-instance-id={surfaceInstanceId}
+    >
+      <div className="SettingsSurfaceShell">
+        <aside className="SettingsSurfaceRail" aria-label="Settings sections">
+          <header className="SettingsSurfaceRailHeader">
+            <span className="SettingsSurfaceRailEyebrow">Workspace</span>
+            <strong>Settings</strong>
+            <p>Unreal-style shell, phase 1.</p>
+          </header>
+          <div className="SettingsSurfaceSectionList" role="list" aria-label="Settings section list">
+            {settingsSections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                className={`SettingsSurfaceSectionButton ${
+                  activeSectionId === section.id ? 'isActive' : ''
+                }`}
+                aria-pressed={activeSectionId === section.id}
+                onClick={() => setActiveSectionId(section.id)}
+              >
+                <span className="SettingsSurfaceSectionButtonLabel">{section.label}</span>{' '}
+                <span className="SettingsSurfaceSectionButtonMeta">{section.eyebrow}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+        <main className="SettingsSurfaceContent" aria-label="Settings content">
+          <header className="SettingsSurfaceContentHeader">
+            <div>
+              <span className="SettingsSurfaceContentEyebrow">
+                {settingsSectionsById.get(activeSectionId)?.eyebrow ?? 'Overview'}
+              </span>
+              <h2>{settingsSectionsById.get(activeSectionId)?.label ?? 'Settings'}</h2>
+              <p>{settingsSectionsById.get(activeSectionId)?.description ?? ''}</p>
+            </div>
+          </header>
+          <div className="SettingsSurfaceContentBody">
+            {visibleSections.map(({ section, rows }) => (
+              <section key={section.id} className="SettingsSurfaceGroup" aria-label={section.label}>
+                <header className="SettingsSurfaceGroupHeader">
+                  <span className="SettingsSurfaceGroupEyebrow">{section.eyebrow}</span>
+                  <strong>{section.label}</strong>
+                  <p>{section.description}</p>
+                </header>
+                {section.id === 'spaghettiEditor' ? (
+                  <div className="SettingsSurfaceEditorPanel">
+                    <div className="SettingsSurfaceEditorActions">
+                      <button
+                        type="button"
+                        className="SettingsSurfaceEditorResetButton"
+                        onClick={resetSpaghettiWindowAppearanceDefaults}
+                      >
+                        Reset to defaults
+                      </button>
+                    </div>
+                    <div className="SettingsSurfaceEditorGrid">
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSlider
+                          label="Title bar opacity"
+                          value={spaghettiWindowAppearanceDefaults.titlebarOpacity}
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          clampMin={spaghettiWindowAppearanceDefaults.titlebarClamp.min}
+                          clampMax={spaghettiWindowAppearanceDefaults.titlebarClamp.max}
+                          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              titlebarOpacity: nextValue,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSlider
+                          label="Window opacity"
+                          value={spaghettiWindowAppearanceDefaults.windowOpacity}
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          clampMin={spaghettiWindowAppearanceDefaults.windowClamp.min}
+                          clampMax={spaghettiWindowAppearanceDefaults.windowClamp.max}
+                          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              windowOpacity: nextValue,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSlider
+                          label="Graph content opacity"
+                          value={spaghettiWindowAppearanceDefaults.graphContentOpacity}
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          clampMin={spaghettiWindowAppearanceDefaults.graphContentClamp.min}
+                          clampMax={spaghettiWindowAppearanceDefaults.graphContentClamp.max}
+                          formatValue={(nextValue) => `${Math.round(nextValue * 100)}%`}
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              graphContentOpacity: nextValue,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSlider
+                          label="Body side padding"
+                          value={spaghettiWindowAppearanceDefaults.bodyInsetX}
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          clampMin={spaghettiWindowAppearanceDefaults.bodyInsetXClamp.min}
+                          clampMax={spaghettiWindowAppearanceDefaults.bodyInsetXClamp.max}
+                          formatValue={(nextValue) => `${Math.round(nextValue * 12)}px`}
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              bodyInsetX: nextValue,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSlider
+                          label="Body top/bottom padding"
+                          value={spaghettiWindowAppearanceDefaults.bodyInsetY}
+                          min={spaghettiWindowSliderBounds.min}
+                          max={spaghettiWindowSliderBounds.max}
+                          step={spaghettiWindowSliderBounds.step}
+                          clampMin={spaghettiWindowAppearanceDefaults.bodyInsetYClamp.min}
+                          clampMax={spaghettiWindowAppearanceDefaults.bodyInsetYClamp.max}
+                          formatValue={(nextValue) => `${Math.round(nextValue * 12)}px`}
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              bodyInsetY: nextValue,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSelect
+                          label="Title bar color"
+                          value={spaghettiWindowAppearanceDefaults.titlebarTint}
+                          options={titlebarTintOptions}
+                          menuMode="custom"
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              titlebarTint: nextValue as SpaghettiWindowAppearance['titlebarTint'],
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSelect
+                          label="Body color"
+                          value={spaghettiWindowAppearanceDefaults.bodyTint}
+                          options={bodyTintOptions}
+                          menuMode="custom"
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              bodyTint: nextValue as SpaghettiWindowAppearance['bodyTint'],
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSelect
+                          label="Text size"
+                          value={spaghettiWindowAppearanceDefaults.fontScale}
+                          options={fontScaleOptions}
+                          menuMode="custom"
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              fontScale: nextValue as SpaghettiWindowAppearance['fontScale'],
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSelect
+                          label="Text type"
+                          value={spaghettiWindowAppearanceDefaults.fontFamily}
+                          options={fontFamilyOptions}
+                          menuMode="custom"
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              fontFamily: nextValue as SpaghettiWindowAppearance['fontFamily'],
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField">
+                        <ParaSelect
+                          label="Padding scale"
+                          value={spaghettiWindowAppearanceDefaults.paddingScale}
+                          options={paddingScaleOptions}
+                          menuMode="custom"
+                          onChange={(nextValue) =>
+                            updateSpaghettiWindowAppearanceDefaults({
+                              paddingScale: nextValue as SpaghettiWindowAppearance['paddingScale'],
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="SettingsSurfaceRowList" role="list">
+                    {rows.map((row) => (
+                      <article
+                        key={row.id}
+                        className="SettingsSurfaceRowCard"
+                        role="listitem"
+                        data-settings-row-id={row.id}
+                      >
+                        <div className="SettingsSurfaceRowCopy">
+                          <strong>{row.label}</strong>
+                          <p>{row.description}</p>
+                        </div>
+                        <div className="SettingsSurfaceRowValue" aria-label={`${row.label} value`}>
+                          {row.value}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}

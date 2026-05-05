@@ -94,6 +94,8 @@ describe('PrimaryViewportLeftDock', () => {
         <PrimaryViewportLeftDock
           viewportId="model-viewer-primary"
           leftDockWidth={320}
+          leftDockStackHeight={700}
+          leftDockStackSplitRatio={0.6}
           bottomInset="0px"
           isConstrained={true}
           isViewportSplitHandleConstrained={false}
@@ -124,6 +126,8 @@ describe('PrimaryViewportLeftDock', () => {
           <PrimaryViewportLeftDock
             viewportId="model-viewer-primary"
             leftDockWidth={320}
+            leftDockStackHeight={700}
+            leftDockStackSplitRatio={0.6}
             bottomInset="0px"
             isConstrained={true}
             isViewportSplitHandleConstrained={false}
@@ -213,6 +217,24 @@ describe('PrimaryViewportLeftDock', () => {
     expect(dockContent?.contains(resizeHandle!)).toBe(true)
     expect(panelStackShell?.contains(resizeHandle!)).toBe(false)
     expect(dockContent?.lastElementChild).toBe(resizeHandle)
+  })
+
+  it('treats the browser-only stack height as a cap instead of forcing an exact fixed-height shell', async () => {
+    await renderDock()
+
+    const panelStackShell = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelStackShell',
+    ) as HTMLElement | null
+    const browserTarget = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelTarget--browser',
+    ) as HTMLElement | null
+
+    expect(panelStackShell).not.toBeNull()
+    expect(browserTarget).not.toBeNull()
+    expect(panelStackShell?.style.height).toBe('')
+    expect(panelStackShell?.style.maxHeight).toBe('min(700px, 100%)')
+    expect(browserTarget?.classList.contains('isStackSized')).toBe(false)
+    expect(browserTarget?.style.height).toBe('')
   })
 
   it('keeps viewport presentation controls hidden behind the runtime inspector info menu and writes changes into app state', async () => {

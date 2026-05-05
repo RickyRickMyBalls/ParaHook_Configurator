@@ -20,7 +20,7 @@
   top: 0;
   bottom: 0;
   left: 0;
-  z-index: 12;
+  z-index: 32;
   width: 320px;
   min-width: 320px;
   max-width: 360px;
@@ -56,8 +56,8 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: 250px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -68,7 +68,8 @@
 }
 
 .PrimaryViewportLeftDockPanelStackShell.isConstrained {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 .PrimaryViewportLeftDockResizeHandle {
@@ -129,7 +130,7 @@
   top: 0;
   bottom: 0;
   right: 0;
-  z-index: 12;
+  z-index: 32;
   width: calc(var(--v15-axis-widget-size) + (var(--v15-right-dock-padding-x) * 2));
   min-width: calc(var(--v15-axis-widget-size) + (var(--v15-right-dock-padding-x) * 2));
   max-width: calc(var(--v15-axis-widget-size) + (var(--v15-right-dock-padding-x) * 2));
@@ -168,7 +169,7 @@
 }
 
 .PrimaryViewportLeftDockPanelTarget--browser {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   overflow: hidden;
 }
@@ -182,8 +183,39 @@
 
 .PrimaryViewportLeftDockPanelTarget--meatball-editor.isOccupied,
 .PrimaryViewportLeftDockPanelTarget--meatball-editor.isPreviewActive {
-  flex: 1 1 auto;
   max-height: none;
+}
+
+.PrimaryViewportLeftDockStackDivider {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 10px;
+  cursor: ns-resize;
+  pointer-events: auto;
+  position: relative;
+}
+
+.PrimaryViewportLeftDockStackDivider::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(138, 152, 196, 0.42);
+}
+
+.PrimaryViewportLeftDockStackHeightHandle {
+  position: absolute;
+  left: 0;
+  right: 18px;
+  bottom: 0;
+  height: 18px;
+  cursor: ns-resize;
+  pointer-events: auto;
+  z-index: 5;
 }
 
 .PrimaryViewportLeftDockPanelGhostSlot {

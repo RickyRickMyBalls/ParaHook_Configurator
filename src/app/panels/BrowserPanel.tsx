@@ -4,6 +4,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react'
+import { FloatingWindowSettingsButton } from '../components/FloatingWindowSettingsButton'
 import { defaultViewportPosition } from '../spaghetti/store/useSpaghettiStore'
 import {
   BrowserContentSection,
@@ -19,6 +20,7 @@ import { useBrowserPanelController } from './useBrowserPanelController'
 import type { BrowserPresentationMode } from '../workspace/workspaceShellTypes'
 
 type BrowserPanelProps = {
+  fillHostHeight?: boolean
   presentationMode?: BrowserPresentationMode
   onCyclePresentationMode?: () => void
   isCollapsed?: boolean
@@ -29,6 +31,7 @@ type BrowserPanelProps = {
   popoutButtonMode?: 'popout' | 'dock'
   showQuickDockButton?: boolean
   onQuickDock?: () => void
+  onOpenSettings?: () => void
   onTogglePopout?: () => void
   onTitleBarPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onTitleBarContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
@@ -37,6 +40,7 @@ type BrowserPanelProps = {
 }
 
 export function BrowserPanel({
+  fillHostHeight = false,
   presentationMode,
   onCyclePresentationMode,
   isCollapsed: controlledIsCollapsed,
@@ -47,6 +51,7 @@ export function BrowserPanel({
   popoutButtonMode = isPoppedOut ? 'dock' : 'popout',
   showQuickDockButton = false,
   onQuickDock,
+  onOpenSettings,
   onTogglePopout,
   onTitleBarPointerDown,
   onTitleBarContextMenu,
@@ -113,6 +118,17 @@ export function BrowserPanel({
       } ${showTitleBar ? '' : 'isHeaderless'} ${
         isBrowserCollapsed ? 'isCollapsed' : ''
       }`}
+      style={
+        fillHostHeight
+          ? {
+              flex: '1 1 auto',
+              height: '100%',
+              minHeight: 0,
+              maxHeight: '100%',
+              overflow: 'hidden',
+            }
+          : undefined
+      }
       onPointerDownCapture={bodyHandlers.onActivateBrowserSurface}
       onWheelCapture={onWheelCapture}
     >
@@ -159,6 +175,12 @@ export function BrowserPanel({
               >
                 {'<'}
               </button>
+            ) : null}
+            {onOpenSettings !== undefined ? (
+              <FloatingWindowSettingsButton
+                className="BrowserPanelChromeButton BrowserPanelSettingsButton"
+                onClick={onOpenSettings}
+              />
             ) : null}
             <button
               type="button"

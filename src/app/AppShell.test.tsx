@@ -699,6 +699,8 @@ describe('AppShell', () => {
       editorViewportSelectedNodeIdById: {},
       editorViewportHeaderCollapsedById: {},
       editorViewportCanvasToolbarVisibleById: {},
+      editorViewportOverlayModeById: {},
+      editorViewportOverlayBackgroundOpacityById: {},
       setConsolePreviewNodeId: vi.fn((nodeId: string | null) => {
         currentSpaghettiState.consolePreviewNodeId = nodeId
       }),
@@ -818,28 +820,47 @@ describe('AppShell', () => {
         currentSpaghettiState.editorViewportCanvasToolbarVisibleById[editorViewportId] = visible
       }),
       setEditorViewportPresentationMode: vi.fn(
-        (editorViewportId: string, mode: 'collapsed' | 'essentials' | 'expanded') => {
+        (
+          editorViewportId: string,
+          mode: 'collapsed' | 'essentials' | 'expanded' | 'overlay',
+        ) => {
           const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
           if (currentViewport === undefined) {
             return
           }
           if (mode === 'collapsed') {
+            currentSpaghettiState.editorViewportOverlayModeById[editorViewportId] = false
             currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'collapsed')
             currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, false)
             currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, true)
             return
           }
           if (mode === 'essentials') {
+            currentSpaghettiState.editorViewportOverlayModeById[editorViewportId] = false
+            currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
+            currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, true)
+            currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, false)
+            return
+          }
+          if (mode === 'overlay') {
+            currentSpaghettiState.editorViewportOverlayModeById[editorViewportId] = true
             currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'maximized')
             currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, true)
             currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, false)
             return
           }
+          currentSpaghettiState.editorViewportOverlayModeById[editorViewportId] = false
           currentSpaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
           currentSpaghettiState.setEditorViewportHeaderCollapsed(editorViewportId, false)
           currentSpaghettiState.setEditorViewportCanvasToolbarVisible(editorViewportId, true)
         },
       ),
+      setEditorViewportOverlayBackgroundOpacity: vi.fn((editorViewportId: string, opacity: number) => {
+        if (currentSpaghettiState.editorViewportsById[editorViewportId] === undefined) {
+          return
+        }
+        currentSpaghettiState.editorViewportOverlayBackgroundOpacityById[editorViewportId] = opacity
+      }),
       setEditorViewportSplitRatio: vi.fn(),
       setEditorViewportSplitDirection: vi.fn((editorViewportId: string, splitDirection: string) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
@@ -8508,6 +8529,9 @@ describe('AppShell', () => {
       '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
     ) as HTMLDivElement | null
     expect(floatingTitleBar).not.toBeNull()
+    expect(
+      container?.querySelector('button[aria-label="Enter split view"], button[aria-label="Exit split view"]'),
+    ).toBeNull()
 
     await act(async () => {
       floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
@@ -8952,6 +8976,33 @@ describe('AppShell', () => {
     expect(container?.querySelector('.SpaghettiFloatingDock')).toBeNull()
   })
 
+  it('keeps the meatball editor docked after splitting the primary model viewport right', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('meatball editor view')
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    expect(container?.querySelector('.SpaghettiMeatballHost')).not.toBeNull()
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-workspace-slot-2',
+      })
+    })
+    await rerenderAppShell(root!)
+    mockShellGeometry(container)
+
+    expect(
+      container?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor')?.classList.contains(
+        'isOccupied',
+      ),
+    ).toBe(true)
+    expect(container?.querySelector('.SpaghettiMeatballHost')).not.toBeNull()
+    expect(container?.querySelector('.SpaghettiMeatballHost .SpaghettiFloatingHandle')).not.toBeNull()
+    expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-1')
+  })
+
   it('keeps the meatball dock target collapsed when no meatball editor view is active', async () => {
     ;({ container, root } = await renderAppShell())
 
@@ -8960,6 +9011,28 @@ describe('AppShell', () => {
         'isOccupied',
       ),
     ).toBe(false)
+  })
+
+  it('keeps the meatball dock target occupied when a collapsed viewport is restoring back to meatball editor view', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = {
+      ...viewport('collapsed'),
+      restoreFromCollapsed: {
+        windowMode: 'meatball editor view',
+        position: { x: 24, y: 28 },
+        size: { width: 800, height: 600 },
+      },
+    }
+
+    ;({ container, root } = await renderAppShell())
+
+    expect(
+      container?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor')?.classList.contains(
+        'isOccupied',
+      ),
+    ).toBe(true)
+    expect(container?.querySelector('.SpaghettiMeatballHost.isCollapsed')).not.toBeNull()
+    expect(container?.querySelector('.SpaghettiMeatballHost .SpaghettiFloatingHandle')).not.toBeNull()
+    expect(container?.querySelector('.SpaghettiMeatballHost .SpaghettiPanelRoot')).toBeNull()
   })
 
   it('keeps the Browser docked while opening a child-window popout copy from the popout toggle', async () => {
@@ -9184,6 +9257,158 @@ describe('AppShell', () => {
     expect(leftDock?.style.maxWidth).toBe('392px')
     expect(titleStatusZone?.dataset.leftDockSharedWidth).toBe('392')
     expect(dockedBrowserHost?.dataset.leftDockSharedWidth).toBe('392')
+  })
+
+  it('lets the user resize the docked browser height from the bottom edge when browser is the only hosted panel', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const panelStackShell = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelStackShell',
+    ) as HTMLDivElement | null
+    const browserHost = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelTarget--browser',
+    ) as HTMLDivElement | null
+    const stackHeightHandle = container?.querySelector(
+      '.PrimaryViewportLeftDockStackHeightHandle',
+    ) as HTMLDivElement | null
+    expect(panelStackShell).not.toBeNull()
+    expect(browserHost).not.toBeNull()
+    expect(stackHeightHandle).not.toBeNull()
+    expect(container?.querySelector('.PrimaryViewportLeftDockStackDivider')).toBeNull()
+    expect(panelStackShell?.style.height).toBe('700px')
+    expect(browserHost?.style.height).toBe('700px')
+
+    await act(async () => {
+      stackHeightHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 180,
+          clientY: 760,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 820,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 820,
+        }),
+      )
+    })
+
+    expect(panelStackShell?.style.height).toBe('760px')
+    expect(browserHost?.style.height).toBe('760px')
+    expect(useWorkspaceStore.getState().leftDockStackHeight).toBe(760)
+  })
+
+  it('lets the user resize the shared browser and meatball dock stack with a divider and bottom edge', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('meatball editor view')
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const panelStackShell = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelStackShell',
+    ) as HTMLDivElement | null
+    mockRect(panelStackShell, {
+      left: 16,
+      top: 88,
+      width: 320,
+      height: 700,
+    })
+
+    const browserHost = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelTarget--browser',
+    ) as HTMLDivElement | null
+    const meatballHost = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelTarget--meatball-editor',
+    ) as HTMLDivElement | null
+    const splitDivider = container?.querySelector(
+      '.PrimaryViewportLeftDockStackDivider',
+    ) as HTMLDivElement | null
+    const stackHeightHandle = container?.querySelector(
+      '.PrimaryViewportLeftDockStackHeightHandle',
+    ) as HTMLDivElement | null
+    expect(browserHost).not.toBeNull()
+    expect(meatballHost).not.toBeNull()
+    expect(splitDivider).not.toBeNull()
+    expect(stackHeightHandle).not.toBeNull()
+    expect(browserHost?.style.height).toBe('414px')
+    expect(meatballHost?.style.height).toBe('276px')
+
+    await act(async () => {
+      splitDivider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 180,
+          clientY: 502,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 388,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 388,
+        }),
+      )
+    })
+
+    expect(useWorkspaceStore.getState().leftDockStackSplitRatio).toBeCloseTo(0.4348, 3)
+    expect(browserHost?.style.height).toBe('300px')
+    expect(meatballHost?.style.height).toBe('390px')
+
+    await act(async () => {
+      stackHeightHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 180,
+          clientY: 788,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 848,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 848,
+        }),
+      )
+    })
+
+    expect(useWorkspaceStore.getState().leftDockStackHeight).toBe(760)
+    expect(browserHost?.style.height).toBe('326px')
+    expect(meatballHost?.style.height).toBe('424px')
   })
 
   it('bumps the floating spaghetti editor with the dock during resize and releases the lock on pointer-up', async () => {
@@ -9632,6 +9857,7 @@ describe('AppShell', () => {
       maximizeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledWith('editor-viewport-1')
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
       'maximized',
@@ -9766,73 +9992,69 @@ describe('AppShell', () => {
       maximizeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledWith('editor-viewport-1')
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
       'maximized',
     )
   })
 
-  it('moves the spaghetti first button to the far left and cycles minus, essentials, and plus', async () => {
+  it('moves the spaghetti first button to the far left and cycles plus, minus, and essentials', async () => {
     ;({ container, root } = await renderAppShell())
 
-    const titleBar = container?.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
-    const title = titleBar?.querySelector('.SpaghettiFloatingHandleTitle') as HTMLSpanElement | null
-    const collapseButton = title?.previousElementSibling as HTMLButtonElement | null
+    const queryModeButton = () =>
+      container?.querySelector(
+        '.SpaghettiFloatingHandle .SpaghettiWindowAction--collapse',
+      ) as HTMLButtonElement | null
 
-    expect(collapseButton?.getAttribute('aria-label')).toBe('Switch editor to essentials mode')
-    expect(collapseButton?.textContent).toBe('-')
-    expect(collapseButton?.getAttribute('aria-expanded')).toBe('true')
+    const expandedButton = queryModeButton()
+
+    expect(expandedButton?.getAttribute('aria-label')).toBe('Minimize editor')
+    expect(expandedButton?.textContent).toBe('+')
+    expect(expandedButton?.getAttribute('aria-expanded')).toBe('true')
     expect(container?.textContent).toContain('header-expanded')
     expect(container?.textContent).toContain('canvas-toolbar-visible')
 
     await act(async () => {
-      collapseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      expandedButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     await rerenderAppShell(root!)
 
-    expect(currentSpaghettiState.setEditorViewportWindowMode).not.toHaveBeenCalledWith(
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
       'collapsed',
     )
-    expect(container?.textContent).toContain('header-collapsed')
-    expect(container?.textContent).toContain('canvas-toolbar-hidden')
+    const collapsedButton = queryModeButton()
+
+    expect(collapsedButton?.getAttribute('aria-label')).toBe('Switch editor to essentials mode')
+    expect(collapsedButton?.textContent).toBe('-')
+    expect(collapsedButton?.getAttribute('aria-expanded')).toBe('false')
+
+    await act(async () => {
+      collapsedButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportPresentationMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'essentials',
+    )
 
     await rerenderAppShell(root!)
 
-    const essentialsButton = container?.querySelector(
-      '.SpaghettiFloatingHandle--essentials .SpaghettiWindowAction--collapse',
-    ) as HTMLButtonElement | null
+    expect(container?.textContent).toContain('header-collapsed')
+    expect(container?.textContent).toContain('canvas-toolbar-hidden')
+
+    const essentialsButton = queryModeButton()
 
     expect(essentialsButton?.getAttribute('aria-label')).toBe(
-      'Collapse editor from essentials mode',
+      'Switch editor to full window mode',
     )
     expect(essentialsButton?.textContent).toBe('e')
     expect(essentialsButton?.getAttribute('aria-expanded')).toBe('true')
 
     await act(async () => {
       essentialsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    })
-
-    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      'collapsed',
-    )
-
-    await rerenderAppShell(root!)
-
-    const collapsedTitleBar = container?.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
-    const collapsedTitle = collapsedTitleBar?.querySelector(
-      '.SpaghettiFloatingHandleTitle',
-    ) as HTMLSpanElement | null
-    const expandButton = collapsedTitle?.previousElementSibling as HTMLButtonElement | null
-
-    expect(expandButton?.getAttribute('aria-label')).toBe('Restore expanded editor')
-    expect(expandButton?.textContent).toBe('+')
-    expect(expandButton?.getAttribute('aria-expanded')).toBe('false')
-
-    await act(async () => {
-      expandButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenLastCalledWith(

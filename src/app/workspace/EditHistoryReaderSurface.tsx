@@ -45,9 +45,10 @@ type TimelineRailDotState = {
 type TimelineChildTarget = {
   entryId: string
   childId: string
+  restored: boolean
 }
 
-type TimelineChildTargetMeasurement = TimelineChildTarget & {
+type TimelineChildTargetMeasurement = Pick<TimelineChildTarget, 'entryId' | 'childId'> & {
   percent: number
 }
 
@@ -183,6 +184,17 @@ const renderTimelineEntryNumberedLabel = (
   entry: EditHistoryReaderTimelineEntryModel,
 ): string => `#${entry.timelineIndex + 1} ${entry.label}`
 
+const resolveSketchDrawHistoryScrubNodeId = (
+  entry: EditHistoryReaderTimelineEntryModel,
+): string | null => {
+  if (entry.sourceId !== 'geometry-sketch-draw' || entry.targetId === null) {
+    return null
+  }
+
+  const [nodeId] = entry.targetId.split(':')
+  return nodeId === undefined || nodeId.length === 0 ? null : nodeId
+}
+
 const createSourceFilterChoices = (
   entries: EditHistoryReaderEntryModel[],
 ): SourceFilterChoice[] => {
@@ -213,6 +225,14 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
     editHistoryStore.getSnapshot,
   )
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
+  const geometrySketchHistoryScrub = useSpaghettiStore((state) => state.geometrySketchHistoryScrub)
+  const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
+  const openGeometrySketchHistoryScrub = useSpaghettiStore(
+    (state) => state.openGeometrySketchHistoryScrub,
+  )
+  const clearGeometrySketchHistoryScrub = useSpaghettiStore(
+    (state) => state.clearGeometrySketchHistoryScrub,
+  )
   const model = useMemo(() => createEditHistoryReaderModel(snapshot), [snapshot])
   const sketchDrawEntries =
     geometrySketchSession?.mode === 'draw'
@@ -330,12 +350,41 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
 
     return entry.timelineIndex < displayedTimelineMarkerIndex ? 'Applied' : 'Redoable'
   }
+  useLayoutEffect(() => {
+    if (selectedChildTarget === null) {
+      return
+    }
+
+    if (!isTimelineTab) {
+      clearGeometrySketchHistoryScrub()
+      setSelectedChildTarget(null)
+      return
+    }
+
+    const parentEntry = filteredTimelineEntries.find(
+      (entry) => entry.entryId === selectedChildTarget.entryId,
+    )
+    if (
+      parentEntry === undefined ||
+      parentEntry.timelineIndex + 1 !== model.timeline.markerIndex
+    ) {
+      clearGeometrySketchHistoryScrub()
+      setSelectedChildTarget(null)
+    }
+  }, [
+    clearGeometrySketchHistoryScrub,
+    filteredTimelineEntries,
+    isTimelineTab,
+    model.timeline.markerIndex,
+    selectedChildTarget,
+  ])
   const toggleTimelineEntryExpansion = (
     event: MouseEvent<HTMLButtonElement>,
     entryId: string,
   ): void => {
     event.preventDefault()
     event.stopPropagation()
+    clearGeometrySketchHistoryScrub()
     setSelectedChildTarget(null)
     setExpandedTimelineEntryIds((currentEntryIds) => {
       const nextEntryIds = new Set(currentEntryIds)
@@ -349,13 +398,28 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
   }
   const jumpToTimelineChildTarget = (
     entry: EditHistoryReaderTimelineEntryModel,
-    child: Pick<EditHistoryReaderChildSummaryModel, 'childId'>,
+    child: Pick<EditHistoryReaderChildSummaryModel, 'childId' | 'label' | 'sequence'>,
   ) => {
     jumpToTimelineMarkerIndex(entry.timelineIndex + 1)
+    const restoredEntry = editHistoryStore.restoreChild(entry.entryId, child.childId)
+    const nodeId = resolveSketchDrawHistoryScrubNodeId(entry)
+    if (restoredEntry !== null && nodeId !== null) {
+      openGeometrySketchHistoryScrub({
+        parentEntryId: entry.entryId,
+        childId: child.childId,
+        graphDocumentId: activeGraphDocumentId,
+        nodeId,
+        childLabel: child.label,
+        childSequence: child.sequence,
+      })
+    } else {
+      clearGeometrySketchHistoryScrub()
+    }
     setSelectedEntryId(null)
     setSelectedChildTarget({
       entryId: entry.entryId,
       childId: child.childId,
+      restored: restoredEntry !== null,
     })
   }
   const renderTimelineEntryCard = (entry: EditHistoryReaderTimelineEntryModel) => {
@@ -517,6 +581,7 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
   ])
 
   const jumpToTimelineMarkerIndex = (targetMarkerIndex: number) => {
+    clearGeometrySketchHistoryScrub()
     const clampedTargetMarkerIndex = Math.max(
       0,
       Math.min(targetMarkerIndex, model.timeline.entries.length),
@@ -633,6 +698,7 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
         : {
           entryId: previewChildTarget.entryId,
           childId: previewChildTarget.childId,
+          restored: false,
         },
     }
   }
@@ -678,8 +744,35 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
     setTimelineScrubPreview(null)
     jumpToTimelineMarkerIndex(nextPreviewState.previewMarkerIndex)
     if (nextPreviewState.previewChildTarget !== null) {
+      const restoredEntry = editHistoryStore.restoreChild(
+        nextPreviewState.previewChildTarget.entryId,
+        nextPreviewState.previewChildTarget.childId,
+      )
+      const parentEntry = filteredTimelineEntries.find(
+        (entry) => entry.entryId === nextPreviewState.previewChildTarget?.entryId,
+      )
+      const childSummary = parentEntry?.childSummaries.find(
+        (summary) => summary.childId === nextPreviewState.previewChildTarget?.childId,
+      ) ?? null
+      const nodeId =
+        parentEntry === undefined ? null : resolveSketchDrawHistoryScrubNodeId(parentEntry)
+      if (restoredEntry !== null && parentEntry !== undefined && childSummary !== null && nodeId !== null) {
+        openGeometrySketchHistoryScrub({
+          parentEntryId: parentEntry.entryId,
+          childId: childSummary.childId,
+          graphDocumentId: activeGraphDocumentId,
+          nodeId,
+          childLabel: childSummary.label,
+          childSequence: childSummary.sequence,
+        })
+      } else {
+        clearGeometrySketchHistoryScrub()
+      }
       setSelectedEntryId(null)
-      setSelectedChildTarget(nextPreviewState.previewChildTarget)
+      setSelectedChildTarget({
+        ...nextPreviewState.previewChildTarget,
+        restored: restoredEntry !== null,
+      })
     }
   }
   const handleTimelineScrubPointerCancel = (event: PointerEvent<HTMLButtonElement>) => {
@@ -711,14 +804,20 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
           <div className="EditHistoryReaderSurfaceActions" aria-label="Canonical history actions">
             <button
               type="button"
-              onClick={() => editHistoryStore.undo()}
+              onClick={() => {
+                clearGeometrySketchHistoryScrub()
+                editHistoryStore.undo()
+              }}
               disabled={!model.canUndo}
             >
               Undo
             </button>
             <button
               type="button"
-              onClick={() => editHistoryStore.redo()}
+              onClick={() => {
+                clearGeometrySketchHistoryScrub()
+                editHistoryStore.redo()
+              }}
               disabled={!model.canRedo}
             >
               Redo
@@ -735,6 +834,7 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
               aria-selected={activeTab === tab}
               className={activeTab === tab ? 'isActive' : undefined}
               onClick={() => {
+                clearGeometrySketchHistoryScrub()
                 setActiveTab(tab)
                 setActiveSourceFilter(allSourceFilter)
                 setSelectedEntryId(null)
@@ -759,6 +859,7 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
               aria-pressed={effectiveSourceFilter === allSourceFilter}
               className={effectiveSourceFilter === allSourceFilter ? 'isActive' : undefined}
               onClick={() => {
+                clearGeometrySketchHistoryScrub()
                 setActiveSourceFilter(allSourceFilter)
                 setSelectedEntryId(null)
                 setSelectedChildTarget(null)
@@ -773,6 +874,7 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
                 aria-pressed={effectiveSourceFilter === choice.sourceSurface}
                 className={effectiveSourceFilter === choice.sourceSurface ? 'isActive' : undefined}
                 onClick={() => {
+                  clearGeometrySketchHistoryScrub()
                   setActiveSourceFilter(choice.sourceSurface)
                   setSelectedEntryId(null)
                   setSelectedChildTarget(null)
@@ -887,7 +989,8 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
                   <button
                     type="button"
                     className="EditHistoryReaderPendingEntry"
-                    onClick={() => {
+                  onClick={() => {
+                      clearGeometrySketchHistoryScrub()
                       setActiveTab('sketchDraw')
                       setActiveSourceFilter(allSourceFilter)
                       setSelectedEntryId(null)
@@ -910,7 +1013,10 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
                     <button
                       type="button"
                       className={selectedEntry?.entryId === entry.entryId ? 'isSelected' : undefined}
-                      onClick={() => setSelectedEntryId(entry.entryId)}
+                      onClick={() => {
+                        clearGeometrySketchHistoryScrub()
+                        setSelectedEntryId(entry.entryId)
+                      }}
                     >
                       <strong>{entry.label}</strong>
                       <span>{resolveEntrySummary(entry)}</span>
@@ -951,7 +1057,15 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
                 <dl>
                   <div>
                     <dt>Status</dt>
-                    <dd>Read only child marker</dd>
+                    <dd>
+                      {geometrySketchHistoryScrub !== null &&
+                      geometrySketchHistoryScrub.parentEntryId === selectedChildParentEntry.entryId &&
+                      geometrySketchHistoryScrub.childId === selectedChildSummary.childId
+                        ? 'Sketch Draw history scrub'
+                        : selectedChildTarget?.restored === true
+                        ? 'Restored child marker'
+                        : 'Read only child marker'}
+                    </dd>
                   </div>
                   <div>
                     <dt>Parent entry</dt>
@@ -1040,10 +1154,10 @@ export function EditHistoryReaderSurface({ surfaceInstanceId }: EditHistoryReade
                 </dl>
               </>
             )}
-            <section className="EditHistoryReaderSnapshotLog" aria-label="History snapshot log">
-              <h3>Snapshot log</h3>
+            <section className="EditHistoryReaderSnapshotLog" aria-label="Diagnostic activity log">
+              <h3>Diagnostic activity</h3>
               {model.snapshotLog.length === 0 ? (
-                <p className="EditHistoryReaderEmptyState">No snapshots captured</p>
+                <p className="EditHistoryReaderEmptyState">No diagnostic activity recorded</p>
               ) : (
                 <ol>
                   {model.snapshotLog.map((entry) => (

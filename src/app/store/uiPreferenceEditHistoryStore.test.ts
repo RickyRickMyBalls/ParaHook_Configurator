@@ -4,11 +4,16 @@ import {
   setDashboardPersistenceWithHistory,
   setEnvironmentPersistenceWithHistory,
   setNotepadPersistenceWithHistory,
+  setSpaghettiWindowAppearanceDefaultsWithHistory,
   setViewSettingsPersistenceWithHistory,
   setWorkspaceRestorePersistenceWithHistory,
   setWorkspaceStartupSurfaceWithHistory,
 } from './uiPreferenceEditHistory'
 import { useUiPrefsStore, type WorkspaceStartupSurface } from './uiPrefsStore'
+import {
+  defaultSpaghettiWindowAppearance,
+  normalizeSpaghettiWindowAppearance,
+} from '../panels/spaghettiWindowAppearance'
 
 const redoEntryId = 'ui-preference-history-redo'
 
@@ -122,11 +127,29 @@ describe('UI preference edit history', () => {
       targetId: 'ui-pref:notepadPersistence',
       targetLabel: 'Notepad persistence',
     },
+    {
+      name: 'Spaghetti Editor defaults',
+      run: () =>
+        setSpaghettiWindowAppearanceDefaultsWithHistory({
+          ...defaultSpaghettiWindowAppearance,
+          titlebarOpacity: 0.85,
+        }),
+      expectedValue: normalizeSpaghettiWindowAppearance({
+        ...defaultSpaghettiWindowAppearance,
+        titlebarOpacity: 0.85,
+      }),
+      getValue: () => useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults,
+      label: 'Change Spaghetti Editor defaults',
+      sourceId: 'spaghetti-editor-defaults',
+      sourceLabel: 'Spaghetti Editor Defaults',
+      targetId: 'ui-pref:spaghettiWindowAppearanceDefaults',
+      targetLabel: 'Spaghetti Editor window appearance defaults',
+    },
   ])('commits reader metadata for $name changes', (scenario) => {
     const committed = scenario.run()
 
     expect(committed).toBe(true)
-    expect(scenario.getValue()).toBe(scenario.expectedValue)
+    expect(scenario.getValue()).toEqual(scenario.expectedValue)
 
     const [entry] = editHistoryStore.getUndoEntries()
     expect(entry).toEqual(expect.objectContaining({
@@ -193,6 +216,11 @@ describe('UI preference edit history', () => {
     prefs.setEnvironmentPersistence(false)
     prefs.setDashboardPersistence(false)
     prefs.setNotepadPersistence(false)
+    const nextSpaghettiDefaults = {
+      ...defaultSpaghettiWindowAppearance,
+      titlebarOpacity: 0.8,
+    }
+    prefs.setSpaghettiWindowAppearanceDefaults(nextSpaghettiDefaults)
 
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('modelViewer')
     expect(useUiPrefsStore.getState().workspaceRestorePersistence).toBe(false)
@@ -200,6 +228,9 @@ describe('UI preference edit history', () => {
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(false)
     expect(useUiPrefsStore.getState().dashboardPersistence).toBe(false)
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults).toEqual(
+      normalizeSpaghettiWindowAppearance(nextSpaghettiDefaults),
+    )
     expectRedoPreserved(marker)
   })
 })

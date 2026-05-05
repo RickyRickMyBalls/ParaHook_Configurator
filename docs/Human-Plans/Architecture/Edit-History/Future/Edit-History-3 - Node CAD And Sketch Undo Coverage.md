@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+29. 2026-05-01 20:11:10: Added a cross-plan handoff to `Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation`, clarifying that editor window density, `O` overlay presentation state, overlay titlebar controls, and overlay readability settings are owned by the Spaghetti Editor shell plan and should remain excluded from canonical node-CAD undo unless a later workspace-history owner explicitly takes presentation-state history.
+28. 2026-05-01 20:01:21: Implemented and closed `Edit-History-3 / Phase 7 - Node Deletion Surface History Parity` after canvas selected-node Delete/Backspace deletion was routed through canonical `Remove graph node` history, selected-edge delete precedence was preserved, focused canvas deletion, graph-history, Console delete regression, and production build verification passed, and `Edit-History-3-CLG-19` became ready for Manager acceptance.
+27. 2026-05-01 19:49:54: Prepped `Edit-History-3 / Phase 7 - Node Deletion Surface History Parity` for implementation after confirming Console `node.delete` already uses `removeGraphNodeWithHistory(...)`, the store/test seam already proves `Remove graph node` undo/redo including related edges, and the first code cut should add canvas selected-node Delete/Backspace deletion through the canonical helper while preserving selected-edge delete precedence, selection clearing, waypoint cleanup, and user feedback behavior.
+26. 2026-05-01 19:48:36: Added `Edit-History-3 / Phase 7 - Node Deletion Surface History Parity` after Phase 6 closed node creation parity, keeping Console `node.delete` as the accepted `removeGraphNodeWithHistory(...)` reference seam while planning remaining user-facing node deletion surfaces to create canonical `Remove graph node` snapshots without widening into edge deletion, feature-stack remove, or sketch-session delete behavior.
+25. 2026-05-01 19:44:56: Implemented and closed `Edit-History-3 / Phase 6 - Node Creation Surface History Parity` after canvas menu-created Sketch and Extrude nodes and `SpaghettiPanel` part-node creation were routed through canonical `Add graph node` history, focused graph-history and creation-surface tests passed, and the production build passed with known Vite warnings.
+24. 2026-05-01 19:40:23: Prepped `Edit-History-3 / Phase 6 - Node Creation Surface History Parity` for implementation after confirming `addGraphNodeWithHistory(...)` is the accepted graph-structure snapshot seam, Console-created missing Sketch nodes already prove the reference behavior, and the first code cut should replace direct `applyGraphCommand(addNodeCommand(...))` calls in `SpaghettiCanvas` and `SpaghettiPanel` while preserving placement, spawn mode, selection, and user feedback behavior.
+23. 2026-05-01 19:37:20: Added `Edit-History-3 / Phase 6 - Node Creation Surface History Parity` after research found canvas node-add menu and `SpaghettiPanel` node creation paths still use direct graph commands instead of the canonical `addGraphNodeWithHistory` snapshot seam used by console-created Sketch and Extrude nodes.
+22. 2026-05-01 18:50:31: Implemented and closed `Edit-History-3 / Phase 5` after Extrude node-template Type, Direction, Depth, Start Depth, End Depth, Taper Angle, and Output row commits gained canonical graph-parameter history coverage with focused undo/redo and driven-row proof.
+21. 2026-05-01 18:43:00: Prepped `Edit-History-3 / Phase 5 - Extrude Node Template Row Parameter Commits` for implementation against the live `NodeView` Extrude template, confirmed the authored schema keys and row commit seams, split Depth coverage across one-sided/symmetric and two-sided depth rows, and locked the first code cut plus focused verification targets.
+20. 2026-05-01 18:35:27: Added `Edit-History-3 / Phase 5 - Extrude Node Template Row Parameter Commits` after user review clarified the newer Extrude node-template rows for Type, Direction, Depth, Taper Angle, and Output should receive canonical history coverage as part of the longer-range direction that every authored node row eventually logs through Edit History.
 19. 2026-04-22 02:25:19: Manager accepted `Edit-History-3 / Phase 4 - Sketch Draft And Runtime Exclusion Proof` after rerunning the focused sketch/runtime exclusion suite, sketch-history regression, graph-history regression, and production build gate; `Edit-History-CLG-15` and `Edit-History-CLG-16` are complete, while `Edit-History-CLG-12` remains open for a future feature remove/delete seam.
 18. 2026-04-22 02:23:32: Implemented `Edit-History-3 / Phase 4 - Sketch Draft And Runtime Exclusion Proof`: focused exclusion tests now prove local `geometrySketchSession` draft/session actions, current finish/delete sketch-session graph mutations, representative graph runtime/build/preview/result/cache operations, and cached graph save metadata do not create canonical edit-history entries; authored sketch undo/redo was proven not to capture or restore excluded sketch-session draft or runtime state, focused sketch/runtime exclusion, sketch-history regression, graph-history regression, and production build verification passed, and `Edit-History-CLG-15` and `Edit-History-CLG-16` are ready for Manager acceptance while the `Edit-History-CLG-12` feature remove gap remains open.
 17. 2026-04-22 02:20:23: Manager reviewed and approved the `Edit-History-3 / Phase 4 - Sketch Draft And Runtime Exclusion Proof` prep after confirming the local `geometrySketchSession` draft/session seams, current finish/delete graph-mutation ambiguity, representative graph runtime/cache seams, and accepted sketch-history restore path; implementation is cleared for focused exclusion/protection tests only, with no routing of geometry sketch session commands into canonical history.
@@ -42,6 +52,7 @@ Out of scope:
 - result cache state
 - preview-only geometry state
 - feature types that do not yet have stable authored state
+- Spaghetti Editor shell presentation state such as window density, `O` overlay mode, overlay titlebar controls, and overlay readability settings, which are tracked by `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`
 
 ### Acceptance Read
 
@@ -52,6 +63,22 @@ This phase is complete when node-owned CAD and committed sketch edits that alrea
 The graph is not only boxes and wires. For ParaHook, a node can own real modeling intent.
 
 `Edit History 3` should make that authoring feel recoverable without pretending every transient sketch draft point or worker preview is durable authored state.
+
+### Adjacent Plan Handoff
+
+`Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation` is a related editor-shell plan, not a node-CAD undo plan.
+
+That plan owns:
+- the `- / e / + / O` editor titlebar mode split
+- restoring `e` to essential float-window meaning
+- routing overlay-on-model-viewport behavior through `O`
+- overlay titlebar controls, active graph labeling such as `O Graph 1`, direct overlay exit behavior, and first readability controls such as background transparency
+
+For `Edit-History-3`, this means editor presentation state should stay outside canonical node-CAD undo:
+- window density changes are not authored CAD history
+- entering or leaving `O` overlay mode is not graph/node authored state
+- overlay titlebar controls and overlay readability settings should not become `Add graph node`, `Remove graph node`, feature-stack, sketch, or graph-parameter history entries
+- if presentation-state undo is ever desired, it should be planned under a workspace/editor-history owner rather than this node-owned CAD authoring lane
 
 ## Wishlist Organization
 
@@ -67,6 +94,9 @@ The graph is not only boxes and wires. For ParaHook, a node can own real modelin
 - [x] `Edit-History-CLG-14` - Make committed sketch entity edits undoable after the edit becomes durable authored state.
 - [x] `Edit-History-CLG-15` - Keep local sketch draft interactions outside canonical undo until they commit an authored entity.
 - [x] `Edit-History-CLG-16` - Keep worker progress, preview geometry, and result cache state outside canonical undo.
+- [x] `Edit-History-3-CLG-17` - Make authored Extrude node-template row commits undoable for Type, Direction, Depth, Taper Angle, and Output while preserving the long-range rule that every durable node row should eventually log through canonical Edit History.
+- [x] `Edit-History-3-CLG-18` - Make every live user-facing graph node creation surface route through canonical `Add graph node` snapshots for Sketch, Extrude, and other user-addable nodes.
+- [x] `Edit-History-3-CLG-19` - Make every live user-facing graph node deletion surface route through canonical `Remove graph node` snapshots for Sketch, Extrude, and other user-deletable nodes.
 
 ## [x] `Edit-History-3 / Phase 1` - `Feature Stack Entries`
 
@@ -791,3 +821,659 @@ Verification:
 - `npm.cmd run build` passed with the known Vite browser-externalization and chunk-size warnings
 
 `Edit-History-CLG-15` and `Edit-History-CLG-16` are ready for Manager acceptance because local `geometrySketchSession` draft/session actions, current sketch-session finish/delete graph mutations, representative graph runtime/build/preview/result/cache operations, and cached graph save metadata are proven outside canonical edit history, while authored sketch undo/redo is proven not to capture or restore excluded sketch-session draft or runtime state. `Edit-History-CLG-12` remains open for a future feature remove/delete seam.
+
+## [x] `Edit-History-3 / Phase 5` - `Extrude Node Template Row Parameter Commits`
+
+Add canonical entries for committed authored Extrude node-template row changes.
+
+### Phase 5 Summary
+
+#### Purpose
+
+Close the newer Extrude node-template parameter gap that is separate from the older feature-stack `ExtrudeFeatureView` coverage accepted in Phase 2.
+
+Phase 2 covered close-profile source, feature-stack extrude depth/taper/offset, and feature-stack extrude profile reference seams. The live graph-native Extrude node template now exposes authored row controls directly on the node surface. Those rows should log through canonical Edit History too.
+
+This phase should cover:
+- Type
+- Direction
+- Depth, including the visible one-sided/symmetric `depthMm` row and the two-sided `startDepthMm` / `endDepthMm` row split
+- Taper Angle
+- Output / body generation
+
+This is also the first explicit planning marker for the longer-range rule: every durable authored node row should eventually become visible to Edit History as a meaningful committed row change.
+
+#### Owns
+
+- canonical `Change graph parameter` or equivalent row-parameter entries for Extrude node-template Type commits
+- canonical entries for Extrude Direction commits
+- canonical entries for Extrude Depth commits
+- canonical entries for Extrude Taper Angle commits
+- canonical entries for Extrude Output / body-generation commits
+- one entry per semantic commit, not one entry per live tick
+- disabled/driven row exclusion where a row is controlled by a real wire
+- no-entry protection for missing nodes, non-Extrude nodes, unchanged values, invalid row values, and hidden/inapplicable row states
+- undo/redo restoration through the authored graph document path, not runtime, preview, worker, or cache snapshots
+- focused proof that these row commits preserve selection, hover, camera/view, command transcript, command recall, build/runtime, preview/cache/provider state, and local sketch session state
+
+#### Does Not Own
+
+- reopening Phase 2 feature-stack `ExtrudeFeatureView` depth/taper/offset/profile-ref coverage except as regression proof
+- feature-stack remove/delete coverage; `Edit-History-CLG-12` remains the owning open gap
+- sketch component edits, sketch draw command sessions, local sketch draft undo, or Sketch Draw durable local history
+- wire creation/removal, edge waypoints, node row display mode, node movement, Browser/project undo, Viewer Transform undo, Build Path, history UI, checkpoints, branching, persistence, collaboration, or command transcript/recall undo
+- making runtime/effective values canonical when the row is driven by a wire; the authored local fallback value is the only possible row-history target unless a later explicit driven-override phase says otherwise
+
+#### Current Live Read
+
+- `src/app/spaghetti/canvas/NodeView.tsx`
+  - owns the newer Extrude node-template rendering path in `renderExtrudeTemplate()`
+  - builds structured row props for Type, Direction, one-sided/symmetric Depth, two-sided Start Depth, two-sided End Depth, Taper Angle, and Output/body-generation rows
+  - uses `updateExtrudeParams(...)` to call `applyGraphCommand(setNodeParamsCommand(...))`, so the current Extrude template writes are history-free until this phase wires the canonical commit seam
+  - already has `beginGenericGraphParameterInteraction(...)` / `endGenericGraphParameterInteraction()` helpers that capture a graph snapshot at interaction start, keep live row ticks responsive, and call `commitGraphNodeParameterWithHistory(...)` on interaction end
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+  - already accepts `onInteractionStart` and `onInteractionEnd`, and the Extrude Depth / Start Depth / End Depth / Taper Angle rows pass through this helper
+  - should keep live value updates responsive while committing only at the accepted semantic boundary by using row-specific generic graph parameter interaction targets
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+  - owns the Type and Direction enum row UI path; choices are immediate semantic commits through `onChange(nextValue)`
+  - enum choices should capture `beforeGraph`, apply the changed authored param, then commit one history entry per accepted changed value
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts`
+  - builds Type and Direction enum props with driven-row disabling and unchanged-value protection at the component level
+- Output/body-generation row in `NodeView.tsx`
+  - currently uses a direct `ParaSelect` instead of `StructuredWireEnumRow`
+  - should use the same immediate semantic commit pattern as Type and Direction while preserving its current `showEditors` disabled guard
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - accepted graph parameter history seam is `commitGraphNodeParameterWithHistory(...)`
+  - existing low-level param writes should not create history entries until the UI or row controller reaches a semantic commit boundary
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - already proves accepted graph parameter undo/redo semantics and no-entry behavior for generic graph params
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+  - already has focused Extrude template interaction coverage for Type, Direction, Output/body generation, and row visibility
+  - should be the first UI proof surface for this phase
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+  - already has broader Extrude template rendering coverage and can remain supporting coverage unless the implementation touches shared rendering behavior
+
+#### First Pass Decisions
+
+- Treat Extrude node-template rows as graph-node authored parameters, not feature-stack parameters.
+- Reuse `commitGraphNodeParameterWithHistory(...)` unless implementation research proves the row needs a narrower wrapper over the same canonical owner.
+- Use row-specific target metadata so the history reader can later say which Extrude row changed, for example:
+  - `targetId: ${nodeId}:extrude:extrudeType`
+  - `targetLabel: 'Extrude type'`
+  - `targetId: ${nodeId}:extrude:extrudeDirection`
+  - `targetLabel: 'Extrude direction'`
+  - `targetId: ${nodeId}:extrude:depthMm`
+  - `targetLabel: 'Extrude depth'`
+  - `targetId: ${nodeId}:extrude:startDepthMm`
+  - `targetLabel: 'Extrude start depth'`
+  - `targetId: ${nodeId}:extrude:endDepthMm`
+  - `targetLabel: 'Extrude end depth'`
+  - `targetId: ${nodeId}:extrude:taperAngleDeg`
+  - `targetLabel: 'Extrude taper angle'`
+  - `targetId: ${nodeId}:extrude:bodyGenerationMode`
+  - `targetLabel: 'Extrude output'`
+- Keep driven effective values read-only for history purposes. If a wire drives Depth or another row, changing the wire or upstream driver owns the authored edit, not the driven row's displayed effective value.
+- Do not generalize to every node row in this phase. This phase should prove the Extrude template row pattern first, then later phases can apply the same row-history contract to Sketch, OutputPreview, driver rows, composite rows, and future node families.
+
+### Phase 5 Implementation Spec
+
+#### Likely Files
+
+- `src/app/spaghetti/canvas/NodeView.tsx`
+  - owner for beginning and ending Extrude template numeric row history interactions
+  - owner for immediate enum/output row semantic commits and row-specific target metadata
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+  - run as regression proof because the needed start/end callbacks already exist
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+  - run as regression proof for immediate enum row behavior; only change if the current `onChange` contract cannot support canonical commits cleanly
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts`
+  - run or extend if driven enum disabling or unchanged-choice protection needs clearer proof
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - read or use the accepted `commitGraphNodeParameterWithHistory(...)` seam; avoid changing the owner contract unless implementation research proves a tiny wrapper is needed
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - store-level proof for Extrude row param snapshot restore if that can be expressed without broad rendering setup
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+  - preferred UI proof for Type, Direction, Output/body generation, row visibility, and representative numeric row history behavior
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+  - supporting broad rendering proof if the implementation touches shared row rendering
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+  - run or extend if numeric row prop lifecycle changes
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+  - run or extend if enum row commit behavior changes
+- active phase doc, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` during implementation closeout
+
+#### Exact Implementation Boundary
+
+Implement canonical history for committed authored changes to these Extrude node-template params only:
+
+- `extrudeType` / Type
+- `extrudeDirection` / Direction
+- `depthMm` / one-sided and symmetric Depth
+- `startDepthMm` / two-sided Start Depth
+- `endDepthMm` / two-sided End Depth
+- `taperAngleDeg` / Taper Angle
+- `bodyGenerationMode` / Output-body generation
+
+The live schema and reader path already use those authored keys for the Geometry/Extrude node template. Reconfirm before editing in case intervening work changed the schema, but do not invent new param names for this phase.
+
+Numeric rows should stay live while dragging or typing and should create one canonical entry only on release, blur, `Enter`, or equivalent accepted commit. Enum rows should create one entry for each changed accepted choice.
+
+Undo/redo should restore authored node params through graph document state using the existing graph parameter snapshot path. It should not snapshot or restore build output, preview geometry, runtime caches, selection, hover, camera/view, local sketch sessions, command transcript, command recall, history UI state, or workspace shell state.
+
+#### First Code Cut
+
+1. Keep the existing low-level `updateExtrudeParams(nextParams)` path as the live graph write helper for numeric drag/type ticks.
+2. Replace the Extrude numeric row `onInteractionStart` / `onInteractionEnd` wiring with row-specific generic graph parameter interactions:
+   - Depth: call `beginGenericGraphParameterInteraction` with target id `${node.nodeId}:extrude:depthMm` and label `Extrude depth`
+   - Start Depth: call `beginGenericGraphParameterInteraction` with target id `${node.nodeId}:extrude:startDepthMm` and label `Extrude start depth`
+   - End Depth: call `beginGenericGraphParameterInteraction` with target id `${node.nodeId}:extrude:endDepthMm` and label `Extrude end depth`
+   - Taper Angle: call `beginGenericGraphParameterInteraction` with target id `${node.nodeId}:extrude:taperAngleDeg` and label `Extrude taper angle`
+   - all four rows should end through `endGenericGraphParameterInteraction`
+3. Add a tiny immediate semantic commit helper in `NodeView.tsx` for enum/output rows, for example `updateExtrudeParamsWithHistory(nextParams, targetId, targetLabel)`, that:
+   - captures `beforeGraph = useSpaghettiStore.getState().graph`
+   - applies `setNodeParamsCommand({ nodeId: node.nodeId, params: nextParams })`
+   - calls `commitGraphNodeParameterWithHistory({ nodeId: node.nodeId, beforeGraph, targetId, targetLabel })`
+4. Route Type through the helper with target id `${node.nodeId}:extrude:extrudeType` and label `Extrude type`.
+5. Route Direction through the helper with target id `${node.nodeId}:extrude:extrudeDirection` and label `Extrude direction`.
+6. Route Output/body generation through the helper with target id `${node.nodeId}:extrude:bodyGenerationMode` and label `Extrude output`.
+7. Preserve current guards:
+   - invalid enum values return without writing
+   - unchanged values return without writing
+   - driven Type/Direction rows remain disabled
+   - Output remains disabled when editors are hidden
+   - hidden rows do not create history entries
+8. Do not add a generic every-node-row abstraction in this phase. If a helper is needed, keep it local to `NodeView` unless the implementation discovers a small existing local pattern.
+
+#### No-Widening Rule
+
+Do not implement row history for every node family in Phase 5. The long-range direction is every durable authored node row, but this phase owns only Extrude node-template Type, Direction, Depth, Taper Angle, and Output.
+
+Do not change the feature-stack `ExtrudeFeatureView` history path except for regression proof. Do not move feature-stack parameters into graph-node template params or collapse the two systems.
+
+Do not change wire semantics, driven effective-value resolution, compile/evaluate behavior, worker requests, preview rendering, OutputPreview publication behavior, or CAD feature-stack execution semantics.
+
+Do not add history UI, checkpoints, branching, persistence, collaboration, generic CAD command architecture, or command transcript/recall undo.
+
+#### Implementation Risks
+
+- Extrude has both feature-stack parameter seams and graph-node template row seams. Mixing them could double-log one change or restore the wrong authored owner.
+- Driven rows may display effective values that come from wires. History should target the authored local fallback only when it is actually editable.
+- Numeric row helpers may emit live updates without an explicit commit lifecycle. If so, add the smallest row-level lifecycle hook rather than redesigning all node row editing.
+- Enum rows may already commit immediately. That is acceptable if each changed choice produces exactly one canonical history entry and unchanged reselects produce none.
+- Direction changes alter which depth rows are visible. Preserve current visibility behavior while proving that the Direction row itself owns only the direction entry, and that two-sided Start Depth / End Depth commits own their own entries.
+- The Output row maps to `bodyGenerationMode` and currently uses a direct `ParaSelect`, so it needs explicit history wiring in `NodeView` rather than assuming the structured enum helper covers it.
+- Tests should distinguish authored param restoration from derived compile/evaluate output changes.
+
+#### Checklist
+
+- [x] Confirm live Extrude node-template schema keys for Type, Direction, Depth, Taper Angle, and Output/body generation.
+- [x] Confirm which row components own numeric and enum commit boundaries.
+- [x] Route Extrude Type row changes through canonical graph parameter history.
+- [x] Route Extrude Direction row changes through canonical graph parameter history.
+- [x] Route Extrude one-sided/symmetric Depth row changes through canonical graph parameter history.
+- [x] Route Extrude two-sided Start Depth row changes through canonical graph parameter history.
+- [x] Route Extrude two-sided End Depth row changes through canonical graph parameter history.
+- [x] Route Extrude Taper Angle row changes through canonical graph parameter history.
+- [x] Route Extrude Output/body-generation row changes through canonical graph parameter history.
+- [x] Ensure numeric live ticks do not create history entries before semantic commit.
+- [x] Ensure enum unchanged reselects and invalid choices create no entries.
+- [x] Ensure driven/disabled rows do not create local row entries.
+- [x] Prove undo/redo restores authored Extrude node params.
+- [x] Prove excluded runtime/view/session/cache states are not captured.
+- [x] Run focused graph-history and Extrude row tests.
+- [x] Run production build.
+- [x] Update this phase doc, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` during implementation closeout only.
+
+#### Focused Verification
+
+Suggested focused commands:
+
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx -t "extrude"`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.test.tsx -t "Extrude"`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+
+Build gate:
+
+- `npm.cmd run build`
+
+#### Phase 5 Closeout
+
+Implemented in `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`.
+
+Verification:
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx -t "commits extrude|driven Type or Depth"` passed 4 tests
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx` passed 20 tests
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx -t "extrude"` passed 14 tests
+- `npm.cmd run build` passed with the known Vite browser-externalization and chunk-size warnings
+
+`Edit-History-3-CLG-17` is ready for Manager acceptance because Extrude node-template Type, Direction, one-sided/symmetric Depth, two-sided Start Depth, two-sided End Depth, Taper Angle, and Output/body-generation authored row changes now create canonical `Change graph parameter` entries at semantic commit boundaries, undo/redo restores authored graph node params, driven Type/Depth controls create no local row entries, and the implementation stayed local to the Extrude node-template row seams. Broader every-node-row history remains future follow-up work.
+
+#### Tracking Docs
+
+Prep changes update only:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/Doc-Log.md`
+
+Implementation closeout should update:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Do not update the family index during implementation unless Manager explicitly asks to reconcile broader Edit History status.
+
+#### Stop Condition
+
+Stop and report instead of widening if Extrude row history requires a broad node-row framework rewrite, changes to compile/evaluate contracts, feature-stack migration, driven-value ownership changes, OutputPreview publication changes, shared keyboard dispatch changes, or generic every-node-row implementation.
+
+Stop and report if undo/redo would need to capture runtime/cache/provider state, accepted build outputs, preview geometry, worker progress, command transcript, command recall, selection, hover, camera/view, Browser/project state, Viewer Transform state, Build Path state, history UI state, persistence, or async entries.
+
+#### Done Shape
+
+Phase 5 is done when committed Extrude node-template Type, Direction, Depth including one-sided/symmetric `depthMm` and two-sided `startDepthMm` / `endDepthMm`, Taper Angle, and Output row changes each create one canonical history entry per semantic edit, undo/redo restores authored Extrude node params through graph document state, driven/disabled/unchanged rows create no entries, focused verification and build pass, and tracking docs are updated. `Edit-History-3-CLG-17` can be ready for Manager acceptance at that point, while broader every-node-row history remains later follow-up work.
+
+## [x] `Edit-History-3 / Phase 6` - `Node Creation Surface History Parity`
+
+Route every current user-facing graph node creation surface through the canonical graph-node snapshot seam.
+
+### Phase 6 Summary
+
+#### Purpose
+
+Close the newly found graph-node creation parity gap after Phase 5.
+
+Console-created missing Sketch and Extrude nodes already use `createGraphNodeInDocumentAndSelect(...)`, which calls `addGraphNodeWithHistory(...)` and creates a canonical `Add graph node` entry. The canvas node-add menu and `SpaghettiPanel` add-node path still call `applyGraphCommand(addNodeCommand(...))` directly, so those surfaces mutate authored graph structure without creating an edit-history snapshot.
+
+This phase should make node creation feel consistent regardless of whether the user creates a Sketch, Extrude, part, or other user-addable node from Console, the canvas menu, or the panel.
+
+#### Owns
+
+- canvas node-add menu creation through `addGraphNodeWithHistory(...)`
+- `SpaghettiPanel` add-node creation through `addGraphNodeWithHistory(...)`
+- one canonical `Add graph node` entry per successful user-created node
+- undo/redo restoration for Sketch and Extrude node creation from the canvas/menu-facing path
+- no-entry behavior for duplicate, missing, invalid, or unchanged creation attempts
+- preservation of current node placement, spawn mode, selection, and user feedback behavior after successful creation
+- proof that selection, hover, camera/view, node palette/menu state, command transcript, command recall, build/runtime, preview/cache/provider state, and workspace shell state are not captured as authored snapshot payloads
+
+#### Does Not Own
+
+- changing graph command semantics generally
+- inventing a new node creation abstraction beyond the smallest shared helper needed for parity
+- changing `createGraphNodeInDocumentAndSelect(...)` except for regression proof
+- node deletion, node movement, wire creation, wire removal, node parameter commits, feature-stack commits, Sketch Draw local history, Viewer Transform, Browser/project history, Build Path, history UI, checkpoints, branching, persistence, collaboration, or command transcript/recall undo
+- making system-only nodes user-addable or widening which node types can be created
+
+#### Current Live Read
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - `addGraphNodeWithHistory(...)` already owns canonical graph-node add snapshots
+  - `createGraphNodeInDocumentAndSelect(...)` already uses the canonical helper for Console-created missing Sketch, Extrude, and OutputPreview nodes
+- `src/app/console/ConsoleDock.test.tsx`
+  - already proves console-created missing Sketch nodes create an `Add graph node` undo entry
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - `handleAddNodeFromMenu(...)` currently calls `applyGraphCommand(addNodeCommand(...))`, bypassing canonical edit history
+  - this path also owns menu stage position, `newNodeSpawnMode`, selected-node updates, selected-edge clearing, and add-node user feedback
+- `src/app/panels/SpaghettiPanel.tsx`
+  - `handleAddPartNode(...)` currently calls `applyGraphCommand(addNodeCommand(...))`, bypassing canonical edit history
+  - this path also owns selected-node/focused-node updates and add-node user feedback
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - already proves `addGraphNodeWithHistory(...)` undo/redo behavior at the store seam
+
+#### First Pass Decisions
+
+- Treat user-created Sketch, Extrude, and part nodes as graph-structure history, not node-CAD parameter history.
+- Reuse `addGraphNodeWithHistory(...)` instead of adding a second snapshot owner.
+- Preserve current placement and spawn-mode behavior by passing the same node, position, and `nodeMode` values into the history helper.
+- Keep direct `applyGraphCommand(addNodeCommand(...))` available for tests, imports, hydration, or internal graph normalization paths that are not user-authored creation commits.
+- Do not route OutputPreview singleton normalization or system-created graph repair through canonical history.
+
+#### Prep Read
+
+Phase 6 is ready for implementation against the current live seams:
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - accepted owner seam: `addGraphNodeWithHistory(...)`
+  - accepted helper shape: `addGraphNodeWithHistory({ node, position, nodeMode })`
+  - accepted snapshot behavior: `Add graph node` entry using before/after graph snapshots
+- `src/app/console/ConsoleDock.test.tsx`
+  - reference behavior already exists for Console-created missing Sketch nodes
+  - this path should remain regression proof, not the first implementation target
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - first implementation target
+  - replace the direct `applyGraphCommand(addNodeCommand(...))` call in `handleAddNodeFromMenu(...)`
+  - preserve `nodeAddMenu.stageX`, `nodeAddMenu.stageY`, `newNodeSpawnMode`, selection update, selected-edge clearing, UI message, and menu close behavior
+- `src/app/panels/SpaghettiPanel.tsx`
+  - second implementation target if the panel remains a live add surface
+  - replace the direct `applyGraphCommand(addNodeCommand(...))` call in `handleAddPartNode(...)`
+  - preserve selected/focused node updates and UI message behavior
+
+Implementation is cleared for the narrow history-seam replacement only. If either surface has changed since prep, re-read the local callback and preserve the current visible behavior before swapping the mutation seam.
+
+### Phase 6 Implementation Spec
+
+#### Likely Files
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - replace the direct node-add menu `applyGraphCommand(addNodeCommand(...))` call with `addGraphNodeWithHistory(...)`
+  - preserve position, spawn mode, selection, selected-edge clearing, message text, and menu close behavior
+- `src/app/panels/SpaghettiPanel.tsx`
+  - replace the direct add-part `applyGraphCommand(addNodeCommand(...))` call with `addGraphNodeWithHistory(...)`
+  - preserve selected/focused node behavior and message text
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - keep as store seam regression proof for `addGraphNodeWithHistory(...)`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` or another focused canvas test
+  - prove menu-created Sketch and Extrude nodes create one canonical `Add graph node` entry and undo removes the created node
+- `src/app/panels/SpaghettiPanel.test.tsx`
+  - prove panel-created part nodes create one canonical `Add graph node` entry if the panel path remains live and practical to cover
+- `src/app/console/ConsoleDock.test.tsx`
+  - run existing console-created missing Sketch proof as regression if touched
+- this phase doc, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` during implementation closeout
+
+#### Exact Implementation Boundary
+
+Implement canonical history for successful user-facing graph node creation from:
+
+- the canvas node-add menu
+- `SpaghettiPanel` add-node controls
+
+The history entry should use the existing `Add graph node` label, graph-structure source metadata, before/after graph snapshots, and undo/redo behavior from `addGraphNodeWithHistory(...)`.
+
+Undo/redo should restore authored graph document state only. It should not restore selection, hover, menu-open state, canvas pointer state, camera/view, command transcript, command recall, build outputs, preview geometry, runtime caches, history UI state, or workspace shell state.
+
+#### First Code Cut
+
+1. In `SpaghettiCanvas.tsx`, subscribe to `addGraphNodeWithHistory` from `useSpaghettiStore`.
+2. In `handleAddNodeFromMenu(...)`, replace the direct `applyGraphCommand(addNodeCommand(...))` call with `addGraphNodeWithHistory({ node, position, nodeMode: newNodeSpawnMode })`.
+3. Keep the existing post-create behavior: select the created node, clear selected edge, show the add message, and close the node-add menu.
+4. In `SpaghettiPanel.tsx`, subscribe to `addGraphNodeWithHistory` and replace the direct add-part `applyGraphCommand(addNodeCommand(...))` call.
+5. Keep the existing post-create behavior: selected node, focus node, and UI message.
+6. Add focused verification that Sketch and Extrude creation through the menu path commit exactly one canonical entry, and undo/redo removes/restores the node.
+7. Add or run panel-path proof if the panel is still a live user-facing add surface.
+
+#### No-Widening Rule
+
+Do not change graph import, graph load, hydration, OutputPreview singleton normalization, graph repair, test fixture setup, or runtime-created system nodes to create edit-history entries.
+
+Do not add a broad every-graph-command history wrapper. This phase is limited to live user-facing node creation surfaces that currently bypass the accepted `addGraphNodeWithHistory(...)` seam.
+
+Do not change node type registry behavior, add/remove available node types, alter node labels, or redesign node palette/menu UX.
+
+#### Implementation Risks
+
+- `SpaghettiCanvas` currently uses the direct graph command path for menu creation, so the replacement must preserve `nodeMode` and exact stage coordinates.
+- `SpaghettiPanel` may be an older or secondary surface; if its tests are expensive or brittle, store/canvas proof plus a focused panel smoke test may be enough.
+- Some internal paths intentionally call `applyGraphCommand(...)` without history for setup, hydration, or normalization. Do not make those paths canonical history entries.
+- If undo does not clear current selection, that may be consistent with graph-history snapshot rules; do not widen into selection restore unless a current test proves the selected deleted node creates a broken visible state.
+
+#### Checklist
+
+- [x] Confirm all live user-facing node creation paths.
+- [x] Route canvas node-add menu creation through `addGraphNodeWithHistory(...)`.
+- [x] Route `SpaghettiPanel` add-node creation through `addGraphNodeWithHistory(...)` if the panel remains live.
+- [x] Preserve node placement, spawn mode, selected node, selected edge clearing, and user feedback behavior.
+- [x] Prove Sketch node creation creates one canonical `Add graph node` entry.
+- [x] Prove Extrude node creation creates one canonical `Add graph node` entry.
+- [x] Prove undo/redo removes and restores created nodes.
+- [x] Prove internal/system graph setup paths remain history-free where appropriate.
+- [x] Run focused graph-history and creation-surface tests.
+- [x] Run production build.
+- [x] Update this phase doc, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` during implementation closeout.
+
+#### Focused Verification
+
+Suggested focused commands:
+
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "node"`
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx -t "Add"`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "Created sketch"`
+
+Build gate:
+
+- `npm.cmd run build`
+
+#### Phase 6 Closeout
+
+Implemented in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/panels/SpaghettiPanel.tsx`, `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`, and `src/app/panels/SpaghettiPanel.test.tsx`.
+
+Verification:
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` passed 3 tests
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx` passed 23 tests
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts` passed 16 tests
+- `npm.cmd run build` passed with the known Vite browser-externalization and chunk-size warnings
+
+`Edit-History-3-CLG-18` is ready for Manager acceptance because canvas menu-created Sketch and Extrude nodes now create canonical `Add graph node` entries through `addGraphNodeWithHistory(...)`, undo/redo removes and restores those authored graph nodes, the `SpaghettiPanel` part-node add path uses the same history seam while preserving selection feedback, and internal/system graph setup paths remain outside this user-authored creation history lane.
+
+#### Tracking Docs
+
+Prep changes update only:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/Doc-Log.md`
+
+Implementation closeout should update:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Do not update the family index during implementation unless Manager explicitly asks to reconcile broader Edit History status.
+
+#### Stop Condition
+
+Stop and report instead of widening if creation history requires changing graph load/hydration semantics, OutputPreview singleton repair, node registry availability, graph command contracts, workspace selection ownership, or a broad every-command history wrapper.
+
+Stop and report if undo/redo would need to capture selection, hover, camera/view, node palette/menu state, command transcript, command recall, workspace shell state, runtime/cache/provider state, accepted build outputs, preview geometry, worker progress, history UI state, persistence, or async entries.
+
+#### Done Shape
+
+Phase 6 is done when current user-facing canvas/menu and panel node creation surfaces use canonical `Add graph node` history entries, Sketch and Extrude creation each produce one undoable/redoable snapshot, undo/redo restores authored graph document state through the existing graph-history owner, excluded UI/runtime/session state remains outside the snapshot, focused verification and build pass, and tracking docs are updated. `Edit-History-3-CLG-18` can be ready for Manager acceptance at that point.
+
+## [x] `Edit-History-3 / Phase 7` - `Node Deletion Surface History Parity`
+
+Route every current user-facing graph node deletion surface through the canonical graph-node remove snapshot seam.
+
+### Phase 7 Summary
+
+#### Purpose
+
+Follow Phase 6's node creation parity by making user-authored graph node deletion consistently undoable.
+
+The store already exposes `removeGraphNodeWithHistory(...)`, and Console `node.delete` already uses that canonical seam when deleting a selected graph node. This phase should make any remaining live user-facing deletion paths use the same `Remove graph node` entry so deleting Sketch, Extrude, part, or other user-deletable nodes can be undone and redone through the graph-history owner.
+
+#### Owns
+
+- canonical `Remove graph node` history entries for successful user-facing graph node deletion
+- parity between Console node deletion and any canvas, keyboard, toolbar, panel, or context-menu node deletion surfaces that are live at implementation time
+- undo/redo restoration of the deleted node and its authored graph connections through the existing graph document snapshot owner
+- no-entry behavior for missing node, protected/system node, no selected node, canceled delete, or unchanged graph attempts
+- preservation of current visible deletion behavior, including selection clearing, graph-scope return behavior, user feedback, and console prompt handoff where those behaviors already exist
+- proof that selection, hover, camera/view, menu state, command transcript, command recall, build/runtime, preview/cache/provider state, and workspace shell state are not captured as authored snapshot payloads
+
+#### Does Not Own
+
+- edge deletion parity; wire removal has its own graph-structure history lane
+- feature-stack remove/delete history; `Edit-History-CLG-12` remains the owning open gap for feature-stack remove
+- geometry sketch session delete behavior such as draft/session component deletion
+- creating a new node delete surface just to close this phase
+- changing protected system-node rules, OutputPreview singleton normalization, graph load/hydration, graph repair, node registry availability, or graph command semantics generally
+- node creation, node movement, wire creation, wire removal, node parameter commits, feature-stack commits, Sketch Draw local history, Viewer Transform, Browser/project history, Build Path, history UI, checkpoints, branching, persistence, collaboration, or command transcript/recall undo
+
+#### Current Live Read
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - `removeGraphNodeWithHistory(nodeId)` already owns canonical graph-node remove snapshots
+  - the accepted entry label is `Remove graph node`
+  - the helper delegates to `removeNodeCommand(nodeId)` through the graph-structure history command owner
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - already proves `removeGraphNodeWithHistory(...)` undo/redo behavior at the store seam and missing-node no-entry behavior
+- `src/app/console/useConsoleInteraction.ts`
+  - Console `node.delete` already calls `removeGraphNodeWithHistory(...)`
+  - this path also owns returning to graph scope, clearing focused node context, and appending deleted-node feedback
+- `src/app/console/ConsoleDock.test.tsx`
+  - already contains selected sketch-node delete coverage for the Console path
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - current keyboard delete handling is visibly wired for selected edges only
+  - implementation should re-read this file to confirm whether selected-node keyboard, toolbar, or context-menu deletion exists before deciding the exact parity gap
+
+#### First Pass Decisions
+
+- Treat user-deleted graph nodes as graph-structure history, not node-CAD parameter history.
+- Reuse `removeGraphNodeWithHistory(...)` instead of adding a second snapshot owner.
+- Keep Console deletion as the reference behavior and regression proof.
+- Add the missing canvas selected-node Delete/Backspace path as the first parity cut because the canvas already has selected-node state and selected-edge Delete/Backspace behavior.
+- Preserve selected-edge delete precedence: if an edge is selected, Delete/Backspace should keep deleting the edge and should not also delete the selected node.
+- Do not add a new toolbar button, context menu item, or panel affordance unless Manager explicitly widens the phase.
+
+#### Prep Read
+
+Phase 7 is ready for implementation against the current live seams:
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - accepted owner seam: `removeGraphNodeWithHistory(nodeId)`
+  - accepted helper behavior: creates one canonical `Remove graph node` entry through graph-structure before/after snapshots
+  - accepted command behavior: `removeNodeCommand(nodeId)` removes the node and related graph edges
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - reference store proof already covers node removal, related-edge restoration, undo, redo, and missing-node no-entry behavior
+- `src/app/console/useConsoleInteraction.ts`
+  - Console `node.delete` already calls `removeGraphNodeWithHistory(...)`
+  - this path should remain reference proof unless implementation finds an unrelated Console regression
+- `src/app/console/ConsoleDock.test.tsx`
+  - selected sketch-node delete already proves Console creates a `Remove graph node` history entry, returns to graph scope, clears selected graph-node state, and undo/redo restores/removes the node
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - first implementation target
+  - currently subscribes to selected node and selected edge state
+  - currently handles Delete/Backspace for `selectedEdgeId !== null` only
+  - currently has node selection paths that clear selected edge/waypoint when a node is clicked
+  - implementation should subscribe to `removeGraphNodeWithHistory`, add a selected-node delete callback, and extend the root `onKeyDown` so Delete/Backspace deletes the selected node only when no selected edge is active
+- `src/app/panels/SpaghettiPanel.tsx`
+  - no live selected-node delete control was found during prep
+  - implementation should not add a panel delete surface unless a live surface appears during the final read
+
+### Phase 7 Implementation Spec
+
+#### Likely Files
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+  - subscribe to `removeGraphNodeWithHistory(...)`
+  - add a selected-node delete callback near `handleDeleteSelectedEdge(...)`
+  - route Delete/Backspace on the canvas root through selected-edge deletion first, then selected-node deletion when `selectedNodeId !== null`
+  - preserve current selected-edge, selected-waypoint, selected-node, hover, focus, menu, and user-feedback behavior
+- `src/app/panels/SpaghettiPanel.tsx`
+  - no expected implementation change unless a live panel delete surface is found during the final read
+- `src/app/console/useConsoleInteraction.ts`
+  - keep as accepted reference seam; touch only if implementation finds a Console parity bug
+- `src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+  - keep as store seam regression proof for `removeGraphNodeWithHistory(...)`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` or another focused canvas test
+  - prove any canvas-facing node deletion creates one canonical `Remove graph node` entry and undo restores the deleted node
+- `src/app/console/ConsoleDock.test.tsx`
+  - run existing selected sketch-node delete proof as regression if touched
+- this phase doc, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` during implementation closeout
+
+#### Exact Implementation Boundary
+
+Implement canonical history for successful canvas selected-node graph deletion and preserve existing Console node-delete history.
+
+The history entry should use the existing `Remove graph node` label, graph-structure source metadata, before/after graph snapshots, and undo/redo behavior from `removeGraphNodeWithHistory(...)`.
+
+Undo/redo should restore authored graph document state only. It should not restore selection, hover, menu-open state, canvas pointer state, camera/view, command transcript, command recall, build outputs, preview geometry, runtime caches, history UI state, or workspace shell state.
+
+#### First Code Cut
+
+1. In `SpaghettiCanvas.tsx`, subscribe to `removeGraphNodeWithHistory` from `useSpaghettiStore`.
+2. Add `handleDeleteSelectedNode(...)` near `handleDeleteSelectedEdge(...)`.
+3. If `selectedNodeId` is `null`, return without committing history.
+4. Call `removeGraphNodeWithHistory(selectedNodeId)` and stop if it returns `false`.
+5. Clear the selected node, selected edge, hovered edge, and selected waypoint after a successful node delete.
+6. Show a concise success message such as `Node deleted.` after a successful node delete.
+7. In the root `onKeyDown`, keep the existing Delete/Backspace selected-edge branch first.
+8. Add a second Delete/Backspace branch for `selectedNodeId !== null` only when there is no selected edge.
+9. Add focused canvas proof that selected Sketch and Extrude nodes can be deleted with Delete/Backspace, each creates one `Remove graph node` entry, and undo/redo restores/removes the node.
+10. Keep Console delete behavior as a regression path, not the first implementation target.
+
+#### No-Widening Rule
+
+Do not implement feature-stack remove/delete, sketch-session delete history, edge deletion changes, graph load/hydration history, OutputPreview singleton repair history, or a broad every-graph-command history wrapper.
+
+Do not add a new toolbar button, panel button, context-menu item, confirmation dialog, protected-node policy, or node registry rule unless Manager explicitly widens the phase.
+
+#### Implementation Risks
+
+- Console deletion already uses the canonical seam, so the real implementation may be mostly canvas/panel parity or a proof-only phase if no other node delete surface exists.
+- Deleting a node also removes connected edges through the graph command. Undo/redo should restore the authored graph snapshot rather than manually reconstructing node and edge pieces.
+- Protected or system-created nodes may have special availability rules. Do not make those nodes deletable just to prove history.
+- If undo does not restore node selection, that may be consistent with graph-history snapshot rules; do not widen into selection restore unless a current visible broken state requires it.
+
+#### Checklist
+
+- [x] Confirm all live user-facing graph node deletion paths for prep.
+- [x] Preserve Console `node.delete` history behavior as the accepted reference seam.
+- [x] Route canvas selected-node Delete/Backspace deletion through `removeGraphNodeWithHistory(...)`.
+- [x] Preserve selected-edge Delete/Backspace precedence over selected-node deletion.
+- [x] Preserve selected-node, selected-edge, hovered-edge, selected-waypoint, user feedback, and prompt/menu behavior after successful deletion.
+- [x] Prove Sketch node deletion creates one canonical `Remove graph node` entry from the canvas keyboard surface.
+- [x] Prove Extrude node deletion creates one canonical `Remove graph node` entry from the canvas keyboard surface.
+- [x] Prove undo/redo restores the deleted node and authored connected graph state.
+- [x] Prove missing-node store deletion and no-selection canvas keyboard deletion attempts create no entries; protected/canceled delete paths are not live in this phase.
+- [x] Prove internal/system graph setup and normalization paths remain history-free where appropriate.
+- [x] Run focused graph-history and deletion-surface tests.
+- [x] Run production build.
+- [x] Update this phase doc, `docs/CHANGELOG.md`, and `docs/Doc-Log.md` during implementation closeout.
+
+#### Focused Verification
+
+Suggested focused commands:
+
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "delete"`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "deletes a selected sketch node"`
+
+If panel deletion is touched, also run:
+
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx -t "delete"`
+
+Build gate:
+
+- `npm.cmd run build`
+
+#### Phase 7 Closeout
+
+Implemented in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` and `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`.
+
+Verification:
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx` passed 4 tests
+- `npm.cmd test -- --run src/app/spaghetti/store/graphEditHistoryStore.test.ts` passed 16 tests
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "deletes a selected sketch node"` passed 1 focused test with 259 skipped
+- `npm.cmd run build` passed with the known Vite browser-externalization and chunk-size warnings
+
+`Edit-History-3-CLG-19` is ready for Manager acceptance because canvas selected-node Delete/Backspace deletion now creates canonical `Remove graph node` entries through `removeGraphNodeWithHistory(...)`, Sketch and Extrude node deletion are undoable/redoable from the canvas keyboard surface, related authored graph edges restore through the graph snapshot owner, selected-edge Delete/Backspace keeps precedence over selected-node deletion, no-selection canvas Delete creates no entry, and Console `node.delete` remains the accepted reference seam.
+
+#### Tracking Docs
+
+Prep changes update only:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/Doc-Log.md`
+
+Implementation closeout should update:
+
+- `docs/Human-Plans/Architecture/Edit-History/Future/Edit-History-3 - Node CAD And Sketch Undo Coverage.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Do not update the family index during implementation unless Manager explicitly asks to reconcile broader Edit History status.
+
+#### Stop Condition
+
+Stop and report instead of widening if deletion history requires changing graph load/hydration semantics, OutputPreview singleton repair, node registry availability, graph command contracts, workspace selection ownership, protected system-node rules, or a broad every-command history wrapper.
+
+Stop and report if undo/redo would need to capture selection, hover, camera/view, node palette/menu state, command transcript, command recall, workspace shell state, runtime/cache/provider state, accepted build outputs, preview geometry, worker progress, history UI state, persistence, or async entries.
+
+#### Done Shape
+
+Phase 7 is done when every live user-facing graph node deletion surface uses canonical `Remove graph node` history entries, Sketch and Extrude deletion each produce one undoable/redoable snapshot where those deletions are live, undo/redo restores authored graph document state through the existing graph-history owner, excluded UI/runtime/session state remains outside the snapshot, focused verification and build pass, and tracking docs are updated. `Edit-History-3-CLG-19` can be ready for Manager acceptance at that point.

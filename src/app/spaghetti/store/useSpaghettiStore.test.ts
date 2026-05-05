@@ -7,7 +7,11 @@ import {
   saveGraphDocumentToFile,
   serializeGraphDocument,
 } from '../../io/graphDocumentPersistence'
-import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import {
+  DEFAULT_SPAGHETTI_NODE_WIDTH,
+  MIN_SPAGHETTI_NODE_WIDTH,
+  type SpaghettiGraph,
+} from '../schema/spaghettiTypes'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import {
@@ -406,7 +410,7 @@ describe('useSpaghettiStore graph normalization', () => {
     })
     expect(
       state.graphDocumentsById[secondGraphId]?.graph.ui?.nodes?.[created?.nodeId ?? 'missing'],
-    ).toEqual({ x: 280, y: 40 })
+    ).toEqual({ x: 280, y: 40, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
   })
 
   it('createGraphNodeInDocumentAndSelect derives the next label and placement from the target graph', () => {
@@ -436,7 +440,7 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(created?.nodeLabel).toBe('sketch_[2]')
     expect(
       state.graphDocumentsById[secondGraphId]?.graph.ui?.nodes?.[created?.nodeId ?? 'missing'],
-    ).toEqual({ x: 320, y: 40 })
+    ).toEqual({ x: 320, y: 40, width: DEFAULT_SPAGHETTI_NODE_WIDTH })
   })
 
   it('openGraphDocumentInNewViewport creates a second viewport on the same graph document', () => {
@@ -889,11 +893,41 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.graph.ui?.nodes?.['node-baseplate-1']).toEqual({
       x: 123,
       y: 457,
+      width: DEFAULT_SPAGHETTI_NODE_WIDTH,
     })
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(
       2,
     )
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
+  })
+
+  it('normalizes persisted node width up to the shared minimum frame width floor', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-1',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-baseplate-1': {
+            x: 120,
+            y: 80,
+            width: MIN_SPAGHETTI_NODE_WIDTH - 40,
+          },
+        },
+      },
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-baseplate-1']).toEqual({
+      x: 120,
+      y: 80,
+      width: MIN_SPAGHETTI_NODE_WIDTH,
+    })
   })
 
   it('acceptGraphBuildResult records the accepted graph revision even if the graph changed after the build request was staged', () => {
@@ -3121,6 +3155,44 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(viewport?.windowMode).toBe('expanded')
     expect(viewport?.position).toEqual(defaultViewportPosition)
     expect(viewport?.size).toEqual(defaultViewportSize)
+  })
+
+  it('setEditorViewportPresentationMode keeps essentials as a compact expanded window', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportPresentationMode(viewportId ?? '', 'essentials')
+
+    const state = useSpaghettiStore.getState()
+    const viewport = selectActiveEditorViewport(state)
+
+    expect(viewport?.windowMode).toBe('expanded')
+    expect(state.editorViewportHeaderCollapsedById[viewportId ?? '']).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[viewportId ?? '']).toBe(false)
+    expect(state.editorViewportOverlayModeById[viewportId ?? '']).toBe(false)
+  })
+
+  it('setEditorViewportPresentationMode routes overlay through the maximized shell lane', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportPresentationMode(viewportId ?? '', 'overlay')
+
+    let state = useSpaghettiStore.getState()
+    let viewport = selectActiveEditorViewport(state)
+
+    expect(viewport?.windowMode).toBe('maximized')
+    expect(state.editorViewportHeaderCollapsedById[viewportId ?? '']).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[viewportId ?? '']).toBe(false)
+    expect(state.editorViewportOverlayModeById[viewportId ?? '']).toBe(true)
+
+    useSpaghettiStore.getState().setEditorViewportPresentationMode(viewportId ?? '', 'expanded')
+
+    state = useSpaghettiStore.getState()
+    viewport = selectActiveEditorViewport(state)
+
+    expect(viewport?.windowMode).toBe('expanded')
+    expect(state.editorViewportOverlayModeById[viewportId ?? '']).toBe(false)
   })
 
   it('setEditorViewportWindowMode toggles split view back to the captured prior expanded state', () => {

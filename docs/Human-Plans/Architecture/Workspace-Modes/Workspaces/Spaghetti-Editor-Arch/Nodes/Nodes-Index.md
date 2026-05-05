@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+63. 2026-05-04 15:09:24: Marked `Nodes-6 - Resizable Node Frames And Shared Shell Adoption` effectively closed at the umbrella level after `Nodes-6 / Phase 1` through `Nodes-6 / Phase 6` shipped through the dedicated future doc, then refreshed this summary so later node families now inherit the shared frame-width, resize, history, and shell contract from a completed lane instead of a still-pending follow-on.
+62. 2026-05-02 12:02:14: Renamed the `Nodes-6` child-ladder references in this umbrella index from `Nodes-6.1` through `Nodes-6.6` to `Nodes-6 / Phase 1` through `Nodes-6 / Phase 6` so the next node-frame lane now matches the standard family-phase naming pattern before `Phase 1` implementation prep.
+61. 2026-05-02 11:48:50: Added `Nodes-6 - Resizable Node Frames And Shared Shell Adoption` as the next shared node-surface lane after the current `Nodes-5` body-collection ladder, created its standalone future doc under `Nodes/Future/`, and narrowed this umbrella handoff so later node frame persistence, eight-edge resize behavior, and `Output Preview` shared-shell adoption now live in one explicit execution home instead of staying only as ad hoc follow-on notes.
+60. 2026-05-01 18:43:47: Created `Nodes/Loft/Loft-Index.md` as the dedicated Loft node-family planning guide and feature-addition checklist, replacing the previous placeholder status with a real cross-surface readiness map for node UI, Console, toolbar, edit history, parameter/object types, compile/runtime, preview/output, and verification.
 59. 2026-04-10 20:46: Tightened `Nodes-5.5a - Output Preview Collection Surface Polish` inside the dedicated `Nodes-5` future doc into an implementation-ready pass by grounding it in the older `Output Preview` node template plus the already-shipped split/member preparation and published-object seams, then refreshed this umbrella handoff so the next node-contract slice now clearly targets collection-aware slot/object readability instead of a still-general polish note
 58. 2026-04-10 20:41: Marked `Nodes-5.5 - Per-Body Expansion And Wiring Surface` shipped inside the dedicated `Nodes-5` future doc after plural `New Objects` extrude outputs gained real child `SolidBody` member rows plus virtual member output ports and focused proof across effective-port, evaluator, selector, validator, and node-surface seams, then refreshed this umbrella handoff so the next node-contract slice now advances to `Nodes-5.5a - Output Preview Collection Surface Polish`
 57. 2026-04-10 20:26: Tightened `Nodes-5.5 - Per-Body Expansion And Wiring Surface` inside the dedicated `Nodes-5` future doc into an implementation-ready pass by grounding it in the live extrude managed-output row seam, the current selector-owned body-count/result-shape read, and the existing sketch collection parent-versus-child precedent, then refreshed this umbrella handoff so the next node-contract slice now points at plural `New Objects` child `SolidBody` expansion instead of a still-broad later row idea
@@ -159,12 +163,13 @@ Current gap:
 
 Status:
 - roadmap family exists as a later geometry follow-on
-- this `Nodes/Loft/` folder does not yet have a dedicated node-family doc
-- current folder is effectively a placeholder
+- dedicated node-family planning guide now exists:
+  - `Nodes/Loft/Loft-Index.md`
+- current status is planning/checklist only; no implementation phase is open yet
 
 Current gap:
-- needs one `Loft` architecture/index doc in this folder
-- should be planned after the shared row language is more stable
+- needs a standalone `Loft/Future/` implementation phase before code work starts
+- should reuse the shared row, collection, solid-body, Console, toolbar, and edit-history contracts instead of inventing Loft-local ownership
 
 ## [x] Nodes-1 - Shared Shell And Structured Wire Rows
 
@@ -445,9 +450,66 @@ Current status:
 
 The next docs that should likely be created under this folder are:
 
-- `Nodes/Loft/Loft-Index.md`
+- `Nodes/Loft/Future/Loft_Phase Loft-1 - Family Contract And Profile Input Surface.md`
 
 After that, if the shared row/template work grows beyond this umbrella surface, it should split into a dedicated node-template architecture doc rather than overloading individual family docs with duplicate template rules.
+
+## [x] Nodes-6 - Resizable Node Frames And Shared Shell Adoption
+
+### Summary
+
+Turned the older fixed-width spaghetti node card into one explicit shared frame contract that persists node width, exposes real edge/corner resize handles on the canvas, commits resize through edit history, and keeps the main node families reading through one calmer shared shell.
+
+This umbrella now has a dedicated future-phase home:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-6 - Resizable Node Frames And Shared Shell Adoption.md`
+
+That doc now owns the actual `Nodes-6 / Phase 1` through `Nodes-6 / Phase 6` breakdown.
+
+Current status:
+- `Nodes-6` is now a shipped shared node-surface lane with its implementation record living in the dedicated future doc history
+- the lane now covers:
+  - persisted graph-owned node width
+  - selected-node edge and corner resize handles
+  - move-versus-resize interaction honesty plus resize history commits
+  - `Output Preview` adoption of the shared shell direction
+  - final shell parity and overflow/readability hardening across `Sketch`, `Extrude`, and `Output Preview`
+- later node-family work should inherit this contract instead of reopening local node chrome, resize behavior, or frame-state ownership from scratch
+
+### Shipped Contract
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Nodes-6` future doc as the shipped phase ladder and execution record for Phases 1 through 6.
+- Treat `Nodes-6` as completed shared node-surface architecture work, not as one family-local `Sketch`, `Extrude`, or `Output Preview` tweak.
+- The shipped contract now locks:
+  - graph-authored node width at the frame layer instead of family-local params
+  - selected-node edge and corner resize ownership on the spaghetti canvas
+  - one honest resize edit-history seam
+  - one shared shell direction across `Sketch`, `Extrude`, and `Output Preview`
+  - one shared minimum-width plus overflow/readability policy for the main node families
+- Later node families should inherit this finished lane rather than rediscover:
+  - frame persistence ownership
+  - resize pointer ownership
+  - resize history semantics
+  - shared-shell structure
+  - constrained-frame overflow policy
+
+### What I Have Versus What I Need
+
+#### What I Have
+
+- one shared shell direction for geometry nodes
+- one older custom `Output Preview` template still outside that shell
+- one current persisted node-position contract
+- one current fixed-width node frame in CSS
+- one proven eight-direction floating-window resize precedent elsewhere in the workspace shell
+
+#### What I Need
+
+- one persisted node frame contract for width and height
+- one node-owned resize-handle and pointer-interaction seam
+- one honest move-versus-resize boundary in the canvas
+- one shared-shell adoption pass for `Output Preview`
+- one final family-parity pass so future node families inherit resizable frames cleanly
 
 
 ## Nodes

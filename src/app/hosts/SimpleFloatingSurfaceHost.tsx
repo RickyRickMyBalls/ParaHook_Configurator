@@ -7,6 +7,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
+import { FloatingWindowSettingsButton } from '../components/FloatingWindowSettingsButton'
 import { FloatingWindowQuickDockButton } from '../components/FloatingWindowQuickDockButton'
 import type { WorkspaceDetachedSlotSurfaceState } from '../workspace/workspaceShellTypes'
 
@@ -28,6 +29,7 @@ type SimpleFloatingSurfaceHostProps = {
   defaultRect: FloatingSurfaceRect
   minWidth: number
   minHeight: number
+  onOpenSettings?: (initialSectionId?: import('../workspace/SettingsSurface').SettingsSectionId) => void
   edgePadding?: number
   zIndex?: number
   renderSurface: (surface: WorkspaceDetachedSlotSurfaceState) => ReactNode
@@ -77,6 +79,7 @@ export function SimpleFloatingSurfaceHost(props: SimpleFloatingSurfaceHostProps)
     defaultRect,
     minWidth,
     minHeight,
+    onOpenSettings,
     edgePadding = 12,
     zIndex = 19,
     renderSurface,
@@ -246,6 +249,12 @@ export function SimpleFloatingSurfaceHost(props: SimpleFloatingSurfaceHostProps)
               }}
             >
               <span>{title}</span>
+              {onOpenSettings !== undefined ? (
+                <FloatingWindowSettingsButton
+                  className={`${windowClassName}Settings`}
+                  onClick={() => onOpenSettings('general')}
+                />
+              ) : null}
               <FloatingWindowQuickDockButton
                 className={quickDockClassName}
                 onClick={() => onQuickDock(surface.surfaceInstanceId)}

@@ -45,6 +45,7 @@ let useSpaghettiUiStore!: typeof import('./state/spaghettiUiStore').useSpaghetti
 let selectNodeMode!: typeof import('../store/useSpaghettiStore').selectNodeMode
 let useSpaghettiStore!: typeof import('../store/useSpaghettiStore').useSpaghettiStore
 let useAppStore!: typeof import('../../store/useAppStore').useAppStore
+let editHistoryStore!: typeof import('../../store/editHistoryStore').editHistoryStore
 const originalWorker = globalThis.Worker
 
 const emptyCompositeState = {
@@ -214,6 +215,31 @@ const extrudeInputs: PortSpec[] = [
   },
 ]
 
+const fullExtrudeInputs: PortSpec[] = [
+  ...extrudeInputs,
+  {
+    portId: 'StartDepth',
+    label: 'Start Depth',
+    type: { kind: 'number', unit: 'mm' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+  {
+    portId: 'EndDepth',
+    label: 'End Depth',
+    type: { kind: 'number', unit: 'mm' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+  {
+    portId: 'TaperAngle',
+    label: 'Taper Angle',
+    type: { kind: 'number', unit: 'deg' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+]
+
 const extrudeOutputs: PortSpec[] = [
   {
     portId: 'SolidBody',
@@ -335,6 +361,7 @@ function SketchNodeHarness() {
 function ExtrudeNodeHarness(props?: {
   graphNode?: SpaghettiNode
   extrudeVm?: ExtrudeNodeVm
+  allInputs?: PortSpec[]
   allOutputs?: PortSpec[]
 }) {
   const graphNode = useSpaghettiStore((state) => state.graph.nodes[0] ?? null)
@@ -388,7 +415,7 @@ function ExtrudeNodeHarness(props?: {
       nodeMode={nodeMode}
       template="extrude"
       extrudeVm={liveExtrudeVm}
-      allInputs={extrudeInputs}
+      allInputs={props?.allInputs ?? extrudeInputs}
       allOutputs={
         props?.allOutputs ?? [
           {
@@ -648,6 +675,16 @@ const findExtrudeBodyModeRow = (
   return row instanceof HTMLElement ? row : null
 }
 
+const graphNodeParam = (paramName: string): unknown =>
+  useSpaghettiStore.getState().graph.nodes[0]?.params[paramName]
+
+const clickButton = async (button: HTMLButtonElement | null | undefined): Promise<void> => {
+  await act(async () => {
+    button?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+  })
+}
+
 describe('NodeView geometry mode behavior', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -659,8 +696,10 @@ describe('NodeView geometry mode behavior', () => {
     ;({ useSpaghettiUiStore } = await import('./state/spaghettiUiStore'))
     ;({ selectNodeMode, useSpaghettiStore } = await import('../store/useSpaghettiStore'))
     ;({ useAppStore } = await import('../../store/useAppStore'))
+    ;({ editHistoryStore } = await import('../../store/editHistoryStore'))
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    editHistoryStore.clear()
     useSpaghettiUiStore.setState({
       collapsed: {},
       isCollapsed: useSpaghettiUiStore.getState().isCollapsed,
@@ -1350,6 +1389,356 @@ describe('NodeView geometry mode behavior', () => {
     expect(findExtrudeBodyModeRow(container)?.textContent).toContain('New Objects')
     expect(findExtrudeOutputRow(container, 'SolidBody')).toBeNull()
     expect(findExtrudeOutputRow(container, 'SolidBodies')).not.toBeNull()
+  })
+
+  it('commits extrude Type, Direction, and Output row changes through graph edit history', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      editHistoryStore.clear()
+      root?.render(<ExtrudeNodeHarness allInputs={fullExtrudeInputs} />)
+    })
+
+    await clickButton(
+      findExtrudeTypeRow(container)?.querySelector(
+        '[aria-label="Next Type"]',
+      ) as HTMLButtonElement | null,
+    )
+
+    expect(graphNodeParam('extrudeType')).toBe('Walls')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:extrudeType',
+      targetLabel: 'Extrude type',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('extrudeType')).toBe('Body')
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(graphNodeParam('extrudeType')).toBe('Walls')
+
+    await clickButton(
+      findExtrudeDirectionRow(container)?.querySelector(
+        '[aria-label="Next Direction"]',
+      ) as HTMLButtonElement | null,
+    )
+
+    expect(graphNodeParam('extrudeDirection')).toBe('TwoSides')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:extrudeDirection',
+      targetLabel: 'Extrude direction',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('extrudeDirection')).toBe('OneSide')
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(graphNodeParam('extrudeDirection')).toBe('TwoSides')
+
+    await clickButton(
+      findExtrudeBodyModeRow(container)?.querySelector(
+        '[aria-label="Next Output"]',
+      ) as HTMLButtonElement | null,
+    )
+
+    expect(graphNodeParam('bodyGenerationMode')).toBe('NewObjects')
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(3)
+    expect(editHistoryStore.getUndoEntries()[2]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:bodyGenerationMode',
+      targetLabel: 'Extrude output',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('bodyGenerationMode')).toBe('Combine')
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(graphNodeParam('bodyGenerationMode')).toBe('NewObjects')
+  })
+
+  it('commits extrude Depth and Taper Angle numeric rows once per semantic edit', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      editHistoryStore.clear()
+      root?.render(<ExtrudeNodeHarness allInputs={fullExtrudeInputs} />)
+    })
+
+    const depthRow = findExtrudeInputRow(container, 'Depth')
+    const dragLane = depthRow?.querySelector('.SpaghettiPortPrimitiveLane') as HTMLDivElement | null
+    expect(dragLane).not.toBeNull()
+
+    if (dragLane !== null) {
+      dragLane.getBoundingClientRect = () =>
+        ({
+          left: 0,
+          right: 100,
+          top: 0,
+          bottom: 18,
+          width: 100,
+          height: 18,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }) as DOMRect
+    }
+
+    await act(async () => {
+      dragLane?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 25,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+    })
+
+    expect(graphNodeParam('depthMm')).toBe(75)
+    expect(editHistoryStore.getUndoEntries()).toEqual([])
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+    })
+
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:depthMm',
+      targetLabel: 'Extrude depth',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('depthMm')).toBe(30)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(graphNodeParam('depthMm')).toBe(75)
+
+    await clickButton(
+      findExtrudeInputRow(container, 'Taper Angle')?.querySelector(
+        '[aria-label="Increase Taper Angle"]',
+      ) as HTMLButtonElement | null,
+    )
+
+    expect(graphNodeParam('taperAngleDeg')).toBe(0.1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:taperAngleDeg',
+      targetLabel: 'Extrude taper angle',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('taperAngleDeg')).toBeUndefined()
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(graphNodeParam('taperAngleDeg')).toBe(0.1)
+  })
+
+  it('commits extrude two-sided Start Depth and End Depth rows through graph edit history', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            ...extrudeNode,
+            params: {
+              ...extrudeNode.params,
+              extrudeDirection: 'TwoSides',
+              startDepthMm: 20,
+              endDepthMm: 40,
+            },
+          },
+        ],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      editHistoryStore.clear()
+      root?.render(<ExtrudeNodeHarness allInputs={fullExtrudeInputs} />)
+    })
+
+    expect(findExtrudeInputRow(container, 'Depth')).toBeNull()
+    expect(findExtrudeInputRow(container, 'Start Depth')).not.toBeNull()
+    expect(findExtrudeInputRow(container, 'End Depth')).not.toBeNull()
+
+    await clickButton(
+      findExtrudeInputRow(container, 'Start Depth')?.querySelector(
+        '[aria-label="Increase Start Depth"]',
+      ) as HTMLButtonElement | null,
+    )
+
+    expect(graphNodeParam('startDepthMm')).toBe(20.1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:startDepthMm',
+      targetLabel: 'Extrude start depth',
+    })
+
+    await clickButton(
+      findExtrudeInputRow(container, 'End Depth')?.querySelector(
+        '[aria-label="Increase End Depth"]',
+      ) as HTMLButtonElement | null,
+    )
+
+    expect(graphNodeParam('endDepthMm')).toBe(40.1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(2)
+    expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
+      label: 'Change graph parameter',
+      targetId: 'node-extrude-1:extrude:endDepthMm',
+      targetLabel: 'Extrude end depth',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('endDepthMm')).toBe(40)
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(graphNodeParam('startDepthMm')).toBe(20)
+
+    await act(async () => {
+      editHistoryStore.redo()
+      editHistoryStore.redo()
+    })
+    expect(graphNodeParam('startDepthMm')).toBe(20.1)
+    expect(graphNodeParam('endDepthMm')).toBe(40.1)
+  })
+
+  it('does not commit local Extrude row history for driven Type or Depth controls', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      editHistoryStore.clear()
+      root?.render(
+        <ExtrudeNodeHarness
+          allInputs={fullExtrudeInputs}
+          extrudeVm={{
+            ...extrudeVm,
+            typeDriven: true,
+            depthDriven: true,
+          }}
+        />,
+      )
+    })
+
+    const nextTypeButton = findExtrudeTypeRow(container)?.querySelector(
+      '[aria-label="Next Type"]',
+    ) as HTMLButtonElement | null
+    const depthLane = findExtrudeInputRow(container, 'Depth')?.querySelector(
+      '.SpaghettiPortPrimitiveLane',
+    ) as HTMLDivElement | null
+
+    expect(nextTypeButton?.disabled).toBe(true)
+    expect(findExtrudeInputRow(container, 'Depth')?.textContent).toContain(
+      'Wire drives the effective value',
+    )
+
+    await clickButton(nextTypeButton)
+
+    if (depthLane !== null) {
+      depthLane.getBoundingClientRect = () =>
+        ({
+          left: 0,
+          right: 100,
+          top: 0,
+          bottom: 18,
+          width: 100,
+          height: 18,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }) as DOMRect
+    }
+
+    await act(async () => {
+      depthLane?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 75,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+    })
+
+    expect(graphNodeParam('extrudeType')).toBe('Body')
+    expect(graphNodeParam('depthMm')).toBe(30)
+    expect(editHistoryStore.getUndoEntries()).toEqual([])
   })
 
   it('reveals child SolidBody output rows in New Objects mode when member outputs exist', async () => {

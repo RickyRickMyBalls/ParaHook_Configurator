@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-05-02 09:39:04: Added `Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts` as the next open Spaghetti-editor follow-on after Bug 23 research showed the docked meatball editor is likely being reclassified out of `meatball editor view` during split-right handling, giving the family a dedicated future phase home for dock ownership and regression proof.
+19. 2026-05-02 08:06:26: Marked `Spaghetti-Editor 3 / Phase 4 - Essentials Canvas Background Transparency Cleanup` shipped in the umbrella read, confirming that `e` mode now has its own Spaghetti editor titlebar `BG` slider and essentials-only canvas readability tuning without reopening overlay ownership.
+18. 2026-05-02 07:59:17: Tightened the `Spaghetti-Editor 3` umbrella read by adding `Phase 4 - Essentials Canvas Background Transparency Cleanup` as the next implementation-ready slice, so the remaining `e`-mode readability polish has its own honest follow-on focused on a Spaghetti editor titlebar canvas-background transparency slider instead of widening the shipped overlay-titlebar phase.
+17. 2026-05-02 07:36:15: Marked `Spaghetti-Editor 3 / Phase 3 - Overlay Titlebar Controls And Surface Cleanup` shipped in the umbrella read, confirming that the model viewport titlebar now owns visible overlay state, graph naming, direct `O` exit, and the first background-transparency control while the old floating overlay chip path is retired.
+16. 2026-05-02 07:24:31: Marked `Spaghetti-Editor 3 / Phase 2 - Overlay Viewport Ownership And Hit-Testing` shipped in the umbrella read, confirming that `O` now lives under the active viewport host instead of a blocking global shell, and tightened the next implementation-ready slice to `Phase 3 - Overlay Titlebar Controls And Surface Cleanup` around the remaining temporary floating exit chip, viewport-titlebar overlay wording, and first readability control handoff.
+15. 2026-05-01 20:47:53: Tightened the `Spaghetti-Editor 3` umbrella read after shipping `Phase 1`, confirming that the next implementation-ready slice is now `Phase 2 - Overlay Viewport Ownership And Hit-Testing` grounded in the live `overlay` shell state, viewport-host seam, and existing `Shift` viewer-control behavior.
+14. 2026-05-01 20:27:32: Tightened the `Spaghetti-Editor 3` umbrella read after prepping `Phase 1 - Window Density Truth And O Mode Entry` for implementation, confirming that the next code cut should stay on the shell-level `- / e / + / O` split before the later overlay ownership and titlebar cleanup phases.
+13. 2026-05-01 20:23:22: Updated the `Spaghetti-Editor 3` umbrella summary so the accidental new `Phase 0` stays removed, the new overlay workspace-behavior slice now lives as `Phase 2 - Overlay Viewport Ownership And Hit-Testing`, and the former titlebar cleanup follow-on is renumbered to `Phase 3`.
+12. 2026-05-01 20:18:48: Removed `Spaghetti-Editor 3 - Phase 0 - Edit History Boundary And Presentation-State Ownership` from the `Spaghetti-Editor 3` ladder after review showed it should stay as boundary context in the standalone plan rather than as a real family execution phase.
+11. 2026-05-01 20:12:19: Added `Spaghetti-Editor 3 - Phase 0 - Edit History Boundary And Presentation-State Ownership` to the `Spaghetti-Editor 3` phase ladder so the editor presentation-state versus canonical node-CAD undo boundary is tracked before the `O` mode implementation phases.
 10. 2026-04-13: Reframed the new `Spaghetti-Editor 4` family from a generic node-toolbar-host lane into `Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface`, so the umbrella index now matches the intended compact hideable left toolbar for browsing, organizing, and dragging node types onto the canvas
 9. 2026-04-13: Added the open umbrella phase `Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract` plus the dedicated future doc `Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` so generic canvas-owned node-toolbar hosting, launcher behavior, and family handoff now have one clean planning home instead of living only as scattered node-family toolbar notes
 8. 2026-04-06: Added the open umbrella phase `Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation` plus the dedicated future doc `Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md` so the proposed new `O` titlebar mode, the cleanup of the current overlay-on-model-viewport experiment, and the restoration of `e` to real essential float-window meaning now have one clean planning home
@@ -129,6 +139,18 @@ Current read:
 - it now also has a small editor-shell and canvas-chrome ladder for shared spawn-mode, overlay, and a left-side node palette
 - it still does not have a deep standalone ladder like `Sketch`
 - deeper feature planning should keep moving into subfamilies instead of bloating the umbrella doc
+
+#### `Spaghetti-Editor 3` Next Slice
+
+Current read:
+- `Phase 1`, `Phase 2`, `Phase 3`, and `Phase 4` are now shipped
+- `O` now enters honestly, stays viewport-local, and is visibly announced from the model viewport titlebar instead of a leftover floating-shell chip
+- the model viewport titlebar now owns:
+  - direct `O` exit
+  - active overlaid graph naming
+  - the first background-transparency readability control
+- `e` mode now has its own compact Spaghetti editor titlebar `BG` slider for canvas background transparency
+- no immediate `Spaghetti-Editor 3` follow-on slice is required until a broader editor appearance or settings expansion is intentionally planned
 
 #### [~] `Nodes`
 
@@ -388,11 +410,17 @@ Short read:
 - restore `e` to real essential float-window meaning
 - make `O` the explicit overlay-on-model-viewport mode
 - keep node row-density separate from this mode system
-- add model viewport titlebar messaging plus first overlay controls such as background transparency
+- lock viewport-local overlay ownership and hit-testing before later titlebar/control polish
+
+Shipped outcome:
+- `Spaghetti-Editor 3 - Phase 4 - Essentials Canvas Background Transparency Cleanup`
+- `e` mode now owns its own compact titlebar readability control while the viewport-titlebar overlay ownership from `Phase 3` stays separate and intact
 
 Initial phase breakdown:
 - `Spaghetti-Editor 3 - Phase 1 - Window Density Truth And O Mode Entry`
-- `Spaghetti-Editor 3 - Phase 2 - Overlay Titlebar Controls And Surface Cleanup`
+- `Spaghetti-Editor 3 - Phase 2 - Overlay Viewport Ownership And Hit-Testing`
+- `Spaghetti-Editor 3 - Phase 3 - Overlay Titlebar Controls And Surface Cleanup`
+- `Spaghetti-Editor 3 - Phase 4 - Essentials Canvas Background Transparency Cleanup`
 
 ### [ ] Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface
 
@@ -420,3 +448,28 @@ Initial phase breakdown:
 - `Spaghetti-Editor 4 - Phase 1 - Left Palette Host And Visibility`
 - `Spaghetti-Editor 4 - Phase 2 - Organized Node List And Search Surface`
 - `Spaghetti-Editor 4 - Phase 3 - Drag-And-Drop Node Spawn And Add-Menu Handoff`
+
+### [ ] Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts.md`
+
+#### Purpose
+
+Keep the docked meatball editor visible after splitting the model viewport right by separating dock ownership from the split-induced `expanded` fallback that currently appears to drop the meatball surface out of the left toolbar.
+
+This phase should separate:
+- dock ownership truth for the meatball slot
+- split-right reclassification behavior for Spaghetti surfaces
+- the user-visible requirement that the docked editor remain present after the split finishes
+
+Implementation-ready phase details now live in the standalone doc above.
+
+Short read:
+- preserve the docked meatball editor across split-right instead of letting it disappear
+- keep the left dock honest about whether a meatball surface is still owned
+- trace the split transition in the Spaghetti workspace shell and store
+- add one focused regression for the exact repro path
+
+Initial phase breakdown:
+- `Spaghetti-Editor 5 - Phase 1 - Preserve Meatball Dock Ownership Through Split-Right`

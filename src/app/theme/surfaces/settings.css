@@ -1,0 +1,317 @@
+.SettingsSurface {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(102, 161, 255, 0.16), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(53, 96, 176, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(8, 11, 18, 0.98), rgba(6, 9, 14, 0.99));
+  color: #edf4ff;
+}
+
+.SettingsSurfaceShell {
+  display: grid;
+  grid-template-columns: minmax(100px, 15vw) minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 100%;
+  min-width: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.SettingsSurfaceRail,
+.SettingsSurfaceContent {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(12, 16, 25, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px);
+}
+
+.SettingsSurfaceRail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.SettingsSurfaceRailHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.SettingsSurfaceRailHeader strong,
+.SettingsSurfaceContentHeader h2,
+.SettingsSurfaceGroupHeader strong,
+.SettingsSurfaceRowCopy strong {
+  font-weight: 700;
+}
+
+.SettingsSurfaceRailHeader strong {
+  font-size: 0.86rem;
+}
+
+.SettingsSurfaceRailHeader p,
+.SettingsSurfaceContentHeader p,
+.SettingsSurfaceGroupHeader p,
+.SettingsSurfaceRowCopy p {
+  margin: 0;
+  color: rgba(216, 227, 247, 0.8);
+  font-size: 0.66rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.SettingsSurfaceRailEyebrow,
+.SettingsSurfaceContentEyebrow,
+.SettingsSurfaceGroupEyebrow {
+  color: #8bb9ff;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.SettingsSurfaceSectionList {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+  overscroll-behavior: contain;
+}
+
+.SettingsSurfaceSectionButton {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.SettingsSurfaceSectionButton:hover,
+.SettingsSurfaceSectionButton:focus-visible,
+.SettingsSurfaceSectionButton.isActive {
+  border-color: rgba(139, 185, 255, 0.42);
+  background: rgba(67, 104, 164, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(139, 185, 255, 0.16),
+    inset 0 0 0 1px rgba(139, 185, 255, 0.12);
+  outline: none;
+}
+
+.SettingsSurfaceSectionButtonLabel {
+  min-width: 0;
+  color: #f3f8ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.SettingsSurfaceSectionButtonMeta {
+  color: rgba(216, 227, 247, 0.72);
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.SettingsSurfaceContent {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.SettingsSurfaceContentHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.SettingsSurfaceContentHeader h2 {
+  margin: 2px 0 4px;
+  font-size: 0.98rem;
+}
+
+.SettingsSurfaceContentBody {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+}
+
+.SettingsSurfaceGroup {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.SettingsSurfaceEditorPanel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(139, 185, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(139, 185, 255, 0.06);
+}
+
+.SettingsSurfaceEditorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.SettingsSurfaceEditorResetButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(139, 185, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(139, 185, 255, 0.12);
+  color: inherit;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.SettingsSurfaceEditorResetButton:hover,
+.SettingsSurfaceEditorResetButton:focus-visible {
+  border-color: rgba(139, 185, 255, 0.42);
+  background: rgba(139, 185, 255, 0.2);
+  outline: none;
+}
+
+.SettingsSurfaceEditorGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.SettingsSurfaceEditorField {
+  min-width: 0;
+}
+
+.SettingsSurfaceGroupHeader {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.SettingsSurfaceGroupHeader strong {
+  font-size: 0.76rem;
+}
+
+.SettingsSurfaceRowList {
+  display: grid;
+  gap: 8px;
+}
+
+.SettingsSurfaceRowCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.SettingsSurfaceRowCopy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.SettingsSurfaceRowCopy strong {
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.SettingsSurfaceRowValue {
+  justify-self: end;
+  min-width: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 185, 255, 0.22);
+  background: rgba(139, 185, 255, 0.12);
+  color: #eef4ff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.SettingsSurface * {
+  scrollbar-color: rgba(126, 145, 172, 0.72) rgba(6, 10, 16, 0.78);
+  scrollbar-width: thin;
+}
+
+.SettingsSurface *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.SettingsSurface *::-webkit-scrollbar-track {
+  background: rgba(6, 10, 16, 0.78);
+  border-radius: 999px;
+}
+
+.SettingsSurface *::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  border: 2px solid rgba(6, 10, 16, 0.78);
+  border-radius: 999px;
+  background: rgba(126, 145, 172, 0.72);
+}
+
+.SettingsSurface *::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 178, 210, 0.86);
+}
+
+@media (max-width: 860px) {
+  .SettingsSurfaceShell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .SettingsSurfaceRail {
+    max-height: 34vh;
+  }
+
+  .SettingsSurfaceRowCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .SettingsSurfaceRowValue {
+    justify-self: start;
+  }
+}

@@ -1,6 +1,7 @@
 import { editHistoryStore } from './editHistoryStore'
 import type { WorkspaceStartupSurface } from './uiPrefsStore'
 import { useUiPrefsStore } from './uiPrefsStore'
+import type { SpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 
 type UiPreferenceHistoryOptions = {
   entryId?: string
@@ -65,6 +66,16 @@ const workspaceStartupSurfaceConfig: UiPreferenceHistoryConfig<WorkspaceStartupS
   setValue: (value) => useUiPrefsStore.getState().setWorkspaceStartupSurface(value),
 }
 
+const spaghettiWindowAppearanceDefaultsConfig: UiPreferenceHistoryConfig<SpaghettiWindowAppearance> = {
+  label: 'Change Spaghetti Editor defaults',
+  sourceId: 'spaghetti-editor-defaults',
+  sourceLabel: 'Spaghetti Editor Defaults',
+  targetId: 'ui-pref:spaghettiWindowAppearanceDefaults',
+  targetLabel: 'Spaghetti Editor window appearance defaults',
+  getValue: () => useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults,
+  setValue: (value) => useUiPrefsStore.getState().setSpaghettiWindowAppearanceDefaults(value),
+}
+
 const workspaceRestorePersistenceConfig: UiPreferenceHistoryConfig<boolean> = {
   label: 'Change persistence preference',
   sourceId: 'storage-management',
@@ -119,6 +130,12 @@ export const setWorkspaceStartupSurfaceWithHistory = (
   nextValue: WorkspaceStartupSurface,
   options?: UiPreferenceHistoryOptions,
 ): boolean => commitUiPreferenceWithHistory(workspaceStartupSurfaceConfig, nextValue, options)
+
+export const setSpaghettiWindowAppearanceDefaultsWithHistory = (
+  nextValue: SpaghettiWindowAppearance,
+  options?: UiPreferenceHistoryOptions,
+): boolean =>
+  commitUiPreferenceWithHistory(spaghettiWindowAppearanceDefaultsConfig, nextValue, options)
 
 export const setWorkspaceRestorePersistenceWithHistory = (
   nextValue: boolean,

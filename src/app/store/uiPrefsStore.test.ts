@@ -7,6 +7,7 @@ import {
   getEnvironmentPresetDefinition,
   normalizeViewSettings,
 } from '../../shared/viewSettingsTypes'
+import { defaultSpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 import { useUiPrefsStore } from './uiPrefsStore'
 
 describe('uiPrefsStore environment source state', () => {
@@ -16,6 +17,10 @@ describe('uiPrefsStore environment source state', () => {
   })
 
   it('keeps the persistence policy controls enabled by default and lets the caller flip them', () => {
+    expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults).toEqual(
+      defaultSpaghettiWindowAppearance,
+    )
+
     expect(useUiPrefsStore.getState().workspaceRestorePersistence).toBe(true)
     expect(useUiPrefsStore.getState().viewSettingsPersistence).toBe(true)
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(true)
@@ -27,12 +32,17 @@ describe('uiPrefsStore environment source state', () => {
     useUiPrefsStore.getState().setEnvironmentPersistence(false)
     useUiPrefsStore.getState().setDashboardPersistence(false)
     useUiPrefsStore.getState().setNotepadPersistence(false)
+    useUiPrefsStore.getState().setSpaghettiWindowAppearanceDefaults({
+      ...defaultSpaghettiWindowAppearance,
+      titlebarTint: 'blue',
+    })
 
     expect(useUiPrefsStore.getState().workspaceRestorePersistence).toBe(false)
     expect(useUiPrefsStore.getState().viewSettingsPersistence).toBe(false)
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(false)
     expect(useUiPrefsStore.getState().dashboardPersistence).toBe(false)
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults.titlebarTint).toBe('blue')
   })
 
   it('keeps the default environment grade nested beside the locked startup scene', () => {

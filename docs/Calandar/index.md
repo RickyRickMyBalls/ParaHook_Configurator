@@ -43,24 +43,24 @@ Do not use it for:
 
 <div class="calendar-week-strip">
   <div class="calendar-week-card phase-build-fix">
-    <strong>Apr 13</strong>
-    <p>Cleanup 6 and Cleanup 7 narrowed accepted-result and console command ownership seams.</p>
+    <strong>Apr 22</strong>
+    <p>Edit History reader, checkpoints, and sketch-draw undo batches turned into the next major workspace-history sprint.</p>
   </div>
-  <div class="calendar-week-card phase-parity">
-    <strong>Apr 14</strong>
-    <p>View Toolbar 5, Gizmo 2 and 3, Fly-Mode 1, and camera follow-ups converged into one dense viewport-control sprint.</p>
+  <div class="calendar-week-card phase-build-fix">
+    <strong>Apr 27</strong>
+    <p>MkDocs strict warning cleanup tightened the docs-site build so the documentation lane stays green.</p>
   </div>
-  <div class="calendar-week-card phase-split-polish">
-    <strong>Apr 15</strong>
-    <p>View-Toolbar 7 introduced camera FOV and clip controls while Browser-13 finished its overflow and resize seams.</p>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>Apr 30</strong>
+    <p>Edit-History Workspace 4 grew from a timeline read model into a draggable vertical scrub rail while camera shortcut routing got repaired beside it.</p>
   </div>
-  <div class="calendar-week-card phase-browser">
-    <strong>Apr 16</strong>
-    <p>Import-3 and Import-4 accelerated into staged intake, preview-browser organization, hierarchy cards, and object-preview tooling.</p>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>May 1</strong>
+    <p>Edit History parity expanded through child restore points, node create/delete history, and timeline grouping before Spaghetti overlay O-mode groundwork opened.</p>
   </div>
-  <div class="calendar-week-card phase-browser">
-    <strong>Apr 17</strong>
-    <p>Scale Multiplier follow-ups landed beside the first Environment-1 baseline lighting and cleanup pass.</p>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>May 2</strong>
+    <p>Spaghetti overlay ownership, Settings shell/defaults, left-dock cleanup, viewport chrome, and Nodes-6 resizing all landed in one dense editor sprint.</p>
   </div>
 </div>
 
@@ -73,7 +73,7 @@ Do not use it for:
   <div class="month-header">
     <div>
       <h3>April 2026</h3>
-      <p>From Workspace 7.5 parity closeout into dashboard, worker vision, output preview, cleanup, view-toolbar camera and gizmo work, and the staged import plus environment sprint.</p>
+      <p>From Workspace 7.5 parity closeout into dashboard, worker vision, output preview, cleanup, view-toolbar camera and gizmo work, staged import and environment sprint, then Edit History workspace scrubbing and MkDocs cleanup to close the month.</p>
     </div>
   </div>
 
@@ -345,8 +345,15 @@ Do not use it for:
       <div class="day-diff"><span class="day-diff-neutral">time off</span></div>
       <div class="day-tag">Oak City Shred Fest 2026</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">27</div>
+    <div class="day phase-build-fix" data-target="april-27">
+      <div class="day-head"><div class="day-number">27</div><div class="day-title">MkDocs</div></div>
+      <ul class="day-bullets">
+        <li>Strict build warning cleanup</li>
+        <li>Docs-site warning removal</li>
+        <li>MkDocs lane stays green</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
+      <div class="day-tag">MkDocs strict build cleanup</div>
     </div>
     <div class="day empty">
       <div class="day-number">28</div>
@@ -354,8 +361,15 @@ Do not use it for:
     <div class="day empty">
       <div class="day-number">29</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">30</div>
+    <div class="day phase-workspace-foundation" data-target="april-30">
+      <div class="day-head"><div class="day-number">30</div><div class="day-title">Timeline</div></div>
+      <ul class="day-bullets">
+        <li>Edit History timeline UI</li>
+        <li>Scrub rail and marker pass</li>
+        <li>Camera shortcut repair</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
+      <div class="day-tag">Edit History workspace timeline sprint</div>
     </div>
     <div class="day empty"></div>
     <div class="day empty"></div>
@@ -2196,7 +2210,291 @@ Do not use it for:
 
   </details>
 
+  <details class="calendar-week-details">
+  <summary>Week of April 27-May 2</summary>
+
+  <details class="calendar-day-details" id="april-27">
+  <summary>April 27 - Monday</summary>
+  <ul>
+    <li>Cleaned up the MkDocs strict-build warning lane so docs-site builds stop carrying the remaining strict-mode warning</li>
+    <li>Kept the pass narrow to documentation build hygiene instead of widening into broader docs-structure reshaping</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: no repo commit found for this day.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (1)</summary>
+    <ul class="calendar-commit-list">
+      <li>`DOCS - MkDocs Strict Build Warning Cleanup`</li>
+    </ul>
   </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-30">
+  <summary>April 30 - Thursday</summary>
+  <ul>
+    <li>Built Edit-History Workspace 4 from the timeline read model through timeline UI, marker jumps, vertical scrub rail, draggable release, and snapped scrub preview</li>
+    <li>Polished the rail visuals with card-slot alignment, blue theme cleanup, compact current-position markers, thin rails, centered dots, and snapshot activity logging</li>
+    <li>Closed with viewer shortcut repairs so modified shortcut routing and middle-mouse double-click pan behavior stay honest beside the new history workspace</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: no repo commit found for this day.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (16)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Edit-History-Workspace-4 - Phase 8 - Rail Dot Card-Center Alignment`</li>
+      <li>`Edit-History-Workspace-4 - Phase 8 - Thin Timeline Rail And Entry Dots`</li>
+      <li>`Edit-History-Workspace-4 - Phase 7 - Compact Current Position Marker Row`</li>
+      <li>`Edit-History-Workspace-4 - Phase 6 - Smooth Scrub Handle With Snapped Preview`</li>
+      <li>`Edit-History-Workspace-4 - Phase 5 - Scrub Rail Blue Theme Polish`</li>
+      <li>`Edit-History-Workspace-4 - Phase 5 - Scrub Rail Card-Slot Alignment`</li>
+      <li>`Edit-History-Workspace-4 - Phase 5 - Draggable Marker Scrub Release`</li>
+      <li>`Edit-History-Workspace-4 - Phase 4 - Vertical Scrub Rail And Click Targets`</li>
+      <li>`Edit-History-Workspace-4 - Phase 3 - Marker Jump Routing`</li>
+      <li>`Edit-History-Workspace-4 - Phase 2 - Timeline UI`</li>
+      <li>`Edit-History-Workspace-4 - Phase 1 - Timeline Read Model`</li>
+      <li>`Edit-History - Sketch Draw Pending Tab`</li>
+      <li>`Edit-History - Snapshot Log Sequence Numbers`</li>
+      <li>`Edit-History - Snapshot Activity Log`</li>
+      <li>`Camera-Controls - Middle-Mouse Double-Click Pan Separation`</li>
+      <li>`Camera-Controls - Modified Viewer Shortcut Routing Repair`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-1">
+  <summary>May 1 - Friday</summary>
+  <ul>
+    <li>Expanded Edit-History Workspace 4 with grouped timeline cards, child summaries, scrub-list overflow cleanup, reader text density, newest-first order, and chevron alignment polish</li>
+    <li>Shipped the deeper scrub stack with expanded child preview stops, canonical pointer auditing, snapshot activity separation, expanded child boundaries, restore points, and explicit scrub mode</li>
+    <li>Added edit-history parity for extrude parameter rows plus node creation and deletion, then opened the next Spaghetti lane with window-density truth and overlay O-mode entry</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 1 commit, 65 files, +10632 / -278.</div>
+  <ul class="calendar-commit-list">
+    <li>`bb36df0` Edit history more after break OCSF</li>
+  </ul>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (20)</summary>
+    <ul class="calendar-commit-list">
+      <li>`SP - Phase 1 - Window Density Truth And O Mode Entry`</li>
+      <li>`Edit-History-3 - Phase 7 - Node Deletion Surface History Parity`</li>
+      <li>`Edit-History-3 - Phase 6 - Node Creation Surface History Parity`</li>
+      <li>`Edit-History-3 - Phase 5 - Extrude Node Template Row Parameter Commits`</li>
+      <li>`Edit-History-Workspace-4 - Phase 13 - Sketch Draw History Scrub Mode`</li>
+      <li>`Edit-History-Workspace-4 - Phase 12 - Sketch Draw Child Restore Points`</li>
+      <li>`Edit-History-Workspace-4 - Phase 11C - Expanded Child Boundary Policy`</li>
+      <li>`Edit-History-Workspace-4 - Phase 11B - Snapshot Activity Separation`</li>
+      <li>`Edit-History-Workspace-4 - Phase 11A - Canonical Scrub Pointer Audit`</li>
+      <li>`Edit-History-Workspace-4 - Phase 11 - Expanded Child Scrub Preview Stops`</li>
+      <li>`Edit History Workspace - Inline Chevron Alignment`</li>
+      <li>`Edit History Workspace - Timeline Chevron And Entry Numbers`</li>
+      <li>`Edit History Workspace - Newest First Timeline Order`</li>
+      <li>`Edit History Workspace - Compact Marker Height Polish`</li>
+      <li>`Edit History Workspace - Timeline Dot And Handle Polish`</li>
+      <li>`Edit History Workspace - Scrub Lane Overflow Fix`</li>
+      <li>`Edit History Workspace - Timeline Scrub List Scrollbar`</li>
+      <li>`Edit History Workspace - Reader Text Density`</li>
+      <li>`Edit-History-Workspace-4 - Phase 10 - Sketch Draw Commit Child Summaries`</li>
+      <li>`Edit-History-Workspace-4 - Phase 9 - Expandable Timeline Group Cards`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-2">
+  <summary>May 2 - Saturday</summary>
+  <ul>
+    <li>Turned Spaghetti overlay mode into a viewport-owned lane with titlebar controls, essentials background transparency cleanup, maximize and restore polish, and remembered graph reopen behavior</li>
+    <li>Added the Settings shell plus Spaghetti editor default settings, then cleaned up meatball dock hosting, left-dock browser sizing, viewport chrome layering, and overlay canvas visibility</li>
+    <li>Finished by shipping Nodes-6 phases 1 through 3 and the invisible full-edge resize hit areas so node width persists, resizes live, and commits honest edit-history entries</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: no repo commit found for this day.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (30)</summary>
+    <ul class="calendar-commit-list">
+      <li>`SP - Nodes-6 - Invisible Full-Edge Node Resize Hit Areas`</li>
+      <li>`SP - Nodes-6 / Phase 3 - Resize Commit Persistence And Edit-History Seam`</li>
+      <li>`SP - Nodes-6 / Phase 2 - Selected Node Resize Handles And Pointer Routing`</li>
+      <li>`SP - Nodes-6 / Phase 1 - Node Frame State Contract`</li>
+      <li>`SP - Phase 3.1 - Overlay Canvas Visibility Toggle`</li>
+      <li>`Viewport Chrome - Left Anchor Overlay Titlebar Controls`</li>
+      <li>`Viewport Chrome - Raise Left And Right Docks Above Spaghetti Overlay`</li>
+      <li>`SP - Phase 9 - Essentials Canvas Background Default To 50 Percent`</li>
+      <li>`SP - Phase 9 - Docked Meatball Collapse Occupancy Follow-Up`</li>
+      <li>`SP - Phase 9 - Docked Meatball Collapse Retains Left Toolbar Host`</li>
+      <li>`Left-Dock - Browser-Only Startup Height Cap Cleanup`</li>
+      <li>`Left-Dock - Docked Browser Host Height Cleanup`</li>
+      <li>`Left-Dock-1 - Phase 1 - Read-Only Shared Stack Resizing Baseline`</li>
+      <li>`SP - Phase 9 - Floating Spaghetti Build Reload Glyph`</li>
+      <li>`SP - Phase 9 - Floating Spaghetti Build Glyph Cleanup`</li>
+      <li>`SP - Phase 9 - Floating Spaghetti Build Button Reorder`</li>
+      <li>`SP - Phase 9 - Floating Spaghetti Popout Glyph Cleanup`</li>
+      <li>`SP - Phase 9 - Floating Spaghetti Split Button Cleanup`</li>
+      <li>`SP - Phase 9 - Meatball Dock Portal Retargeting Across Split Remounts`</li>
+      <li>`SP - Phase 8 - Graph Opens Restore Remembered Viewports And Fall Back To Canvas Fit`</li>
+      <li>`Settings-1 - Phase 2 - Spaghetti Editor Window Default Settings`</li>
+      <li>`Settings-1 - Viewport Type Menu Adds Settings`</li>
+      <li>`Settings-1 - Unreal-Style Settings Shell And Section Router`</li>
+      <li>`SP - Smaller Maximized Drag Restore Size`</li>
+      <li>`SP - Maximized Editor Restore-On-Drag Behavior`</li>
+      <li>`SP - Maximized Editor Topmost Layer Fix`</li>
+      <li>`SP - Floating Editor Maximize Icon And Front-Activation Cleanup`</li>
+      <li>`SP - Phase 4 - Essentials Canvas Background Transparency Cleanup`</li>
+      <li>`SP - Phase 3 - Overlay Titlebar Controls And Surface Cleanup`</li>
+      <li>`SP - Phase 2 - Overlay Viewport Ownership And Hit-Testing`</li>
+    </ul>
+  </details>
+  </details>
+
+  </details>
+
+  </details>
+</div>
+
+</details>
+
+## May 2026
+
+<details class="calendar-month" open>
+<summary>May 2026</summary>
+
+<div class="month-shell">
+  <div class="month-header">
+    <div>
+      <h3>May 2026</h3>
+      <p>Opened with Edit History timeline grouping and node-history parity, then shifted into Spaghetti overlay ownership, Settings, dock cleanup, viewport chrome, and Nodes-6 resizing.</p>
+    </div>
+  </div>
+
+  <div class="month-grid">
+    <div class="weekday">Sun</div>
+    <div class="weekday">Mon</div>
+    <div class="weekday">Tue</div>
+    <div class="weekday">Wed</div>
+    <div class="weekday">Thu</div>
+    <div class="weekday">Fri</div>
+    <div class="weekday">Sat</div>
+
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day phase-workspace-foundation" data-target="may-1">
+      <div class="day-head"><div class="day-number">1</div><div class="day-title">History</div></div>
+      <ul class="day-bullets">
+        <li>Timeline groups and child summaries</li>
+        <li>Scrub preview and restore points</li>
+        <li>Node parity and O mode</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+10632</span> <span class="day-diff-minus">-278</span></div>
+      <div class="day-tag">Edit History parity and Spaghetti O-mode</div>
+    </div>
+    <div class="day phase-workspace-foundation" data-target="may-2">
+      <div class="day-head"><div class="day-number">2</div><div class="day-title">Spaghetti</div></div>
+      <ul class="day-bullets">
+        <li>Overlay ownership and titlebar controls</li>
+        <li>Settings shell and defaults</li>
+        <li>Left dock and Nodes-6 resize sprint</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
+      <div class="day-tag">Spaghetti, Settings, and Nodes-6 sprint</div>
+    </div>
+
+    <div class="day empty">
+      <div class="day-number">3</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">4</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">5</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">6</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">7</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">8</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">9</div>
+    </div>
+
+    <div class="day empty">
+      <div class="day-number">10</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">11</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">12</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">13</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">14</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">15</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">16</div>
+    </div>
+
+    <div class="day empty">
+      <div class="day-number">17</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">18</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">19</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">20</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">21</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">22</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">23</div>
+    </div>
+
+    <div class="day empty">
+      <div class="day-number">24</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">25</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">26</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">27</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">28</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">29</div>
+    </div>
+    <div class="day empty">
+      <div class="day-number">30</div>
+    </div>
+
+    <div class="day empty">
+      <div class="day-number">31</div>
+    </div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+    <div class="day empty"></div>
+  </div>
 </div>
 
 </details>

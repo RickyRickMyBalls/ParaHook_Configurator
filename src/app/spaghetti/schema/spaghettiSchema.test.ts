@@ -95,6 +95,37 @@ describe('parseSpaghettiGraph OutputPreview compatibility', () => {
     })
   })
 
+  it('preserves graph-owned node width through parse', () => {
+    const parsed = parseSpaghettiGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-1',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-baseplate-1': {
+            x: 120,
+            y: 240,
+            width: 320,
+          },
+        },
+      },
+    })
+
+    expect(parsed.ui?.nodes).toEqual({
+      'node-baseplate-1': {
+        x: 120,
+        y: 240,
+        width: 320,
+      },
+    })
+  })
+
   it('preserves graph-authored receive references through parse', () => {
     const parsed = parseSpaghettiGraph({
       schemaVersion: 1,

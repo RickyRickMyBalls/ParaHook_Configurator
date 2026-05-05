@@ -1,6 +1,7 @@
 # 0 - Bug Report
 
 ## Doc History
+17. 2026-05-02 09:30:37: Added `Bug 23` for the meatball editor disappearing after the model viewport is split right, linking the new detailed report under `docs/Bugs/bug/` and recording the current strongest read as a split between docked meatball ownership, `AppShell` occupancy checks, and the `SpaghettiWindowHost` / `useSpaghettiStore` split reclassification path.
 16. 2026-04-21 11:36:42: Updated `Bug 22` from `[planned]` to `[fixed]` after `Catalog-Gen2-14` closed the imported-reference remount ownership gap at the store-to-current-viewer seam with focused ViewerHost proof for PubParts ZIP-attributed and normal `.obj` accepted-reference paths.
 15. 2026-04-21 11:09:56: Updated `Bug 22` from `[investigating]` to `[planned]` after routing the imported-reference viewport-remount disappearance into `Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration`.
 14. 2026-04-21 11:04:22: Added `Bug 22` for imported references disappearing after model viewport remounts caused by closing Catalog or splitting the model viewport, linking the new detailed report under `docs/Bugs/bug/` and recording the strongest current read as a split between canonical `referenceWorkspace` imported-reference truth and per-viewer in-memory `referenceObjects` runtime truth
@@ -43,11 +44,16 @@ The current bug picture is mostly concentrated in two areas:
 - Spaghetti editor surface/layout instability
 - preview-path visibility and trust
 
+The current meatball-dock report adds a third active seam:
+
+- docked editor survival across model viewport split changes
+
 That means the next useful bug-fix work is not random cleanup.
 It is mainly:
 - fix the editor split/layout problems
 - restore trust in the preview path
 - make the graph easier to read when preview routing is active
+- keep the docked meatball editor alive across split-right layout changes
 
 
 
@@ -72,6 +78,7 @@ It is mainly:
 
 Current practical order:
 
+- `Bug 23` - Meatball editor can disappear after splitting the model viewport right
 - `Bug 19` - Worker 11 viewport presentation contract gap still needs symptom-by-symptom classification
 - `Bug 20` - Browser multi-select can glitch after scroll and make shift-range selection unreliable
 - `Bug 11` - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
@@ -89,6 +96,7 @@ Current practical order:
 
 ## Bug List
 
+- `Bug 23` - `[investigating]` - Meatball editor can disappear after splitting the model viewport right
 - `Bug 1` - `[open]` - Spaghetti editor toolbar drag bar cannot move high enough
 - `Bug 2` - `[open]` - Spaghetti editor toolbar drag bar is not aligned to the real canvas boundary
 - `Bug 3` - `[open]` - Debug inspector drag bar gets stuck
@@ -108,6 +116,29 @@ Current practical order:
 
 
 ## Current Known Bugs
+
+### Bug 23 - Meatball editor disappears after splitting the model viewport right
+
+Status:
+- `[investigating]`
+
+Problem:
+- the docked meatball editor appears correctly after the user drags a Spaghetti editor into the left toolbar
+- after the user splits the model viewport right, the meatball editor disappears from the left dock area
+
+Current strong read:
+- the docked meatball surface is still being classified through the shared viewport/window-mode machinery
+- the model-viewport split path likely reclassifies or remounts that surface so it no longer matches the docked meatball render branch
+- the strongest suspicious seam is the split between `AppShell` occupancy checks, `SpaghettiWindowHost` dock rendering, and `useSpaghettiStore` mode transitions
+
+Likely ownership:
+- `AppShell`
+- `SpaghettiWindowHost`
+- `useSpaghettiStore`
+- `WorkspaceViewportTree`
+
+Related docs:
+- `/docs/Bugs/bug/23_2026-05-02_meatball-editor-disappears-after-model-viewport-split-right.md`
 
 ### Bug 22 - Imported references disappear after model viewport remounts
 

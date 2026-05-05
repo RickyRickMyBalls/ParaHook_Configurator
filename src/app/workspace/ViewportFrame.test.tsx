@@ -587,4 +587,20 @@ describe('ViewportFrame', () => {
 
     expect(pointerDownEvent.defaultPrevented).toBe(true)
   })
+
+  it('can left-align header supplement content for overlay viewport controls', async () => {
+    await renderFrame({
+      surfaceKind: 'modelViewer',
+      headerSupplementAlignment: 'start',
+      headerSupplement: <div className="OverlaySupplementMock">Overlay Controls</div>,
+    })
+
+    const supplement = container?.querySelector(
+      '.ViewportFrameHeaderSupplement',
+    ) as HTMLDivElement | null
+
+    expect(supplement?.classList.contains('ViewportFrameHeaderSupplement--start')).toBe(true)
+    expect(supplement?.classList.contains('ViewportFrameHeaderSupplement--end')).toBe(false)
+    expect(supplement?.textContent).toContain('Overlay Controls')
+  })
 })

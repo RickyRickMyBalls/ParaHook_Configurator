@@ -37,6 +37,7 @@ describe('ViewportSurfaceRegistry', () => {
   beforeEach(() => {
     editHistoryStore.clear()
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+    window.localStorage.clear()
   })
 
   afterEach(async () => {
@@ -138,6 +139,31 @@ describe('ViewportSurfaceRegistry', () => {
     expect(homePageSurface?.textContent).toContain('Home Page')
   })
 
+  it('renders settings through the canonical workspace surface registry branch', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ViewportSurfaceRegistry
+          slotId="workspace-slot-settings"
+          surfaceKind="settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          onActivateSpaghettiSurface={vi.fn()}
+        />,
+      )
+    })
+
+    const settingsSurface = container?.querySelector(
+      '.WorkspaceViewportSlotSurface--settings[data-workspace-surface-instance-id="settings-workspace-slot-settings"]',
+    ) as HTMLDivElement | null
+
+    expect(settingsSurface).not.toBeNull()
+    expect(settingsSurface?.textContent).toContain('Settings')
+    expect(settingsSurface?.textContent).toContain('All')
+  })
+
   it('renders edit history through the canonical workspace surface registry branch', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -160,6 +186,6 @@ describe('ViewportSurfaceRegistry', () => {
 
     expect(editHistorySurface).not.toBeNull()
     expect(editHistorySurface?.textContent).toContain('Edit History')
-    expect(editHistorySurface?.textContent).toContain('No undo entries')
+    expect(editHistorySurface?.textContent).toContain('No diagnostic activity recorded')
   })
 })

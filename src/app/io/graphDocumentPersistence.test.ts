@@ -34,7 +34,7 @@ const createGraphDocument = (): GraphDocument => ({
     ],
     ui: {
       nodes: {
-        'node-baseplate-1': { x: 120, y: 240 },
+        'node-baseplate-1': { x: 120, y: 240, width: 320 },
       },
       nodeModesByNodeId: {
         'node-baseplate-1': 'expanded',
@@ -48,7 +48,7 @@ describe('graphDocumentPersistence', () => {
     const graphDocument = createGraphDocument()
 
     expect(serializeGraphDocument(graphDocument)).toBe(
-      '{"graph":{"edges":[],"nodes":[{"nodeId":"node-baseplate-1","params":{},"type":"Part/Baseplate"}],"receiveReferences":[{"mode":"link","receiveId":"receive-1","sourceGraphDocumentId":"graph-document-2","sourceOutputEntryId":"output-entry:s001:node-cube-1"}],"schemaVersion":1,"ui":{"nodeModesByNodeId":{"node-baseplate-1":"expanded"},"nodes":{"node-baseplate-1":{"x":120,"y":240}}}},"graphDocumentId":"graph-document-1","name":"Graph Document 1","version":1}',
+      '{"graph":{"edges":[],"nodes":[{"nodeId":"node-baseplate-1","params":{},"type":"Part/Baseplate"}],"receiveReferences":[{"mode":"link","receiveId":"receive-1","sourceGraphDocumentId":"graph-document-2","sourceOutputEntryId":"output-entry:s001:node-cube-1"}],"schemaVersion":1,"ui":{"nodeModesByNodeId":{"node-baseplate-1":"expanded"},"nodes":{"node-baseplate-1":{"width":320,"x":120,"y":240}}}},"graphDocumentId":"graph-document-1","name":"Graph Document 1","version":1}',
     )
   })
 

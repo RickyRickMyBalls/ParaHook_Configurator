@@ -70,6 +70,38 @@ describe('workspaceSurfaceCatalog', () => {
     )
   })
 
+  it('registers settings as an optional persisted workspace surface with split support only', () => {
+    expect(parseWorkspaceSurfaceKind('settings')).toBe('settings')
+    expect(isWorkspaceSurfaceOptional('settings')).toBe(true)
+    expect(workspaceSurfaceSupportsSplit('settings')).toBe(true)
+    expect(workspaceSurfaceParticipatesInPersistence('settings')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('settings', 'floating')).toBe(false)
+    expect(workspaceSurfaceSupportsHostMode('settings', 'popout')).toBe(false)
+    expect(workspacePrimarySlotSupportsSurfaceKind('settings')).toBe(true)
+    expect(getWorkspaceSurfaceCatalogEntry('settings')).toEqual(
+      expect.objectContaining({
+        kind: 'settings',
+        defaultLabel: 'Settings',
+        renderFamily: 'settings',
+        scope: 'optional',
+        participatesInPersistence: true,
+        coordination: 'plain',
+        supports: expect.objectContaining({
+          slotted: true,
+          floating: false,
+          popout: false,
+          split: true,
+        }),
+      }),
+    )
+  })
+
+  it('creates explicit slot instance ids for settings instead of falling through to spaghetti ids', () => {
+    expect(createWorkspaceSurfaceInstanceIdForSlot('settings', 'workspace-slot-settings')).toBe(
+      'settings-workspace-slot-settings',
+    )
+  })
+
   it('creates explicit slot instance ids for home page instead of falling through to spaghetti ids', () => {
     expect(createWorkspaceSurfaceInstanceIdForSlot('homePage', 'workspace-slot-primary')).toBe(
       'home-page-workspace-slot-primary',

@@ -19,6 +19,12 @@ import {
   normalizeViewSettings,
   normalizeEnvironmentGrade,
 } from '../../shared/viewSettingsTypes'
+import {
+  areSpaghettiWindowAppearanceEqual,
+  defaultSpaghettiWindowAppearance,
+  normalizeSpaghettiWindowAppearance,
+  type SpaghettiWindowAppearance,
+} from '../panels/spaghettiWindowAppearance'
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
@@ -168,6 +174,7 @@ export type WorkspaceStartupSurface = 'homePage' | 'modelViewer'
 type UiPrefsState = {
   view: ViewSettings
   workspaceStartupSurface: WorkspaceStartupSurface
+  spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
   workspaceRestorePersistence: boolean
   viewSettingsPersistence: boolean
   environmentPersistence: boolean
@@ -195,6 +202,10 @@ type UiPrefsState = {
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
   setWorkspaceStartupSurface: (workspaceStartupSurface: WorkspaceStartupSurface) => void
+  setSpaghettiWindowAppearanceDefaults: (
+    spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance,
+  ) => void
+  resetSpaghettiWindowAppearanceDefaults: () => void
   setWorkspaceRestorePersistence: (workspaceRestorePersistence: boolean) => void
   setViewSettingsPersistence: (viewSettingsPersistence: boolean) => void
   setEnvironmentPersistence: (environmentPersistence: boolean) => void
@@ -243,6 +254,7 @@ type UiPrefsState = {
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
   workspaceStartupSurface: 'homePage',
+  spaghettiWindowAppearanceDefaults: defaultSpaghettiWindowAppearance,
   workspaceRestorePersistence: true,
   viewSettingsPersistence: true,
   environmentPersistence: true,
@@ -275,6 +287,33 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setWorkspaceStartupSurface: (workspaceStartupSurface) => {
     set({ workspaceStartupSurface })
+  },
+  setSpaghettiWindowAppearanceDefaults: (spaghettiWindowAppearanceDefaults) => {
+    set((state) => {
+      const nextDefaults = normalizeSpaghettiWindowAppearance(spaghettiWindowAppearanceDefaults)
+      if (
+        areSpaghettiWindowAppearanceEqual(
+          state.spaghettiWindowAppearanceDefaults,
+          nextDefaults,
+        )
+      ) {
+        return state
+      }
+      return { spaghettiWindowAppearanceDefaults: nextDefaults }
+    })
+  },
+  resetSpaghettiWindowAppearanceDefaults: () => {
+    set((state) => {
+      if (
+        areSpaghettiWindowAppearanceEqual(
+          state.spaghettiWindowAppearanceDefaults,
+          defaultSpaghettiWindowAppearance,
+        )
+      ) {
+        return state
+      }
+      return { spaghettiWindowAppearanceDefaults: defaultSpaghettiWindowAppearance }
+    })
   },
   setWorkspaceRestorePersistence: (workspaceRestorePersistence) => {
     set({ workspaceRestorePersistence })

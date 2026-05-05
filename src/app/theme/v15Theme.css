@@ -5,6 +5,7 @@
 @import './surfaces/browser.css';
 @import './surfaces/catalog.css';
 @import './surfaces/console.css';
+@import './surfaces/settings.css';
 @import './surfaces/viewport-overlay.css';
 @import './surfaces/spaghetti.css';
 @import './surfaces/radio-audio.css';

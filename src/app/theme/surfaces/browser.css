@@ -70,6 +70,13 @@
   overflow: hidden;
 }
 
+.PrimaryViewportLeftDockPanelTarget--browser.isStackSized > .V15Panel.BrowserPanelRoot,
+.PrimaryViewportLeftDockPanelTarget--browser.isStackSized > .BrowserPanelRoot {
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: 100%;
+}
+
 .BrowserPanelBody {
   display: flex;
   flex-direction: column;

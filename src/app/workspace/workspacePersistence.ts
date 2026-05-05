@@ -12,6 +12,8 @@ import {
   createDefaultWorkspaceViewportSlot,
   defaultBrowserPopoutState,
   defaultLeftDockWidth,
+  defaultLeftDockStackHeight,
+  defaultLeftDockStackSplitRatio,
   defaultPrimaryWorkspaceViewportId,
   defaultPrimaryViewportLeafNodeId,
   defaultPrimaryViewportSlotId,
@@ -50,6 +52,8 @@ export const workspaceLayoutStorageKey = 'parahook.workspace.lastLayout.v1'
 
 type WorkspacePersistenceSource = {
   leftDockWidth: number
+  leftDockStackHeight: number
+  leftDockStackSplitRatio: number
   isLeftDockViewportSplit: boolean
   browserToolbarOwnerSurfaceInstanceId: string | null
   browserShell: BrowserShellState
@@ -806,6 +810,12 @@ export const serializeWorkspaceLayout = (
 ): PersistedWorkspaceLayout => ({
   version: 1,
   leftDockWidth: roundNumber(state.leftDockWidth, defaultLeftDockWidth),
+  leftDockStackHeight: roundNumber(state.leftDockStackHeight, defaultLeftDockStackHeight),
+  leftDockStackSplitRatio:
+    typeof state.leftDockStackSplitRatio === 'number' &&
+    Number.isFinite(state.leftDockStackSplitRatio)
+      ? Math.min(0.8, Math.max(0.2, state.leftDockStackSplitRatio))
+      : defaultLeftDockStackSplitRatio,
   isLeftDockViewportSplit: state.isLeftDockViewportSplit,
   browserToolbarOwnerSurfaceInstanceId: state.browserToolbarOwnerSurfaceInstanceId,
   browserShell: cloneBrowserShellState(state.browserShell),
@@ -984,6 +994,15 @@ export const normalizePersistedWorkspaceLayout = (
       typeof value.leftDockWidth === 'number' ? value.leftDockWidth : NaN,
       defaultLeftDockWidth,
     ),
+    leftDockStackHeight: roundNumber(
+      typeof value.leftDockStackHeight === 'number' ? value.leftDockStackHeight : NaN,
+      defaultLeftDockStackHeight,
+    ),
+    leftDockStackSplitRatio:
+      typeof value.leftDockStackSplitRatio === 'number' &&
+      Number.isFinite(value.leftDockStackSplitRatio)
+        ? Math.min(0.8, Math.max(0.2, value.leftDockStackSplitRatio))
+        : defaultLeftDockStackSplitRatio,
     isLeftDockViewportSplit: value.isLeftDockViewportSplit === true,
     browserToolbarOwnerSurfaceInstanceId:
       typeof value.browserToolbarOwnerSurfaceInstanceId === 'string' &&

@@ -3,6 +3,11 @@ import {
   type LegacyViewSettingsInput,
   type ViewSettings,
 } from '../../shared/viewSettingsTypes'
+import {
+  defaultSpaghettiWindowAppearance,
+  normalizeSpaghettiWindowAppearance,
+  type SpaghettiWindowAppearance,
+} from '../panels/spaghettiWindowAppearance'
 import type { WorkspaceStartupSurface } from './uiPrefsStore'
 
 export const uiPrefsStorageKey = 'parahook.uiPrefs.view.v1'
@@ -24,9 +29,10 @@ export const defaultUiPrefsPersistencePolicy: UiPrefsPersistencePolicy = {
 }
 
 type PersistedUiPrefsState = UiPrefsPersistencePolicy & {
-  version: 2
+  version: 3
   view: ViewSettings
   workspaceStartupSurface: WorkspaceStartupSurface
+  spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -105,11 +111,15 @@ const applyPersistedViewPolicy = (
 export const serializePersistedUiPrefs = (
   view: ViewSettings,
   workspaceStartupSurface: WorkspaceStartupSurface,
+  spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance = defaultSpaghettiWindowAppearance,
   policy: UiPrefsPersistencePolicy = defaultUiPrefsPersistencePolicy,
 ): PersistedUiPrefsState => ({
-  version: 2,
+  version: 3,
   view: normalizeViewSettings(view),
   workspaceStartupSurface,
+  spaghettiWindowAppearanceDefaults: normalizeSpaghettiWindowAppearance(
+    spaghettiWindowAppearanceDefaults,
+  ),
   workspaceRestorePersistence: policy.workspaceRestorePersistence,
   viewSettingsPersistence: policy.viewSettingsPersistence,
   environmentPersistence: policy.environmentPersistence,
@@ -126,10 +136,15 @@ export const normalizePersistedUiPrefs = (value: unknown): PersistedUiPrefsState
   const policy = normalizeUiPrefsPersistencePolicy(value)
 
   return {
-    version: 2,
+    version: 3,
     view,
     workspaceStartupSurface: normalizeWorkspaceStartupSurface(
       isRecord(value) ? value.workspaceStartupSurface : null,
+    ),
+    spaghettiWindowAppearanceDefaults: normalizeSpaghettiWindowAppearance(
+      isRecord(value) && isRecord(value.spaghettiWindowAppearanceDefaults)
+        ? (value.spaghettiWindowAppearanceDefaults as SpaghettiWindowAppearance)
+        : defaultSpaghettiWindowAppearance,
     ),
     workspaceRestorePersistence: policy.workspaceRestorePersistence,
     viewSettingsPersistence: policy.viewSettingsPersistence,

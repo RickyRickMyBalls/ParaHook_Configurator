@@ -18,6 +18,7 @@ import {
   type WorkspaceViewportSlotId,
 } from './workspaceShellTypes'
 import { ViewportFrame } from './ViewportFrame'
+import { ViewportOverlayModeTitlebarControls } from './ViewportOverlayModeTitlebarControls'
 import { ViewportWorkspaceHost } from './ViewportWorkspaceHost'
 import {
   resolveWorkspaceSplitDirectionForDockSide,
@@ -708,6 +709,12 @@ export function PopupWorkspaceShell(props: PopupWorkspaceShellProps) {
           surfaceKind={slot.surfaceKind}
           availableSurfaceKinds={popupAvailableSurfaceKinds}
           enableHeaderStripContextMenu={slot.surfaceKind === 'browser'}
+          headerSupplement={
+            slot.surfaceKind === 'modelViewer' ? (
+              <ViewportOverlayModeTitlebarControls viewportId={slot.surfaceInstanceId} />
+            ) : undefined
+          }
+          headerSupplementAlignment={slot.surfaceKind === 'modelViewer' ? 'start' : 'end'}
           onActivateSurface={() => popupWorkspaceStore.getState().setActiveSlotId(slot.slotId)}
           onRequestSurfaceKind={(surfaceKind) => handleRequestSurfaceKind(slot.slotId, surfaceKind)}
           onSplitTop={() => handleSplitSlot(slot.slotId, 'top')}

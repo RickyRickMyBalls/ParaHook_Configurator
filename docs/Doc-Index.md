@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+287. 2026-05-01 18:43:47: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md` to the docs map and refreshed the node-family index/list so the planned `Geometry/Loft` node now has a dedicated feature-addition checklist covering node UI, Console commands, toolbar workflow, edit history, parameter/object types, compile/runtime, preview/output publication, and verification.
 286. 2026-05-01 01:16:58: Updated the Edit History workspace docs map entry after the unified timeline future doc was renamed back to `Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, while preserving the separate broad architecture `Edit-History-4` entry.
 285. 2026-04-30 22:11:53: Updated the Edit History workspace docs map entry after the unified timeline future doc was named `Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, and recorded Phase 1 as prepped for the timeline read-model implementation slice.
 284. 2026-04-30 22:09:49: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Edit-History/Future/Edit-History-Workspace-4 - Unified Timeline And History Marker.md` to the docs map after the Edit History workspace direction gained a unified Undo/Redo timeline with a visible current-position marker.
@@ -878,6 +879,11 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`
 ####### --------------Shipped
             - `Workspaces/Spaghetti-Editor-Arch/Shipped/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
+####### --------------Nodes
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-List.md`
+######## ---------------Loft
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md`
 ##### ------------Future
             - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
             - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`

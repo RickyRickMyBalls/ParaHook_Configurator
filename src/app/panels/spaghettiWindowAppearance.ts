@@ -129,3 +129,28 @@ export const mergeSpaghettiWindowAppearance = (
     bodyInsetXClamp: patch.bodyInsetXClamp ?? current.bodyInsetXClamp,
     bodyInsetYClamp: patch.bodyInsetYClamp ?? current.bodyInsetYClamp,
   })
+
+export const areSpaghettiWindowAppearanceEqual = (
+  left: SpaghettiWindowAppearance,
+  right: SpaghettiWindowAppearance,
+): boolean =>
+  left.titlebarOpacity === right.titlebarOpacity &&
+  left.windowOpacity === right.windowOpacity &&
+  left.graphContentOpacity === right.graphContentOpacity &&
+  left.bodyInsetX === right.bodyInsetX &&
+  left.bodyInsetY === right.bodyInsetY &&
+  left.titlebarClamp.min === right.titlebarClamp.min &&
+  left.titlebarClamp.max === right.titlebarClamp.max &&
+  left.windowClamp.min === right.windowClamp.min &&
+  left.windowClamp.max === right.windowClamp.max &&
+  left.graphContentClamp.min === right.graphContentClamp.min &&
+  left.graphContentClamp.max === right.graphContentClamp.max &&
+  left.bodyInsetXClamp.min === right.bodyInsetXClamp.min &&
+  left.bodyInsetXClamp.max === right.bodyInsetXClamp.max &&
+  left.bodyInsetYClamp.min === right.bodyInsetYClamp.min &&
+  left.bodyInsetYClamp.max === right.bodyInsetYClamp.max &&
+  left.titlebarTint === right.titlebarTint &&
+  left.bodyTint === right.bodyTint &&
+  left.fontScale === right.fontScale &&
+  left.fontFamily === right.fontFamily &&
+  left.paddingScale === right.paddingScale

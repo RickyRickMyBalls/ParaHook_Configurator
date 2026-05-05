@@ -4,7 +4,8 @@
 
 ### Doc History
 98. 2026-04-30 22:07:41: Added the new workspace-family home `Workspaces/Edit-History/Edit-History-Vision.md` plus `Workspaces/Edit-History/Edit-History-Gen1-Index.md`, refreshing this workspace umbrella so the Edit History reader is tracked as a workspace surface while the broader Edit-History architecture family keeps canonical undo/redo ownership.
-97. 2026-04-30 20:14:30: Moved the stale shipped workspace records `Workspace 7.5-3`, `Workspace 7.5-6`, `Workspace 7.5-7A`, `Workspace 7.5-8`, `Workspace 7.5-13`, and `Workspace 7.5-16` from `Future/` into `Shipped/` after reconciling them against the existing changelog trail, leaving only genuinely open or closer-review workspace planning docs in the future lane.
+99. 2026-05-02 08:35:43: Added the new workspace-family home `Workspaces/Settings/Settings-Vision.md` plus `Workspaces/Settings/Settings-Gen1-Index.md`, and created the first `Settings-1` future phase doc so the Unreal-style settings workspace now has a dedicated left-rail/right-pane planning home beside the other active workspace surfaces.
+98. 2026-04-30 20:14:30: Moved the stale shipped workspace records `Workspace 7.5-3`, `Workspace 7.5-6`, `Workspace 7.5-7A`, `Workspace 7.5-8`, `Workspace 7.5-13`, and `Workspace 7.5-16` from `Future/` into `Shipped/` after reconciling them against the existing changelog trail, leaving only genuinely open or closer-review workspace planning docs in the future lane.
 96. 2026-04-30 20:09:27: Moved `Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding` into `Shipped/` after the existing changelog trail showed Dashboard surface adoption, Notepad surface plus note-model ownership, and the first sticky-note Dashboard widget all landed, refreshed the workspace ladder so the Dashboard/Notepad onboarding lane now reads as shipped, and removed the completed future-doc pointer from the active workspace queue.
 95. 2026-04-30 19:54:12: Moved `Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity` into `Shipped/` after user confidence confirmed the multiple-editor goal is met, refreshed the workspace ladder so the multi-editor follow-on now reads as shipped, and removed the completed future-doc pointer from the active workspace queue.
 94. 2026-04-21 16:04:39: Added the new workspace-family home `Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md` plus `Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`, refreshed this workspace umbrella so `Pubwheel Builder` now appears as a real workspace-global surface beside Catalog and Model Viewport, and routed its first Gen1 lane toward an assembly-carousel workspace foundation without moving Catalog source truth, Import ownership, heavy STEP preview, or compatibility checks into the builder.
@@ -1520,6 +1521,7 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-9 - Spaghetti Presentation Mode Truth.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/workspace7-featurestocarry.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace-Cleanup-Task-Stack.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
