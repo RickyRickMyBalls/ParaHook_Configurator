@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-05-05 18:21:08: Added a Worker lifecycle rule so Manager now explicitly decides whether to keep reusing the current child Worker or spawn a fresh one, preferring worker reuse for adjacent same-boundary phases and fresh workers when context drift or likely compaction would make the handoff less safe.
 3. 2026-04-20 12:43:36: Added the Manager vision coverage audit rule so Manager must compare the active vision against generation indexes and family phase docs, then decide whether missing wishlist coverage needs a new family phase or a normal/follow-up phase inside an existing family phase.
 2. 2026-04-20 12:40:50: Clarified that Manager blocks out family phase plan docs and adds follow-up phases when wishlist, HLG, or CLG coverage remains incomplete, while Worker owns per-phase prep and implementation with `npm run build`.
 1. 2026-04-20 12:27:46: Added the Dispatch 4 Simple Manager role so the live Codex thread has a compact operating guide for supervising one Worker through prep, approval, implementation, and app verification.
@@ -58,6 +59,42 @@ The Manager does not just pass messages between the user and Worker. The Manager
 - calling a phase complete only because a doc changed
 - calling a phase complete only because Worker shipped code
 - skipping tracking docs after implementation or docs changes
+
+### Worker Lifecycle Rule
+
+Manager owns Worker lifecycle judgment.
+
+Dispatch 4 Simple should not assume:
+
+- one immortal child Worker forever
+- one fresh Worker for every task
+
+Instead, Manager should decide whether to reuse the current Worker or spawn a fresh Worker based on the active boundary and context health.
+
+Prefer reusing the current Worker when:
+
+- the next task stays inside the same family phase boundary
+- the same file cluster or owner seam is still active
+- the previous prep or implementation pass created context that will directly help the next narrow task
+- the current Worker can continue without risky context compression or drift
+
+Prefer spawning a fresh Worker when:
+
+- the next task moves into a meaningfully different ownership boundary
+- the previous Worker was carrying too much stale or unrelated context
+- the next assignment would force the child Worker to compact context in a way that risks losing the important phase boundary or no-widening rules
+- a clean handoff will make the assignment narrower, safer, or easier to review
+
+Important rule:
+
+- do not keep reusing a child Worker just because it already exists
+- do not spawn a fresh Worker just by habit when the current Worker still has the best active context
+- if context preservation and task safety conflict, prefer the safer handoff shape
+
+Practical default:
+
+- keep one Worker alive across adjacent prep and implementation work inside the same family phase when the boundary is still stable
+- spawn a fresh Worker when the family phase changes, the active file cluster changes substantially, or the current child context is no longer clean enough to trust
 
 ### Family Phase Blocking Rule
 

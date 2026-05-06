@@ -2064,7 +2064,7 @@ button.ParaSelectMenuAction:hover {
 .ViewportSpaghettiOverlayRoot {
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 40;
   pointer-events: none;
 }
 

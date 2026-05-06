@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+25. 2026-05-05 20:30:15: Added `Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`, `Future/Gen3 - Cleanup 3 - ViewportOverlay Runtime Surface Decomposition.md`, and `Future/Gen3 - Cleanup 4 - Viewer Runtime Boundary Decomposition.md`, then refreshed the Cleanup family read so `Gen3` now carries an explicit next-lane sink ladder with small-phase future docs instead of leaving the post-`useAppStore` cleanup wave as a recommendation-only note
+24. 2026-05-05 16:19:03: Added `Cleanup-Gen3-Index.md`, added `Future/Cleanup-Gen3-1 - useAppStore Ownership Decomposition.md`, and refreshed this family index so Cleanup now has an explicit Gen 3 planning surface for oversized ownership-sink decomposition starting with a phased `useAppStore.ts` split plan instead of leaving that next cleanup wave as review-only notes
 23. 2026-04-13 14:45:19: Closed out `Cleanup 10 - Optional Workspace Family Scope Decisions` as a shipped cleanup lane after its optional-family boundary baseline, scope-drift inventory, decision-rule lock, first proof-boundary lock, narrow `radio` optional-background-runtime proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the optional-family scope-decision lane now reads as completed history before the later naming/docs hardening follow-on
 22. 2026-04-13 13:58:45: Added the standalone future phase doc for `Cleanup 11 - Naming, Docs, And Honest Label Hardening`, grounding the final cleanup lane in the cleanup vision's naming/docs honesty rule, the shipped `Cleanup 10` optional-family scope baseline, and the live stale-label seams across build/runtime ids, workspace compatibility bridges, dashboard persistence keys, and terminology docs so the family ladder now points at a real implementation-ready planning surface under `Cleanup/Future/`
 21. 2026-04-13 13:49:59: Added the standalone future phase doc for `Cleanup 10 - Optional Workspace Family Scope Decisions`, grounding the next cleanup lane in the cleanup vision's explicit keep-isolate-retire rule for secondary surfaces, the shipped `Cleanup 4A` workspace-surface taxonomy baseline, and the live `dashboard`, `notepad`, and `radio` seams across the workspace catalog, AppShell hosts, stores, persistence, and runtime mounts so the family ladder now points at a real implementation-ready planning surface under `Cleanup/Future/`
@@ -54,6 +56,10 @@ Use this folder like this:
   - umbrella cleanup direction
   - family summary
   - cleanup phase ladder
+- `Cleanup-Gen2-Index.md`
+  - second-generation worker and legacy cleanup routing
+- `Cleanup-Gen3-Index.md`
+  - third-generation oversized ownership-sink decomposition routing
 - `Cleanup-Vision.md`
   - broad cleanup north star
   - lane framing
@@ -77,6 +83,12 @@ Use this folder like this:
   - broad cleanup north star
   - why cleanup matters
   - main cleanup lanes and suggested order
+
+- `Cleanup-Gen2-Index.md`
+  - post-family worker, residue, and legacy routing cleanup planning
+
+- `Cleanup-Gen3-Index.md`
+  - post-family oversized ownership-sink cleanup planning starting with `useAppStore.ts` and now routing the next `useSpaghettiStore.ts`, `ViewportOverlay.tsx`, and `Viewer.ts` family phases
 
 - `Canonical-Ownership-Targets.md`
   - one-owner target map
@@ -125,6 +137,7 @@ It is the place where ParaHook records deliberate cleanup work around:
 `Cleanup-Vision.md` explains the north star.
 `Canonical-Ownership-Targets.md` explains where one true owners should live.
 `Cleanup-Index.md` is the family map that points at concrete cleanup phases.
+`Cleanup-Gen2-Index.md` and `Cleanup-Gen3-Index.md` hold later-generation follow-on planning after the original family ladder.
 
 ### Scope
 
@@ -135,6 +148,7 @@ This family covers:
 - boundary and contract repair
 - residue, migration, and compatibility seam retirement
 - future cleanup phase sequencing
+- oversized ownership-sink decomposition generations after the main family ladder
 
 This family does not replace:
 - feature-family architecture docs such as `AppShell/`, `Worker/`, or `Workspace-Modes/`
@@ -492,12 +506,14 @@ Current read:
 - `Startup Path Canonicalization` is the right first cut because it is small and foundational
 - `Canonical Owner Decision Lock` should happen early so the later cleanup lanes are moving toward named owners instead of vague cleanup taste
 - Browser, node-authoring, and graph-result cleanup should follow the owner decisions rather than precede them
+- `Cleanup Gen3` is now the active post-family oversized-sink ladder, with `useAppStore` closed and `useSpaghettiStore`, `ViewportOverlay`, and `Viewer` queued as explicit future family phases that each already have one-pass Codex-sized internal ladders
 
 ### Success Read
 
 This cleanup family is working well when:
 - the index stays readable as the scan surface
 - each real cleanup phase gets its own `Future/` doc once it becomes implementation-ready
+- later cleanup generations get their own index docs instead of being hidden inside review comments or one-off notes
 - completed cleanup work moves into `Shipped/`
 - cross-cutting cleanup decisions stop living only in scattered feature docs
 - ownership cleanup has one obvious planning home

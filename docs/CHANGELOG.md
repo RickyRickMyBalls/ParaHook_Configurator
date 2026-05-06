@@ -72,6 +72,479 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1784 -->
+
+### [1788] - 2026-05-05 20:18 - `Cleanup Gen3 - Cleanup 1 / Phase 6.1 - Root Facade Shrink`
+
+HUMAN SUMMARY: `This shrank the remaining Cleanup Gen3 root facade by collapsing the last manual build-seam composition out of \`useAppStore.ts\` into \`src/app/store/builds/appStoreBuildFacade.ts\` and by retiring the duplicated \`deleteRecordKey\` helper residue into \`src/app/store/storeRecordUtils.ts\`. \`npm.cmd run build\` passes, \`buildPathDerivedSync.test.ts\` passes, and the broader \`useAppStore.test.ts\` run remains in the same 14-test drift band instead of widening into a new regression set.`
+
+<!-- ENTRY 1788 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 6.1` boundary by shrinking only the remaining root-facade composition seam and duplicate helper residue left behind by the earlier extraction phases.
+- Did not start the final Gen3 closeout or next-target recommendation work; that remains reserved for `Phase 6.2`.
+- Preserved one exported `useAppStore` facade and kept the explicit keep-in-root decisions limited to small convenience wrappers and tiny selectors that still do not justify their own module.
+- Did not widen into new ownership changes, new sink targets, or unrelated cleanup outside the `useAppStore` facade seam.
+
+#### Summary of Implementation
+
+- Added `src/app/store/builds/appStoreBuildFacade.ts` to own the last manual request/release/policy/subscription composition bridge that `useAppStore.ts` was still wiring inline.
+- Added `src/app/store/storeRecordUtils.ts` and moved the shared `deleteRecordKey(...)` helper there so the root file and the extracted build modules stop carrying duplicated record-deletion residue.
+- Rewired `src/app/store/useAppStore.ts` to compose the build facade bridge instead of manually coordinating the extracted `builds/` modules and the subscription runtime setup inline.
+- Kept the root file focused on state wiring, stable facade exports, convenience wrappers such as `compileSpaghetti` / `requestSpaghettiBuild` / `prepareSpaghettiExport`, and the explicit keep-in-root selector seam `selectConsoleWorkspaceContextTarget(...)`.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/storeRecordUtils.ts`
+- `src/app/store/builds/appStoreBuildFacade.ts`
+- `src/app/store/builds/appStoreBuildRequests.ts`
+- `src/app/store/builds/appStoreBuildReleaseFlow.ts`
+- `src/app/store/builds/appStoreBuildSubscriptions.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains a final root-facade cleanup pass behind the existing `useAppStore` API.
+- The extracted build modules still drive the same request, release, policy, and subscription behavior, but `useAppStore.ts` no longer owns their manual composition and duplicated helper residue inline.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, while `src/app/store/buildPathDerivedSync.test.ts` passes.
+- The root file is now honestly in its facade-sized end state for this lane, and the only remaining Gen3 work is the doc-and-handoff closeout reserved for `Phase 6.2`.
+
+### [1787] - 2026-05-05 20:08 - `Cleanup Gen3 - Cleanup 1 / Phase 5.4 - Project Sync And File-Tail Subscription Extraction`
+
+HUMAN SUMMARY: `This landed the fourth narrowed Cleanup Gen3 Phase 5 \`builds/\` owner-area module by moving the project-sync helper, browser runtime follow-through helpers, and the file-tail subscription wiring out of \`useAppStore.ts\` and into \`src/app/store/builds/appStoreBuildSubscriptions.ts\`. \`npm.cmd run build\` passes, \`buildPathDerivedSync.test.ts\` passes, and the broader \`useAppStore.test.ts\` run remains in the same 14-test drift band instead of widening into a new regression set.`
+
+<!-- ENTRY 1787 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 5.4` boundary by extracting only `syncCurrentProjectFromSpaghetti(...)`, the browser runtime follow-through helpers, the file-tail `useSpaghettiStore.subscribe(...)` and `useWorkspaceStore.subscribe(...)` wiring, and the tiny helper wiring that belongs only to that same seam.
+- Kept the moved subscription module calling the existing content derivation and build-request surfaces instead of re-owning project-content derivation or graph-runtime truth.
+- Preserved graph-runtime accepted-result truth in `useSpaghettiStore` and kept the public `useAppStore` facade stable through composition instead of API reshaping.
+- Stopped at the project-sync and subscriber tail seam even though a small amount of root-facade composition glue still remains for the later `Phase 6.1` shrink pass.
+
+#### Summary of Implementation
+
+- Added `src/app/store/builds/appStoreBuildSubscriptions.ts` as the subscription-oriented `builds/` owner module for project sync and file-tail orchestration behavior.
+- Moved `syncCurrentProjectFromSpaghetti(...)` into that module.
+- Moved the browser runtime follow-through helpers into that module, including the viewport-preference request path and current-runtime revision follow-through behavior.
+- Moved the file-tail `useSpaghettiStore.subscribe(...)` and `useWorkspaceStore.subscribe(...)` wiring into that module and rewired `src/app/store/useAppStore.ts` to initialize the moved subscription runtime.
+- Kept the existing build policy, request, and release modules as explicit dependencies instead of widening this pass into earlier `Phase 5.x` seams.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/builds/appStoreBuildSubscriptions.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains a project-sync and subscription ownership extraction behind the existing `useAppStore` facade.
+- Project sync, browser runtime follow-through, and the file-tail subscriber wiring now live behind `src/app/store/builds/appStoreBuildSubscriptions.ts` while still driving the same derivation, auto-follow-through, and cross-store synchronization flows they used before.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, while `src/app/store/buildPathDerivedSync.test.ts` passes.
+- The moved project-sync and subscriber tail seam landed cleanly, and the only honest remaining cleanup is the smaller root-facade shrink now reserved for `Phase 6.1`.
+
+### [1786] - 2026-05-05 19:59 - `Cleanup Gen3 - Cleanup 1 / Phase 5.3 - Browser Release And Export Flow Extraction`
+
+HUMAN SUMMARY: `This landed the third narrowed Cleanup Gen3 Phase 5 \`builds/\` owner-area module by moving the browser release and export flow seam out of \`useAppStore.ts\` and into \`src/app/store/builds/appStoreBuildReleaseFlow.ts\`. \`npm.cmd run build\` passes, \`buildPathDerivedSync.test.ts\` passes, and the broader \`useAppStore.test.ts\` run remains in the same 14-test drift band instead of widening into a new regression set.`
+
+<!-- ENTRY 1786 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 5.3` boundary by extracting only `prepareGraphDocumentExport(...)`, `requestBrowserGraphDocumentBuild(...)`, `endBrowserBuildInteraction(...)`, `requestManualBuild(...)`, and the tiny queue-release helper wiring that belongs solely to that same seam.
+- Left `syncCurrentProjectFromSpaghetti(...)`, browser runtime follow-through helpers, and the file-tail subscription seam untouched for the later `Phase 5.4` pass.
+- Preserved graph-runtime truth in `useSpaghettiStore` and kept the public `useAppStore` facade stable through composition instead of API reshaping.
+- Reused the already-landed request module and policy module instead of re-owning request-intent or browser policy logic inside the release/export extraction.
+
+#### Summary of Implementation
+
+- Added `src/app/store/builds/appStoreBuildReleaseFlow.ts` as the release-oriented `builds/` owner module for browser interaction release and export flow behavior.
+- Moved `prepareGraphDocumentExport(...)` into that module.
+- Moved `requestBrowserGraphDocumentBuild(...)`, `endBrowserBuildInteraction(...)`, and `requestManualBuild(...)` behind that module's action factory.
+- Moved the tiny queue-release helper wiring that belongs only to that same seam, including delayed release placeholder dispatch on interaction end.
+- Rewired `src/app/store/useAppStore.ts` to compose the moved release flow while leaving the file-tail sync and subscription seam in place for `Phase 5.4`.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/builds/appStoreBuildReleaseFlow.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains a browser release/export ownership extraction behind the existing `useAppStore` facade.
+- Browser interaction release handling and export preparation now live behind `src/app/store/builds/appStoreBuildReleaseFlow.ts` while still driving the same delayed release, explicit build, and export readiness flows they used before.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, while `src/app/store/buildPathDerivedSync.test.ts` passes.
+- The deferred project-sync and file-tail subscription seam remains untouched, which is the correct `Phase 5.3` stop rather than incomplete work inside this narrowed slice.
+
+### [1785] - 2026-05-05 19:52 - `Cleanup Gen3 - Cleanup 1 / Phase 5.2 - Delayed Placeholder And Request Intent Extraction`
+
+HUMAN SUMMARY: `This landed the second narrowed Cleanup Gen3 Phase 5 \`builds/\` owner-area module by moving the delayed placeholder and request-intent helper cluster plus \`requestGraphDocumentBuild(...)\` out of \`useAppStore.ts\` and into \`src/app/store/builds/appStoreBuildRequests.ts\`. \`npm.cmd run build\` passes, \`buildPathDerivedSync.test.ts\` passes, and the broader \`useAppStore.test.ts\` run remains in the same 14-test drift band instead of widening into a new regression set.`
+
+<!-- ENTRY 1785 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 5.2` boundary by extracting only the delayed-placeholder and request-intent seam that naturally groups with `requestGraphDocumentBuild(...)`.
+- Left `requestBrowserGraphDocumentBuild(...)`, `prepareGraphDocumentExport(...)`, interaction-release dispatch helpers, project-sync, and file-tail subscriptions untouched for later `Phase 5.3` and `Phase 5.4` slices.
+- Preserved graph-runtime truth in `useSpaghettiStore` and kept the public `useAppStore` facade stable through composition instead of API reshaping.
+- Preserved the existing delayed-draft runtime event flow by threading the shared publisher into the new request module instead of widening into unrelated event-system cleanup.
+
+#### Summary of Implementation
+
+- Added `src/app/store/builds/appStoreBuildRequests.ts` as the request-oriented `builds/` owner module for delayed placeholders and request-intent behavior.
+- Moved the request-intent helper cluster into that module, including the geometry-target, draft-policy, authoritative-policy, and execution-intent resolution helpers.
+- Moved `dispatchDelayedGraphBuildPlaceholder(...)` into that same module so delayed placeholder dispatch now lives beside the request-intent helpers it serves.
+- Moved `requestGraphDocumentBuild(...)` behind `createBuildRequestActions(...)` and rewired `src/app/store/useAppStore.ts` to compose the moved request seam while leaving the release/export and subscriber tails in place.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/builds/appStoreBuildRequests.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains a delayed-placeholder and request-intent ownership extraction behind the existing `useAppStore` facade.
+- `requestGraphDocumentBuild(...)` and delayed placeholder dispatch now live behind `src/app/store/builds/appStoreBuildRequests.ts` while still compiling graphs, staging runtime requests, and publishing the same console and draft-scheduling events they used before.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, while `src/app/store/buildPathDerivedSync.test.ts` passes.
+- The deferred release/export and file-tail subscription seams remain untouched, which is the correct `Phase 5.2` stop rather than incomplete work inside this narrowed slice.
+
+### [1784] - 2026-05-05 19:34 - `Cleanup Gen3 - Cleanup 1 / Phase 5.1 - Browser Build Policy Slice Extraction`
+
+HUMAN SUMMARY: `This landed the first \`builds/\` owner-area module for the narrowed Cleanup Gen3 Phase 5 lane by moving the browser build-policy ordering, inheritance, and effective-policy helpers plus the direct policy action bodies out of \`useAppStore.ts\` and into \`src/app/store/builds/appStoreBuildPolicies.ts\`. \`npm.cmd run build\` passes, \`buildPathDerivedSync.test.ts\` passes, and the broader \`useAppStore.test.ts\` run remains in the same 14-test drift band instead of widening into a new regression set.`
+
+<!-- ENTRY 1784 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 5.1` boundary by extracting only the browser build-policy helper cluster and the direct policy action bodies that naturally pair with it.
+- Left delayed placeholders, `requestBrowserGraphDocumentBuild(...)`, request/export flow, interaction-release dispatch helpers, and file-tail subscriptions untouched for later `Phase 5.x` slices.
+- Kept project derivation sync where it already lives even though the moved policy actions still call into that seam.
+- Preserved graph-runtime truth in `useSpaghettiStore` and kept the public `useAppStore` facade stable through imports and re-exports.
+
+#### Summary of Implementation
+
+- Added `src/app/store/builds/appStoreBuildPolicies.ts` as the first explicit `builds/` owner module for browser build-policy behavior.
+- Moved the browser build-policy ordering, priority, inheritance, and effective-policy helpers into that module, including the exported `selectEffectiveBrowserExecutionPolicy(...)` and `selectShouldSuppressBrowserGraphRuntimeOutput(...)` surfaces.
+- Moved the direct build-policy action bodies into `createBuildPolicyActions(...)`, covering `setBuildPolicy(...)` plus the browser graph/content build-policy getters, setters, clearers, and cyclers.
+- Rewired `src/app/store/useAppStore.ts` to compose the moved policy actions and re-export the moved helper surfaces while leaving the broader orchestration tail in place.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/builds/appStoreBuildPolicies.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains a build-policy ownership extraction behind the existing `useAppStore` facade.
+- Browser graph/content build-policy reads and mutations now live behind `src/app/store/builds/appStoreBuildPolicies.ts` while still driving the same project derivation sync seam they used before.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/buildPathDerivedSync.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, while `src/app/store/buildPathDerivedSync.test.ts` passes.
+- The deferred delayed-placeholder, request/export, and file-tail subscription seams remain untouched, which is the correct `Phase 5.1` stop rather than incomplete work inside this narrowed slice.
+
+<!-- ENTRY 1783 -->
+
+### [1783] - 2026-05-05 19:16 - `Cleanup Gen3 - Cleanup 1 / Phase 4.1 - Transform Session Action Slice Extraction`
+
+HUMAN SUMMARY: `This closed the remaining `useAppStore.ts` Phase 4 transform boundary by adding \`src/app/store/transforms/transformAppStoreSlice.ts\` for the heavier reference, content-object, and environment-light transform-session action bodies, then rewiring the root facade to compose that slice instead of keeping the mutation bulk inline. The build still passes, \`viewerTransformEditHistoryStore.test.ts\` still passes, and the broader \`useAppStore.test.ts\` run remains in the same 14-test drift band instead of widening into a new regression set.`
+
+<!-- ENTRY 1783 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 4.1` boundary by extracting the remaining transform-session action bodies without widening into build-policy extraction, file-scope subscriptions, Browser tree logic rewrites, viewer runtime ownership, or workspace-layout ownership.
+- Preserved one exported `useAppStore` facade by composing the new transform slice and keeping the viewer edit-history wrapper surface in the root file.
+- Made the late `selectConsoleWorkspaceContextTarget(...)` decision explicitly: it stays in the root facade because it still depends on the broader Browser/content read-model cluster and did not belong in this transform-only closeout.
+
+#### Summary of Implementation
+
+- Added `src/app/store/transforms/transformAppStoreSlice.ts` so the remaining reference, content-object, and environment-light transform-session action bodies now live behind one explicit transform owner module.
+- Updated `src/app/store/transforms/referenceTransformHelpers.ts` so the environment-light transform-history normalization and scrub helpers required by the new action slice now live beside the rest of the extracted transform helper graph.
+- Slimmed `src/app/store/useAppStore.ts` by deleting the moved inline transform-session mutation bulk and composing `createTransformAppStoreSlice(set)` while keeping the viewer edit-history wrapper surface and the late console-context selector in the root facade.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/transforms/transformAppStoreSlice.ts`
+- `src/app/store/transforms/referenceTransformHelpers.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an ownership and decomposition move behind the existing `useAppStore` facade.
+- `useAppStore.ts` now delegates the remaining transform-session mutation bulk to `src/app/store/transforms/transformAppStoreSlice.ts` while intentionally keeping `selectConsoleWorkspaceContextTarget(...)` in the root facade.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+- Passed `npm.cmd run test -- src/app/store/viewerTransformEditHistoryStore.test.ts` as part of the focused combined run
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/viewerTransformEditHistoryStore.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, including the explicit multi-select and published-content/build-policy assertion cluster
+
+<!-- ENTRY 1782 -->
+
+### [1782] - 2026-05-05 18:46 - `Cleanup Gen3 - Cleanup 1 / Phase 4 - Transform Selection And Context Extraction`
+
+HUMAN SUMMARY: `This started the real `useAppStore.ts` Phase 4 pass by moving the first transform-helper graph into \`src/app/store/transforms/referenceTransformHelpers.ts\` and the workspace-selection plus console-context action wiring into \`src/app/store/selection/workspaceSelectionAppStoreSlice.ts\` while keeping one public facade. The build is green again, `viewerTransformEditHistoryStore.test.ts` still passes, and the broader \`useAppStore.test.ts\` run returns to the same 14-test branch drift band instead of widening into a larger regression set.`
+
+<!-- ENTRY 1782 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 4` boundary by extracting transform helper seams and workspace-selection plus console-context action wiring without widening into build-policy extraction, file-scope subscriptions, viewer runtime ownership, or workspace-layout ownership.
+- Preserved one exported `useAppStore` facade by composing the new selection action slice and importing or re-exporting the moved transform helpers instead of forcing caller churn.
+- Left the heavier transform-session action bodies and the late console-context selector surface in the root file once they proved wider than this first safe extraction cut.
+
+#### Summary of Implementation
+
+- Added `src/app/store/transforms/referenceTransformHelpers.ts` so transform snap defaults, transform clone and normalize helpers, active-viewer transform selectors, and transform-history insert or scrub helpers now live in a transform-owned module.
+- Added `src/app/store/selection/workspaceSelectionAppStoreSlice.ts` so workspace-selection actions and console-context request wiring now live in a selection-owned action slice.
+- Slimmed `src/app/store/useAppStore.ts` by deleting the extracted inline transform helper bulk, rewiring the facade to the new selection slice, and importing or re-exporting the moved transform helper surface.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/transforms/referenceTransformHelpers.ts`
+- `src/app/store/selection/workspaceSelectionAppStoreSlice.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this pass is still an ownership and decomposition move behind the existing `useAppStore` facade.
+- `useAppStore.ts` now delegates the moved transform helper surface to `src/app/store/transforms/referenceTransformHelpers.ts` and delegates workspace-selection plus console-context request actions to `src/app/store/selection/workspaceSelectionAppStoreSlice.ts`.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+- Passed `npm.cmd run test -- src/app/store/viewerTransformEditHistoryStore.test.ts` as part of the focused combined run
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/viewerTransformEditHistoryStore.test.ts` still reports the same 14-test broader `src/app/store/useAppStore.test.ts` drift band already present in this branch, including explicit multi-select and published-content assertions outside the landed transform-helper extraction
+
+<!-- ENTRY 1781 -->
+
+### [1781] - 2026-05-05 18:02 - `Cleanup Gen3 - Cleanup 1 / Phase 3 - Project Content And Reference Workspace Slice Extraction`
+
+HUMAN SUMMARY: `This opened the real `useAppStore.ts` Phase 3 pass by landing owner-area project-content and selection selector files plus a reference-workspace state/helper module that now owns the startup reference state and staged-import pure helper cluster. The root app-store facade stays stable, `npm.cmd run build` passes again, and the focused store test run returns to the same 14 broader `useAppStore.test.ts` failures that already predated this extraction.`
+
+<!-- ENTRY 1781 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the content/reference owner lane without widening into transform-session action extraction, build orchestration extraction, or a second zustand owner.
+- Preserved one exported `useAppStore` facade by importing and re-exporting extracted seams instead of forcing same-pass caller churn.
+- Narrowed the new owner-area modules away from `AppState`-shaped selector signatures and monolithic project-content/reference type imports where this slice could do so safely.
+
+#### Summary of Implementation
+
+- Added `src/app/store/projectContent/projectContentTypes.ts` and `src/app/store/projectContent/projectContentSelectors.ts` so the basic current-project selectors and project-content records now have an owner-area home.
+- Added `src/app/store/selection/workspaceSelectionSelectors.ts` so viewport-presentation and workspace-selection read selectors no longer need to live inline in `useAppStore.ts`.
+- Added `src/app/store/references/referenceWorkspaceTypes.ts` plus `src/app/store/references/referenceWorkspaceState.ts` so startup reference-workspace state and the staged-import pure helper cluster now live behind a reference-owned module.
+- Slimmed `src/app/store/useAppStore.ts` by removing the inline startup reference state builder, removing the staged-import pure helper block, and rewiring the facade to the extracted selector/state modules.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/projectContent/projectContentTypes.ts`
+- `src/app/store/projectContent/projectContentSelectors.ts`
+- `src/app/store/selection/workspaceSelectionSelectors.ts`
+- `src/app/store/references/referenceWorkspaceTypes.ts`
+- `src/app/store/references/referenceWorkspaceState.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended runtime behavior changes were introduced; this pass is still a decomposition and owner-routing change.
+- `useAppStore.ts` now delegates the extracted startup reference state and staged-import helper seam to `src/app/store/references/referenceWorkspaceState.ts`, and delegates the simplest project/workspace selectors to owner-area selector files.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+- Passed `npm.cmd run test -- src/app/store/viewerTransformEditHistoryStore.test.ts` as part of the focused combined run
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/viewerTransformEditHistoryStore.test.ts` still reports the same 14 broader `src/app/store/useAppStore.test.ts` assertion failures that already existed before this Phase 3 slice
+<!-- ENTRY 1780 -->
+
+### [1780] - 2026-05-05 17:06 - `Cleanup Gen3 - Cleanup 1 / Phase 2 - Pure Types Helpers And Selector Extraction`
+
+HUMAN SUMMARY: `This shipped the first real `useAppStore.ts` decomposition pass by moving the safest pure selector and transform-helper seams into owner-area modules under \`src/app/store/\` while keeping one public \`useAppStore\` facade. The app-store root now imports and re-exports those helpers instead of owning the full pure transform-history and basic selector bulk inline.`
+
+<!-- ENTRY 1780 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the planned `Phase 2` boundary by moving only pure selectors and helper logic, not action bodies, state ownership, or file-scope subscriptions.
+- Preserved the external `useAppStore` caller surface through facade re-exports instead of forcing same-pass call-site churn.
+- Left denser content-owner resolution, content drop resolution, Browser tree selectors, and initializer seams in the root file once they proved wider than the first safe extraction slice.
+
+#### Summary of Implementation
+
+- Added `src/app/store/projectContent/projectContentSelectors.ts` for the simplest project-read selectors.
+- Added `src/app/store/selection/workspaceSelectionSelectors.ts` for viewport-presentation and workspace-selection selectors.
+- Added `src/app/store/references/referenceWorkspaceSelectors.ts` for reference timeline/snap read helpers.
+- Added `src/app/store/transforms/referenceTransformHelpers.ts` for transform-history math, snap normalization, transform cloning/default helpers, and active-viewer transform selectors.
+- Slimmed `src/app/store/useAppStore.ts` so it now imports/re-exports those pure seams instead of carrying that full helper bulk inline.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/projectContent/projectContentSelectors.ts`
+- `src/app/store/selection/workspaceSelectionSelectors.ts`
+- `src/app/store/references/referenceWorkspaceSelectors.ts`
+- `src/app/store/transforms/referenceTransformHelpers.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 1 - useAppStore Ownership Decomposition.md`
+
+#### Behavior Changes
+
+- No intended runtime behavior change; this pass is an ownership and file-structure extraction only.
+- `useAppStore.ts` now keeps the same exported selector/helper surface for the moved symbols while delegating their implementation to owner-area modules.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+- Passed `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/viewerTransformEditHistoryStore.test.ts` for `src/app/store/viewerTransformEditHistoryStore.test.ts`
+- `npm.cmd run test -- src/app/store/useAppStore.test.ts src/app/store/viewerTransformEditHistoryStore.test.ts` still reports 14 assertion failures in broader `src/app/store/useAppStore.test.ts` coverage after the extraction
+<!-- ENTRY 1779 -->
+
+### [1779] - 2026-05-05 16:21 - `SP - Overlay Z Stack Follow-Up - Raise Overlay Presentation Window Layer`
+
+HUMAN SUMMARY: `The first z-stack pass raised the embedded viewport Spaghetti overlay root, but the real screenshot path was the floating Spaghetti window in overlay presentation still competing on plain viewport z-order. Overlay-presentation Spaghetti windows now get promoted into the top floating layer alongside maximized shells, so the Spaghetti editor can finally sit above the gizmo, View toolbar, and HUD chrome in the actual user path.` 
+
+<!-- ENTRY 1779 -->
+
+#### Scope / Constraints Honored
+
+- Kept the follow-up narrowly focused on the actual floating overlay-window owner after the first pass proved the embedded viewport overlay root was not the surface shown in the screenshot.
+- Reused the existing Spaghetti floating-window z-order seam instead of hardcoding one-off z-index overrides on gizmo, HUD, or toolbar widgets.
+- Preserved ordinary non-overlay floating editor ordering while promoting only maximized and overlay-presentation windows into the top host layer.
+
+#### Summary of Implementation
+
+- Audited `SpaghettiWindowHost.tsx` and confirmed the screenshot path uses the floating `SpaghettiFloatingWindow` shell with inline z-order from `resolveFloatingWindowZIndex(...)`, not the embedded `ViewportSpaghettiOverlayRoot`.
+- Updated `resolveFloatingWindowZIndex(...)` so overlay-presentation Spaghetti windows, like maximized shells, use the top floating window z-index base instead of plain viewport `zOrder`.
+- Rewired both floating-window render sites in `SpaghettiWindowHost.tsx` to pass presentation mode into that resolver.
+- Verified the change with a full production build.
+
+#### Files Changed
+
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Overlay-presentation Spaghetti floating windows now render above viewport gizmo, View toolbar, and HUD chrome in the real floating-overlay path.
+- Ordinary non-overlay floating Spaghetti windows keep their existing relative z-order behavior.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+
+<!-- ENTRY 1778 -->
+
+### [1778] - 2026-05-05 16:18 - `SP - Overlay Z Stack - Raise Spaghetti Above Viewport Chrome`
+
+HUMAN SUMMARY: `The overlay-mode Spaghetti editor now sits above the viewport gizmo, View toolbar, and HUD status chrome instead of rendering underneath them. This was a host-layer stacking issue, so the fix raises the shared viewport Spaghetti overlay root above the viewport overlay layer rather than patching individual overlay widgets.` 
+
+<!-- ENTRY 1778 -->
+
+#### Scope / Constraints Honored
+
+- Kept the change narrowly focused on the shared overlay host stacking order instead of rewriting gizmo, HUD, or View toolbar ownership.
+- Reused the existing `ViewportWorkspaceHost` composition and corrected the single z-layer boundary where the Spaghetti overlay root sat below viewport chrome.
+- Preserved existing overlay pointer-event routing and viewport chrome structure.
+
+#### Summary of Implementation
+
+- Audited `ViewportWorkspaceHost.tsx` and the shared viewport CSS stack to confirm the Spaghetti overlay panel mounts before `ViewportOverlay` and `ViewToolbar`.
+- Raised `.ViewportSpaghettiOverlayRoot` in `src/app/theme/foundation/base.css` from `z-index: 20` to `z-index: 40` so the full Spaghetti overlay host now renders above the viewport chrome layer.
+- Verified the change with a full production build.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- In overlay mode, the Spaghetti editor now visually occludes the viewport gizmo, View toolbar, and HUD status cards instead of appearing beneath them.
+
+#### Verification Steps
+
+- Passed `npm.cmd run build`
+
 <!-- ENTRY 1777 -->
 
 ### [1777] - 2026-05-05 16:12 - `SP - Split Restore Memory - Meatball Editor View Support`

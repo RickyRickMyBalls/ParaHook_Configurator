@@ -115,8 +115,14 @@ const restoreGlyph = '\u29c9'
 const buildGlyph = '\u21bb'
 const popoutGlyph = '\u2197'
 
-const resolveFloatingWindowZIndex = (windowMode: string, zOrder: number): number =>
-  windowMode === 'maximized' ? maximizedFloatingWindowZIndexBase + zOrder : zOrder
+const resolveFloatingWindowZIndex = (
+  windowMode: string,
+  presentationMode: SpaghettiWindowPresentationMode,
+  zOrder: number,
+): number =>
+  windowMode === 'maximized' || presentationMode === 'overlay'
+    ? maximizedFloatingWindowZIndexBase + zOrder
+    : zOrder
 
 const shouldRelayPopoutConsoleKeyTarget = (target: EventTarget | null): boolean => {
   if (
@@ -3015,6 +3021,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                         bottom: 'auto',
                         zIndex: resolveFloatingWindowZIndex(
                           viewportState.windowMode,
+                          viewportState.presentationMode,
                           viewportState.viewport.zOrder,
                         ),
                         ...getWindowAppearanceStyle(viewportState.windowAppearance),
@@ -3225,6 +3232,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                           bottom: 'auto',
                           zIndex: resolveFloatingWindowZIndex(
                             viewportState.windowMode,
+                            viewportState.presentationMode,
                             viewportState.viewport.zOrder,
                           ),
                           ...getWindowAppearanceStyle(viewportState.windowAppearance),
