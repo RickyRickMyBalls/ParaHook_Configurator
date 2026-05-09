@@ -23,6 +23,20 @@ export {
   selectOrderedGraphDocuments,
 } from './selectGraphDocumentRuntime'
 export {
+  selectGraphOutputSurfaceByDocumentId,
+  selectGraphPreviewPreparationByDocumentId,
+  selectIsGraphDocumentInSharedViewerComposition,
+  selectResolvedGraphReceiveReferencesByDocumentId,
+  selectSharedViewerComposition,
+  selectSharedViewerCompositionGraphDocumentIds,
+  selectViewerTargetGraph,
+  selectViewerTargetGraphDocument,
+  selectViewerTargetGraphDocumentId,
+  selectViewerTargetGraphOutputSurface,
+  selectViewerTargetGraphPreviewPreparation,
+  selectViewerTargetGraphRuntime,
+} from './selectGraphViewerOutput'
+export {
   selectDiagnosticsVm,
   type DiagnosticsVm,
   type DiagnosticsVmItem,

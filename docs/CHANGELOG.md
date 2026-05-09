@@ -72,6 +72,46 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1805 -->
+
+### [1805] - 2026-05-09 14:45 - `Cleanup Gen3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction`
+
+<!-- ENTRY 1805 -->
+
+HUMAN SUMMARY: `This landed the second selector-owner split for \`useSpaghettiStore.ts\` by moving the viewer-target, shared-viewer, graph output-surface, resolved receive-reference, and preview-preparation selector seam into \`src/app/spaghetti/selectors/selectGraphViewerOutput.ts\` while keeping the public store exports stable. \`npm.cmd run build\` passes, the new focused selector tests pass, and the existing targeted store-read coverage for viewer target, shared viewer composition, graph output surfaces, and linked receive resolution still passes.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of widening into accepted-result, viewport, or workspace selector seams
+- moved only the approved `Phase 5.1.2` viewer/output selector cluster
+- left accepted-result selectors for `Phase 5.2` and viewport or workspace selectors for `Phase 5.3`
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/selectors/selectGraphViewerOutput.ts`
+- moved the viewer-target, shared-viewer, output-surface, resolved receive-reference, and preview-preparation selector cluster into that module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to import and re-export the moved selectors without changing the public store surface
+- added `src/app/spaghetti/selectors/selectGraphViewerOutput.test.ts`
+- updated `src/app/spaghetti/selectors/index.ts` and `src/app/spaghetti/selectors/index.test.ts` so the selectors barrel re-exports the new owner module
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/selectors/selectGraphViewerOutput.ts`
+- `src/app/spaghetti/selectors/selectGraphViewerOutput.test.ts`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/selectors/index.test.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal selector ownership and preserves the existing store export contract
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectGraphViewerOutput.test.ts src/app/spaghetti/selectors/index.test.ts`
+- `npx.cmd vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "viewer target follows focused viewport changes and viewport rebinding|shared viewer composition is explicitly authored by viewport actions and survives focus changes|removing the last shared viewer composition member clears the session|derives graph-owned output surfaces per graph and keeps them independent of viewer target changes|resolves linked receive references by explicit source graph and output ids|keeps linked receive resolution independent from graph labels, viewer target, and graph order|keeps missing linked source publications in an unresolved state and supports explicit removal"`
+
 <!-- ENTRY 1804 -->
 
 ### [1804] - 2026-05-09 13:57 - `Cleanup Gen3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction`

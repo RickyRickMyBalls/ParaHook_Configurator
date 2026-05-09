@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+25. 2026-05-09 14:45:09: Implemented `Gen 3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction`, added `src/app/spaghetti/selectors/selectGraphViewerOutput.ts` plus focused tests, rewired the moved viewer/output selector seam back through `useSpaghettiStore.ts`, and advanced the lane so `Phase 5.1 - Active Graph Runtime Selector Extraction` is now honestly complete while `Phase 5.2 - Accepted Result And Preview Selector Extraction` becomes the next approved implementation target.
+24. 2026-05-09 14:38:25: Tightened `Gen 3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` against the live post-`Phase 5.1.1` selector anchors, expanded the exact deferred selector list to include the shared-viewer helper seam plus `selectViewerTargetGraph(...)`, and locked the likely focused destination around one viewer/output selector module so the next implementation handoff stays Codex-sized and honest.
 23. 2026-05-09 13:57:53: Implemented `Gen 3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction`, added `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts` plus its focused tests, rewired the moved selector seam back through `useSpaghettiStore.ts`, and advanced the lane so `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` is now the next approved implementation target while the broader full-store OutputPreview drift remains unchanged.
 22. 2026-05-09 08:11:01: Prepared `Gen 3 - Cleanup 2 / Phase 5.1 - Active Graph Runtime Selector Extraction` for implementation by promoting the selector ladder into dedicated `##` phase sections, tightening the `Phase 5.1` parent around the live late-selector seam, and keeping `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` as the next explicit code-sized selector move while the broader output-surface and workspace read-model follow-ons remain separately owned.
 21. 2026-05-07 07:14:07: Tightened `Gen 3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction` against the live `useSpaghettiStore.ts` selector anchors, locked the likely `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts` destination module plus focused test target, and advanced the lane so the next implementation handoff is now explicit enough for one clean Codex pass
@@ -299,9 +301,9 @@ The intended outcome is:
 
 ### `Gen 3 - Cleanup 2 / Phase 5.1.2`
 
-- [ ] advance `Cleanup-Gen3-HLG-1`
-- [ ] advance `Cleanup-Gen3-HLG-3`
-- [ ] extract the graph output, preview-preparation, and viewer-target runtime selector seam after the base graph document and runtime selectors are isolated
+- [x] advance `Cleanup-Gen3-HLG-1`
+- [x] advance `Cleanup-Gen3-HLG-3`
+- [x] extract the graph output, preview-preparation, and viewer-target runtime selector seam after the base graph document and runtime selectors are isolated
 
 ### `Gen 3 - Cleanup 2 / Phase 5.2`
 
@@ -353,9 +355,9 @@ Current prep decision:
 - `Phase 4.7 - Geometry Sketch Component Edit Action Extraction` is now complete
 - the full sketch-session action lane is now honestly closed
 - the broad `Phase 5.1` selector concern is now intentionally narrowed
-- `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` is now complete
-- `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` is now the next approved implementation target
-- `Phase 5.1` through `Phase 6.2` remain the approved small-phase ladder for the later selector, facade, and handoff work
+- `Phase 5.1 - Active Graph Runtime Selector Extraction` is now honestly complete
+- `Phase 5.2 - Accepted Result And Preview Selector Extraction` is now the next approved implementation target
+- `Phase 5.2` through `Phase 6.2` remain the approved small-phase ladder for the later selector, facade, and handoff work
 
 Why:
 - the top runtime type surface is now grounded at `GraphCompileBuildState` around `useSpaghettiStore.ts:225`, `AcceptedBuildImpactSnapshot` around `useSpaghettiStore.ts:253`, `StagedAuthoritativePreviewResult` around `useSpaghettiStore.ts:264`, and `GraphRuntimeState` around `useSpaghettiStore.ts:277`
@@ -1190,7 +1192,7 @@ Why:
 - `Phase 5.2 - Accepted Result And Preview Selector Extraction` is the second selector slice
 - `Phase 5.3 - Editor Viewport And Workspace Selector Extraction` is the final selector slice
 
-## [ ] `Gen 3 - Cleanup 2 / Phase 5.1` - `Active Graph Runtime Selector Extraction`
+## [x] `Gen 3 - Cleanup 2 / Phase 5.1` - `Active Graph Runtime Selector Extraction`
 
 ### Phase 5.1 Summary
 
@@ -1240,13 +1242,14 @@ Why:
 
 #### Done Shape
 - `Phase 5.1` is honestly complete only when both `Phase 5.1.1` and `Phase 5.1.2` are landed without widening into `Phase 5.2`
-- until then, `Phase 5.1.2` remains the next approved implementation target
+- that condition is now met, so `Phase 5.2` becomes the next approved implementation target
 
 ### Phase 5.1 Narrowing Decision
 
 - do not dispatch `Phase 5.1` as one pass even though it is now implementation-ready as a parent lane
 - `Phase 5.1.1` is now complete as the first explicit implementation slice
-- `Phase 5.1.2` remains the follow-up for the broader output-surface, preview-preparation, and viewer-target selector seam
+- `Phase 5.1.2` is now complete as the second explicit implementation slice
+- `Phase 5.2` is now the follow-up for the accepted-result and preview selector seam
 
 ## [x] `Gen 3 - Cleanup 2 / Phase 5.1.1` - `Graph Document And Runtime Selector Extraction`
 
@@ -1347,7 +1350,7 @@ Why:
 - `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` is now the next implementation target
 - the first graph-document and active-runtime selector seam now has a dedicated `selectors/*` owner while the broader projection selectors remain deliberately deferred
 
-## [ ] `Gen 3 - Cleanup 2 / Phase 5.1.2` - `Graph Output And Viewer Target Selector Extraction`
+## [x] `Gen 3 - Cleanup 2 / Phase 5.1.2` - `Graph Output And Viewer Target Selector Extraction`
 
 ### Phase 5.1.2 Summary
 
@@ -1366,27 +1369,47 @@ Why:
 
 #### Current Live Read
 - the exact selectors deliberately deferred to `Phase 5.1.2` start at:
-  - `selectViewerTargetGraphDocumentId(...)` at `useSpaghettiStore.ts:3721`
-  - `selectSharedViewerComposition(...)` at `useSpaghettiStore.ts:3725`
-  - `selectViewerTargetGraphDocument(...)` at `useSpaghettiStore.ts:3739`
-  - `selectViewerTargetGraphRuntime(...)` at `useSpaghettiStore.ts:3771`
-  - `selectGraphPreviewPreparationByDocumentId(...)` at `useSpaghettiStore.ts:3810`
-  - `selectGraphOutputSurfaceByDocumentId(...)` at `useSpaghettiStore.ts:3816`
-  - `selectResolvedGraphReceiveReferencesByDocumentId(...)` at `useSpaghettiStore.ts:3822`
-  - `selectViewerTargetGraphOutputSurface(...)` at `useSpaghettiStore.ts:3845`
-  - `selectViewerTargetGraphPreviewPreparation(...)` at `useSpaghettiStore.ts:3850`
+  - `selectViewerTargetGraphDocumentId(...)` at `useSpaghettiStore.ts:3694`
+  - `selectSharedViewerComposition(...)` at `useSpaghettiStore.ts:3698`
+  - `selectSharedViewerCompositionGraphDocumentIds(...)` at `useSpaghettiStore.ts:3702`
+  - `selectIsGraphDocumentInSharedViewerComposition(...)` at `useSpaghettiStore.ts:3708`
+  - `selectViewerTargetGraphDocument(...)` at `useSpaghettiStore.ts:3712`
+  - `selectViewerTargetGraph(...)` at `useSpaghettiStore.ts:3718`
+  - `selectViewerTargetGraphRuntime(...)` at `useSpaghettiStore.ts:3723`
+  - `selectGraphPreviewPreparationByDocumentId(...)` at `useSpaghettiStore.ts:3751`
+  - `selectGraphOutputSurfaceByDocumentId(...)` at `useSpaghettiStore.ts:3757`
+  - `selectResolvedGraphReceiveReferencesByDocumentId(...)` at `useSpaghettiStore.ts:3763`
+  - `selectViewerTargetGraphOutputSurface(...)` at `useSpaghettiStore.ts:3786`
+  - `selectViewerTargetGraphPreviewPreparation(...)` at `useSpaghettiStore.ts:3791`
+- the remaining seam now sits immediately after the landed `selectGraphDocumentRuntime.ts` re-export block, so the cleanest next move is still one focused viewer/output selector module before any accepted-result selectors begin
 
 ### Phase 5.1.2 Implementation Spec
 
 #### Exact First Code Cut
 - move only the deferred viewer-target, graph-output, and preview-preparation selector seam after `Phase 5.1.1` is landed
-- keep the moved selectors in one or more focused selector files under `src/app/spaghetti/selectors/*`
+- move exactly this deferred selector cluster:
+  - `selectViewerTargetGraphDocumentId(...)`
+  - `selectSharedViewerComposition(...)`
+  - `selectSharedViewerCompositionGraphDocumentIds(...)`
+  - `selectIsGraphDocumentInSharedViewerComposition(...)`
+  - `selectViewerTargetGraphDocument(...)`
+  - `selectViewerTargetGraph(...)`
+  - `selectViewerTargetGraphRuntime(...)`
+  - `selectGraphPreviewPreparationByDocumentId(...)`
+  - `selectGraphOutputSurfaceByDocumentId(...)`
+  - `selectResolvedGraphReceiveReferencesByDocumentId(...)`
+  - `selectViewerTargetGraphOutputSurface(...)`
+  - `selectViewerTargetGraphPreviewPreparation(...)`
+- keep the moved selectors in one focused selector file first, with `src/app/spaghetti/selectors/selectGraphViewerOutput.ts` as the likely destination unless the implementation pass proves a sharper name from the final ownership read
 - preserve the same public read surface through `useSpaghettiStore.ts`
 
 #### Likely Files
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
-- `src/app/spaghetti/selectors/*`
-- focused selector tests for viewer-target and output-surface reads
+- `src/app/spaghetti/selectors/selectGraphViewerOutput.ts`
+- `src/app/spaghetti/selectors/selectGraphViewerOutput.test.ts`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/selectors/index.test.ts`
+- focused selector tests plus the existing viewer-target and output-surface reads in `src/app/spaghetti/store/useSpaghettiStore.test.ts`
 
 #### No-Widening Rule
 - do not absorb accepted-result selectors from `Phase 5.2`
@@ -1394,12 +1417,37 @@ Why:
 - do not widen into runtime actions, overlay, or viewer implementation work
 
 #### Verification Shape
-- focused selector tests still pass for viewer-target and output-surface reads
+- `npm.cmd run build` passes
+- focused selector tests pass for viewer-target, shared-viewer, output-surface, resolved receive-reference, and preview-preparation reads
+- the existing `useSpaghettiStore.test.ts` reads that cover viewer-target ownership, shared-viewer composition, graph output surfaces, and resolved receive references still pass
 - output-surface, preview-preparation, and viewer-target resolutions still match the same public store contract
 
 #### Done Shape
 - the broader output-surface and viewer-target selector seam is out of the root file
 - `Phase 5.2` becomes the next honest selector-lane follow-up
+
+### Phase 5.1.2 Result
+
+#### Landed Extraction
+
+- added `src/app/spaghetti/selectors/selectGraphViewerOutput.ts` as the focused selector-owner module for the viewer-target, shared-viewer, output-surface, resolved receive-reference, and preview-preparation seam
+- moved `selectViewerTargetGraphDocumentId(...)`, `selectSharedViewerComposition(...)`, `selectSharedViewerCompositionGraphDocumentIds(...)`, `selectIsGraphDocumentInSharedViewerComposition(...)`, `selectViewerTargetGraphDocument(...)`, `selectViewerTargetGraph(...)`, `selectViewerTargetGraphRuntime(...)`, `selectGraphPreviewPreparationByDocumentId(...)`, `selectGraphOutputSurfaceByDocumentId(...)`, `selectResolvedGraphReceiveReferencesByDocumentId(...)`, `selectViewerTargetGraphOutputSurface(...)`, and `selectViewerTargetGraphPreviewPreparation(...)` into that module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to import and re-export the moved selector seam so the public store surface stayed stable while the root file stopped owning the broader viewer/output selector band inline
+- added `src/app/spaghetti/selectors/selectGraphViewerOutput.test.ts` and extended the selector barrel in `src/app/spaghetti/selectors/index.ts` plus `src/app/spaghetti/selectors/index.test.ts`
+- left accepted-result selectors, viewport selectors, workspace selectors, and runtime action bodies in `src/app/spaghetti/store/useSpaghettiStore.ts` because they belong to `Phase 5.2` through later follow-up lanes
+
+#### Verification Result
+
+- `npm.cmd run build` passed
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectGraphViewerOutput.test.ts src/app/spaghetti/selectors/index.test.ts` passed
+- `npx.cmd vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "viewer target follows focused viewport changes and viewport rebinding|shared viewer composition is explicitly authored by viewport actions and survives focus changes|removing the last shared viewer composition member clears the session|derives graph-owned output surfaces per graph and keeps them independent of viewer target changes|resolves linked receive references by explicit source graph and output ids|keeps linked receive resolution independent from graph labels, viewer target, and graph order|keeps missing linked source publications in an unresolved state and supports explicit removal"` passed
+
+#### Phase 5.1.2 Close Read
+
+- `Phase 5.1.2` is now honestly complete
+- `Phase 5.1 - Active Graph Runtime Selector Extraction` is now honestly complete as a parent lane
+- `Phase 5.2 - Accepted Result And Preview Selector Extraction` is now the next implementation target
+- the root store no longer owns the first graph-document/runtime seam or the broader viewer/output selector seam inline
 
 ## [ ] `Gen 3 - Cleanup 2 / Phase 5.2` - `Accepted Result And Preview Selector Extraction`
 

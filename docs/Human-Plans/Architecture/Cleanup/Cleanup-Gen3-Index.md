@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+46. 2026-05-09 14:45:09: Implemented `Gen 3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction`, added `src/app/spaghetti/selectors/selectGraphViewerOutput.ts`, and advanced the generation read so the full `Phase 5.1` selector lane is now landed while `Phase 5.2 - Accepted Result And Preview Selector Extraction` becomes the next explicit implementation target.
+45. 2026-05-09 14:38:25: Tightened `Gen 3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` against the live post-`Phase 5.1.1` selector anchors, expanded the deferred cluster to include the shared-viewer helper seam plus `selectViewerTargetGraph(...)`, and locked the likely first destination around one focused viewer/output selector module so the next implementation handoff stays explicit.
 44. 2026-05-09 13:57:53: Implemented `Gen 3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction`, added `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts`, and advanced the generation read so the first selector-owner module is now landed while `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` becomes the next explicit implementation target.
 43. 2026-05-09 08:11:01: Prepared `Gen 3 - Cleanup 2 / Phase 5.1 - Active Graph Runtime Selector Extraction` in the family doc by promoting the selector ladder into dedicated phase sections, keeping `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` as the next explicit implementation target, and leaving the broader output-surface plus workspace read-model follow-ons separately owned.
 42. 2026-05-07 07:14:07: Tightened `Gen 3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction` against the live `useSpaghettiStore.ts` selector anchors, locked the likely `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts` destination module plus focused test target, and advanced the generation read so the next implementation handoff is now explicit enough for one clean Codex pass
@@ -177,11 +179,12 @@ Status:
 - `Phase 4.7 - Geometry Sketch Component Edit Action Extraction` is now complete
 - the full sketch-session action lane is now honestly closed
 - the broad `Phase 5.1` selector concern is now intentionally narrowed
-- `Phase 5.1 - Active Graph Runtime Selector Extraction` is now prepared as a dedicated parent selector lane with its own `##` section in the family doc
+- `Phase 5.1 - Active Graph Runtime Selector Extraction` is now complete as the first full selector-lane parent
 - `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` is now complete
-- `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` is now the next implementation target
-- the first selector handoff is now landed in `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts`, while the broader viewer-target, output-surface, and preview-preparation projections remain in `useSpaghettiStore.ts` for the next follow-up slice
-- `Phase 5.1` through `Phase 5.3` now own the selector lane one cluster at a time
+- `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` is now complete
+- the first two selector handoffs are now landed in `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts` and `src/app/spaghetti/selectors/selectGraphViewerOutput.ts`
+- `Phase 5.2 - Accepted Result And Preview Selector Extraction` is now the next implementation target
+- `Phase 5.2` through `Phase 5.3` now own the remaining selector lane one cluster at a time
 - `Phase 6.1` through `Phase 6.2` now own the final facade shrink and closeout handoff
 
 ## [ ] `Gen 3 - Cleanup 3` - `ViewportOverlay Runtime Surface Decomposition`
