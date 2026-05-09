@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-05-07 15:10:23: Updated the later Settings ladder so `Phase 4 - General and Workspace controls` now explicitly includes a user-facing slider for shared workspace fillet radius, giving the `Workspace 9` corner shell one Settings-owned visual preference source instead of a permanent hard-coded radius.
+9. 2026-05-07 15:06:41: Updated the live Settings-1 ladder guidance so the core owner-backed control phases stay here while the new cross-mode `Settings-2` family can own the dedicated `Key Bindings` shortcut-reference section.
 1. 2026-05-02 08:35:43: Created the first Settings family phase doc so the workspace can start with the Unreal-style left-rail and right-detail shell instead of widening directly into specific setting semantics.
 2. 2026-05-02 08:35:43: Tightened the first Settings slice into an implementation-ready shell-and-router pass with explicit first-code-cut, likely-file, and verification guidance.
 3. 2026-05-02 08:54:16: Marked Settings-1 complete after the shell, section rail, All-first behavior, and right-pane projection shipped, then handed the remaining work to later owner-backed Settings phases.
@@ -92,6 +94,7 @@ Suggested initial sections:
 - `Console`
 - `Appearance`
 - `Input`
+- `Key Bindings`
 - `Advanced`
 
 Important rule:
@@ -102,12 +105,12 @@ Important rule:
 
 ### Phase Ladder Direction
 
-Settings should stay in one roadmap doc, but the editable work should still advance in clear phases.
+The core owner-backed settings controls can stay in this roadmap doc, but cross-mode surfaces may split into their own family phase when that keeps ownership clearer.
 
 Suggested internal ladder after the shipped shell:
 - `Phase 2` - Spaghetti Editor window default settings
 - `Phase 3` - float-window `I` menu settings and per-window defaults
-- `Phase 4` - General and Workspace controls
+- `Phase 4` - General and Workspace controls, including shared workspace fillet radius
 - `Phase 5` - Viewport and Appearance controls
 - `Phase 6` - Browser, Console, and other shell-owned surface controls
 - `Phase 7` - Storage, Input, and Advanced controls plus any remaining owner-backed cleanup
@@ -116,6 +119,8 @@ Important rule:
 - each phase should stay small enough to implement and verify cleanly
 - prefer owner-backed control groups over arbitrary visual section splits
 - if a section still has no real owner, keep it read-only until a later phase gives it one
+- if a cross-mode section needs its own planning lane, split it into a separate `Settings-N` family doc instead of overloading this ladder
+- shared workspace-corner fillet radius should count as a Settings-owned workspace visual preference, not as ad hoc local state in the `Workspace 9` pane shell
 
 ### Ownership Boundary
 
@@ -510,7 +515,7 @@ Finish the owner-backed Settings ladder and resolve the remaining section rows.
 
 - the remaining sections are either editable or honestly deferred
 - the Settings workspace no longer feels read-only as a whole
-- the roadmap has a complete internal ladder without splitting the family again
+- the roadmap has a complete internal ladder for the owner-backed control work, while later cross-mode follow-ons can split into their own Settings family phase when needed
 
 
 ### Phase 3 Summary

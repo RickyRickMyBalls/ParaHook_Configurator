@@ -3,6 +3,28 @@
 ## Doc Header
 
 ### Doc History
+44. 2026-05-09 13:57:53: Implemented `Gen 3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction`, added `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts`, and advanced the generation read so the first selector-owner module is now landed while `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` becomes the next explicit implementation target.
+43. 2026-05-09 08:11:01: Prepared `Gen 3 - Cleanup 2 / Phase 5.1 - Active Graph Runtime Selector Extraction` in the family doc by promoting the selector ladder into dedicated phase sections, keeping `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` as the next explicit implementation target, and leaving the broader output-surface plus workspace read-model follow-ons separately owned.
+42. 2026-05-07 07:14:07: Tightened `Gen 3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction` against the live `useSpaghettiStore.ts` selector anchors, locked the likely `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts` destination module plus focused test target, and advanced the generation read so the next implementation handoff is now explicit enough for one clean Codex pass
+41. 2026-05-06 09:09:09: Narrowed the remaining `Gen 3 - Cleanup 2 / Phase 5.1` selector lane into smaller Codex-sized follow-up passes by splitting it into `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` and `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` before more implementation starts
+40. 2026-05-06 09:09:09: Implemented `Gen 3 - Cleanup 2 / Phase 4.7 - Geometry Sketch Component Edit Action Extraction`, added `src/app/spaghetti/store/sketch/geometrySketchComponentEditActions.ts`, and advanced the generation read so the full sketch-session action lane is now landed while `Phase 5.1 - Active Graph Runtime Selector Extraction` becomes the next explicit implementation target
+39. 2026-05-06 09:04:34: Implemented `Gen 3 - Cleanup 2 / Phase 4.6 - Geometry Sketch Selection Action Extraction`, added `src/app/spaghetti/store/sketch/geometrySketchSelectionActions.ts`, and advanced the generation read so the geometry-sketch selection and delete seam is now landed while `Phase 4.7 - Geometry Sketch Component Edit Action Extraction` becomes the next explicit implementation target
+38. 2026-05-06 09:00:58: Implemented `Gen 3 - Cleanup 2 / Phase 4.5.2 - Draw Draft Commit And Undo Extraction`, added `src/app/spaghetti/store/sketch/geometrySketchDrawDraftActions.ts`, and advanced the generation read so the geometry-sketch draw draft commit and undo seam is now landed while `Phase 4.6 - Geometry Sketch Selection Action Extraction` becomes the next explicit implementation target
+37. 2026-05-05 22:26:55: Implemented `Gen 3 - Cleanup 2 / Phase 4.5.1 - Draw Session Control Extraction`, added `src/app/spaghetti/store/sketch/geometrySketchDrawSessionControl.ts`, and advanced the generation read so the geometry-sketch draw session control seam is now landed while `Phase 4.5.2 - Draw Draft Commit And Undo Extraction` becomes the next explicit implementation target
+36. 2026-05-05 22:26:55: Narrowed the remaining `Gen 3 - Cleanup 2 / Phase 4.5` draw-session lane into smaller Codex-sized follow-up passes by splitting it into `Phase 4.5.1 - Draw Session Control Extraction` and `Phase 4.5.2 - Draw Draft Commit And Undo Extraction` before more implementation starts
+35. 2026-05-05 22:26:55: Implemented `Gen 3 - Cleanup 2 / Phase 4.4 - Geometry Sketch Session Lifecycle Extraction`, added `src/app/spaghetti/store/sketch/geometrySketchSessionLifecycle.ts`, and advanced the generation read so the geometry-sketch session lifecycle and history-scrub seam is now landed while `Phase 4.5 - Geometry Sketch Draw Draft Action Extraction` becomes the next explicit implementation target
+34. 2026-05-05 22:14:48: Implemented `Gen 3 - Cleanup 2 / Phase 4.3 - Geometry Sketch Plane Graph Write Extraction`, added `src/app/spaghetti/store/sketch/geometrySketchPlaneGraphWrite.ts`, and advanced the generation read so the direct geometry-sketch plane graph-write seam is now landed while `Phase 4.4 - Geometry Sketch Session Lifecycle Extraction` becomes the next explicit implementation target
+33. 2026-05-05 21:42:49: Implemented `Gen 3 - Cleanup 2 / Phase 4.2 - Sketch Plane Pick Draft Transform Extraction`, added `src/app/spaghetti/store/sketch/sketchPlanePickDraftTransform.ts`, and advanced the generation read so the sketch-plane draft-transform setter seam is now landed while `Phase 4.3 - Geometry Sketch Plane Graph Write Extraction` becomes the next explicit implementation target
+32. 2026-05-05 21:33:34: Implemented `Gen 3 - Cleanup 2 / Phase 4.1 - Sketch Plane Pick Command Session Extraction`, added `src/app/spaghetti/store/sketch/sketchPlaneCommandSession.ts`, and advanced the generation read so the first sketch-plane command-routing seam is now landed while `Phase 4.2 - Sketch Plane Pick Draft Transform Extraction` becomes the next explicit implementation target
+31. 2026-05-05 21:14:30: Implemented `Gen 3 - Cleanup 2 / Phase 3.4 - Graph Node History Adapter Extraction`, added `src/app/spaghetti/store/history/graphNodeHistoryCommitAdapter.ts`, and advanced the generation read so the history lane is now fully closed while the broad `Phase 4` sketch-session concern is further narrowed into `Phase 4.1` through `Phase 4.7` before more implementation starts
+30. 2026-05-05 21:14:30: Implemented `Gen 3 - Cleanup 2 / Phase 3.3 - Part Feature History Adapter Extraction`, added `src/app/spaghetti/store/history/partFeatureHistoryCommitAdapter.ts`, and advanced the generation read so the part-feature-specific history adapter seam is now landed while `Phase 3.4 - Graph Node History Adapter Extraction` becomes the next explicit implementation target
+29. 2026-05-05 21:07:16: Narrowed the remaining `Gen 3 - Cleanup 2` ladder into smaller Codex-sized slices by splitting the old `Phase 3.3` history seam into separate part-feature and graph-node adapter passes, then pre-splitting the later sketch-session, selector, and closeout work into `Phase 4.1` through `Phase 6.2` before more implementation starts
+28. 2026-05-05 21:02:02: Implemented `Gen 3 - Cleanup 2 / Phase 3.2 - Geometry Sketch Commit Adapter Extraction`, added `src/app/spaghetti/store/history/geometrySketchHistoryCommitAdapter.ts`, and advanced the generation read so the geometry-sketch-specific history adapter seam is now landed while `Phase 3.3 - Remaining Graph-History Commit Adapter Extraction` becomes the next explicit implementation target
+27. 2026-05-05 20:54:51: Narrowed the remaining `Gen 3 - Cleanup 2 / Phase 3.2` handoff by naming `Phase 3.2 - Geometry Sketch Commit Adapter Extraction` as the next explicit implementation target, keeping the broader graph-history adapter concern intact while deferring the part-feature and graph-node adapter seam to later `Phase 3.x` follow-up work
+26. 2026-05-05 20:54:51: Implemented `Gen 3 - Cleanup 2 / Phase 3.1 - Geometry Sketch History Helper Extraction`, added `src/app/spaghetti/store/history/geometrySketchHistory.ts`, and advanced the generation read so the pure sketch-history owner-area seam is now landed while `Phase 3.2 - Graph-History Commit Adapter Extraction` becomes the next explicit implementation target
+25. 2026-05-05 20:43:59: Narrowed the broad `Gen 3 - Cleanup 2 / Phase 3` history lane by adding `Phase 3.1 - Geometry Sketch History Helper Extraction` as the next explicit implementation target, keeping the overall history concern intact while deferring the live graph-history commit adapters to later `Phase 3.x` follow-up work
+24. 2026-05-05 20:43:59: Implemented `Gen 3 - Cleanup 2 / Phase 2 - Pure Types And Accepted Runtime Helper Extraction`, added `src/app/spaghetti/store/graphRuntime/acceptedRuntime.ts`, and advanced the generation read so the accepted-runtime owner-area seam is now landed while `Phase 3 - Graph Edit And History Helper Extraction` becomes the next explicit implementation target
+23. 2026-05-05 20:30:15: Tightened `Gen 3 - Cleanup 2 / Phase 1 - Owner Map And Migration Rules Lock` against the live `useSpaghettiStore.ts` seam anchors, confirmed the first graph-runtime, history, sketch, and selector module targets, and advanced the generation read so `Phase 1` is now complete while `Phase 2 - Pure Types And Accepted Runtime Helper Extraction` becomes the next explicit implementation target
 22. 2026-05-05 20:30:15: Added `Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`, `Future/Gen3 - Cleanup 3 - ViewportOverlay Runtime Surface Decomposition.md`, and `Future/Gen3 - Cleanup 4 - Viewer Runtime Boundary Decomposition.md`, then refreshed this generation index so the post-`useAppStore` Gen3 ladder now has three explicit small-phase family docs with `useSpaghettiStore.ts` promoted from recommendation-only to the next concrete lane
 21. 2026-05-05 20:20:44: Closed `Gen 3 - Cleanup 1 / Phase 6.2 - Gen3 Closeout And Next Target Handoff`, marked the `useAppStore` decomposition lane honestly complete, recorded the final shipped owner-pattern plus the deliberate keep-in-root seams, and left the next Gen3 step as a recommendation-only read with `useSpaghettiStore.ts` named as the strongest later sink candidate instead of opening a new lane early
 20. 2026-05-05 20:18:17: Implemented `Gen 3 - Cleanup 1 / Phase 6.1 - Root Facade Shrink`, added `src/app/store/builds/appStoreBuildFacade.ts` plus `src/app/store/storeRecordUtils.ts`, and advanced the generation read so the root facade is now honestly shrunk while `Phase 6.2 - Gen3 Closeout And Next Target Handoff` becomes the next explicit prepped implementation target
@@ -136,8 +158,31 @@ Planning doc:
 - `Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
 
 Status:
-- `Phase 1 - Owner Map And Migration Rules Lock` is the next implementation-ready prep target
-- `Phase 2` through `Phase 6` are sequenced, visible, and intentionally small enough for one-pass Codex implementation once each prior slice is complete
+- `Phase 1 - Owner Map And Migration Rules Lock` is now complete
+- `Phase 2 - Pure Types And Accepted Runtime Helper Extraction` is now complete
+- the broad `Phase 3` history concern is now intentionally narrowed
+- `Phase 3.1 - Geometry Sketch History Helper Extraction` is now complete
+- `Phase 3.2 - Geometry Sketch Commit Adapter Extraction` is now complete
+- `Phase 3.3 - Part Feature History Adapter Extraction` is now complete
+- `Phase 3.4 - Graph Node History Adapter Extraction` is now complete
+- the full `Phase 3` history lane is now honestly closed
+- `Phase 4.1 - Sketch Plane Pick Command Session Extraction` is now complete
+- `Phase 4.2 - Sketch Plane Pick Draft Transform Extraction` is now complete
+- `Phase 4.3 - Geometry Sketch Plane Graph Write Extraction` is now complete
+- `Phase 4.4 - Geometry Sketch Session Lifecycle Extraction` is now complete
+- the broad `Phase 4.5` draw-session concern is now intentionally narrowed
+- `Phase 4.5.1 - Draw Session Control Extraction` is now complete
+- `Phase 4.5.2 - Draw Draft Commit And Undo Extraction` is now complete
+- `Phase 4.6 - Geometry Sketch Selection Action Extraction` is now complete
+- `Phase 4.7 - Geometry Sketch Component Edit Action Extraction` is now complete
+- the full sketch-session action lane is now honestly closed
+- the broad `Phase 5.1` selector concern is now intentionally narrowed
+- `Phase 5.1 - Active Graph Runtime Selector Extraction` is now prepared as a dedicated parent selector lane with its own `##` section in the family doc
+- `Phase 5.1.1 - Graph Document And Runtime Selector Extraction` is now complete
+- `Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction` is now the next implementation target
+- the first selector handoff is now landed in `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts`, while the broader viewer-target, output-surface, and preview-preparation projections remain in `useSpaghettiStore.ts` for the next follow-up slice
+- `Phase 5.1` through `Phase 5.3` now own the selector lane one cluster at a time
+- `Phase 6.1` through `Phase 6.2` now own the final facade shrink and closeout handoff
 
 ## [ ] `Gen 3 - Cleanup 3` - `ViewportOverlay Runtime Surface Decomposition`
 
@@ -167,6 +212,7 @@ Status:
   - graph runtime and accepted build results remain `useSpaghettiStore` truth
   - workspace layout remains `useWorkspaceStore` truth
 - the next concrete sink is now `useSpaghettiStore.ts`, which still concentrates graph-runtime truth, accepted build/result shaping, graph-edit history helpers, sketch sessions, selectors, and workspace-facing read-model seams in one file
+- the first approved extraction inside that sink is now the accepted-runtime type and helper seam under a new `graphRuntime/*` owner area, while history, sketch-session, and selector moves remain deliberately deferred to later phases
 - `ViewportOverlay.tsx` remains the strongest queued UI-side sink after the store lane because it still mixes helper bulk, sketch VMs, store wiring, and multiple panel surfaces in one component
 - `Viewer.ts` remains the strongest queued viewer-runtime sink after the overlay lane because it still mixes camera, transform, sketch, workspace-selection, and lifecycle subsystems inline
 - the generation now has three visible post-`useAppStore` family docs whose phases are intentionally small enough for one Codex pass each instead of one vague later cleanup blob

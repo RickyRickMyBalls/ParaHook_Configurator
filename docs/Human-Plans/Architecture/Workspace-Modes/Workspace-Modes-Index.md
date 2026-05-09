@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+103. 2026-05-07 15:47:19: Implemented and closed `Workspace-9 / Phase 1 - Corner Hotspot And Filleted Pane Shell`, refreshed the `Workspace 9` family read with the shipped divider-adjacent corner-hotspot plus filleted no-padding pane-shell result, and advanced the active next implementation-ready handoff to `Workspace-9 / Phase 2 - Gesture Session State And Deadzone Entry`.
+102. 2026-05-07 15:10:23: Updated the open `Workspace 9` and `Settings` family planning so the new filleted-corner split lane now explicitly leaves room for a user-adjustable workspace fillet radius, with the control routed into the Settings workspace as an owner-backed slider instead of hard-coding one permanent corner shape.
+101. 2026-05-07 15:06:56: Tightened the new `Workspace 9` family phase by prepping `Workspace-9 / Phase 1 - Corner Hotspot And Filleted Pane Shell` for implementation, grounding the first code cut against the live `ViewportSplitLayout` / `ViewportSplitPane` seams, the current `ViewportSplitPane--editor` padding, the likely shared-corner CSS hooks, and the no-widening plus verification rules needed before gesture-state work starts.
+100. 2026-05-07 15:03:08: Added the new planned `Workspace 9 - Filleted Corner Split Drag Authoring` family phase plus its dedicated future doc so the workspace ladder now captures Blender-style corner-triggered split creation, dominant-axis orientation picking, live drag-sized preview authoring, and the no-padding filleted area polish as one explicit post-`Workspace 8` follow-on instead of leaving that interaction only in chat notes.
 98. 2026-04-30 22:07:41: Added the new workspace-family home `Workspaces/Edit-History/Edit-History-Vision.md` plus `Workspaces/Edit-History/Edit-History-Gen1-Index.md`, refreshing this workspace umbrella so the Edit History reader is tracked as a workspace surface while the broader Edit-History architecture family keeps canonical undo/redo ownership.
 99. 2026-05-02 08:35:43: Added the new workspace-family home `Workspaces/Settings/Settings-Vision.md` plus `Workspaces/Settings/Settings-Gen1-Index.md`, and created the first `Settings-1` future phase doc so the Unreal-style settings workspace now has a dedicated left-rail/right-pane planning home beside the other active workspace surfaces.
 98. 2026-04-30 20:14:30: Moved the stale shipped workspace records `Workspace 7.5-3`, `Workspace 7.5-6`, `Workspace 7.5-7A`, `Workspace 7.5-8`, `Workspace 7.5-13`, and `Workspace 7.5-16` from `Future/` into `Shipped/` after reconciling them against the existing changelog trail, leaving only genuinely open or closer-review workspace planning docs in the future lane.
@@ -990,7 +994,7 @@ The right mental model is:
   - dedicated home for the Tony Hawk-style full-assembly carousel workspace direction, including centered XR and ADV starting-assembly selection, idle turntable presentation, left/right assembly switching, and honest planned states for heavy preview, builder load, and compatibility behavior without turning Catalog or Model Viewport into the builder owner
 
 
-## Phases
+## Family Phases
 
 ### [x] Workspace 0.1 - Codebase Research And Implementation Audit
 #### Header
@@ -1507,6 +1511,8 @@ Current source doc:
 - `Workspace 7.5-16` is now shipped as the Console Workspace Modes root-entry, viewport-picker, action-menu, and later-surface adoption closeout
 - `Workspace 7.5-17` is now shipped as the Dashboard/Notepad workspace-surface onboarding closeout, with Dashboard, Notepad, and the first sticky-note Dashboard widget all landed through the existing slot, detach, redock, and persistence seams
 - `Workspace 8` should then lock Browser/project-content render truth so every resolved published object across all project graphs renders by default once it exists in Browser, while explicit graph/object visibility becomes the honest user control for turning that published content off
+- `Workspace 9` should then turn the exposed filleted viewport corners into Blender-style split-authoring hotspots so one click-hold-drag from an empty corner can preview a new split, pick vertical versus horizontal by dominant absolute pointer movement, size the new pane live during the hold, and only commit the new viewport on pointer release
+- the `Workspace 9` pane shell should also leave room for a user-controlled fillet radius instead of baking one permanent corner size into the workspace visuals
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
@@ -1519,6 +1525,7 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7a-Phase 2d.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-9 - Spaghetti Presentation Mode Truth.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/workspace7-featurestocarry.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace-Cleanup-Task-Stack.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
@@ -1599,3 +1606,33 @@ Current source doc:
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+
+### [ ] Workspace 9 - Filleted Corner Split Drag Authoring
+#### Header
+- add Blender-style split creation from exposed filleted viewport corners instead of requiring only existing menu or edge-entry routes
+- let click-hold-drag from an empty fillet corner preview and size a new split live before the new viewport becomes real
+- choose vertical versus horizontal split orientation by dominant absolute `x` versus `y` movement so the user can switch direction naturally during the drag
+
+#### Forward read
+- `Workspace 9` should treat the exposed filleted corner of a viewport pane as a new split-authoring hotspot, not just decoration
+- the visible fillet radius should be able to come from a user-facing workspace setting instead of one hard-coded theme constant
+- clicking and holding an empty corner should start a temporary split-authoring gesture instead of immediately mutating the workspace tree
+- while the pointer is still held down, the workspace should show a live preview of the new divider position and the would-be second pane size
+- vertical versus horizontal orientation should be chosen from the larger absolute pointer travel:
+  - higher absolute `x` movement means a vertical divider split
+  - higher absolute `y` movement means a horizontal divider split
+  - sign should not matter because the user may drag left, right, up, or down from that corner
+- the interaction should stay easy to switch during the gesture, so the preview should not hard-lock to one axis too early
+- pointer release should be the commit point:
+  - if the gesture crossed the minimum split threshold, create the real viewport split and keep the resulting ratio
+  - if the gesture stayed under threshold, cancel without mutating the tree
+- the visual treatment should move toward Blender's tighter area language:
+  - split panes should read with filleted corners
+  - pane content should not keep extra padding around those edges
+  - the corner hotspot should feel like part of the pane frame instead of a separate floating widget
+- divider resizing should keep reusing the already-landed split-ratio path instead of inventing a second resize owner
+- `Workspace-9 / Phase 1 - Corner Hotspot And Filleted Pane Shell` is now shipped for the shared workspace tree with divider-adjacent corner hotspots, parameterized fillet radius styling, and a non-mutating corner `pointerdown` entry seam
+- `Workspace-9 / Phase 2 - Gesture Session State And Deadzone Entry` is now the active next implementation-ready cut
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`

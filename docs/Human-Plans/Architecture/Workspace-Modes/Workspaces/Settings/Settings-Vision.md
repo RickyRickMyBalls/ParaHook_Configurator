@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-05-07 15:06:41: Added the `Key Bindings` direction to the Settings family so Generation 1 can grow a dedicated settings section for mode-aware shortcut visibility without collapsing shortcut ownership into ad hoc workspace notes.
 1. 2026-05-02 08:35:43: Created this Settings family vision doc so the new workspace has one stable planning home for an Unreal Engine-style settings surface with a narrow left section rail and a full-height right detail pane.
 
 ### Purpose
@@ -32,6 +33,7 @@ The user described the target feel clearly:
 - the left side should be a narrow list of setting sections
 - the right side should show the selected section's settings
 - the first left option should be `All`
+- the surface should also have a dedicated `Key Bindings` section for shortcut visibility
 - the whole surface should behave like a structured store or settings browser, not a junk drawer
 
 This doc keeps that direction honest before the first implementation phase gets written.
@@ -74,6 +76,7 @@ Likely early sections:
 - `Console`
 - `Appearance`
 - `Input`
+- `Key Bindings`
 - `Advanced`
 
 Important rule:
@@ -106,6 +109,7 @@ It should not:
 - [ ] `Settings-Gen1-HLG-4. The layout should feel like two full-height cells with the left rail about 15% or 100px wide.`
 - [ ] `Settings-Gen1-HLG-5. The surface should feel like a store-like settings browser, not a junk drawer.`
 - [ ] `Settings-Gen1-HLG-6. Settings should stay downstream from the owner systems that actually own each setting value.`
+- [ ] `Settings-Gen1-HLG-7. Settings should include a Key Bindings section that lists shortcuts clearly by mode and surface context.`
 
 ### Generation Routing
 
@@ -120,4 +124,4 @@ Generation 1 should focus on:
 - the right detail pane
 - the `All` first-row behavior
 - the first store-like settings browsing experience
-
+- the first mode-aware `Key Bindings` shortcut reference surface

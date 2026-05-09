@@ -31,7 +31,7 @@ const popupAvailableSurfaceKinds: readonly WorkspaceSurfaceKind[] = [
   'console',
   'browser',
 ]
-const popupSplitDividerHeight = 10
+const popupSplitDividerHeight = 5
 const popupMinSplitRatio = 0.15
 const popupMaxSplitRatio = 0.85
 

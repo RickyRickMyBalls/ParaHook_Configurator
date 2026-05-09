@@ -72,6 +72,633 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1804 -->
+
+### [1804] - 2026-05-09 13:57 - `Cleanup Gen3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction`
+
+<!-- ENTRY 1804 -->
+
+HUMAN SUMMARY: `This landed the first selector-owner split for \`useSpaghettiStore.ts\` by moving the graph-document, cached-entry, active-graph, graph-runtime, and compile-result read seam into \`src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts\` while keeping the public store exports stable. \`npm.cmd run build\` passes, the new focused selector tests pass, and the targeted store-read verification passes while the broader two-test OutputPreview drift in \`useSpaghettiStore.test.ts\` remains unchanged in the current worktree.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of widening into a second store or later viewer/output selector seams
+- moved only the approved `Phase 5.1.1` selector block from `selectActiveGraphDocument(...)` through `selectActiveGraphCompileResult(...)`
+- left viewer-target, output-surface, preview-preparation, accepted-result, viewport, and workspace selector seams for later `Phase 5.x` follow-up work
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts`
+- moved the graph-document, cached-entry, active-graph, graph-runtime, and compile-result selector cluster into that module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to import and re-export the moved selectors without changing the public store surface
+- added `src/app/spaghetti/selectors/selectGraphDocumentRuntime.test.ts`
+- updated `src/app/spaghetti/selectors/index.ts` and `src/app/spaghetti/selectors/index.test.ts` so the selectors barrel re-exports the new owner module
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/selectors/selectGraphDocumentRuntime.ts`
+- `src/app/spaghetti/selectors/selectGraphDocumentRuntime.test.ts`
+- `src/app/spaghetti/selectors/index.ts`
+- `src/app/spaghetti/selectors/index.test.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal selector ownership and preserves the existing store export contract
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectGraphDocumentRuntime.test.ts src/app/spaghetti/selectors/index.test.ts`
+- `npx.cmd vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "keeps the active GraphDocument in sync with the canonical graph bridge|selectGraphByDocumentId resolves the document graph before any viewport is opened|stores compile/build runtime per graph document and keeps preview-prep graph-local|selectGraphByDocumentId"`
+- broader `npx.cmd vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts` still reports the unchanged two-test OutputPreview expectation drift already present in the current worktree
+
+<!-- ENTRY 1803 -->
+
+### [1803] - 2026-05-07 15:47 - `Workspace-9 / Phase 1 - Corner Hotspot And Filleted Pane Shell`
+
+<!-- ENTRY 1803 -->
+
+HUMAN SUMMARY: `Shipped the first Workspace 9 split-corner shell by adding divider-adjacent fillet hotspots, a parameterized shared pane radius seam, and a non-mutating corner pointer entry path without starting live split preview or commit behavior yet.`
+
+#### Scope / Constraints Honored
+- Kept the implementation inside the shared `WorkspaceViewportTree` and `AppShell` split-pane shell instead of inventing a second layout owner.
+- Left split preview, axis-pick drag math, pointer capture, and commit-on-release behavior for later `Workspace-9` phases.
+- Kept the fillet radius styling parameterized so a later Settings-owned slider can drive it without another shell rewrite.
+
+#### Summary of Implementation
+- Added exported `WorkspaceViewportSplitCorner` typing plus a new `onViewportSplitCornerPointerDown` seam to `WorkspaceViewportTree.tsx`.
+- Rendered visible split-corner hotspot buttons only on divider-adjacent pane corners, keeping divider intersections out of the first-pass scope.
+- Added a minimal `AppShell.tsx` corner `pointerdown` handler that prevents default and stops propagation without mutating the workspace tree.
+- Localized the new no-padding filleted shell to `ViewportSplitPane--filletedShell`, introduced the `--workspace-pane-fillet-radius` CSS variable seam, and let `ViewportFrame` consume that radius.
+- Added focused rendering and no-mutation tests for the new hotspot path.
+
+#### Files Changed
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Shared split panes now show visible filleted corner hotspot affordances on the corners adjacent to the active divider.
+- Shared split editor panes now use the no-padding filleted shell path instead of the old padded split-pane edge treatment.
+- Pressing a split-corner hotspot now enters the new non-mutating gesture seam for later Workspace 9 phases, but it does not preview or create a split yet.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/WorkspaceViewportTree.test.tsx -t "renders split corner hotspots only on divider-adjacent pane corners and reports pointerdown without mutating layout state"`
+- `npm.cmd run test -- src/app/AppShell.test.tsx -t "keeps the workspace tree unchanged when a split-corner hotspot is pressed in phase 1"`
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/workspace/WorkspaceViewportTree.test.tsx src/app/AppShell.test.tsx` still reports the existing broader `AppShell.test.tsx` drift batch outside this phase; the new Workspace 9 focused coverage passes.
+
+<!-- ENTRY 1802 -->
+
+### [1802] - 2026-05-07 13:15 - `Workspace Split Divider - Narrow Shared Split Line To 5px`
+
+HUMAN SUMMARY: `Narrowed the shared workspace split divider from 10px to 5px across both the main workspace tree and the popup split shell so split surfaces use the slimmer line consistently without changing split behavior.`
+
+#### Scope / Constraints Honored
+
+- kept the pass focused on the shared workspace split divider only
+- updated both the main workspace tree and popup split shell so the split line stays consistent across workspace hosts
+- did not widen into unrelated resize handles, dock dividers, or workspace behavior changes
+
+#### Summary of Implementation
+
+- changed the shared `splitDividerSize` default in `src/app/workspace/WorkspaceViewportTree.tsx` from `10` to `5`
+- changed `popupSplitDividerHeight` in `src/app/workspace/PopupWorkspaceShell.tsx` from `10` to `5`
+- tightened the shared `ViewportSplitDivider` CSS in `src/app/theme/foundation/base.css` and the vertical split override in `src/app/theme/shell/windows.css` to 5px
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/theme/shell/windows.css`
+
+#### Behavior Changes (if any)
+
+- workspace split dividers now render at 5px instead of 10px in both horizontal and vertical shared workspace split layouts
+
+#### Verification Steps
+
+- not run (visual sizing change only)
+
+<!-- ENTRY 1801 -->
+
+### [1801] - 2026-05-06 09:09 - `Cleanup Gen3 - Cleanup 2 / Phase 4.7 - Geometry Sketch Component Edit Action Extraction`
+
+HUMAN SUMMARY: `This landed the final geometry-sketch action split for \`useSpaghettiStore.ts\` by moving the component-edit seam into \`src/app/spaghetti/store/sketch/geometrySketchComponentEditActions.ts\` while keeping the store facade stable through injected graph-update, sketch recomputation, and component-name normalization helpers. \`npm.cmd run build\` passes and the focused append-component Geometry/Sketch test passes, leaving the sketch-session action lane honestly closed before selector extraction starts.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of introducing a second store or widening into `Viewer.ts` or `ViewportOverlay.tsx`
+- extracted only the geometry-sketch component-edit seam
+- left selector, facade-shrink, and closeout work in the root store for later phases
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/store/sketch/geometrySketchComponentEditActions.ts`
+- moved `appendGeometrySketchComponent(...)`, `updateGeometrySketchComponentPoint(...)`, `setGeometrySketchComponentName(...)`, `setGeometrySketchDrawGroupName(...)`, `moveGeometrySketchComponentUp(...)`, `moveGeometrySketchComponentDown(...)`, `removeGeometrySketchComponent(...)`, and `setGeometrySketchSelectedProfile(...)` into the new owner module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the extracted seam through injected root-local `set`, graph-update helpers, sketch recomputation helpers, component-name normalization, and root-facade graph-state update hooks while preserving the public API
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/geometrySketchComponentEditActions.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal ownership for geometry-sketch component-edit behavior
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "appends managed sketch components and recomputes profiles for Geometry/Sketch nodes"`
+
+<!-- ENTRY 1800 -->
+
+### [1800] - 2026-05-06 09:04 - `Cleanup Gen3 - Cleanup 2 / Phase 4.6 - Geometry Sketch Selection Action Extraction`
+
+HUMAN SUMMARY: `This landed the geometry-sketch selection split for \`useSpaghettiStore.ts\` by moving the hovered, selected, selection-window, and delete-selected seam into \`src/app/spaghetti/store/sketch/geometrySketchSelectionActions.ts\` while keeping the store facade stable through injected selection normalization, draft-point normalization, graph-update, and staged-command helpers. \`npm.cmd run build\` passes and the focused idle-selection plus delete tests in \`useSpaghettiStore.test.ts\` pass without widening into the later component-edit seam.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of introducing a second store or widening into `Viewer.ts` or `ViewportOverlay.tsx`
+- extracted only the geometry-sketch selection and delete seam
+- left `confirmGeometrySketchDrawRadius(...)` and the later component-edit actions in the root store for the next follow-up pass
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/store/sketch/geometrySketchSelectionActions.ts`
+- moved `setGeometrySketchHoveredComponent(...)`, `setGeometrySketchSelectedComponents(...)`, `setGeometrySketchSelectionWindowDraft(...)`, and `deleteGeometrySketchSelectedComponents(...)` into the new owner module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the extracted seam through injected root-local `set`, selection normalization helpers, draft-point normalization helpers, graph-update helpers, and staged-command plus session-snapshot helpers while preserving the public API
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/geometrySketchSelectionActions.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal ownership for geometry-sketch selection and delete behavior
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "tracks idle sketch entity selection and deletes the selected components|clears idle entity selection when a new draw tool is armed"`
+
+<!-- ENTRY 1799 -->
+
+### [1799] - 2026-05-06 09:00 - `Cleanup Gen3 - Cleanup 2 / Phase 4.5.2 - Draw Draft Commit And Undo Extraction`
+
+HUMAN SUMMARY: `This landed the second narrowed draw-session split for \`useSpaghettiStore.ts\` by moving the geometry-sketch draw draft commit and undo seam into \`src/app/spaghetti/store/sketch/geometrySketchDrawDraftActions.ts\` while keeping the store facade stable through injected staged-command, session-snapshot, graph-update, and local-history helpers. \`npm.cmd run build\` passes, the focused draw-commit tests in \`useSpaghettiStore.test.ts\` pass, and the focused sketch-history-scrub tests in \`sketchDraftRuntimeExclusion.test.ts\` pass without widening into the later selection or component-edit seams.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of introducing a second store or widening into `Viewer.ts` or `ViewportOverlay.tsx`
+- extracted only the geometry-sketch draw draft commit and undo seam
+- left `confirmGeometrySketchDrawRadius(...)`, selection/delete, and component-edit action bodies in the root store for later follow-up passes
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/store/sketch/geometrySketchDrawDraftActions.ts`
+- moved `confirmGeometrySketchDrawPoint(...)`, `finishGeometrySketchDrawDraft(...)`, `undoGeometrySketchDrawDraftPoint(...)`, `undoGeometrySketchStagedCommand(...)`, `redoGeometrySketchStagedCommand(...)`, and `cancelGeometrySketchDrawDraft(...)` into the new owner module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the extracted seam through injected root-local `set` and `get`, geometry-sketch staged-command and session-snapshot helpers, graph-update and local-history helpers, draft normalization helpers, and retained root radius-commit behavior while preserving the public API
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/geometrySketchDrawDraftActions.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal ownership for geometry-sketch draw draft commit and undo behavior
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "tracks viewer-owned Line draft points and commits a line on the second point before returning to idle|tracks viewer-owned Rectangle draft points and commits a rectangle on the second point before returning to idle|tracks viewer-owned Circle center and radius witness points and commits a circle on the second point before returning to idle|stages Sketch Draw delete-selected as one undoable in-session command"`
+- `npx vitest run src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts --testNamePattern "opens and clears read-only Sketch Draw history scrub without creating local authoring history|rejects Sketch Draw history scrub targets that are not active geometry sketch nodes"`
+
+<!-- ENTRY 1798 -->
+
+### [1798] - 2026-05-05 22:26 - `Cleanup Gen3 - Cleanup 2 / Phase 4.5.1 - Draw Session Control Extraction`
+
+HUMAN SUMMARY: `This landed the first narrowed draw-session split for \`useSpaghettiStore.ts\` by moving the geometry-sketch draw session control seam into \`src/app/spaghetti/store/sketch/geometrySketchDrawSessionControl.ts\` while keeping the store facade stable through injected draw-command normalization, session snapshot, and draft helper dependencies. \`npm.cmd run build\` passes and the focused draw-session prompt plus line, rectangle, and circle control tests in \`useSpaghettiStore.test.ts\` pass without widening into the deferred draw-commit, undo or redo, selection, or component-edit seams.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of introducing a second store or widening into `Viewer.ts` or `ViewportOverlay.tsx`
+- extracted only the geometry-sketch draw session control seam
+- left point confirmation, finish or cancel, staged undo or redo, selection, delete, and component-edit action bodies in the root store for later follow-up passes
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/store/sketch/geometrySketchDrawSessionControl.ts`
+- moved `runGeometrySketchDrawCommand(...)`, `setGeometrySketchSessionTool(...)`, and `setGeometrySketchDrawHoverPoint(...)` into the new owner module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the extracted seam through injected root-local `set` and `get`, draw-command normalization, session snapshot builders, geometry-sketch draft helpers, and retained root callbacks for the later finish, cancel, delete, and close actions while preserving the public API
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/geometrySketchDrawSessionControl.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal ownership for geometry-sketch draw session control behavior
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "appends rich draw prompts when sketch draw starts, switches to PLine, and finishes|tracks viewer-owned Line draft points and commits a line on the second point before returning to idle|tracks viewer-owned Rectangle draft points and commits a rectangle on the second point before returning to idle|tracks viewer-owned Circle center and radius witness points and commits a circle on the second point before returning to idle"`
+
+<!-- ENTRY 1797 -->
+
+### [1797] - 2026-05-05 22:26 - `Cleanup Gen3 - Cleanup 2 / Phase 4.4 - Geometry Sketch Session Lifecycle Extraction`
+
+HUMAN SUMMARY: `This landed the fourth sketch-session action split for \`useSpaghettiStore.ts\` by moving the geometry-sketch session lifecycle and history-scrub handoff seam into \`src/app/spaghetti/store/sketch/geometrySketchSessionLifecycle.ts\` while keeping the store facade stable through injected sketch-history, viewport-collapse, and console-prompt dependencies. \`npm.cmd run build\` passes, three focused lifecycle tests in \`useSpaghettiStore.test.ts\` pass, and \`sketchDraftRuntimeExclusion.test.ts\` passes without widening into the deferred draw-draft, selection, or component-edit seams.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of introducing a second store or widening into `Viewer.ts` or `ViewportOverlay.tsx`
+- extracted only the geometry-sketch session lifecycle and history-scrub handoff seam
+- left draw-draft, staged-command, selection, delete, and component-edit action bodies in the root store for later `Phase 4.x` follow-up passes
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/store/sketch/geometrySketchSessionLifecycle.ts`
+- moved `startGeometrySketchSession(...)`, `closeGeometrySketchSession(...)`, `openGeometrySketchHistoryScrub(...)`, `clearGeometrySketchHistoryScrub(...)`, and `returnActiveSketchSessionOneLevel(...)` into the new owner module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the extracted seam through injected root-local `set` and `get`, geometry-sketch snapshot and local-history helpers, viewport collapse and restore hooks, console prompt builders, and retained root callbacks for sketch-plane and draw-draft cancellation while preserving the public API
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/geometrySketchSessionLifecycle.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal ownership for geometry-sketch session lifecycle and history-scrub behavior
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "tracks draw/review session state and closes plane-pick when sketch editing begins|collapses the active editor viewport while draw sketch is open and restores it on close|uses returnActiveSketchSessionOneLevel across sketch-plane and sketch-draw session levels"`
+- `npx vitest run src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+
+<!-- ENTRY 1796 -->
+
+### [1796] - 2026-05-05 22:14 - `Cleanup Gen3 - Cleanup 2 / Phase 4.3 - Geometry Sketch Plane Graph Write Extraction`
+
+HUMAN SUMMARY: `This landed the third sketch-session action split for \`useSpaghettiStore.ts\` by moving the direct geometry-sketch plane graph-write seam into \`src/app/spaghetti/store/sketch/geometrySketchPlaneGraphWrite.ts\` while keeping the store facade stable through injected graph-update helpers, transform-normalization helpers, and sketch-plane pick-session pruning. \`npm.cmd run build\` passes, the targeted \`sketch-plane\` tests in \`useSpaghettiStore.test.ts\` pass, and \`sketchDraftRuntimeExclusion.test.ts\` passes without widening into the deferred lifecycle, draw, selection, or component-edit seams.`
+
+#### Scope / Constraints Honored
+
+- kept one exported `useSpaghettiStore` facade instead of introducing a second store or widening into `Viewer.ts` or `ViewportOverlay.tsx`
+- extracted only the direct geometry-sketch plane graph-write seam
+- left geometry-sketch lifecycle, history-scrub, draw-draft, selection, and component-edit action bodies in the root store for later `Phase 4.x` follow-up passes
+
+#### Summary of Implementation
+
+- added `src/app/spaghetti/store/sketch/geometrySketchPlaneGraphWrite.ts`
+- moved `setGeometrySketchPlane(...)`, `setGeometrySketchPlaneOffset(...)`, `setGeometrySketchPlaneTranslationAxis(...)`, `setGeometrySketchPlaneRotationAxis(...)`, and `setGeometrySketchPlaneInPlaneRotation(...)` into the new owner module
+- rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the extracted seam through injected root-local `set`, sketch-plane guards, graph-update helpers, transform-normalization helpers, and sketch-plane pick-session pruning while preserving the public API
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/geometrySketchPlaneGraphWrite.ts`
+
+#### Behavior Changes (if any)
+
+- no intended user-facing behavior change; this pass only narrows internal ownership for the direct geometry-sketch plane graph-write surface
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "sketch-plane"`
+- `npm.cmd run test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+
+<!-- ENTRY 1795 -->
+
+### [1795] - 2026-05-05 21:42 - `Cleanup Gen3 - Cleanup 2 / Phase 4.2 - Sketch Plane Pick Draft Transform Extraction`
+
+HUMAN SUMMARY: `This landed the second sketch-session action split for \`useSpaghettiStore.ts\` by moving the sketch-plane draft-transform setter and off-snap confirmation seam into \`src/app/spaghetti/store/sketch/sketchPlanePickDraftTransform.ts\` while keeping the store facade stable through injected \`set\`, console logging, and finite-number plus transform helper dependencies. \`npm.cmd run build\` passes, the targeted \`sketch-plane\` tests in \`useSpaghettiStore.test.ts\` pass, and \`sketchDraftRuntimeExclusion.test.ts\` passes without widening into the deferred graph-write or broader geometry-sketch session seams.`
+
+<!-- ENTRY 1795 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 4.2` boundary by extracting only the sketch-plane draft-transform setter and off-snap confirmation seam from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into the direct geometry-sketch plane graph-write seam, geometry-sketch lifecycle or draw actions, selector extraction, or viewer and overlay cleanup.
+- Used dependency injection for root-local `set`, console logging, finite-number normalization, and default, clone, or equality transform helpers so the new `sketch/*` module does not become a second owner of graph truth or workspace state.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/sketch/sketchPlanePickDraftTransform.ts` as the focused `sketch/*` owner module for the sketch-plane draft-transform setter and off-snap confirmation seam.
+- Moved `resetSketchPlanePickDraftTransform(...)`, `setSketchPlanePickDraftTransform(...)`, `setSketchPlanePickTranslationAxis(...)`, `setSketchPlanePickRotationAxis(...)`, `setSketchPlaneMoveAxisOffSnapConfirmation(...)`, and `clearSketchPlaneMoveAxisOffSnapConfirmation(...)` into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the moved draft-transform seam through injected root-local dependencies while keeping the public store API unchanged.
+- Left the direct geometry-sketch plane graph-write seam and later geometry-sketch session flows in `src/app/spaghetti/store/useSpaghettiStore.ts` because they are outside the approved `Phase 4.2` seam and now form the next explicit follow-up slices.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/sketchPlanePickDraftTransform.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- The sketch-plane draft-transform setter and off-snap confirmation seam now lives behind `src/app/spaghetti/store/sketch/sketchPlanePickDraftTransform.ts` instead of being defined inline in `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "sketch-plane"`
+- `npm.cmd run test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "sketch-plane"` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts` passed.
+
+<!-- ENTRY 1794 -->
+
+### [1794] - 2026-05-05 21:33 - `Cleanup Gen3 - Cleanup 2 / Phase 4.1 - Sketch Plane Pick Command Session Extraction`
+
+HUMAN SUMMARY: `This landed the first sketch-session action split for \`useSpaghettiStore.ts\` by moving the sketch-plane command-routing, prompt-building, and stage-transition seam into \`src/app/spaghetti/store/sketch/sketchPlaneCommandSession.ts\` while keeping the store facade stable through injected \`set/get\`, console logging, UI prefs, transform-history helpers, and finish or cancel callbacks. \`npm.cmd run build\` passes, the targeted \`sketch-plane\` tests in \`useSpaghettiStore.test.ts\` pass, and \`sketchDraftRuntimeExclusion.test.ts\` passes without widening into the deferred draft-transform, graph-write, or broader geometry-sketch session seams.`
+
+<!-- ENTRY 1794 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 4.1` boundary by extracting only the sketch-plane command-routing, prompt-building, and stage-transition seam from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into the draft-transform setter seam, direct geometry-sketch plane graph writes, geometry-sketch lifecycle or draw actions, selector extraction, or viewer and overlay cleanup.
+- Used dependency injection for root-local `set/get`, console logging, UI prefs reads, transform-history helpers, finish and cancel callbacks, and geometry-sketch session open behavior so the new `sketch/*` module does not become a second owner of graph truth or workspace state.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/sketch/sketchPlaneCommandSession.ts` as the focused `sketch/*` owner module for the sketch-plane command-routing and stage-transition seam.
+- Moved `confirmSketchPlanePick(...)`, `setSketchPlanePickDraftPlane(...)`, `reopenSketchPlanePickPlaneSelection(...)`, `setSketchPlanePickGizmoMode(...)`, `setSketchPlanePickPreviewPlane(...)`, `acceptActiveSketchPlaneTransformCommand(...)`, `commitSketchPlaneTransformHistoryFromDraftRelease(...)`, `toggleSketchPlaneTransformHistoryLock(...)`, `mergeSketchPlaneTransformHistory(...)`, `runSketchPlaneCommand(...)`, and the supporting sketch-plane prompt and session-builder helpers into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the moved sketch-plane command-session seam through injected root-local dependencies while keeping the public store API unchanged.
+- Left the draft-transform setters and later geometry-sketch plane or session actions in `src/app/spaghetti/store/useSpaghettiStore.ts` because they are outside the approved `Phase 4.1` seam and now form the next explicit follow-up slices.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/sketch/sketchPlaneCommandSession.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- The sketch-plane command-routing, prompt-building, and stage-transition seam now lives behind `src/app/spaghetti/store/sketch/sketchPlaneCommandSession.ts` instead of being defined inline in `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "sketch-plane"`
+- `npm.cmd run test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "sketch-plane"` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts` passed.
+
+<!-- ENTRY 1793 -->
+
+### [1793] - 2026-05-05 21:14 - `Cleanup Gen3 - Cleanup 2 / Phase 3.4 - Graph Node History Adapter Extraction`
+
+HUMAN SUMMARY: `This landed the graph-node-specific history adapter split for \`useSpaghettiStore.ts\` by moving the remaining graph-node parameter and move commit seam into \`src/app/spaghetti/store/history/graphNodeHistoryCommitAdapter.ts\` while keeping the store facade stable through injected graph-read, node-param, width-normalization, edit-history commit, and restore dependencies. \`npm.cmd run build\` passes, and the focused graph-edit-history test passes without widening into the deferred sketch-session or selector seams.`
+
+<!-- ENTRY 1793 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 3.4` boundary by extracting only the graph-node-specific history adapter seam from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into sketch-session runtime action extraction, selector extraction, or viewer and overlay cleanup.
+- Used dependency injection for root-local graph reads, node-param clone and equality helpers, node-width normalization, graph-history commit wiring, history-entry ID generation, and restore callbacks so the new history module does not become a second owner of graph truth.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/history/graphNodeHistoryCommitAdapter.ts` as the focused `history/*` owner module for the remaining graph-node history adapter seam.
+- Moved `commitGraphNodeParameterHistoryCommand(...)`, `commitGraphNodeMoveHistoryCommand(...)`, and the tiny graph-node position normalization and equality helpers they depend on into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the moved adapter seam through injected root-local graph-read, node-param, width-normalization, edit-history commit, and restore dependencies while keeping the public store API unchanged.
+- Closed the full `Phase 3` history lane so the next honest follow-up is now the first narrowed sketch-plane session slice instead of another hidden history leftover.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/history/graphNodeHistoryCommitAdapter.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- The remaining graph-node parameter and move history commit seam now lives behind `src/app/spaghetti/store/history/graphNodeHistoryCommitAdapter.ts` instead of being defined inline in `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts` passed.
+
+<!-- ENTRY 1792 -->
+
+### [1792] - 2026-05-05 21:14 - `Cleanup Gen3 - Cleanup 2 / Phase 3.3 - Part Feature History Adapter Extraction`
+
+HUMAN SUMMARY: `This landed the part-feature-specific history adapter split for \`useSpaghettiStore.ts\` by moving the remaining part-feature stack, sketch-feature, and feature-parameter commit seam into \`src/app/spaghetti/store/history/partFeatureHistoryCommitAdapter.ts\` while keeping the store facade stable through injected graph-read, feature-stack, edit-history commit, and restore dependencies. \`npm.cmd run build\` passes, and the focused graph-edit plus sketch-history tests pass without widening into the deferred graph-node, selector, or sketch-session runtime seams.`
+
+<!-- ENTRY 1792 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 3.3` boundary by extracting only the part-feature-specific history adapter seam from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into `commitGraphNodeParameterHistoryCommand(...)`, `commitGraphNodeMoveHistoryCommand(...)`, selector extraction, sketch-session runtime action extraction, or viewer and overlay cleanup.
+- Used dependency injection for root-local graph reads, feature-stack clone and equality helpers, part-node feature-stack readers and replacers, graph-history commit wiring, history-entry ID generation, and restore callbacks so the new history module does not become a second owner of graph truth.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/history/partFeatureHistoryCommitAdapter.ts` as the focused `history/*` owner module for the remaining part-feature history adapter seam.
+- Moved `commitPartSketchFeatureStackHistoryCommand(...)`, `commitPartSketchFeatureHistoryCommand(...)`, `commitPartFeatureParameterHistoryCommand(...)`, `findHistoryFeature(...)`, and `isHistorySupportedFeatureParameterTarget(...)` into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the moved adapter seam through injected root-local graph-read, feature-stack, edit-history commit, and restore dependencies while keeping the public store API unchanged.
+- Left the graph-node parameter and move history adapters in `src/app/spaghetti/store/useSpaghettiStore.ts` because they are outside the approved `Phase 3.3` seam and now form the isolated `Phase 3.4` follow-up.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/history/partFeatureHistoryCommitAdapter.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- The remaining part-feature history stack, sketch-feature, and feature-parameter commit seam now lives behind `src/app/spaghetti/store/history/partFeatureHistoryCommitAdapter.ts` instead of being defined inline in `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts` passed.
+
+<!-- ENTRY 1791 -->
+
+### [1791] - 2026-05-05 21:02 - `Cleanup Gen3 - Cleanup 2 / Phase 3.2 - Geometry Sketch Commit Adapter Extraction`
+
+HUMAN SUMMARY: `This landed the geometry-sketch-specific history commit adapter split for \`useSpaghettiStore.ts\` by moving the geometry sketch commit, staged-command, and child-restore adapter seam into \`src/app/spaghetti/store/history/geometrySketchHistoryCommitAdapter.ts\` while keeping the store facade stable through injected graph-read, ID-generation, edit-history commit, and restore dependencies. \`npm.cmd run build\` passes, and the focused graph-edit plus sketch-history tests pass without widening into the deferred part-feature, graph-node, selector, or sketch-session runtime seams.`
+
+<!-- ENTRY 1791 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 3.2` boundary by extracting only the geometry-sketch-specific commit adapter seam from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into `commitPartFeatureParameterHistoryCommand(...)`, `commitPartSketchFeatureHistoryCommand(...)`, `commitGraphNodeParameterHistoryCommand(...)`, `commitGraphNodeMoveHistoryCommand(...)`, selector extraction, sketch-session runtime action extraction, or viewer and overlay cleanup.
+- Used dependency injection for root-local graph reads, node-param clone and equality helpers, staged-command and history-entry ID generation, edit-history commit wiring, and restore callbacks so the new history module does not become a second owner of graph truth.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/history/geometrySketchHistoryCommitAdapter.ts` as the focused `history/*` owner module for the geometry-sketch commit adapter seam.
+- Moved `commitGeometrySketchFeatureHistoryCommand(...)`, `buildGeometrySketchStagedCommand(...)`, and `createGeometrySketchChildRestorePoints(...)` into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to bind the moved adapter seam through injected root-local graph-read, normalization, ID-generation, edit-history commit, and restore dependencies while keeping the public store API unchanged.
+- Left `buildGeometrySketchToolSelectionCommand(...)` and the remaining part-feature and graph-node history adapters in `useSpaghettiStore.ts` because they are outside the approved `Phase 3.2` seam and belong to later `Phase 3.x` follow-up work.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/history/geometrySketchHistoryCommitAdapter.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- The geometry-sketch-specific history commit, staged-command, and child-restore adapter seam now lives behind `src/app/spaghetti/store/history/geometrySketchHistoryCommitAdapter.ts` instead of being defined inline in `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts` passed.
+
+<!-- ENTRY 1790 -->
+
+### [1790] - 2026-05-05 20:54 - `Cleanup Gen3 - Cleanup 2 / Phase 3.1 - Geometry Sketch History Helper Extraction`
+
+HUMAN SUMMARY: `This landed the first \`history/*\` owner-area split for \`useSpaghettiStore.ts\` by moving the pure geometry-sketch session snapshot, local-history, preferred-command, and child-summary helper seam into \`src/app/spaghetti/store/history/geometrySketchHistory.ts\` while keeping the store-wired commit adapters and restore closures in the root facade. \`npm.cmd run build\` passes, and the focused graph-edit plus sketch-history tests pass without widening into selector, runtime-action, or viewer cleanup.`
+
+<!-- ENTRY 1790 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 3.1` boundary by extracting only the pure geometry-sketch history helper seam from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into `editHistoryStore.commitEntry(...)` adapter extraction, graph node or edge history adapter moves, selector extraction, sketch-session runtime action extraction, or viewer and overlay cleanup.
+- Left impure restore and staged-command helpers in the root file when they still depended on root-local graph or callback wiring.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/history/geometrySketchHistory.ts` as the focused `history/*` owner module for geometry-sketch history helpers.
+- Moved `GeometrySketchSessionSnapshot`, `GeometrySketchStagedCommand`, `GeometrySketchToolSelectionCommand`, `GeometrySketchSessionHistoryCommand`, and `GeometrySketchLocalHistoryState` into that module.
+- Moved `cloneGeometrySketchSessionSnapshot(...)`, `buildGeometrySketchSessionSnapshot(...)`, `applyGeometrySketchSessionSnapshot(...)`, `buildGeometrySketchCommittedSessionSnapshot(...)`, `getGeometrySketchLocalHistoryTargetId(...)`, `cloneGeometrySketchSessionHistoryCommand(...)`, `cloneGeometrySketchLocalHistoryState(...)`, `buildGeometrySketchLocalHistoryState(...)`, `findPreferredGeometrySketchHistoryCommandIndex(...)`, `withGeometrySketchLocalHistoryState(...)`, `buildGeometrySketchSessionWithHistory(...)`, and `createGeometrySketchChildSummaries(...)` into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to import the moved helper cluster and to pass the existing `cloneNodeParams(...)` helper into the new history-module helpers where param cloning still belongs to the pure seam.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/history/geometrySketchHistory.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- The pure geometry-sketch history snapshot and local-history shaping seam now lives behind `src/app/spaghetti/store/history/geometrySketchHistory.ts` instead of being defined inline in `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/graphEditHistoryStore.test.ts src/app/spaghetti/store/sketchEditHistoryStore.test.ts` passed.
+
+<!-- ENTRY 1789 -->
+
+### [1789] - 2026-05-05 20:43 - `Cleanup Gen3 - Cleanup 2 / Phase 2 - Pure Types And Accepted Runtime Helper Extraction`
+
+HUMAN SUMMARY: `This landed the first real \`useSpaghettiStore.ts\` decomposition slice by moving the accepted-runtime type surface, finalized accepted-build helper math, and accepted result clone or promotion helpers into \`src/app/spaghetti/store/graphRuntime/acceptedRuntime.ts\` while keeping one exported \`useSpaghettiStore\` facade through stable re-exports. \`npm.cmd run build\` passes, and the focused \`useSpaghettiStore.test.ts\` run still stops only on the same two \`OutputPreview\` expectation drifts around normalized \`publicationMode\` fields instead of widening into accepted-runtime regressions.`
+
+<!-- ENTRY 1789 -->
+
+#### Scope / Constraints Honored
+
+- Kept the pass inside the approved `Phase 2` boundary by extracting only accepted-runtime types and pure helper math from `src/app/spaghetti/store/useSpaghettiStore.ts`.
+- Preserved one exported `useSpaghettiStore` facade and avoided widening into selector extraction, sketch-session extraction, or viewer and overlay cleanup.
+- Did not move any action closures that depend on `set` or `get`.
+- Limited non-store fallout to the new `src/app/spaghetti/store/graphRuntime/acceptedRuntime.ts` owner module plus the required changelog and planning-doc updates.
+
+#### Summary of Implementation
+
+- Added `src/app/spaghetti/store/graphRuntime/acceptedRuntime.ts` as the first `graphRuntime/*` owner-area module.
+- Moved `GraphCompileBuildState`, `AcceptedBuildImpactSnapshot`, `StagedAuthoritativePreviewResult`, and `GraphRuntimeState` into that module.
+- Moved `finalizeAcceptedBuildBundle(...)`, `buildAcceptedBuildImpactSnapshot(...)`, `buildFinalizedAcceptedResultArtifacts(...)`, `cloneAcceptedGeometryLane(...)`, `cloneAcceptedBuildImpactSnapshot(...)`, `cloneBuildResultBundle(...)`, `cloneStagedAuthoritativePreviewResult(...)`, and `resolveAcceptedGeometryPromotion(...)` into that module.
+- Rewired `src/app/spaghetti/store/useSpaghettiStore.ts` to import those helpers from the new owner area and to re-export the moved runtime types so external caller imports stay stable.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/graphRuntime/acceptedRuntime.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen3-Index.md`
+
+#### Behavior Changes
+
+- No intended user-facing runtime behavior change was introduced; this remains an owner-boundary extraction behind the existing `useSpaghettiStore` API.
+- Accepted build and staged authoritative preview shaping now live behind `src/app/spaghetti/store/graphRuntime/acceptedRuntime.ts` instead of being defined inline at the top of `useSpaghettiStore.ts`.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Verification Results
+
+- `npm.cmd run build` passed.
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts` still fails in two existing `OutputPreview` normalization expectations that now receive normalized `publicationMode` fields for slots, while the accepted-runtime build/result coverage remains green.
+
 <!-- ENTRY 1784 -->
 
 ### [1788] - 2026-05-05 20:18 - `Cleanup Gen3 - Cleanup 1 / Phase 6.1 - Root Facade Shrink`

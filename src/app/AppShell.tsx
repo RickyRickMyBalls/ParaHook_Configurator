@@ -52,7 +52,10 @@ import { CatalogSurface } from './workspace/CatalogSurface'
 import { useWorkspaceChildWindow } from './workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { cycleBrowserPresentationModeWithHistory } from './store/workspaceLayoutEditHistory'
-import { WorkspaceViewportTree } from './workspace/WorkspaceViewportTree'
+import {
+  WorkspaceViewportTree,
+  type WorkspaceViewportSplitCorner,
+} from './workspace/WorkspaceViewportTree'
 import { ViewportOverlayModeTitlebarControls } from './workspace/ViewportOverlayModeTitlebarControls'
 import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
 import {
@@ -916,6 +919,21 @@ export function AppShell() {
     [setViewportLayoutSplitRatio, viewportLayoutNodesById],
   )
 
+  const handleViewportSplitCornerPointerDown = useCallback(
+    (
+      _nodeId: string,
+      _corner: WorkspaceViewportSplitCorner,
+      event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+      if (event.button !== 0) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+    },
+    [],
+  )
+
   const resolvePrimaryLeftDockBottomInset = useCallback(
     (slotLeafNodeId: string) => {
       const parentSplitNodeId = findParentSplitNodeIdForLayoutNode(
@@ -1007,6 +1025,7 @@ export function AppShell() {
       onCloseViewportSlot={handleCloseViewportSlotFromMenu}
       onViewportSlotHeaderDragOut={handleViewportSlotHeaderDragOut}
       onViewportLayoutDividerPointerDown={handleViewportLayoutDividerPointerDown}
+      onViewportSplitCornerPointerDown={handleViewportSplitCornerPointerDown}
       onLeftDockResizeStart={handleLeftDockResizeStart}
       onLeftDockResizeContextMenu={handleLeftDockResizeContextMenu}
       resolvePrimaryLeftDockBottomInset={resolvePrimaryLeftDockBottomInset}

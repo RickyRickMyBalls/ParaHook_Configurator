@@ -110,6 +110,7 @@ describe('WorkspaceViewportTree', () => {
           onCloseViewportSlot={() => {}}
           onViewportSlotHeaderDragOut={() => {}}
           onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={() => {}}
           onLeftDockResizeStart={() => {}}
           onLeftDockResizeContextMenu={() => {}}
           resolvePrimaryLeftDockBottomInset={() => '0px'}
@@ -183,6 +184,7 @@ describe('WorkspaceViewportTree', () => {
           onCloseViewportSlot={() => {}}
           onViewportSlotHeaderDragOut={() => {}}
           onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={() => {}}
           onLeftDockResizeStart={() => {}}
           onLeftDockResizeContextMenu={() => {}}
           resolvePrimaryLeftDockBottomInset={() => '0px'}
@@ -220,5 +222,81 @@ describe('WorkspaceViewportTree', () => {
     expect(
       useSpaghettiStore.getState().editorViewportOverlayCanvasHiddenById['editor-viewport-1'],
     ).toBe(false)
+  })
+
+  it('renders split corner hotspots only on divider-adjacent pane corners and reports pointerdown without mutating layout state', async () => {
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const workspaceState = useWorkspaceStore.getState()
+    const onViewportSplitCornerPointerDown = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          leftDockStackHeight={workspaceState.leftDockStackHeight}
+          leftDockStackSplitRatio={workspaceState.leftDockStackSplitRatio}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={() => {}}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={onViewportSplitCornerPointerDown}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    const hotspotButtons = Array.from(
+      container.querySelectorAll('.ViewportSplitCornerHandle'),
+    ) as HTMLButtonElement[]
+
+    expect(hotspotButtons).toHaveLength(4)
+    expect(
+      hotspotButtons.map((button) => button.getAttribute('data-workspace-split-corner')),
+    ).toEqual(['topRight', 'bottomRight', 'topLeft', 'bottomLeft'])
+
+    await act(async () => {
+      hotspotButtons[0]?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(onViewportSplitCornerPointerDown).toHaveBeenCalledTimes(1)
+    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[1]).toBe('topRight')
   })
 })

@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-05-07 15:42:03: Re-audited the new `Settings-2` ladder for Codex-sized execution, splitting the broader shortcut-reference work into five smaller phases for inventory source mapping, shared read-model normalization, section-entry routing, grouped pane rendering, and final deep-link or drift-hardening follow-through.
+9. 2026-05-07 15:10:23: Updated the active Settings Generation 1 ladder so the later owner-backed workspace controls now explicitly include a fillet-radius slider for shared workspace pane corners, keeping that visual preference routed through the Settings workspace instead of hard-coding one permanent radius in the `Workspace 9` shell.
+8. 2026-05-07 15:06:41: Added the new `Settings-2` family phase, created the matching `Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md` planning doc, and reopened the Generation 1 ladder so Settings can gain a dedicated mode-aware shortcut reference section without overloading the existing owner-backed control ladder inside `Settings-1`.
 1. 2026-05-02 08:35:43: Added the new active Settings Generation 1 planning index so the Unreal-style settings workspace has a dedicated left-rail/right-pane routing surface and a first phase path for the shell and section router.
 2. 2026-05-02 08:35:43: Marked `Settings-1` as the next implementation-ready slice and added phase-prep notes for the one-slice shell-and-router cut.
 3. 2026-05-02 08:54:16: Marked `Settings-1` complete, added the follow-on `Settings-2` and `Settings-3` phases for Spaghetti Editor defaults and float-window `I` menu settings, and widened the Generation 1 ladder so the settings workspace can finish as a real owner-backed surface.
@@ -64,14 +67,23 @@ The first family lane is `Settings-1`.
 - route the right pane by section selection
 - keep the settings owner systems outside the workspace itself
 
+The next family lane is `Settings-2`.
+
+`Settings-2` should add the first dedicated `Key Bindings` section:
+- list shortcuts by mode or surface context
+- keep the read organized enough to scan quickly
+- reuse the same Settings shell instead of inventing a second shortcut browser
+- stay downstream from the systems that actually define shortcut behavior
+
 ### Current Planning Read
 
 This file owns the active `Generation 1` family-phase routing.
 
 Current legal family-phase ladder:
 - `Settings-1` - Unreal-style settings shell, section rail, and detail pane
+- `Settings-2` - Key Bindings and mode shortcut reference
 
-`Settings-1` is the family doc for the whole Settings ladder.
+`Settings-1` remains the family doc for the shell plus the current owner-backed control ladder.
 It now contains three internal implementation phases:
 - `Phase 1` - shell, section rail, and detail pane
 - `Phase 2` - Spaghetti Editor window default settings
@@ -80,16 +92,25 @@ It now contains three internal implementation phases:
 `Phase 1` is complete.
 `Phase 2` is complete.
 `Phase 3` is complete.
-Later phases now stay inside the same doc:
-- `Phase 4` - General and Workspace controls
+Later owner-backed control phases still stay inside the same doc:
+- `Phase 4` - General and Workspace controls, including shared workspace fillet radius
 - `Phase 5` - Viewport and Appearance controls
 - `Phase 6` - Browser and Console controls
 - `Phase 7` - Storage, Input, Advanced, and cleanup
+
+`Settings-2` is the new cross-mode follow-on family doc.
+It should own the dedicated `Key Bindings` section and the first shortcut inventory read:
+- `Phase 1` - shortcut inventory source map
+- `Phase 2` - shared shortcut read model and mode normalization
+- `Phase 3` - `Key Bindings` section entry and routing
+- `Phase 4` - grouped shortcut pane rendering
+- `Phase 5` - context launch, drift hardening, and follow-on boundary
 
 Important planning rule:
 - use this index to choose and bound the next `Settings-N` family phase
 - use a matching standalone `Future/` family phase doc for Codex-sized implementation phases and implementation specs
 - do not start runtime implementation from this index alone
+- keep shared workspace pane fillet radius as a Settings-owned workspace visual preference instead of hard-coding it inside the `Workspace 9` shell
 
 ## Vision
 
@@ -105,6 +126,7 @@ The healthy Generation 1 read is:
 - the left rail should stay narrow, visually stable, and full height
 - the surface should feel structured and store-like, not like an unorganized dump of controls
 - settings values should stay owned by their real systems, with the workspace acting as the navigation and projection surface
+- shortcut visibility should be grouped by mode or surface context instead of scattered across separate menus or notes
 
 Important boundary rule:
 - if a question is about the broad `Settings` purpose, use `Settings-Vision.md`
@@ -125,6 +147,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] `Settings-Gen1-HLG-4. The layout should feel like two full-height cells with the left rail about 15% or 100px wide.`
 - [ ] `Settings-Gen1-HLG-5. The surface should feel like a store-like settings browser, not a junk drawer.`
 - [ ] `Settings-Gen1-HLG-6. Settings should stay downstream from the owner systems that actually own each setting value.`
+- [ ] `Settings-Gen1-HLG-7. Settings should include a Key Bindings section that lists shortcuts clearly by mode and surface context.`
 
 ### Codex Level Goals
 
@@ -133,6 +156,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] Settings-Gen1-CLG-3. Keep settings content as a projection over the real owner systems instead of a new preference owner.
 - [ ] Settings-Gen1-CLG-4. Keep the left rail narrow and full-height so the layout feels like Unreal Engine settings.
 - [ ] Settings-Gen1-CLG-5. Keep the surface store-like and section-driven, not a flat catch-all page.
+- [ ] Settings-Gen1-CLG-6. Add a dedicated `Key Bindings` settings section that groups shortcuts by mode or surface context without inventing a new shortcut owner.
 
 ### `Settings-1`
 
@@ -156,13 +180,33 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Settings-Gen1-CLG-4.
 - [x] Settings-Gen1-CLG-5.
 
+### `Settings-2`
+
+- [x] Create the standalone `Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md` Family Phase Doc.
+- [ ] Identify the first live shortcut-owner seams before any Settings UI rendering begins.
+- [ ] Define the shared shortcut read model and stable mode labels before grouped rendering starts.
+- [ ] Add the `Key Bindings` section entry as its own narrow routing slice inside the existing Settings shell.
+- [ ] Render the grouped right-pane shortcut read as a separate follow-on after routing is stable.
+- [ ] Keep deep-link and drift-hardening work as a final hardening slice instead of bundling it into the first render pass.
+- [ ] Reuse the real shortcut owners or registries instead of inventing a second shortcut source of truth in Settings.
+- [ ] Keep the right pane readable when one mode has many shortcuts and another has only a few.
+- [ ] `Settings-Gen1-HLG-2`
+- [ ] `Settings-Gen1-HLG-3`
+- [ ] `Settings-Gen1-HLG-5`
+- [ ] `Settings-Gen1-HLG-6`
+- [ ] `Settings-Gen1-HLG-7`
+- [ ] Settings-Gen1-CLG-2.
+- [ ] Settings-Gen1-CLG-3.
+- [ ] Settings-Gen1-CLG-5.
+- [ ] Settings-Gen1-CLG-6.
+
 ### Phase Prep Notes
 
 - the first implementation cut should stop after the shell, section rail, and right-pane routing proof
 - later sections can be added after the layout contract and `All` default behavior are stable
 - keep `Phase 2` focused on the Spaghetti Editor window defaults before the float-window menu work widens the shell
 - keep `Phase 3` focused on the per-float-window `I` menu controls after the default editor settings are honest
-- keep later phases inside `Settings-1` so the remaining owner-backed sections can be added without splitting the family again
+- keep the later owner-backed control sections inside `Settings-1` unless a cross-mode surface like `Key Bindings` needs a separate family doc to stay honest
 
 ## [x] `Settings-1` - `Unreal-Style Settings Shell And Section Router`
 
@@ -227,3 +271,63 @@ The first implementation should prefer a clean navigation-plus-projection path:
 ### Family Phase Doc
 
 - [x] `Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
+- [x] `Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+
+## [ ] `Settings-2` - `Key Bindings And Mode Shortcut Reference`
+
+### Family Phase Summary
+
+Create the first dedicated `Key Bindings` planning surface for the Settings workspace.
+
+This phase should make shortcut visibility feel like a real settings section instead of scattered discoverability hints:
+- a dedicated `Key Bindings` entry in the Settings section list
+- a right-pane shortcut read grouped by mode or surface context
+- clear mode labels so the user can tell where a shortcut applies
+- no shortcut ownership drift away from the systems that already define the bindings
+
+### HLG / CLG Coverage
+
+- [ ] `Settings-Gen1-HLG-2. Settings should use a left rail of categories with All first.`
+- [ ] `Settings-Gen1-HLG-3. The right side should show all settings or the selected section's settings.`
+- [ ] `Settings-Gen1-HLG-5. The surface should feel like a store-like settings browser, not a junk drawer.`
+- [ ] `Settings-Gen1-HLG-6. Settings should stay downstream from the owner systems that actually own each setting value.`
+- [ ] `Settings-Gen1-HLG-7. Settings should include a Key Bindings section that lists shortcuts clearly by mode and surface context.`
+- [ ] Settings-Gen1-CLG-2. Make `All` the first category and let it show the full settings surface by default.
+- [ ] Settings-Gen1-CLG-3. Keep settings content as a projection over the real owner systems instead of a new preference owner.
+- [ ] Settings-Gen1-CLG-5. Keep the surface store-like and section-driven, not a flat catch-all page.
+- [ ] Settings-Gen1-CLG-6. Add a dedicated `Key Bindings` settings section that groups shortcuts by mode or surface context without inventing a new shortcut owner.
+
+### Owns
+
+- the dedicated `Key Bindings` family-phase planning lane
+- the first shortcut inventory read inside Settings
+- the mode-aware grouping direction for the right-pane shortcut reference
+- the first shortcut-context labels and Settings-entry routing rules
+- the implementation-ready follow-on phases for shortcut visibility work
+
+### Does Not Own
+
+- changing shortcut behavior just to make the UI simpler
+- full shortcut rebinding semantics unless a later phase explicitly owns that widening
+- hidden per-mode local registries that duplicate the real shortcut owners
+- unrelated owner-backed settings sections that still belong in `Settings-1`
+
+### Planning Read
+
+The next future doc should begin from the user-described goal:
+- one `Key Bindings` section inside Settings
+- one readable list of shortcuts
+- one clear explanation of which mode or surface each shortcut belongs to
+
+The first implementation should prefer a clean read-first path:
+- if a shortcut already has a real owner or registry, project it
+- if a mode still has no honest shortcut catalog, show that clearly instead of inventing one
+- keep the section mode-aware and easy to scan
+- do not widen into full rebinding or conflict-resolution flows in the first cut
+
+The implementation ladder should stay small enough for Codex to execute one slice at a time:
+- first map the live owners
+- then normalize the shared read model
+- then add the Settings entry point
+- then render the grouped pane
+- then harden deep links and drift checks

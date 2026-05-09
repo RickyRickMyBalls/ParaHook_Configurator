@@ -1960,23 +1960,114 @@ button.ParaSelectMenuAction:hover {
     width 180ms ease;
 }
 
+.ViewportSplitPane--filletedShell {
+  --workspace-pane-fillet-radius: 12px;
+  border-radius: var(--workspace-pane-fillet-radius);
+}
+
+.ViewportSplitPane--filletedShell > .ViewportFrame {
+  border-radius: var(--workspace-pane-fillet-radius);
+}
+
 .ViewportSplitDividerShell {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-.ViewportSplitPane--editor {
-  padding: 12px;
+.ViewportSplitPane--filletedShell.ViewportSplitPane--editor {
+  padding: 0;
   box-sizing: border-box;
+}
+
+.ViewportSplitCornerHandle {
+  position: absolute;
+  z-index: 3;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: crosshair;
+}
+
+.ViewportSplitCornerHandle::before,
+.ViewportSplitCornerHandle::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  border-radius: 999px;
+  pointer-events: none;
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.ViewportSplitCornerHandle::before {
+  width: 10px;
+  height: 1px;
+}
+
+.ViewportSplitCornerHandle::after {
+  width: 1px;
+  height: 10px;
+}
+
+.ViewportSplitCornerHandle:hover,
+.ViewportSplitCornerHandle:focus-visible {
+  color: rgba(255, 255, 255, 0.76);
+  outline: none;
+}
+
+.ViewportSplitCornerHandle--topLeft {
+  top: 0;
+  left: 0;
+}
+
+.ViewportSplitCornerHandle--topLeft::before,
+.ViewportSplitCornerHandle--topLeft::after {
+  top: 4px;
+  left: 4px;
+}
+
+.ViewportSplitCornerHandle--topRight {
+  top: 0;
+  right: 0;
+}
+
+.ViewportSplitCornerHandle--topRight::before,
+.ViewportSplitCornerHandle--topRight::after {
+  top: 4px;
+  right: 4px;
+}
+
+.ViewportSplitCornerHandle--bottomLeft {
+  bottom: 0;
+  left: 0;
+}
+
+.ViewportSplitCornerHandle--bottomLeft::before,
+.ViewportSplitCornerHandle--bottomLeft::after {
+  bottom: 4px;
+  left: 4px;
+}
+
+.ViewportSplitCornerHandle--bottomRight {
+  right: 0;
+  bottom: 0;
+}
+
+.ViewportSplitCornerHandle--bottomRight::before,
+.ViewportSplitCornerHandle--bottomRight::after {
+  right: 4px;
+  bottom: 4px;
 }
 
 .ViewportSplitDivider,
 .ViewportSplitDivider:hover {
   display: block;
   width: 100%;
-  min-height: 10px;
-  height: 10px;
+  min-height: 5px;
+  height: 5px;
   padding: 0;
   border-radius: 0;
   border: none;
@@ -2096,7 +2187,7 @@ button.ParaSelectMenuAction:hover {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  border-radius: 12px;
+  border-radius: var(--workspace-pane-fillet-radius, 12px);
   overflow: hidden;
   background: rgba(7, 9, 13, 0.48);
   border: 1px solid rgba(255, 255, 255, 0.08);

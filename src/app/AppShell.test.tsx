@@ -6459,6 +6459,40 @@ describe('AppShell', () => {
     }
   })
 
+  it('keeps the workspace tree unchanged when a split-corner hotspot is pressed in phase 1', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const layoutBefore = JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)
+    const slotBefore = JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+
+    expect(splitCorner).not.toBeNull()
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)).toBe(layoutBefore)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)).toBe(slotBefore)
+  })
+
   it('suppresses the old docked browser host while a browser surface is already hosted in the slot tree', async () => {
     ;({ container, root } = await renderAppShell())
 

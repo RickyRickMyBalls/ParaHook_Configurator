@@ -77,12 +77,19 @@ type WorkspaceViewportTreeProps = {
     nodeId: WorkspaceLayoutNodeId,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void
+  onViewportSplitCornerPointerDown: (
+    nodeId: WorkspaceLayoutNodeId,
+    corner: WorkspaceViewportSplitCorner,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void
   onLeftDockResizeStart: (event: ReactPointerEvent<HTMLDivElement>) => void
   onLeftDockResizeContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void
   resolvePrimaryLeftDockBottomInset: (slotLeafNodeId: WorkspaceLayoutNodeId) => string
   reservePrimaryViewportBottomConsoleBar?: boolean
   splitDividerSize?: number
 }
+
+export type WorkspaceViewportSplitCorner = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
 
 export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
   const {
@@ -116,11 +123,12 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onCloseViewportSlot,
     onViewportSlotHeaderDragOut,
     onViewportLayoutDividerPointerDown,
+    onViewportSplitCornerPointerDown,
     onLeftDockResizeStart,
     onLeftDockResizeContextMenu,
     resolvePrimaryLeftDockBottomInset,
     reservePrimaryViewportBottomConsoleBar = false,
-    splitDividerSize = 10,
+    splitDividerSize = 5,
   } = props
   const viewportChromeById = useWorkspaceStore((state) => state.viewportChromeById)
   const setViewportResultMode = useWorkspaceStore((state) => state.setViewportResultMode)
@@ -304,6 +312,56 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
           ? 'editor'
           : 'viewer'
     const secondChildArea = firstChildArea === 'editor' ? 'viewer' : 'editor'
+    const leftChildArea =
+      node.splitDirection === 'vertical'
+        ? node.splitDockSide === 'left'
+          ? 'editor'
+          : 'viewer'
+        : null
+    const topChildArea =
+      node.splitDirection === 'horizontal'
+        ? node.splitDockSide === 'top'
+          ? 'editor'
+          : 'viewer'
+        : null
+
+    const getEligiblePaneCorners = (
+      paneArea: 'viewer' | 'editor',
+    ): WorkspaceViewportSplitCorner[] => {
+      if (node.splitDirection === 'vertical') {
+        return paneArea === leftChildArea ? ['topRight', 'bottomRight'] : ['topLeft', 'bottomLeft']
+      }
+      return paneArea === topChildArea ? ['bottomLeft', 'bottomRight'] : ['topLeft', 'topRight']
+    }
+
+    const renderSplitPane = (
+      paneArea: 'viewer' | 'editor',
+      childNodeId: WorkspaceLayoutNodeId,
+    ): ReactNode => {
+      const eligibleCorners = getEligiblePaneCorners(paneArea)
+      const paneRoleClass = paneArea === 'viewer' ? 'ViewportSplitPane--viewer' : 'ViewportSplitPane--editor'
+
+      return (
+        <div
+          className={`ViewportSplitPane ${paneRoleClass} ViewportSplitPane--filletedShell`}
+          style={{ gridArea: paneArea }}
+        >
+          {eligibleCorners.map((corner) => (
+            <button
+              key={corner}
+              type="button"
+              className={`ViewportSplitCornerHandle ViewportSplitCornerHandle--${corner}`}
+              data-workspace-split-corner={corner}
+              data-workspace-split-node-id={node.nodeId}
+              onPointerDown={(event) => onViewportSplitCornerPointerDown(node.nodeId, corner, event)}
+              aria-label={`Prepare split from the ${corner} corner`}
+              title="Click and drag to split this pane"
+            />
+          ))}
+          {renderViewportLayoutNode(childNodeId)}
+        </div>
+      )
+    }
 
     return (
       <div
@@ -332,14 +390,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
                 : '"viewer" "divider" "editor"',
         }}
       >
-        <div
-          className={`ViewportSplitPane ${
-            firstChildArea === 'viewer' ? 'ViewportSplitPane--viewer' : 'ViewportSplitPane--editor'
-          }`}
-          style={{ gridArea: firstChildArea }}
-        >
-          {renderViewportLayoutNode(node.firstChildId)}
-        </div>
+        {renderSplitPane(firstChildArea, node.firstChildId)}
         <div className="ViewportSplitDividerShell" style={{ gridArea: 'divider' }}>
           <button
             type="button"
@@ -349,14 +400,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             title="Drag to resize split view"
           />
         </div>
-        <div
-          className={`ViewportSplitPane ${
-            secondChildArea === 'viewer' ? 'ViewportSplitPane--viewer' : 'ViewportSplitPane--editor'
-          }`}
-          style={{ gridArea: secondChildArea }}
-        >
-          {renderViewportLayoutNode(node.secondChildId)}
-        </div>
+        {renderSplitPane(secondChildArea, node.secondChildId)}
       </div>
     )
   }
