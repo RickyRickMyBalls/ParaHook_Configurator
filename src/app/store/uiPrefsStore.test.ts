@@ -8,7 +8,12 @@ import {
   normalizeViewSettings,
 } from '../../shared/viewSettingsTypes'
 import { defaultSpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
-import { useUiPrefsStore } from './uiPrefsStore'
+import {
+  DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  useUiPrefsStore,
+} from './uiPrefsStore'
 
 describe('uiPrefsStore environment source state', () => {
   beforeEach(() => {
@@ -26,12 +31,18 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(true)
     expect(useUiPrefsStore.getState().dashboardPersistence).toBe(true)
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(true)
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(
+      DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+    )
+    expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(true)
 
     useUiPrefsStore.getState().setWorkspaceRestorePersistence(false)
     useUiPrefsStore.getState().setViewSettingsPersistence(false)
     useUiPrefsStore.getState().setEnvironmentPersistence(false)
     useUiPrefsStore.getState().setDashboardPersistence(false)
     useUiPrefsStore.getState().setNotepadPersistence(false)
+    useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(18.4)
+    useUiPrefsStore.getState().setWorkspaceNestedResizeKeepsFarPane(false)
     useUiPrefsStore.getState().setSpaghettiWindowAppearanceDefaults({
       ...defaultSpaghettiWindowAppearance,
       titlebarTint: 'blue',
@@ -42,7 +53,25 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(false)
     expect(useUiPrefsStore.getState().dashboardPersistence).toBe(false)
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(18)
+    expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(false)
     expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults.titlebarTint).toBe('blue')
+  })
+
+  it('defaults and clamps the workspace corner radius preference', () => {
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(
+      DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+    )
+
+    useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(MAX_WORKSPACE_PANE_FILLET_RADIUS_PX + 10)
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(
+      MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
+    )
+
+    useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(MIN_WORKSPACE_PANE_FILLET_RADIUS_PX - 5)
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(
+      MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
+    )
   })
 
   it('keeps the default environment grade nested beside the locked startup scene', () => {

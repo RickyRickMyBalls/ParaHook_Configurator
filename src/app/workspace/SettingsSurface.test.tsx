@@ -21,6 +21,7 @@ describe('SettingsSurface', () => {
     useUiPrefsStore.setState({
       view: structuredClone(DEFAULT_VIEW_SETTINGS),
       workspaceStartupSurface: 'homePage',
+      workspaceNestedResizeKeepsFarPane: true,
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
       environmentPersistence: true,
@@ -73,6 +74,8 @@ describe('SettingsSurface', () => {
     expect(content).not.toBeNull()
     expect(content?.textContent).toContain('Startup surface')
     expect(content?.textContent).toContain('Left dock width')
+    expect(content?.textContent).toContain('Workspace corner radius')
+    expect(content?.textContent).toContain('Keep far pane fixed on nested resize')
     expect(content?.textContent).toContain('Title bar opacity')
     expect(content?.textContent).toContain('Browser presentation')
   })
@@ -103,6 +106,7 @@ describe('SettingsSurface', () => {
     const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
     expect(content?.textContent).toContain('Workspace')
     expect(content?.textContent).toContain('Left dock width')
+    expect(content?.textContent).toContain('Keep far pane fixed on nested resize')
     expect(content?.textContent).toContain('Dashboard persistence')
     expect(content?.textContent).not.toContain('Browser presentation')
     expect(
@@ -160,5 +164,78 @@ describe('SettingsSurface', () => {
     expect(content?.textContent).toContain('Browser')
     expect(content?.textContent).toContain('Browser presentation')
     expect(content?.textContent).not.toContain('Startup surface')
+  })
+
+  it('edits the workspace corner radius through the workspace section slider', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="workspace"
+        />,
+      )
+    })
+
+    const valueButton = container?.querySelector(
+      'button[aria-label="Edit Workspace corner radius value"]',
+    ) as HTMLButtonElement | null
+    expect(valueButton).not.toBeNull()
+
+    await act(async () => {
+      valueButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const valueInput = container?.querySelector(
+      'input[aria-label="Edit Workspace corner radius value"]',
+    ) as HTMLInputElement | null
+    expect(valueInput).not.toBeNull()
+
+    await act(async () => {
+      if (valueInput !== null) {
+        valueInput.value = '18'
+        valueInput.dispatchEvent(new Event('input', { bubbles: true }))
+        valueInput.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      valueInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(18)
+    expect(container?.textContent).toContain('Workspace corner radius')
+  })
+
+  it('toggles the nested divider resize behavior through the workspace section switch', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="workspace"
+        />,
+      )
+    })
+
+    const resizeToggle = container?.querySelector(
+      'input[aria-label="Keep far pane fixed on nested resize"]',
+    ) as HTMLInputElement | null
+    expect(resizeToggle).not.toBeNull()
+    expect(resizeToggle?.checked).toBe(true)
+
+    await act(async () => {
+      resizeToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(false)
   })
 })

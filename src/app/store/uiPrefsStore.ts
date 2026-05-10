@@ -32,6 +32,18 @@ const clamp = (value: number, min: number, max: number): number =>
 const MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 50
 const MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 2000
 const DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 320
+export const MIN_WORKSPACE_PANE_FILLET_RADIUS_PX = 0
+export const MAX_WORKSPACE_PANE_FILLET_RADIUS_PX = 100
+export const DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX = 12
+
+const normalizeWorkspacePaneFilletRadiusPx = (value: number | undefined): number =>
+  Number.isFinite(value)
+    ? clamp(
+        Math.round(value as number),
+        MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
+        MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
+      )
+    : DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX
 
 const normalizeEnvironmentIntensity = (value: number | undefined, fallback = 1): number =>
   Number.isFinite(value) ? clamp(value as number, 0, 5) : fallback
@@ -175,6 +187,8 @@ type UiPrefsState = {
   view: ViewSettings
   workspaceStartupSurface: WorkspaceStartupSurface
   spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
+  workspacePaneFilletRadiusPx: number
+  workspaceNestedResizeKeepsFarPane: boolean
   workspaceRestorePersistence: boolean
   viewSettingsPersistence: boolean
   environmentPersistence: boolean
@@ -206,7 +220,9 @@ type UiPrefsState = {
     spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance,
   ) => void
   resetSpaghettiWindowAppearanceDefaults: () => void
+  setWorkspaceNestedResizeKeepsFarPane: (workspaceNestedResizeKeepsFarPane: boolean) => void
   setWorkspaceRestorePersistence: (workspaceRestorePersistence: boolean) => void
+  setWorkspacePaneFilletRadiusPx: (workspacePaneFilletRadiusPx: number) => void
   setViewSettingsPersistence: (viewSettingsPersistence: boolean) => void
   setEnvironmentPersistence: (environmentPersistence: boolean) => void
   setDashboardPersistence: (dashboardPersistence: boolean) => void
@@ -255,6 +271,8 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
   workspaceStartupSurface: 'homePage',
   spaghettiWindowAppearanceDefaults: defaultSpaghettiWindowAppearance,
+  workspacePaneFilletRadiusPx: DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  workspaceNestedResizeKeepsFarPane: true,
   workspaceRestorePersistence: true,
   viewSettingsPersistence: true,
   environmentPersistence: true,
@@ -315,8 +333,22 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
       return { spaghettiWindowAppearanceDefaults: defaultSpaghettiWindowAppearance }
     })
   },
+  setWorkspaceNestedResizeKeepsFarPane: (workspaceNestedResizeKeepsFarPane) => {
+    set({ workspaceNestedResizeKeepsFarPane })
+  },
   setWorkspaceRestorePersistence: (workspaceRestorePersistence) => {
     set({ workspaceRestorePersistence })
+  },
+  setWorkspacePaneFilletRadiusPx: (workspacePaneFilletRadiusPx) => {
+    set((state) => {
+      const nextRadius = normalizeWorkspacePaneFilletRadiusPx(workspacePaneFilletRadiusPx)
+      if (state.workspacePaneFilletRadiusPx === nextRadius) {
+        return state
+      }
+      return {
+        workspacePaneFilletRadiusPx: nextRadius,
+      }
+    })
   },
   setViewSettingsPersistence: (viewSettingsPersistence) => {
     set({ viewSettingsPersistence })

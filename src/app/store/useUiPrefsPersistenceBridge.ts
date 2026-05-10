@@ -27,6 +27,8 @@ export function useUiPrefsPersistenceBridge() {
         workspaceStartupSurface: persistedUiPrefs.workspaceStartupSurface,
         spaghettiWindowAppearanceDefaults:
           persistedUiPrefs.spaghettiWindowAppearanceDefaults,
+        workspacePaneFilletRadiusPx: persistedUiPrefs.workspacePaneFilletRadiusPx,
+        workspaceNestedResizeKeepsFarPane: persistedUiPrefs.workspaceNestedResizeKeepsFarPane,
         workspaceRestorePersistence: persistedUiPrefs.workspaceRestorePersistence,
         viewSettingsPersistence: persistedUiPrefs.viewSettingsPersistence,
         environmentPersistence: persistedUiPrefs.environmentPersistence,
@@ -55,6 +57,8 @@ export function useUiPrefsPersistenceBridge() {
       currentUiPrefs.workspaceStartupSurface,
       currentUiPrefs.spaghettiWindowAppearanceDefaults,
       currentPolicy,
+      currentUiPrefs.workspacePaneFilletRadiusPx,
+      currentUiPrefs.workspaceNestedResizeKeepsFarPane,
     )
     writePersistedUiPrefs(nextSnapshot)
     lastPersistedUiPrefsRef.current = nextSnapshot
@@ -84,6 +88,8 @@ export function useUiPrefsPersistenceBridge() {
           dashboardPersistence: state.dashboardPersistence,
           notepadPersistence: state.notepadPersistence,
         },
+        state.workspacePaneFilletRadiusPx,
+        state.workspaceNestedResizeKeepsFarPane,
       )
       lastPersistedUiPrefsRef.current = nextSnapshot
       writePersistedUiPrefs(

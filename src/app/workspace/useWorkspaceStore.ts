@@ -130,6 +130,15 @@ export type WorkspaceStoreState = {
       preferredRatio?: number
     },
   ) => WorkspaceViewportSlotId | null
+  splitViewportLayoutNode: (
+    nodeId: WorkspaceLayoutNodeId,
+    splitDockSide: WorkspaceSplitDockSide,
+    options?: {
+      surfaceKind?: WorkspaceSurfaceKind
+      surfaceInstanceId?: string
+      preferredRatio?: number
+    },
+  ) => WorkspaceViewportSlotId | null
   splitViewportRoot: (
     splitDockSide: WorkspaceSplitDockSide,
     options?: {
@@ -223,6 +232,7 @@ const createInitialState = (): Omit<
   | 'showViewportSplitSlot'
   | 'hideViewportSplitSlot'
   | 'splitViewportSlot'
+  | 'splitViewportLayoutNode'
   | 'splitViewportRoot'
   | 'createDetachedViewportSurfaceCopy'
   | 'setViewportLayoutSplitRatio'
@@ -343,6 +353,32 @@ const resolveSlotPreferredSplitDockSide = (
   return slotOwnsPrimaryDockSide
     ? parentSplitNode.splitDockSide
     : oppositeSplitDockSide(parentSplitNode.splitDockSide)
+}
+
+const resolveFirstLeafSlotForLayoutNode = (
+  viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>,
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>,
+  nodeId: WorkspaceLayoutNodeId,
+): WorkspaceViewportSlot | null => {
+  const targetNode = viewportLayoutNodesById[nodeId]
+  if (targetNode === undefined) {
+    return null
+  }
+  if (targetNode.kind === 'leaf') {
+    return viewportSlotsById[targetNode.slotId] ?? null
+  }
+  return (
+    resolveFirstLeafSlotForLayoutNode(
+      viewportLayoutNodesById,
+      viewportSlotsById,
+      targetNode.firstChildId,
+    ) ??
+    resolveFirstLeafSlotForLayoutNode(
+      viewportLayoutNodesById,
+      viewportSlotsById,
+      targetNode.secondChildId,
+    )
+  )
 }
 
 const clampWorkspaceSplitRatio = (ratio: number): number => Math.min(0.85, Math.max(0.15, ratio))
@@ -863,6 +899,107 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
               : parentSplitNode.firstChildId,
           secondChildId:
             parentSplitNode.secondChildId === currentSlot.leafNodeId
+              ? nextSplitNodeId
+              : parentSplitNode.secondChildId,
+        }
+      }
+
+      createdSlotId = nextSlotId
+      return withDerivedBrowserContract(state, {
+        viewportSlotRootNodeId: nextViewportSlotRootNodeId,
+        viewportSlotsById: {
+          ...state.viewportSlotsById,
+          [nextSlotId]: nextSlot,
+        },
+        viewportLayoutNodesById: nextViewportLayoutNodesById,
+      })
+    })
+    return createdSlotId
+  },
+  splitViewportLayoutNode: (nodeId, splitDockSide, options) => {
+    let createdSlotId: WorkspaceViewportSlotId | null = null
+    set((state) => {
+      const currentNode = state.viewportLayoutNodesById[nodeId]
+      if (currentNode === undefined) {
+        return state
+      }
+      const representativeSlot = resolveFirstLeafSlotForLayoutNode(
+        state.viewportLayoutNodesById,
+        state.viewportSlotsById,
+        nodeId,
+      )
+      const nextSlotId = createNextWorkspaceGeneratedId(
+        'workspace-slot',
+        Object.keys(state.viewportSlotsById),
+      )
+      const nextLeafNodeId = createNextWorkspaceGeneratedId(
+        'workspace-slot-leaf',
+        Object.keys(state.viewportLayoutNodesById),
+      )
+      const nextSplitNodeId = createNextWorkspaceGeneratedId(
+        'workspace-slot-split',
+        Object.keys(state.viewportLayoutNodesById),
+      )
+      const nextSurfaceKind = options?.surfaceKind ?? representativeSlot?.surfaceKind ?? 'browser'
+      const nextSurfaceInstanceId =
+        options?.surfaceInstanceId ??
+        createWorkspaceSurfaceInstanceIdForSlot(nextSurfaceKind, nextSlotId)
+      const nextHostViewportId =
+        nextSurfaceKind === 'modelViewer'
+          ? representativeSlot?.surfaceKind === 'modelViewer'
+            ? representativeSlot.surfaceInstanceId
+            : representativeSlot?.hostViewportId ?? state.primaryViewportId
+          : state.primaryViewportId
+      const nextSlot: WorkspaceViewportSlot = {
+        ...createDefaultWorkspaceViewportSlot(
+          nextSlotId,
+          nextSurfaceKind,
+          nextLeafNodeId,
+          nextHostViewportId,
+        ),
+        surfaceInstanceId: nextSurfaceInstanceId,
+        retainedSurfaceInstanceIdsByKind: {
+          [nextSurfaceKind]: nextSurfaceInstanceId,
+        },
+      }
+      const nextLeafNode: WorkspaceLayoutNode = {
+        nodeId: nextLeafNodeId,
+        kind: 'leaf',
+        slotId: nextSlotId,
+      }
+      const childOrder = resolveSplitChildOrder(splitDockSide, nodeId, nextLeafNodeId)
+      const nextSplitNode: WorkspaceLayoutNode = {
+        nodeId: nextSplitNodeId,
+        kind: 'split',
+        splitDirection: resolveWorkspaceSplitDirectionForDockSide(splitDockSide),
+        splitDockSide,
+        ratio: clampWorkspaceSplitRatio(options?.preferredRatio ?? defaultBrowserViewportSplitRatio),
+        firstChildId: childOrder.firstChildId,
+        secondChildId: childOrder.secondChildId,
+      }
+      const parentSplitNodeId = findParentSplitNodeId(state.viewportLayoutNodesById, nodeId)
+      const nextViewportLayoutNodesById: Record<string, WorkspaceLayoutNode> = {
+        ...state.viewportLayoutNodesById,
+        [nextLeafNodeId]: nextLeafNode,
+        [nextSplitNodeId]: nextSplitNode,
+      }
+
+      let nextViewportSlotRootNodeId = state.viewportSlotRootNodeId
+      if (parentSplitNodeId === null) {
+        nextViewportSlotRootNodeId = nextSplitNodeId
+      } else {
+        const parentSplitNode = state.viewportLayoutNodesById[parentSplitNodeId]
+        if (parentSplitNode?.kind !== 'split') {
+          return state
+        }
+        nextViewportLayoutNodesById[parentSplitNodeId] = {
+          ...parentSplitNode,
+          firstChildId:
+            parentSplitNode.firstChildId === nodeId
+              ? nextSplitNodeId
+              : parentSplitNode.firstChildId,
+          secondChildId:
+            parentSplitNode.secondChildId === nodeId
               ? nextSplitNodeId
               : parentSplitNode.secondChildId,
         }

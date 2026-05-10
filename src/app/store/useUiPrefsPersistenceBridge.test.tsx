@@ -85,11 +85,16 @@ describe('useUiPrefsPersistenceBridge', () => {
       rotationDeg: 90,
     })
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(12)
+    expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(true)
 
     const persistedAfterHydration = readPersistedUiPrefs()
     expect(persistedAfterHydration).toEqual({
-      version: 2,
+      version: 3,
       workspaceStartupSurface: 'homePage',
+      workspacePaneFilletRadiusPx: 12,
+      workspaceNestedResizeKeepsFarPane: true,
+      spaghettiWindowAppearanceDefaults: expect.any(Object),
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
       environmentPersistence: true,
@@ -143,8 +148,10 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
     expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).toEqual(
       expect.objectContaining({
-        version: 2,
+        version: 3,
         workspaceStartupSurface: 'homePage',
+        workspacePaneFilletRadiusPx: 12,
+        workspaceNestedResizeKeepsFarPane: true,
         workspaceRestorePersistence: true,
         viewSettingsPersistence: true,
         environmentPersistence: true,
@@ -194,6 +201,8 @@ describe('useUiPrefsPersistenceBridge', () => {
         version: 2,
         view: persistedView,
         workspaceStartupSurface: 'modelViewer',
+        workspacePaneFilletRadiusPx: 18,
+        workspaceNestedResizeKeepsFarPane: true,
         workspaceRestorePersistence: false,
         viewSettingsPersistence: true,
         environmentPersistence: false,
@@ -212,6 +221,8 @@ describe('useUiPrefsPersistenceBridge', () => {
 
     const state = useUiPrefsStore.getState()
     expect(state.workspaceStartupSurface).toBe('modelViewer')
+    expect(state.workspacePaneFilletRadiusPx).toBe(18)
+    expect(state.workspaceNestedResizeKeepsFarPane).toBe(true)
     expect(state.workspaceRestorePersistence).toBe(false)
     expect(state.viewSettingsPersistence).toBe(true)
     expect(state.environmentPersistence).toBe(false)
@@ -241,6 +252,8 @@ describe('useUiPrefsPersistenceBridge', () => {
           projectionMode: 'perspective',
         },
         workspaceStartupSurface: 'not-a-real-surface',
+        workspacePaneFilletRadiusPx: 99,
+        workspaceNestedResizeKeepsFarPane: true,
       }),
     )
     useUiPrefsStore.setState(
@@ -259,9 +272,13 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
 
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
+    expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(99)
     expect(readPersistedUiPrefs()).toEqual({
-      version: 2,
+      version: 3,
       workspaceStartupSurface: 'homePage',
+      workspacePaneFilletRadiusPx: 99,
+      workspaceNestedResizeKeepsFarPane: true,
+      spaghettiWindowAppearanceDefaults: expect.any(Object),
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
       environmentPersistence: true,
@@ -297,7 +314,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
 
     expect(readPersistedUiPrefs()).toMatchObject({
-      version: 2,
+      version: 3,
       view: {
         envPreset: 'studio',
         environmentGrade: {
@@ -320,8 +337,10 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
     expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).toEqual(
       expect.objectContaining({
-        version: 2,
+        version: 3,
         view: expect.any(Object),
+        workspacePaneFilletRadiusPx: 12,
+        workspaceNestedResizeKeepsFarPane: true,
         workspaceRestorePersistence: true,
         viewSettingsPersistence: true,
         environmentPersistence: true,

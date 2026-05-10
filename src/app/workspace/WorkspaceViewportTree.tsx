@@ -1,10 +1,12 @@
 import type {
+  CSSProperties,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   ReactNode,
   RefObject,
 } from 'react'
 import { PrimaryViewportLeftDock } from './PrimaryViewportLeftDock'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportFrame, type ViewportFrameHeaderDragOutPayload } from './ViewportFrame'
 import { ViewportOverlayModeTitlebarControls } from './ViewportOverlayModeTitlebarControls'
@@ -82,14 +84,42 @@ type WorkspaceViewportTreeProps = {
     corner: WorkspaceViewportSplitCorner,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void
+  onViewportSplitCornerPointerMove: (
+    nodeId: WorkspaceLayoutNodeId,
+    corner: WorkspaceViewportSplitCorner,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void
+  onViewportSplitCornerPointerUp: (
+    nodeId: WorkspaceLayoutNodeId,
+    corner: WorkspaceViewportSplitCorner,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void
+  onViewportSplitCornerPointerCancel: (
+    nodeId: WorkspaceLayoutNodeId,
+    corner: WorkspaceViewportSplitCorner,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void
   onLeftDockResizeStart: (event: ReactPointerEvent<HTMLDivElement>) => void
   onLeftDockResizeContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void
   resolvePrimaryLeftDockBottomInset: (slotLeafNodeId: WorkspaceLayoutNodeId) => string
   reservePrimaryViewportBottomConsoleBar?: boolean
   splitDividerSize?: number
+  activeViewportSplitCornerSession?: {
+    nodeId: WorkspaceLayoutNodeId
+    corner: WorkspaceViewportSplitCorner
+    deadzoneCrossed: boolean
+  } | null
+  activeViewportSplitCornerPreview?: WorkspaceViewportSplitPreview | null
 }
 
 export type WorkspaceViewportSplitCorner = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
+export type WorkspaceViewportSplitPreview = {
+  anchorEdge: 'left' | 'right' | 'top' | 'bottom'
+  nodeId: WorkspaceLayoutNodeId
+  orientation: 'vertical' | 'horizontal'
+  paneArea: 'viewer' | 'editor'
+  ratio: number
+}
 
 export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
   const {
@@ -124,14 +154,20 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onViewportSlotHeaderDragOut,
     onViewportLayoutDividerPointerDown,
     onViewportSplitCornerPointerDown,
+    onViewportSplitCornerPointerMove,
+    onViewportSplitCornerPointerUp,
+    onViewportSplitCornerPointerCancel,
     onLeftDockResizeStart,
     onLeftDockResizeContextMenu,
     resolvePrimaryLeftDockBottomInset,
     reservePrimaryViewportBottomConsoleBar = false,
     splitDividerSize = 5,
+    activeViewportSplitCornerSession = null,
+    activeViewportSplitCornerPreview = null,
   } = props
   const viewportChromeById = useWorkspaceStore((state) => state.viewportChromeById)
   const setViewportResultMode = useWorkspaceStore((state) => state.setViewportResultMode)
+  const workspacePaneFilletRadiusPx = useUiPrefsStore((state) => state.workspacePaneFilletRadiusPx)
 
   const renderViewportSlot = (slotId: WorkspaceViewportSlotId): ReactNode => {
     const slot = viewportSlotsById[slotId] ?? null
@@ -339,25 +375,98 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
       childNodeId: WorkspaceLayoutNodeId,
     ): ReactNode => {
       const eligibleCorners = getEligiblePaneCorners(paneArea)
+      const splitCornerHitAreaPx = Math.max(18, workspacePaneFilletRadiusPx)
       const paneRoleClass = paneArea === 'viewer' ? 'ViewportSplitPane--viewer' : 'ViewportSplitPane--editor'
+      const panePreview =
+        activeViewportSplitCornerPreview?.nodeId === node.nodeId &&
+        activeViewportSplitCornerPreview.paneArea === paneArea
+          ? activeViewportSplitCornerPreview
+          : null
+      const panePreviewInsetStyle =
+        panePreview === null
+          ? undefined
+          : panePreview.orientation === 'vertical'
+            ? panePreview.anchorEdge === 'right'
+              ? { width: `${panePreview.ratio * 100}%`, right: '0' }
+              : { width: `${panePreview.ratio * 100}%`, left: '0' }
+            : panePreview.anchorEdge === 'bottom'
+              ? { height: `${panePreview.ratio * 100}%`, bottom: '0' }
+              : { height: `${panePreview.ratio * 100}%`, top: '0' }
+      const panePreviewDividerStyle =
+        panePreview === null
+          ? undefined
+          : panePreview.orientation === 'vertical'
+            ? panePreview.anchorEdge === 'right'
+              ? { right: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+              : { left: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+            : panePreview.anchorEdge === 'bottom'
+              ? { bottom: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+              : { top: `calc(${panePreview.ratio * 100}% - 2.5px)` }
 
       return (
         <div
           className={`ViewportSplitPane ${paneRoleClass} ViewportSplitPane--filletedShell`}
-          style={{ gridArea: paneArea }}
+          style={
+            {
+              gridArea: paneArea,
+              '--workspace-pane-fillet-radius': `${workspacePaneFilletRadiusPx}px`,
+            } as CSSProperties
+          }
         >
-          {eligibleCorners.map((corner) => (
-            <button
-              key={corner}
-              type="button"
-              className={`ViewportSplitCornerHandle ViewportSplitCornerHandle--${corner}`}
-              data-workspace-split-corner={corner}
-              data-workspace-split-node-id={node.nodeId}
-              onPointerDown={(event) => onViewportSplitCornerPointerDown(node.nodeId, corner, event)}
-              aria-label={`Prepare split from the ${corner} corner`}
-              title="Click and drag to split this pane"
-            />
-          ))}
+          {eligibleCorners.map((corner) => {
+            const isActiveCornerSession =
+              activeViewportSplitCornerSession?.nodeId === node.nodeId &&
+              activeViewportSplitCornerSession.corner === corner
+            const cornerSessionState = isActiveCornerSession
+              ? activeViewportSplitCornerSession.deadzoneCrossed
+                ? 'armed'
+                : 'holding'
+              : undefined
+
+            return (
+              <button
+                key={corner}
+                type="button"
+                className={`ViewportSplitCornerHandle ViewportSplitCornerHandle--${corner}`}
+                data-workspace-split-corner={corner}
+                data-workspace-split-node-id={node.nodeId}
+                data-workspace-split-corner-session={cornerSessionState}
+                style={
+                  {
+                    '--workspace-split-corner-hit-area': `${splitCornerHitAreaPx}px`,
+                  } as CSSProperties
+                }
+                onPointerDown={(event) =>
+                  onViewportSplitCornerPointerDown(node.nodeId, corner, event)
+                }
+                onPointerMove={(event) =>
+                  onViewportSplitCornerPointerMove(node.nodeId, corner, event)
+                }
+                onPointerUp={(event) => onViewportSplitCornerPointerUp(node.nodeId, corner, event)}
+                onPointerCancel={(event) =>
+                  onViewportSplitCornerPointerCancel(node.nodeId, corner, event)
+                }
+                aria-label={`Prepare split from the ${corner} corner`}
+                title="Click and drag to split this pane"
+              />
+            )
+          })}
+          {panePreview !== null ? (
+            <>
+              <div
+                className={`ViewportSplitPreviewFootprint ViewportSplitPreviewFootprint--${panePreview.orientation}`}
+                data-workspace-split-preview-orientation={panePreview.orientation}
+                data-workspace-split-preview-edge={panePreview.anchorEdge}
+                data-workspace-split-preview-pane={paneArea}
+                style={panePreviewInsetStyle}
+              />
+              <div
+                className={`ViewportSplitPreviewDivider ViewportSplitPreviewDivider--${panePreview.orientation}`}
+                data-workspace-split-preview-divider={panePreview.orientation}
+                style={panePreviewDividerStyle}
+              />
+            </>
+          ) : null}
           {renderViewportLayoutNode(childNodeId)}
         </div>
       )
@@ -367,6 +476,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
       <div
         key={node.nodeId}
         className={`ViewportSplitLayout ${splitDirectionClass} ${splitDockSideClass}`}
+        data-workspace-layout-node-id={node.nodeId}
         style={{
           gridTemplateColumns:
             node.splitDirection === 'vertical'
@@ -395,6 +505,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
           <button
             type="button"
             className="ViewportSplitDivider"
+            data-workspace-divider-node-id={node.nodeId}
             onPointerDown={(event) => onViewportLayoutDividerPointerDown(node.nodeId, event)}
             aria-label="Resize split view"
             title="Drag to resize split view"

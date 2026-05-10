@@ -13,9 +13,6 @@ export function useWorkspacePersistenceBridge() {
   const hydratePersistedWorkspaceLayout = useWorkspaceStore(
     (state) => state.hydratePersistedWorkspaceLayout,
   )
-  const workspaceRestorePersistence = useUiPrefsStore(
-    (state) => state.workspaceRestorePersistence,
-  )
   const hasHydratedWorkspacePersistenceRef = useRef(false)
   const { replayPersistedEditorSurfacePlacements } = useWorkspaceLegacyCompatibilityBridge()
 
@@ -33,6 +30,7 @@ export function useWorkspacePersistenceBridge() {
       )
     }
 
+    const { workspaceRestorePersistence } = useUiPrefsStore.getState()
     const persistedLayout = readPersistedWorkspaceLayout()
     if (persistedLayout !== null && workspaceRestorePersistence) {
       hydratePersistedWorkspaceLayout(persistedLayout)
@@ -45,7 +43,6 @@ export function useWorkspacePersistenceBridge() {
   }, [
     hydratePersistedWorkspaceLayout,
     replayPersistedEditorSurfacePlacements,
-    workspaceRestorePersistence,
   ])
 
   useEffect(() => {

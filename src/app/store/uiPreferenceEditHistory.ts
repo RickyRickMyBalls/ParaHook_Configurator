@@ -86,6 +86,26 @@ const workspaceRestorePersistenceConfig: UiPreferenceHistoryConfig<boolean> = {
   setValue: (value) => useUiPrefsStore.getState().setWorkspaceRestorePersistence(value),
 }
 
+const workspacePaneFilletRadiusConfig: UiPreferenceHistoryConfig<number> = {
+  label: 'Change workspace corner radius',
+  sourceId: 'workspace-settings',
+  sourceLabel: 'Workspace Settings',
+  targetId: 'ui-pref:workspacePaneFilletRadiusPx',
+  targetLabel: 'Workspace corner radius',
+  getValue: () => useUiPrefsStore.getState().workspacePaneFilletRadiusPx,
+  setValue: (value) => useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(value),
+}
+
+const workspaceNestedResizeKeepsFarPaneConfig: UiPreferenceHistoryConfig<boolean> = {
+  label: 'Change workspace resize behavior',
+  sourceId: 'workspace-settings',
+  sourceLabel: 'Workspace Settings',
+  targetId: 'ui-pref:workspaceNestedResizeKeepsFarPane',
+  targetLabel: 'Keep far pane fixed on nested resize',
+  getValue: () => useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane,
+  setValue: (value) => useUiPrefsStore.getState().setWorkspaceNestedResizeKeepsFarPane(value),
+}
+
 const viewSettingsPersistenceConfig: UiPreferenceHistoryConfig<boolean> = {
   label: 'Change persistence preference',
   sourceId: 'storage-management',
@@ -141,6 +161,17 @@ export const setWorkspaceRestorePersistenceWithHistory = (
   nextValue: boolean,
   options?: UiPreferenceHistoryOptions,
 ): boolean => commitUiPreferenceWithHistory(workspaceRestorePersistenceConfig, nextValue, options)
+
+export const setWorkspacePaneFilletRadiusWithHistory = (
+  nextValue: number,
+  options?: UiPreferenceHistoryOptions,
+): boolean => commitUiPreferenceWithHistory(workspacePaneFilletRadiusConfig, nextValue, options)
+
+export const setWorkspaceNestedResizeKeepsFarPaneWithHistory = (
+  nextValue: boolean,
+  options?: UiPreferenceHistoryOptions,
+): boolean =>
+  commitUiPreferenceWithHistory(workspaceNestedResizeKeepsFarPaneConfig, nextValue, options)
 
 export const setViewSettingsPersistenceWithHistory = (
   nextValue: boolean,

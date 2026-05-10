@@ -68,6 +68,7 @@ import {
   defaultBrowserHostRouteId,
   defaultPrimaryViewportSlotId,
   defaultPrimaryWorkspaceViewportId,
+  type WorkspaceLayoutNode,
   type WorkspaceDetachedSlotSurfaceState,
   type WorkspaceSurfaceKind,
 } from './workspace/workspaceShellTypes'
@@ -75,17 +76,90 @@ import { useWorkspacePersistenceBridge } from './workspace/useWorkspacePersisten
 import { useUiPrefsPersistenceBridge } from './store/useUiPrefsPersistenceBridge'
 import { useGraphBrowserStoragePersistenceBridge } from './spaghetti/store/useGraphBrowserStoragePersistenceBridge'
 import { useWorkspaceDetachedRestoreCompatibilityBridge } from './workspace/useWorkspaceDetachedRestoreCompatibilityBridge'
+import type { WorkspaceSplitDockSide } from './workspace/workspaceSplitTypes'
 const floatingDockLockGap = 25
 const modelViewportPopoutBackground = 'rgb(7, 11, 18)'
 const detachedViewerFloatingMinWidth = 320
 const detachedViewerFloatingMinHeight = 240
 const detachedViewerFloatingEdgePadding = 12
+const workspaceSplitCornerGestureDeadzonePx = 10
+const workspaceSplitCornerGestureAxisSwitchHysteresisPx = 24
+const workspaceSplitCornerCommitThresholdRatio = 0.12
+const workspaceLayoutSplitRatioMin = 0.15
+const workspaceLayoutSplitRatioMax = 0.85
+
+type WorkspaceSplitPaneArea = 'viewer' | 'editor'
+
+type ViewportSplitCornerPreview = {
+  anchorEdge: 'left' | 'right' | 'top' | 'bottom'
+  nodeId: string
+  orientation: 'vertical' | 'horizontal'
+  paneArea: WorkspaceSplitPaneArea
+  rawRatio: number
+  ratio: number
+  targetNodeId: string
+}
+
+type ViewportPaneRect = {
+  bottom: number
+  height: number
+  left: number
+  right: number
+  top: number
+  width: number
+}
+
+type ViewportSplitCornerGestureSession = {
+  deadzoneCrossed: boolean
+  latestClientX: number
+  latestClientY: number
+  nodeId: string
+  corner: WorkspaceViewportSplitCorner
+  paneRect: ViewportPaneRect
+  pointerId: number
+  originClientX: number
+  originClientY: number
+  previewOrientation: 'vertical' | 'horizontal' | null
+}
 
 type DetachedViewerFloatingRect = {
   x: number
   y: number
   width: number
   height: number
+}
+
+type WorkspaceSplitEdge = 'start' | 'end'
+
+const clampWorkspaceLayoutSplitRatio = (ratio: number): number =>
+  Math.min(workspaceLayoutSplitRatioMax, Math.max(workspaceLayoutSplitRatioMin, ratio))
+
+const resolveWorkspaceSplitPrimaryEdge = (
+  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
+): WorkspaceSplitEdge =>
+  node.splitDirection === 'vertical'
+    ? node.splitDockSide === 'left'
+      ? 'start'
+      : 'end'
+    : node.splitDockSide === 'top'
+      ? 'start'
+      : 'end'
+
+const resolveWorkspaceSplitEdgeFraction = (
+  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
+  edge: WorkspaceSplitEdge,
+): number => {
+  const primaryEdge = resolveWorkspaceSplitPrimaryEdge(node)
+  return edge === primaryEdge ? node.ratio : 1 - node.ratio
+}
+
+const resolveWorkspaceSplitRatioForEdgeFraction = (
+  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
+  edge: WorkspaceSplitEdge,
+  edgeFraction: number,
+): number => {
+  const primaryEdge = resolveWorkspaceSplitPrimaryEdge(node)
+  return primaryEdge === edge ? edgeFraction : 1 - edgeFraction
 }
 
 const isPristineDashboardState = (state: {
@@ -243,6 +317,55 @@ function clampDetachedViewerFloatingRect(
   }
 }
 
+function resolveViewportSplitCornerPaneArea(
+  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
+  corner: WorkspaceViewportSplitCorner,
+): WorkspaceSplitPaneArea {
+  if (node.splitDirection === 'vertical') {
+    const leftPaneArea = node.splitDockSide === 'left' ? 'editor' : 'viewer'
+    return corner === 'topRight' || corner === 'bottomRight'
+      ? leftPaneArea
+      : leftPaneArea === 'editor'
+        ? 'viewer'
+        : 'editor'
+  }
+  const topPaneArea = node.splitDockSide === 'top' ? 'editor' : 'viewer'
+  return corner === 'bottomLeft' || corner === 'bottomRight'
+    ? topPaneArea
+    : topPaneArea === 'editor'
+      ? 'viewer'
+      : 'editor'
+}
+
+function resolveViewportSplitCornerAnchorEdge(
+  corner: WorkspaceViewportSplitCorner,
+  orientation: 'vertical' | 'horizontal',
+): 'left' | 'right' | 'top' | 'bottom' {
+  if (orientation === 'vertical') {
+    return corner === 'topRight' || corner === 'bottomRight' ? 'right' : 'left'
+  }
+  return corner === 'bottomLeft' || corner === 'bottomRight' ? 'bottom' : 'top'
+}
+
+function clampViewportSplitCornerPreviewRatio(value: number): number {
+  return Math.min(0.85, Math.max(0.12, value))
+}
+
+function resolveViewportSplitCornerTargetNodeId(
+  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
+  paneArea: WorkspaceSplitPaneArea,
+): string {
+  const firstChildArea =
+    node.splitDirection === 'vertical'
+      ? node.splitDockSide === 'left'
+        ? 'editor'
+        : 'viewer'
+      : node.splitDockSide === 'top'
+        ? 'editor'
+        : 'viewer'
+  return paneArea === firstChildArea ? node.firstChildId : node.secondChildId
+}
+
 export function AppShell() {
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
   const editorViewportsById = useSpaghettiStore((state) => state.editorViewportsById)
@@ -275,6 +398,7 @@ export function AppShell() {
   )
   const appShellRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
+  const viewportSplitCornerGestureButtonRef = useRef<HTMLButtonElement | null>(null)
   const browserViewportSplitHostRef = useRef<HTMLDivElement | null>(null)
   const dockedBrowserHostRef = useRef<HTMLDivElement | null>(null)
   const dockedMeatballHostRef = useRef<HTMLDivElement | null>(null)
@@ -334,6 +458,7 @@ export function AppShell() {
   const detachedSlotSurfaceById = useWorkspaceStore((state) => state.detachedSlotSurfaceById)
   const editorSurfaceBindingById = useWorkspaceStore((state) => state.editorSurfaceBindingById)
   const splitViewportSlot = useWorkspaceStore((state) => state.splitViewportSlot)
+  const splitViewportLayoutNode = useWorkspaceStore((state) => state.splitViewportLayoutNode)
   const removeViewportSlot = useWorkspaceStore((state) => state.removeViewportSlot)
   const detachViewportSlotSurface = useWorkspaceStore((state) => state.detachViewportSlotSurface)
   const clearDetachedSlotSurface = useWorkspaceStore((state) => state.clearDetachedSlotSurface)
@@ -352,6 +477,9 @@ export function AppShell() {
   )
   const dashboardPersistence = useUiPrefsStore((state) => state.dashboardPersistence)
   const notepadPersistence = useUiPrefsStore((state) => state.notepadPersistence)
+  const workspaceNestedResizeKeepsFarPane = useUiPrefsStore(
+    (state) => state.workspaceNestedResizeKeepsFarPane,
+  )
   const activeEditorSurface = useWorkspaceStore((state) =>
     activeEditorViewportId.length > 0 ? state.editorSurfacePlacementById[activeEditorViewportId] ?? null : null,
   )
@@ -425,6 +553,53 @@ export function AppShell() {
   >({})
   const [settingsSurfaceInitialSectionId, setSettingsSurfaceInitialSectionId] =
     useState<SettingsSectionId>('all')
+  const [viewportSplitCornerGestureSession, setViewportSplitCornerGestureSession] =
+    useState<ViewportSplitCornerGestureSession | null>(null)
+  const viewportSplitCornerPreview = useMemo<ViewportSplitCornerPreview | null>(() => {
+    if (
+      viewportSplitCornerGestureSession === null ||
+      viewportSplitCornerGestureSession.deadzoneCrossed === false ||
+      viewportSplitCornerGestureSession.previewOrientation === null
+    ) {
+      return null
+    }
+    const splitNode = viewportLayoutNodesById[viewportSplitCornerGestureSession.nodeId]
+    if (splitNode?.kind !== 'split') {
+      return null
+    }
+    const paneArea = resolveViewportSplitCornerPaneArea(
+      splitNode,
+      viewportSplitCornerGestureSession.corner,
+    )
+    const orientation = viewportSplitCornerGestureSession.previewOrientation
+    const axisTravel =
+      orientation === 'vertical'
+        ? Math.abs(
+            viewportSplitCornerGestureSession.latestClientX -
+              viewportSplitCornerGestureSession.originClientX,
+          )
+        : Math.abs(
+            viewportSplitCornerGestureSession.latestClientY -
+              viewportSplitCornerGestureSession.originClientY,
+          )
+    const axisExtent =
+      orientation === 'vertical'
+        ? Math.max(1, viewportSplitCornerGestureSession.paneRect.width)
+        : Math.max(1, viewportSplitCornerGestureSession.paneRect.height)
+    const rawRatio = axisTravel / axisExtent
+    return {
+      anchorEdge: resolveViewportSplitCornerAnchorEdge(
+        viewportSplitCornerGestureSession.corner,
+        orientation,
+      ),
+      nodeId: viewportSplitCornerGestureSession.nodeId,
+      orientation,
+      paneArea,
+      rawRatio,
+      ratio: clampViewportSplitCornerPreviewRatio(rawRatio),
+      targetNodeId: resolveViewportSplitCornerTargetNodeId(splitNode, paneArea),
+    }
+  }, [viewportLayoutNodesById, viewportSplitCornerGestureSession])
   const {
     spaghetti: {
       hasVisibleSpaghettiInAppShell,
@@ -898,7 +1073,7 @@ export function AppShell() {
 
       const splitRect = splitLayout.getBoundingClientRect()
       const handlePointerMove = (moveEvent: PointerEvent) => {
-        const nextRatio =
+        const rawNextRatio =
           splitNode.splitDirection === 'vertical'
             ? splitNode.splitDockSide === 'left'
               ? (moveEvent.clientX - splitRect.left) / splitRect.width
@@ -906,7 +1081,69 @@ export function AppShell() {
             : splitNode.splitDockSide === 'top'
               ? (moveEvent.clientY - splitRect.top) / splitRect.height
               : (splitRect.bottom - moveEvent.clientY) / splitRect.height
+        const nextRatio = clampWorkspaceLayoutSplitRatio(rawNextRatio)
         setViewportLayoutSplitRatio(nodeId, nextRatio)
+
+        if (!workspaceNestedResizeKeepsFarPane) {
+          return
+        }
+
+        const currentStartFraction = resolveWorkspaceSplitEdgeFraction(splitNode, 'start')
+        const currentEndFraction = 1 - currentStartFraction
+        const nextStartFraction =
+          resolveWorkspaceSplitPrimaryEdge(splitNode) === 'start' ? nextRatio : 1 - nextRatio
+        const nextEndFraction = 1 - nextStartFraction
+        const nestedResizePlans: Array<{
+          childNodeId: string
+          childNode: Extract<WorkspaceLayoutNode, { kind: 'split' }>
+          currentSubtreeFraction: number
+          nextSubtreeFraction: number
+          preservedFarEdge: WorkspaceSplitEdge
+        }> = []
+
+        const startChildNode = viewportLayoutNodesById[splitNode.firstChildId]
+        if (startChildNode?.kind === 'split' && startChildNode.splitDirection === splitNode.splitDirection) {
+          nestedResizePlans.push({
+            childNodeId: splitNode.firstChildId,
+            childNode: startChildNode,
+            currentSubtreeFraction: currentStartFraction,
+            nextSubtreeFraction: nextStartFraction,
+            preservedFarEdge: 'start',
+          })
+        }
+
+        const endChildNode = viewportLayoutNodesById[splitNode.secondChildId]
+        if (endChildNode?.kind === 'split' && endChildNode.splitDirection === splitNode.splitDirection) {
+          nestedResizePlans.push({
+            childNodeId: splitNode.secondChildId,
+            childNode: endChildNode,
+            currentSubtreeFraction: currentEndFraction,
+            nextSubtreeFraction: nextEndFraction,
+            preservedFarEdge: 'end',
+          })
+        }
+
+        for (const resizePlan of nestedResizePlans) {
+          if (resizePlan.currentSubtreeFraction <= 0 || resizePlan.nextSubtreeFraction <= 0) {
+            continue
+          }
+          const preservedFarFractionWithinSubtree = resolveWorkspaceSplitEdgeFraction(
+            resizePlan.childNode,
+            resizePlan.preservedFarEdge,
+          )
+          const preservedFarFractionWithinParent =
+            resizePlan.currentSubtreeFraction * preservedFarFractionWithinSubtree
+          const nextFarFractionWithinSubtree =
+            preservedFarFractionWithinParent / resizePlan.nextSubtreeFraction
+          const nextChildRatio = clampWorkspaceLayoutSplitRatio(
+            resolveWorkspaceSplitRatioForEdgeFraction(
+              resizePlan.childNode,
+              resizePlan.preservedFarEdge,
+              nextFarFractionWithinSubtree,
+            ),
+          )
+          setViewportLayoutSplitRatio(resizePlan.childNodeId, nextChildRatio)
+        }
       }
       const handlePointerUp = () => {
         window.removeEventListener('pointermove', handlePointerMove)
@@ -916,22 +1153,202 @@ export function AppShell() {
       window.addEventListener('pointermove', handlePointerMove)
       window.addEventListener('pointerup', handlePointerUp)
     },
-    [setViewportLayoutSplitRatio, viewportLayoutNodesById],
+    [setViewportLayoutSplitRatio, viewportLayoutNodesById, workspaceNestedResizeKeepsFarPane],
+  )
+
+  const releaseViewportSplitCornerPointerCapture = useCallback(
+    (target: HTMLButtonElement | null, pointerId: number | null) => {
+      if (
+        target === null ||
+        pointerId === null ||
+        typeof target.releasePointerCapture !== 'function'
+      ) {
+        return
+      }
+      target.releasePointerCapture(pointerId)
+    },
+    [],
+  )
+
+  const clearViewportSplitCornerGestureSession = useCallback(
+    (pointerId?: number | null, target?: HTMLButtonElement | null) => {
+      const resolvedPointerId = pointerId ?? viewportSplitCornerGestureSession?.pointerId ?? null
+      const resolvedTarget = target ?? viewportSplitCornerGestureButtonRef.current
+      releaseViewportSplitCornerPointerCapture(resolvedTarget, resolvedPointerId)
+      viewportSplitCornerGestureButtonRef.current = null
+      setViewportSplitCornerGestureSession(null)
+    },
+    [releaseViewportSplitCornerPointerCapture, viewportSplitCornerGestureSession?.pointerId],
   )
 
   const handleViewportSplitCornerPointerDown = useCallback(
     (
-      _nodeId: string,
-      _corner: WorkspaceViewportSplitCorner,
+      nodeId: string,
+      corner: WorkspaceViewportSplitCorner,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {
       if (event.button !== 0) {
         return
       }
+      const splitNode = viewportLayoutNodesById[nodeId]
+      if (splitNode?.kind !== 'split') {
+        return
+      }
+      const paneElement = event.currentTarget.closest('.ViewportSplitPane')
+      if (!(paneElement instanceof HTMLElement)) {
+        return
+      }
+      const paneRect = paneElement.getBoundingClientRect()
       event.preventDefault()
       event.stopPropagation()
+
+      if (typeof event.currentTarget.setPointerCapture === 'function') {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }
+      viewportSplitCornerGestureButtonRef.current = event.currentTarget
+      setViewportSplitCornerGestureSession({
+        nodeId,
+        corner,
+        pointerId: event.pointerId,
+        originClientX: event.clientX,
+        originClientY: event.clientY,
+        latestClientX: event.clientX,
+        latestClientY: event.clientY,
+        deadzoneCrossed: false,
+        paneRect: {
+          bottom: paneRect.bottom,
+          height: paneRect.height,
+          left: paneRect.left,
+          right: paneRect.right,
+          top: paneRect.top,
+          width: paneRect.width,
+        },
+        previewOrientation: null,
+      })
+    },
+    [viewportLayoutNodesById],
+  )
+
+  const handleViewportSplitCornerPointerMove = useCallback(
+    (
+      _nodeId: string,
+      _corner: WorkspaceViewportSplitCorner,
+      event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+      setViewportSplitCornerGestureSession((currentSession) => {
+        if (currentSession === null || currentSession.pointerId !== event.pointerId) {
+          return currentSession
+        }
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        const deadzoneCrossed =
+          Math.max(
+            Math.abs(event.clientX - currentSession.originClientX),
+            Math.abs(event.clientY - currentSession.originClientY),
+          ) >= workspaceSplitCornerGestureDeadzonePx
+        const absDeltaX = Math.abs(event.clientX - currentSession.originClientX)
+        const absDeltaY = Math.abs(event.clientY - currentSession.originClientY)
+        let previewOrientation = currentSession.previewOrientation
+        if (!deadzoneCrossed) {
+          previewOrientation = null
+        } else if (previewOrientation === null) {
+          previewOrientation = absDeltaX >= absDeltaY ? 'vertical' : 'horizontal'
+        } else if (
+          previewOrientation === 'vertical' &&
+          absDeltaY - absDeltaX >= workspaceSplitCornerGestureAxisSwitchHysteresisPx
+        ) {
+          previewOrientation = 'horizontal'
+        } else if (
+          previewOrientation === 'horizontal' &&
+          absDeltaX - absDeltaY >= workspaceSplitCornerGestureAxisSwitchHysteresisPx
+        ) {
+          previewOrientation = 'vertical'
+        }
+        if (
+          currentSession.latestClientX === event.clientX &&
+          currentSession.latestClientY === event.clientY &&
+          currentSession.deadzoneCrossed === deadzoneCrossed &&
+          currentSession.previewOrientation === previewOrientation
+        ) {
+          return currentSession
+        }
+
+        return {
+          ...currentSession,
+          latestClientX: event.clientX,
+          latestClientY: event.clientY,
+          deadzoneCrossed,
+          previewOrientation,
+        }
+      })
     },
     [],
+  )
+
+  const handleViewportSplitCornerPointerUp = useCallback(
+    (
+      _nodeId: string,
+      _corner: WorkspaceViewportSplitCorner,
+      event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+      if (viewportSplitCornerGestureSession?.pointerId !== event.pointerId) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      if (
+        viewportSplitCornerPreview !== null &&
+        viewportSplitCornerPreview.rawRatio >= workspaceSplitCornerCommitThresholdRatio
+      ) {
+        const createdSlotId = splitViewportLayoutNode(
+          viewportSplitCornerPreview.targetNodeId,
+          viewportSplitCornerPreview.anchorEdge as WorkspaceSplitDockSide,
+          {
+            preferredRatio: viewportSplitCornerPreview.ratio,
+          },
+        )
+        if (createdSlotId !== null) {
+          const workspaceState = useWorkspaceStore.getState()
+          const createdSlot = workspaceState.viewportSlotsById[createdSlotId]
+          const createdSplitNodeId =
+            createdSlot !== undefined
+              ? findParentSplitNodeIdForLayoutNode(
+                  createdSlot.leafNodeId,
+                  workspaceState.viewportLayoutNodesById,
+                )
+              : null
+          if (createdSplitNodeId !== null) {
+            setViewportLayoutSplitRatio(createdSplitNodeId, viewportSplitCornerPreview.ratio)
+          }
+        }
+      }
+      clearViewportSplitCornerGestureSession(event.pointerId, event.currentTarget)
+    },
+    [
+      clearViewportSplitCornerGestureSession,
+      setViewportLayoutSplitRatio,
+      splitViewportLayoutNode,
+      viewportSplitCornerGestureSession?.pointerId,
+      viewportSplitCornerPreview,
+    ],
+  )
+
+  const handleViewportSplitCornerPointerCancel = useCallback(
+    (
+      _nodeId: string,
+      _corner: WorkspaceViewportSplitCorner,
+      event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+      if (viewportSplitCornerGestureSession?.pointerId !== event.pointerId) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      clearViewportSplitCornerGestureSession(event.pointerId, event.currentTarget)
+    },
+    [clearViewportSplitCornerGestureSession, viewportSplitCornerGestureSession?.pointerId],
   )
 
   const resolvePrimaryLeftDockBottomInset = useCallback(
@@ -1026,10 +1443,23 @@ export function AppShell() {
       onViewportSlotHeaderDragOut={handleViewportSlotHeaderDragOut}
       onViewportLayoutDividerPointerDown={handleViewportLayoutDividerPointerDown}
       onViewportSplitCornerPointerDown={handleViewportSplitCornerPointerDown}
+      onViewportSplitCornerPointerMove={handleViewportSplitCornerPointerMove}
+      onViewportSplitCornerPointerUp={handleViewportSplitCornerPointerUp}
+      onViewportSplitCornerPointerCancel={handleViewportSplitCornerPointerCancel}
       onLeftDockResizeStart={handleLeftDockResizeStart}
       onLeftDockResizeContextMenu={handleLeftDockResizeContextMenu}
       resolvePrimaryLeftDockBottomInset={resolvePrimaryLeftDockBottomInset}
       reservePrimaryViewportBottomConsoleBar={false}
+      activeViewportSplitCornerSession={
+        viewportSplitCornerGestureSession === null
+          ? null
+          : {
+              nodeId: viewportSplitCornerGestureSession.nodeId,
+              corner: viewportSplitCornerGestureSession.corner,
+              deadzoneCrossed: viewportSplitCornerGestureSession.deadzoneCrossed,
+            }
+      }
+      activeViewportSplitCornerPreview={viewportSplitCornerPreview}
     />
   )
   const detachedViewerWindows = detachedViewerFloatingSurfaces.map((surface) => {

@@ -9,8 +9,17 @@ import {
   spaghettiWindowSliderBounds,
   type SpaghettiWindowAppearance,
 } from '../panels/spaghettiWindowAppearance'
-import { setSpaghettiWindowAppearanceDefaultsWithHistory } from '../store/uiPreferenceEditHistory'
-import { useUiPrefsStore } from '../store/uiPrefsStore'
+import {
+  setSpaghettiWindowAppearanceDefaultsWithHistory,
+  setWorkspacePaneFilletRadiusWithHistory,
+  setWorkspaceNestedResizeKeepsFarPaneWithHistory,
+} from '../store/uiPreferenceEditHistory'
+import {
+  DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  useUiPrefsStore,
+} from '../store/uiPrefsStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 
@@ -165,6 +174,8 @@ const buildSettingsRows = (options: {
   browserPresentationMode: string
   browserIsFloating: boolean
   browserIsViewportSplit: boolean
+  workspacePaneFilletRadiusPx: number
+  workspaceNestedResizeKeepsFarPane: boolean
 }): readonly SettingsRow[] => [
   {
     id: 'startup-surface',
@@ -199,6 +210,21 @@ const buildSettingsRows = (options: {
     label: 'Left dock width',
     value: `${Math.round(options.leftDockWidth)} px`,
     description: 'Current workspace shell dock width.',
+    sectionIds: ['workspace'],
+  },
+  {
+    id: 'workspace-corner-radius',
+    label: 'Workspace corner radius',
+    value: `${Math.round(options.workspacePaneFilletRadiusPx)} px`,
+    description: 'Shared fillet radius used by the split-corner pane shell.',
+    sectionIds: ['workspace'],
+  },
+  {
+    id: 'workspace-nested-resize',
+    label: 'Keep far pane fixed on nested resize',
+    value: formatOnOff(options.workspaceNestedResizeKeepsFarPane),
+    description:
+      'When resizing a divider beside a same-direction nested split, keep the outer pane fixed and resize only the adjacent pane.',
     sectionIds: ['workspace'],
   },
   {
@@ -289,6 +315,10 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
   const workspaceRestorePersistence = useUiPrefsStore(
     (state) => state.workspaceRestorePersistence,
   )
+  const workspacePaneFilletRadiusPx = useUiPrefsStore((state) => state.workspacePaneFilletRadiusPx)
+  const workspaceNestedResizeKeepsFarPane = useUiPrefsStore(
+    (state) => state.workspaceNestedResizeKeepsFarPane,
+  )
   const viewSettingsPersistence = useUiPrefsStore((state) => state.viewSettingsPersistence)
   const environmentPersistence = useUiPrefsStore((state) => state.environmentPersistence)
   const dashboardPersistence = useUiPrefsStore((state) => state.dashboardPersistence)
@@ -329,6 +359,8 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
         dashboardPersistence,
         notepadPersistence,
         leftDockWidth,
+        workspacePaneFilletRadiusPx,
+        workspaceNestedResizeKeepsFarPane,
         projectionMode,
         axisOverlayEnabled,
         browserPresentationMode,
@@ -346,6 +378,8 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
       notepadPersistence,
       projectionMode,
       viewSettingsPersistence,
+      workspacePaneFilletRadiusPx,
+      workspaceNestedResizeKeepsFarPane,
       workspaceRestorePersistence,
       workspaceStartupSurface,
     ],
@@ -596,6 +630,68 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                       </div>
                     </div>
                   </div>
+                ) : section.id === 'workspace' ? (
+                  <>
+                    <div className="SettingsSurfaceEditorPanel">
+                      <div className="SettingsSurfaceEditorGrid">
+                        <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Workspace corner radius"
+                            value={workspacePaneFilletRadiusPx}
+                            min={MIN_WORKSPACE_PANE_FILLET_RADIUS_PX}
+                            max={MAX_WORKSPACE_PANE_FILLET_RADIUS_PX}
+                            step={1}
+                            clampMin={MIN_WORKSPACE_PANE_FILLET_RADIUS_PX}
+                            clampMax={MAX_WORKSPACE_PANE_FILLET_RADIUS_PX}
+                            formatValue={(nextValue) => `${Math.round(nextValue)} px`}
+                            displayValue={
+                              workspacePaneFilletRadiusPx === DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX
+                                ? `${workspacePaneFilletRadiusPx} px (default)`
+                                : `${workspacePaneFilletRadiusPx} px`
+                            }
+                            onChange={(nextValue) =>
+                              setWorkspacePaneFilletRadiusWithHistory(nextValue)
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <label className="HomePageSurfaceStoragePolicyToggle">
+                            <span>Keep far pane fixed on nested resize</span>
+                            <input
+                              className="HomePageSurfacePersistenceSwitch"
+                              type="checkbox"
+                              role="switch"
+                              aria-label="Keep far pane fixed on nested resize"
+                              checked={workspaceNestedResizeKeepsFarPane}
+                              onChange={() =>
+                                setWorkspaceNestedResizeKeepsFarPaneWithHistory(
+                                  !workspaceNestedResizeKeepsFarPane,
+                                )
+                              }
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="SettingsSurfaceRowList" role="list">
+                      {rows.map((row) => (
+                        <article
+                          key={row.id}
+                          className="SettingsSurfaceRowCard"
+                          role="listitem"
+                          data-settings-row-id={row.id}
+                        >
+                          <div className="SettingsSurfaceRowCopy">
+                            <strong>{row.label}</strong>
+                            <p>{row.description}</p>
+                          </div>
+                          <div className="SettingsSurfaceRowValue" aria-label={`${row.label} value`}>
+                            {row.value}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <div className="SettingsSurfaceRowList" role="list">
                     {rows.map((row) => (

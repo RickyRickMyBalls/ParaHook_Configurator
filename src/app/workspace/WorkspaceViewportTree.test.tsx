@@ -111,6 +111,9 @@ describe('WorkspaceViewportTree', () => {
           onViewportSlotHeaderDragOut={() => {}}
           onViewportLayoutDividerPointerDown={() => {}}
           onViewportSplitCornerPointerDown={() => {}}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
           onLeftDockResizeStart={() => {}}
           onLeftDockResizeContextMenu={() => {}}
           resolvePrimaryLeftDockBottomInset={() => '0px'}
@@ -185,6 +188,9 @@ describe('WorkspaceViewportTree', () => {
           onViewportSlotHeaderDragOut={() => {}}
           onViewportLayoutDividerPointerDown={() => {}}
           onViewportSplitCornerPointerDown={() => {}}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
           onLeftDockResizeStart={() => {}}
           onLeftDockResizeContextMenu={() => {}}
           resolvePrimaryLeftDockBottomInset={() => '0px'}
@@ -270,6 +276,9 @@ describe('WorkspaceViewportTree', () => {
           onViewportSlotHeaderDragOut={() => {}}
           onViewportLayoutDividerPointerDown={() => {}}
           onViewportSplitCornerPointerDown={onViewportSplitCornerPointerDown}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
           onLeftDockResizeStart={() => {}}
           onLeftDockResizeContextMenu={() => {}}
           resolvePrimaryLeftDockBottomInset={() => '0px'}

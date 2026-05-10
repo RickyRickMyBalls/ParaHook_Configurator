@@ -6459,7 +6459,190 @@ describe('AppShell', () => {
     }
   })
 
-  it('keeps the workspace tree unchanged when a split-corner hotspot is pressed in phase 1', async () => {
+  it('keeps the existing subtree-sharing resize behavior by default in a three-column layout', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const middleSlotId =
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+        (slot) => slot.surfaceInstanceId === 'console-surface-1',
+      )?.slotId ?? null
+    expect(middleSlotId).not.toBeNull()
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot(middleSlotId ?? '', 'right', {
+        surfaceKind: 'settings',
+        surfaceInstanceId: 'settings-surface-1',
+      })
+    })
+
+    const rootSplitNodeId = useWorkspaceStore.getState().viewportSlotRootNodeId
+    const nestedSplitNodeId =
+      Object.keys(useWorkspaceStore.getState().viewportLayoutNodesById).find(
+        (nodeId) =>
+          nodeId !== rootSplitNodeId &&
+          useWorkspaceStore.getState().viewportLayoutNodesById[nodeId]?.kind === 'split',
+      ) ?? null
+    const rootLayout = container?.querySelector(
+      `.ViewportSplitLayout[data-workspace-layout-node-id="${rootSplitNodeId}"]`,
+    ) as HTMLDivElement | null
+    const rootDivider = container?.querySelector(
+      `.ViewportSplitDivider[data-workspace-divider-node-id="${rootSplitNodeId}"]`,
+    ) as HTMLButtonElement | null
+
+    expect(rootLayout).not.toBeNull()
+    expect(rootDivider).not.toBeNull()
+    expect(nestedSplitNodeId).not.toBeNull()
+
+    mockRect(rootLayout, {
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 800,
+    })
+
+    await act(async () => {
+      rootDivider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 650,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+        }),
+      )
+    })
+
+    const workspaceState = useWorkspaceStore.getState()
+    const rootSplitNode = workspaceState.viewportLayoutNodesById[rootSplitNodeId]
+    const nestedSplitNode =
+      nestedSplitNodeId !== null ? workspaceState.viewportLayoutNodesById[nestedSplitNodeId] : null
+
+    expect(rootSplitNode?.kind).toBe('split')
+    expect(nestedSplitNode?.kind).toBe('split')
+    if (rootSplitNode?.kind === 'split') {
+      expect(rootSplitNode.ratio).toBeCloseTo(0.4, 5)
+    }
+    if (nestedSplitNode?.kind === 'split') {
+      expect(nestedSplitNode.ratio).toBeCloseTo(0.5, 5)
+    }
+  })
+
+  it('keeps the far pane fixed on nested three-column resize when the workspace toggle is enabled', async () => {
+    useUiPrefsStore.getState().setWorkspaceNestedResizeKeepsFarPane(true)
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const middleSlotId =
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+        (slot) => slot.surfaceInstanceId === 'console-surface-1',
+      )?.slotId ?? null
+    expect(middleSlotId).not.toBeNull()
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot(middleSlotId ?? '', 'right', {
+        surfaceKind: 'settings',
+        surfaceInstanceId: 'settings-surface-1',
+      })
+    })
+
+    const rootSplitNodeId = useWorkspaceStore.getState().viewportSlotRootNodeId
+    const nestedSplitNodeId =
+      Object.keys(useWorkspaceStore.getState().viewportLayoutNodesById).find(
+        (nodeId) =>
+          nodeId !== rootSplitNodeId &&
+          useWorkspaceStore.getState().viewportLayoutNodesById[nodeId]?.kind === 'split',
+      ) ?? null
+    const rootLayout = container?.querySelector(
+      `.ViewportSplitLayout[data-workspace-layout-node-id="${rootSplitNodeId}"]`,
+    ) as HTMLDivElement | null
+    const rootDivider = container?.querySelector(
+      `.ViewportSplitDivider[data-workspace-divider-node-id="${rootSplitNodeId}"]`,
+    ) as HTMLButtonElement | null
+
+    expect(rootLayout).not.toBeNull()
+    expect(rootDivider).not.toBeNull()
+    expect(nestedSplitNodeId).not.toBeNull()
+
+    mockRect(rootLayout, {
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 800,
+    })
+
+    await act(async () => {
+      rootDivider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 650,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+        }),
+      )
+    })
+
+    const workspaceState = useWorkspaceStore.getState()
+    const rootSplitNode = workspaceState.viewportLayoutNodesById[rootSplitNodeId]
+    const nestedSplitNode =
+      nestedSplitNodeId !== null ? workspaceState.viewportLayoutNodesById[nestedSplitNodeId] : null
+
+    expect(rootSplitNode?.kind).toBe('split')
+    expect(nestedSplitNode?.kind).toBe('split')
+    if (rootSplitNode?.kind === 'split') {
+      expect(rootSplitNode.ratio).toBeCloseTo(0.4, 5)
+    }
+    if (nestedSplitNode?.kind === 'split') {
+      expect(nestedSplitNode.ratio).toBeCloseTo(0.625, 5)
+    }
+  })
+
+  it('clears a split-corner gesture session on under-threshold release without mutating the workspace tree', async () => {
     ;({ container, root } = await renderAppShell())
 
     await act(async () => {
@@ -6476,6 +6659,16 @@ describe('AppShell', () => {
     ) as HTMLButtonElement | null
 
     expect(splitCorner).not.toBeNull()
+    const setPointerCapture = vi.fn()
+    const releasePointerCapture = vi.fn()
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: setPointerCapture,
+    })
+    Object.defineProperty(splitCorner, 'releasePointerCapture', {
+      configurable: true,
+      value: releasePointerCapture,
+    })
 
     await act(async () => {
       splitCorner?.dispatchEvent(
@@ -6483,12 +6676,658 @@ describe('AppShell', () => {
           bubbles: true,
           cancelable: true,
           button: 0,
+          pointerId: 1,
           clientX: 900,
           clientY: 200,
         }),
       )
     })
 
+    expect(setPointerCapture).toHaveBeenCalledWith(1)
+    expect(splitCorner?.getAttribute('data-workspace-split-corner-session')).toBe('holding')
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 905,
+          clientY: 204,
+        }),
+      )
+    })
+
+    expect(splitCorner?.getAttribute('data-workspace-split-corner-session')).toBe('holding')
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 905,
+          clientY: 204,
+        }),
+      )
+    })
+
+    expect(releasePointerCapture).toHaveBeenCalledWith(1)
+    expect(splitCorner?.hasAttribute('data-workspace-split-corner-session')).toBe(false)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)).toBe(layoutBefore)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)).toBe(slotBefore)
+  })
+
+  it('ignores non-primary clicks on a split-corner hotspot', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    const setPointerCapture = vi.fn()
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: setPointerCapture,
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 2,
+          pointerId: 4,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(setPointerCapture).not.toHaveBeenCalled()
+    expect(splitCorner?.hasAttribute('data-workspace-split-corner-session')).toBe(false)
+  })
+
+  it('clears the split-corner gesture session on pointer cancel without mutating the workspace tree', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const layoutBefore = JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)
+    const slotBefore = JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    const releasePointerCapture = vi.fn()
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    Object.defineProperty(splitCorner, 'releasePointerCapture', {
+      configurable: true,
+      value: releasePointerCapture,
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 7,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 7,
+          clientX: 920,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(splitCorner?.getAttribute('data-workspace-split-corner-session')).toBe('armed')
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointercancel', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 7,
+          clientX: 920,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(releasePointerCapture).toHaveBeenCalledWith(7)
+    expect(splitCorner?.hasAttribute('data-workspace-split-corner-session')).toBe(false)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)).toBe(layoutBefore)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)).toBe(slotBefore)
+  })
+
+  it('shows a vertical split-corner preview for dominant x travel without mutating the workspace tree mid-drag', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const layoutBefore = JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)
+    const slotBefore = JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    Object.defineProperty(splitCorner, 'releasePointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 10,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 10,
+          clientX: 936,
+          clientY: 206,
+        }),
+      )
+    })
+
+    const verticalPreview = container?.querySelector(
+      '.ViewportSplitPreviewFootprint[data-workspace-split-preview-orientation="vertical"][data-workspace-split-preview-edge="right"][data-workspace-split-preview-pane="viewer"]',
+    )
+    const verticalDivider = container?.querySelector(
+      '.ViewportSplitPreviewDivider[data-workspace-split-preview-divider="vertical"]',
+    )
+
+    expect(verticalPreview).not.toBeNull()
+    expect(verticalDivider).not.toBeNull()
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)).toBe(layoutBefore)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)).toBe(slotBefore)
+  })
+
+  it('updates the shared filleted pane shell from the stored corner-radius preference without breaking split-corner gesture entry', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const getFilletedPanes = () =>
+      Array.from(container?.querySelectorAll('.ViewportSplitPane--filletedShell') ?? []) as HTMLDivElement[]
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+
+    expect(getFilletedPanes()).toHaveLength(2)
+    expect(splitCorner).not.toBeNull()
+    expect(splitCorner?.style.getPropertyValue('--workspace-split-corner-hit-area')).toBe('18px')
+
+    await act(async () => {
+      useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(4)
+    })
+
+    for (const pane of getFilletedPanes()) {
+      expect(pane.style.getPropertyValue('--workspace-pane-fillet-radius')).toBe('4px')
+    }
+    expect(splitCorner?.style.getPropertyValue('--workspace-split-corner-hit-area')).toBe('18px')
+
+    await act(async () => {
+      useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(32)
+    })
+
+    for (const pane of getFilletedPanes()) {
+      expect(pane.style.getPropertyValue('--workspace-pane-fillet-radius')).toBe('32px')
+    }
+    expect(splitCorner?.style.getPropertyValue('--workspace-split-corner-hit-area')).toBe('32px')
+
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 15,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(splitCorner?.getAttribute('data-workspace-split-corner-session')).toBe('holding')
+  })
+
+  it('commits a real split on release once the split-corner preview passes the threshold', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const workspaceStateBeforeCommit = useWorkspaceStore.getState()
+    const splitNodeIdsBefore = Object.keys(useWorkspaceStore.getState().viewportLayoutNodesById).filter(
+      (nodeId) => useWorkspaceStore.getState().viewportLayoutNodesById[nodeId]?.kind === 'split',
+    )
+    const rootSplitNodeBefore =
+      splitNodeIdsBefore.length > 0
+        ? workspaceStateBeforeCommit.viewportLayoutNodesById[splitNodeIdsBefore[0] ?? '']
+        : null
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    const splitPane = splitCorner?.closest('.ViewportSplitPane') as HTMLDivElement | null
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    Object.defineProperty(splitCorner, 'releasePointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    Object.defineProperty(splitPane, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 700,
+        y: 120,
+        left: 700,
+        top: 120,
+        right: 940,
+        bottom: 320,
+        width: 240,
+        height: 200,
+        toJSON: () => undefined,
+      }),
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 13,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 13,
+          clientX: 936,
+          clientY: 206,
+        }),
+      )
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 13,
+          clientX: 936,
+          clientY: 206,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.ViewportSplitPreviewFootprint')).toBeNull()
+    expect(container?.querySelector('.ViewportSplitPreviewDivider')).toBeNull()
+
+    const workspaceState = useWorkspaceStore.getState()
+    const splitNodeIdsAfter = Object.keys(workspaceState.viewportLayoutNodesById).filter(
+      (nodeId) => workspaceState.viewportLayoutNodesById[nodeId]?.kind === 'split',
+    )
+    const createdSplitNodeId =
+      splitNodeIdsAfter.find((nodeId) => !splitNodeIdsBefore.includes(nodeId)) ?? null
+    const createdSplitNode =
+      createdSplitNodeId !== null
+        ? workspaceState.viewportLayoutNodesById[createdSplitNodeId]
+        : null
+
+    expect(Object.keys(workspaceState.viewportSlotsById)).toHaveLength(3)
+    expect(splitNodeIdsAfter).toHaveLength(splitNodeIdsBefore.length + 1)
+    expect(createdSplitNode?.kind).toBe('split')
+    if (createdSplitNode?.kind === 'split') {
+      expect(createdSplitNode.splitDirection).toBe('vertical')
+      expect(createdSplitNode.splitDockSide).toBe('right')
+      expect(createdSplitNode.ratio).toBeCloseTo(0.15)
+    }
+
+    expect(rootSplitNodeBefore?.kind).toBe('split')
+    if (rootSplitNodeBefore?.kind === 'split' && createdSplitNode?.kind === 'split') {
+      expect(
+        createdSplitNode.firstChildId === rootSplitNodeBefore.firstChildId ||
+          createdSplitNode.secondChildId === rootSplitNodeBefore.firstChildId ||
+          createdSplitNode.firstChildId === rootSplitNodeBefore.secondChildId ||
+          createdSplitNode.secondChildId === rootSplitNodeBefore.secondChildId,
+      ).toBe(true)
+    }
+  })
+
+  it('keeps a split-corner-created split on the shared divider resize path after commit', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    const splitPane = splitCorner?.closest('.ViewportSplitPane') as HTMLDivElement | null
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    Object.defineProperty(splitCorner, 'releasePointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    Object.defineProperty(splitPane, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 700,
+        y: 120,
+        left: 700,
+        top: 120,
+        right: 940,
+        bottom: 320,
+        width: 240,
+        height: 200,
+        toJSON: () => undefined,
+      }),
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 14,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 14,
+          clientX: 936,
+          clientY: 206,
+        }),
+      )
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 14,
+          clientX: 936,
+          clientY: 206,
+        }),
+      )
+    })
+
+    const workspaceStateAfterCommit = useWorkspaceStore.getState()
+    const nestedSplitNodeId =
+      Object.keys(workspaceStateAfterCommit.viewportLayoutNodesById).find((nodeId) => {
+        const node = workspaceStateAfterCommit.viewportLayoutNodesById[nodeId]
+        return node?.kind === 'split' && node.splitDockSide === 'right' && node.ratio === 0.15
+      }) ?? null
+    const nestedSplitNode =
+      nestedSplitNodeId !== null
+        ? workspaceStateAfterCommit.viewportLayoutNodesById[nestedSplitNodeId]
+        : null
+
+    expect(nestedSplitNode?.kind).toBe('split')
+
+    const splitLayouts = Array.from(container?.querySelectorAll('.ViewportSplitLayout') ?? [])
+    const allDividers = Array.from(container?.querySelectorAll('.ViewportSplitDivider') ?? [])
+    const nestedSplitLayout =
+      nestedSplitNodeId !== null
+        ? (container?.querySelector(
+            `.ViewportSplitLayout[data-workspace-layout-node-id="${nestedSplitNodeId}"]`,
+          ) as HTMLDivElement | null)
+        : null
+    const nestedDivider =
+      nestedSplitNodeId !== null
+        ? (container?.querySelector(
+            `.ViewportSplitDivider[data-workspace-divider-node-id="${nestedSplitNodeId}"]`,
+          ) as HTMLButtonElement | null)
+        : null
+
+    expect(splitLayouts).toHaveLength(2)
+    expect(allDividers).toHaveLength(2)
+    expect(nestedSplitLayout).not.toBeNull()
+    expect(nestedDivider).not.toBeNull()
+
+    mockRect(nestedSplitLayout as HTMLDivElement, {
+      left: 700,
+      top: 120,
+      width: 240,
+      height: 200,
+    })
+
+    await act(async () => {
+      nestedDivider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 904,
+          clientY: 206,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 880,
+          clientY: 206,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 880,
+          clientY: 206,
+        }),
+      )
+    })
+
+    const workspaceStateAfterResize = useWorkspaceStore.getState()
+    const resizedSplitNode =
+      nestedSplitNodeId !== null
+        ? workspaceStateAfterResize.viewportLayoutNodesById[nestedSplitNodeId]
+        : null
+
+    expect(resizedSplitNode?.kind).toBe('split')
+    if (resizedSplitNode?.kind === 'split') {
+      expect(resizedSplitNode.ratio).toBeCloseTo(0.25, 5)
+    }
+  })
+
+  it('shows a horizontal split-corner preview for dominant y travel without committing a split', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const layoutBefore = JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)
+    const slotBefore = JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 11,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 11,
+          clientX: 905,
+          clientY: 242,
+        }),
+      )
+    })
+
+    const horizontalPreview = container?.querySelector(
+      '.ViewportSplitPreviewFootprint[data-workspace-split-preview-orientation="horizontal"][data-workspace-split-preview-edge="top"][data-workspace-split-preview-pane="viewer"]',
+    )
+    const horizontalDivider = container?.querySelector(
+      '.ViewportSplitPreviewDivider[data-workspace-split-preview-divider="horizontal"]',
+    )
+
+    expect(horizontalPreview).not.toBeNull()
+    expect(horizontalDivider).not.toBeNull()
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)).toBe(layoutBefore)
+    expect(JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)).toBe(slotBefore)
+  })
+
+  it('switches the split-corner preview orientation mid-drag once the opposite axis wins by the hysteresis margin', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const layoutBefore = JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)
+    const slotBefore = JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)
+    const splitCorner = container?.querySelector(
+      '.ViewportSplitCornerHandle[data-workspace-split-corner="topRight"]',
+    ) as HTMLButtonElement | null
+    Object.defineProperty(splitCorner, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 12,
+          clientX: 900,
+          clientY: 200,
+        }),
+      )
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 12,
+          clientX: 938,
+          clientY: 206,
+        }),
+      )
+    })
+
+    expect(
+      container?.querySelector(
+        '.ViewportSplitPreviewFootprint[data-workspace-split-preview-orientation="vertical"]',
+      ),
+    ).not.toBeNull()
+
+    await act(async () => {
+      splitCorner?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 12,
+          clientX: 918,
+          clientY: 264,
+        }),
+      )
+    })
+
+    expect(
+      container?.querySelector(
+        '.ViewportSplitPreviewFootprint[data-workspace-split-preview-orientation="horizontal"]',
+      ),
+    ).not.toBeNull()
+    expect(
+      container?.querySelector(
+        '.ViewportSplitPreviewFootprint[data-workspace-split-preview-orientation="vertical"]',
+      ),
+    ).toBeNull()
     expect(JSON.stringify(useWorkspaceStore.getState().viewportLayoutNodesById)).toBe(layoutBefore)
     expect(JSON.stringify(useWorkspaceStore.getState().viewportSlotsById)).toBe(slotBefore)
   })

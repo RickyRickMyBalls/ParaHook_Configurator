@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-05-09 18:31:09: Recorded the first landed `Settings-1 / Phase 4` slice after the `Workspace` section gained one owner-backed workspace corner-radius slider through `uiPrefsStore.ts` and `SettingsSurface.tsx`, while the broader `General` and remaining `Workspace` controls stay explicitly open for later `Phase 4` follow-through.
+11. 2026-05-09 18:14:41: Tightened `Settings-1 / Phase 4 - General And Workspace Controls` against the live `Workspace` section in `SettingsSurface.tsx`, the persisted owner seam in `uiPrefsStore.ts`, and the reopened `Workspace-9 / Phase 7` handoff so the next cut can start with one owner-backed workspace corner-radius slider before broader General and Workspace controls widen further.
 10. 2026-05-07 15:10:23: Updated the later Settings ladder so `Phase 4 - General and Workspace controls` now explicitly includes a user-facing slider for shared workspace fillet radius, giving the `Workspace 9` corner shell one Settings-owned visual preference source instead of a permanent hard-coded radius.
 9. 2026-05-07 15:06:41: Updated the live Settings-1 ladder guidance so the core owner-backed control phases stay here while the new cross-mode `Settings-2` family can own the dedicated `Key Bindings` shortcut-reference section.
 1. 2026-05-02 08:35:43: Created the first Settings family phase doc so the workspace can start with the Unreal-style left-rail and right-detail shell instead of widening directly into specific setting semantics.
@@ -364,17 +366,24 @@ Expose the general app and workspace controls directly in Settings without widen
 
 The shell and Spaghetti defaults now exist, so this phase can focus on the shared app-and-workspace layer.
 
+The live next-cut seam is now clearer:
+- `src/app/workspace/SettingsSurface.tsx` already has a real `Workspace` section and already uses the current Settings control language, including `ParaSlider`.
+- `src/app/store/uiPrefsStore.ts` is already the persisted owner for other shared UI defaults and should absorb workspace corner radius instead of creating a second visual-preference owner.
+- `Workspace-9 / Phase 7` now explicitly depends on this owner path first, which makes shared workspace corner radius the cleanest first editable `Workspace` row in this phase.
+
 #### First Pass Decisions
 
 1. Keep the editable rows limited to settings with clear owners.
 2. Preserve the section rail and All-first behavior.
 3. Make the changed rows feel like real settings controls, not debug toggles.
+4. Start with the shared workspace corner-radius preference as the first owner-backed `Workspace` visual control.
 
 #### First Code Cut
 
 The first implementation pass should:
-- wire the editable `General` rows to their real preference owners
-- wire the editable `Workspace` rows to their real workspace owners
+- add one persisted workspace corner-radius preference in `uiPrefsStore.ts`
+- add one owner-backed `Workspace` slider for that preference in `SettingsSurface.tsx`
+- keep broader `General` and other `Workspace` row editing deferred unless they stay equally small and owner-clear
 - keep unowned rows clearly read-only or deferred
 
 #### Verification Shape
@@ -384,8 +393,8 @@ The first implementation pass should:
 
 #### Done Shape
 
-- `General` and `Workspace` stop reading as placeholder rows
-- the section content becomes meaningfully editable
+- the first owner-backed `Workspace` visual control now exists as a real corner-radius slider
+- broader `General` and remaining `Workspace` rows still stay explicitly open for later `Phase 4` follow-through
 - the shell still behaves like the same Unreal-style settings workspace
 
 ## [ ] `Settings-1` - `Phase 5 - Viewport And Appearance Controls`

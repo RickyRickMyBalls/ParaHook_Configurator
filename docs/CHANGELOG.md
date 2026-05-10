@@ -72,6 +72,462 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1816 -->
+
+### [1816] - 2026-05-09 20:59 - `Home-Page / Follow-Up - Workspace Restore Toggle Honors Persisted Refresh State`
+
+<!-- ENTRY 1816 -->
+
+HUMAN SUMMARY: `This fixes the workspace-restore startup path so a full browser refresh now honors the saved Home Page toggle state instead of sometimes restoring the last layout from the render-time default. When \`Workspace restore\` is saved off, startup now reads the hydrated ui-prefs value before deciding whether to restore the persisted workspace layout.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside the existing workspace persistence bridge startup seam.
+- Preserved the existing workspace layout serializer, restore path, and startup-surface handoff.
+- Added a focused refresh-style regression instead of widening into unrelated AppShell behavior.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/useWorkspacePersistenceBridge.ts` so the startup restore branch reads `workspaceRestorePersistence` from `useUiPrefsStore.getState()` at effect time instead of trusting the render-time selector snapshot.
+- Added a combined ui-prefs plus workspace-persistence regression in `src/app/workspace/useWorkspacePersistenceBridge.test.tsx` that seeds persisted ui prefs with `workspaceRestorePersistence: false` and proves startup stays fresh on a full refresh-style mount.
+
+#### Files Changed
+
+- `src/app/workspace/useWorkspacePersistenceBridge.ts`
+- `src/app/workspace/useWorkspacePersistenceBridge.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- A saved `Workspace restore: Off` preference now blocks persisted workspace-layout restore during a real browser refresh, even before the first render uses the hydrated ui-prefs state.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/useWorkspacePersistenceBridge.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "starts fresh and leaves the saved layout untouched when workspace restore is turned off"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1815 -->
+
+### [1815] - 2026-05-09 20:54 - `Workspace / Follow-Up - Keep-Far-Pane Resize Toggle Defaults On`
+
+<!-- ENTRY 1815 -->
+
+HUMAN SUMMARY: `This flips the new workspace nested-resize behavior so keeping the far pane fixed is now the default instead of an opt-in. New sessions and missing persisted values now start with the keep-far-pane behavior enabled, while the workspace setting still lets users turn it back off if they want the old subtree-sharing resize behavior.`
+
+#### Scope / Constraints Honored
+
+- Kept the change at the existing persisted ui-prefs owner seam.
+- Preserved the same user-facing toggle and the same divider-resize implementation path.
+- Limited the follow-up to default-state and persistence expectations.
+
+#### Summary of Implementation
+
+- Updated `src/app/store/uiPrefsStore.ts` so `workspaceNestedResizeKeepsFarPane` now defaults to `true`.
+- Updated focused store, persistence-bridge, and Settings tests so the shipped default, hydration fallback, and initial switch state all match the new default-on behavior.
+
+#### Files Changed
+
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Keep far pane fixed on nested resize` now starts on by default.
+- Users can still turn it off in Workspace Settings to get the previous subtree-sharing divider behavior.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/workspace/SettingsSurface.test.tsx src/app/AppShell.test.tsx -t "workspace|nested resize|split-corner|viewport split divider"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1814 -->
+
+### [1814] - 2026-05-09 20:52 - `Workspace / Follow-Up - Nested Divider Resize Keep-Far-Pane Toggle`
+
+<!-- ENTRY 1814 -->
+
+HUMAN SUMMARY: `This adds a new workspace setting that lets nested same-direction divider drags keep the far pane fixed instead of redistributing width across the whole nested subtree. When the toggle is on, dragging the divider between column 1 and column 2 in a three-column layout now preserves column 3 and pushes the width change into the adjacent middle pane, subject to the existing split-ratio clamps.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the existing shared workspace divider-resize path and the existing persisted ui-prefs owner seam.
+- Made the behavior opt-in through one workspace setting instead of silently changing the default resize contract.
+- Reused the existing Settings workspace, ui-prefs persistence bridge, and shared split-ratio clamps.
+
+#### Summary of Implementation
+
+- Added persisted `workspaceNestedResizeKeepsFarPane` ownership to `src/app/store/uiPrefsStore.ts`, `src/app/store/uiPrefsPersistence.ts`, `src/app/store/useUiPrefsPersistenceBridge.ts`, and `src/app/store/uiPreferenceEditHistory.ts`.
+- Updated `src/app/workspace/SettingsSurface.tsx` so the `Workspace` section now exposes a `Keep far pane fixed on nested resize` switch alongside the corner-radius control.
+- Updated `src/app/AppShell.tsx` so divider drags can compensate same-direction nested child splits when the toggle is enabled, preserving the far pane and pushing the width change into the adjacent pane while still respecting the existing `0.15..0.85` split-ratio clamps.
+- Added focused proof in `src/app/store/uiPrefsStore.test.ts`, `src/app/store/useUiPrefsPersistenceBridge.test.tsx`, `src/app/workspace/SettingsSurface.test.tsx`, and `src/app/AppShell.test.tsx`.
+
+#### Files Changed
+
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/uiPreferenceEditHistory.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Workspace Settings now includes a `Keep far pane fixed on nested resize` toggle.
+- With the toggle off, nested three-column divider resizing keeps the current subtree-sharing behavior.
+- With the toggle on, dragging a divider beside a same-direction nested split preserves the far pane and resizes only the adjacent pane, unless the existing split-ratio clamps prevent full preservation.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/workspace/SettingsSurface.test.tsx src/app/AppShell.test.tsx -t "workspace|nested resize|split-corner|viewport split divider"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1813 -->
+
+### [1813] - 2026-05-09 20:39 - `Workspace-9 / Follow-Up - Corner Split Hit Area Tracks Fillet Radius`
+
+<!-- ENTRY 1813 -->
+
+HUMAN SUMMARY: `This fixes the mismatch where increasing the workspace corner-radius setting changed the filleted pane shell but left the split-corner drag hit area stuck at a hard-coded 18px. The shared workspace now grows the corner split handle hit area with the live fillet radius while keeping an 18px minimum for small-radius usability.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside the existing shared workspace split-corner shell and hit-target seam.
+- Reused the already-shipped fillet-radius owner instead of introducing a second hit-area setting.
+- Left split-corner gesture thresholds, preview rules, and popup behavior unchanged.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so each split-corner handle now receives a `--workspace-split-corner-hit-area` value derived from the live `workspacePaneFilletRadiusPx` preference with an `18px` floor.
+- Updated `src/app/theme/foundation/base.css` so `ViewportSplitCornerHandle` width and height read from that hit-area variable instead of a hard-coded `18px`.
+- Extended `src/app/AppShell.test.tsx` so the shared corner-radius proof now checks that the pane shell radius updates, the split-corner hit area stays at `18px` for small values, expands for larger values, and still enters the gesture session.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Increasing the workspace corner-radius setting now also increases the shared split-corner click-and-drag hit area.
+- Small radii still keep an `18px` minimum hit target so the affordance does not become harder to grab.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "corner-radius preference|split-corner"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1812 -->
+
+### [1812] - 2026-05-09 20:35 - `Workspace-9 / Follow-Up - Workspace Corner Radius Slider Max To 100`
+
+<!-- ENTRY 1812 -->
+
+HUMAN SUMMARY: `This widens the Settings-owned workspace corner-radius slider from a 24px maximum to a 100px maximum by updating the canonical ui-prefs owner clamp rather than inventing a second slider rule. It also keeps the ui-prefs persistence and Settings coverage aligned with the new bound.`
+
+#### Scope / Constraints Honored
+
+- Kept the change on the existing `uiPrefsStore` owner seam only.
+- Reused the same Settings slider and persistence bridge without widening into new workspace-shell behavior.
+- Limited verification to the focused ui-prefs, persistence, and Settings surfaces affected by the bound change.
+
+#### Summary of Implementation
+
+- Updated `src/app/store/uiPrefsStore.ts` so `MAX_WORKSPACE_PANE_FILLET_RADIUS_PX` is now `100`.
+- Updated `src/app/store/useUiPrefsPersistenceBridge.test.tsx` so the persistence coverage still matches the live clamp and preserved-valid-value behavior under the wider max.
+
+#### Files Changed
+
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The `Workspace corner radius` Settings slider can now go up to `100px` instead of `24px`.
+- Persisted values below the new max continue to round-trip unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1811 -->
+
+### [1811] - 2026-05-09 20:32 - `Workspace-9 / Phase 8 - Shared Workspace Corner Radius Consumption`
+
+<!-- ENTRY 1811 -->
+
+HUMAN SUMMARY: `This completed the user-facing workspace corner-radius story by wiring the persisted \`workspacePaneFilletRadiusPx\` preference into the shared filleted pane shell, so the main workspace now reflects the Settings slider live without changing the shipped split-corner gesture rules. It also added focused AppShell proof that small and large real radius values still leave split-corner hotspot entry intact.`
+
+#### Scope / Constraints Honored
+
+- Kept this pass focused on shared workspace shell consumption only.
+- Reused the existing `uiPrefsStore` owner and the already-landed `--workspace-pane-fillet-radius` CSS-variable seam instead of inventing a second visual owner.
+- Left popup workspace parity and the shipped split-corner gesture model unchanged.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so each shared `ViewportSplitPane--filletedShell` reads `workspacePaneFilletRadiusPx` from `useUiPrefsStore` and applies it through the existing `--workspace-pane-fillet-radius` style variable.
+- Reused the existing `base.css` fillet-consumption path for both the pane wrapper and nested `ViewportFrame`, so the live radius change stays on the already-settled shared shell seam.
+- Added focused proof in `src/app/AppShell.test.tsx` that the shared filleted pane shells update at smaller and larger real radius values and that split-corner gesture entry still arms normally afterward.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The main shared workspace now reflects the Settings-owned `Workspace corner radius` value live on filleted split panes.
+- Shared split-corner hotspots continue to render and enter their gesture session after the radius changes.
+- Popup workspace behavior remains intentionally unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "corner-radius preference|split-corner"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1810 -->
+
+### [1810] - 2026-05-09 18:31 - `Workspace-9 / Phase 7 - Settings-Owned Workspace Corner Radius Preference`
+
+<!-- ENTRY 1810 -->
+
+HUMAN SUMMARY: `This shipped the first user-facing corner-radius owner pass by adding one persisted workspace corner-radius preference to \`uiPrefsStore\`, exposing it as a real slider in the Settings workspace, and leaving the shared workspace shell unchanged until the next consumption phase. It also added focused store, persistence-bridge, and Settings-surface proof for that owner path.`
+
+#### Scope / Constraints Honored
+
+- Kept this pass focused on preference ownership, persistence, and Settings UI only.
+- Reused the existing `uiPrefsStore`, persistence bridge, and Settings workspace control language instead of inventing a second visual-preference owner.
+- Stopped before the shared workspace pane shell started consuming the live radius value.
+
+#### Summary of Implementation
+
+- Added `workspacePaneFilletRadiusPx` plus clamp bounds and a setter to `src/app/store/uiPrefsStore.ts` as the new owner-backed workspace visual preference.
+- Extended `src/app/store/uiPrefsPersistence.ts` and `src/app/store/useUiPrefsPersistenceBridge.ts` so the new preference is persisted and hydrated through the normal UI-preferences storage path.
+- Added `setWorkspacePaneFilletRadiusWithHistory(...)` in `src/app/store/uiPreferenceEditHistory.ts` so Settings edits use the same preference edit-history seam as the other owner-backed Settings controls.
+- Updated `src/app/workspace/SettingsSurface.tsx` so the `Workspace` section now renders a real `Workspace corner radius` slider while keeping the rest of the shared workspace shell unchanged.
+- Added focused proof in `src/app/store/uiPrefsStore.test.ts`, `src/app/store/useUiPrefsPersistenceBridge.test.tsx`, and `src/app/workspace/SettingsSurface.test.tsx`.
+
+#### Files Changed
+
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/uiPreferenceEditHistory.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Settings now exposes a real `Workspace corner radius` slider in the `Workspace` section.
+- The chosen corner-radius value now persists with the other UI preferences and rehydrates through the existing UI-preferences bridge.
+- The shared workspace pane shell still does not consume that live value yet; that remains deferred to `Workspace-9 / Phase 8`.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/SettingsSurface.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1809 -->
+
+### [1809] - 2026-05-09 17:14 - `Workspace-9 / Phase 5 - Gesture Regression Proof And Resize Continuity`
+
+<!-- ENTRY 1809 -->
+
+HUMAN SUMMARY: `This closed the shared Workspace 9 gesture lane by proving that a corner-created split settles into the same honest shared split behavior as any ordinary workspace split, including post-commit divider resizing. It also added stable shared split-node test hooks and moved the family handoff forward to the popup-parity decision phase.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5 proof-only and did not widen into popup workspace parity work.
+- Reused the existing shared divider-resize owner path instead of introducing any corner-only resize behavior.
+- Landed only the smallest runtime support needed to make the continuity proof target the committed nested split honestly.
+
+#### Summary of Implementation
+
+- Updated `src/app/AppShell.test.tsx` so the focused split-corner lane now proves both the committed nested split shape and divider-resize continuity after a real corner-created split is released into the shared workspace tree.
+- Tightened that continuity proof around the settled `0.15` to `0.85` shared split-ratio clamp, so the regression bar matches the actual workspace contract instead of expecting an impossible resize target.
+- Added stable `data-workspace-layout-node-id` and `data-workspace-divider-node-id` hooks in `src/app/workspace/WorkspaceViewportTree.tsx` so the proof can target the exact committed split node and divider without guessing by DOM order.
+
+#### Files Changed
+
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Corner-created splits now have explicit regression coverage proving they remain ordinary shared workspace splits after commit.
+- The shared divider on a corner-created split is now explicitly proven to resize through the same settled split-ratio owner path and clamp contract as any other workspace split.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1808 -->
+
+### [1808] - 2026-05-09 17:01 - `Workspace-9 / Phase 4 - Release Commit And Cancel Behavior`
+
+<!-- ENTRY 1808 -->
+
+HUMAN SUMMARY: `This shipped the Workspace 9 release-commit pass by turning the split-corner preview into a real commit-on-release flow, routing that commit through the shared workspace split owner seam, and keeping under-threshold or canceled gestures harmless. It also added focused commit-versus-cancel tests and moved the family handoff forward to the regression-proof phase.`
+
+#### Scope / Constraints Honored
+
+- Reused the AppShell-local preview VM instead of inventing a second commit-time orientation model.
+- Kept committed tree mutation inside the shared workspace owner seam instead of mutating `viewportLayoutNodesById` inline from AppShell.
+- Stopped before final regression-proof expansion or popup workspace parity work.
+
+#### Summary of Implementation
+
+- Extended `src/app/AppShell.tsx` so `pointerup` now commits a real split only when the transient preview passes the minimum threshold, while under-threshold release and pointer-cancel still resolve to harmless cleanup.
+- Added one shared `splitViewportLayoutNode(...)` owner seam in `src/app/workspace/useWorkspaceStore.ts` so the corner gesture can wrap either a leaf pane or an already-nested pane subtree through the workspace store instead of hand-editing the layout tree.
+- Reapplied the previewed ratio through `setViewportLayoutSplitRatio(...)` after split creation so the committed split tracks the visible preview within the existing workspace clamp rules.
+- Updated `src/app/AppShell.test.tsx` so the focused split-corner slice now proves successful release-time split commit alongside under-threshold release cancel and post-preview pointer-cancel cleanup.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Releasing a split-corner drag after a valid preview now creates a real committed workspace split instead of always clearing back to the unchanged layout.
+- Under-threshold release and canceled corner gestures still clear safely without mutating the committed workspace tree.
+- Corner-split commit now works against already-nested pane subtrees through the shared workspace owner seam instead of only leaf slots.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1807 -->
+
+### [1807] - 2026-05-09 16:34 - `Workspace-9 / Phase 3 - Dominant-Axis Preview Orientation And Footprint`
+
+<!-- ENTRY 1807 -->
+
+HUMAN SUMMARY: `This shipped the Workspace 9 preview-orientation pass by deriving an AppShell-local split-corner preview from dominant pointer travel, painting a transient preview divider plus footprint through the shared split shell, and keeping the committed workspace tree unchanged. It also added focused preview tests and moved the family handoff forward to the release-commit phase.`
+
+#### Scope / Constraints Honored
+
+- Kept split-corner preview ownership AppShell-local instead of widening it into `useWorkspaceStore`.
+- Preserved the no-mutation contract for `viewportLayoutNodesById` and `viewportSlotsById` throughout preview rendering.
+- Stopped before release-time split creation, threshold commit rules, or popup-shell parity work.
+
+#### Summary of Implementation
+
+- Extended `src/app/AppShell.tsx` so the held split-corner session now derives dominant-axis orientation, a transient candidate ratio, and hysteresis-based mid-drag axis switching from the captured pointer movement.
+- Extended `src/app/workspace/WorkspaceViewportTree.tsx` so the active pane renders one transient preview footprint and one preview divider through the shared split-pane shell.
+- Added preview styling in `src/app/theme/foundation/base.css` for the transient footprint and divider so the gesture reads visually without introducing a second overlay owner.
+- Added focused AppShell coverage proving dominant-`x` vertical preview, dominant-`y` horizontal preview, and mid-drag axis switching while the committed workspace tree stays unchanged.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Dragging an eligible split-corner hotspot past the deadzone now shows a transient split preview instead of remaining visually inert until release.
+- The preview orientation now follows whichever absolute drag axis is dominant and can switch mid-drag once the opposite axis wins by the hysteresis margin.
+- Releasing the gesture still clears the preview without creating a real split in this phase.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1806 -->
+
+### [1806] - 2026-05-09 16:22 - `Workspace-9 / Phase 2 - Corner Gesture Session And Deadzone Entry`
+
+<!-- ENTRY 1806 -->
+
+HUMAN SUMMARY: `This shipped the Workspace 9 gesture-session pass by adding one AppShell-local split-corner hold state with pointer capture, deadzone crossing, and safe release or cancel cleanup while keeping the committed workspace tree unchanged. It also added focused split-corner tests and moved the family handoff forward to the preview-orientation phase.`
+
+#### Scope / Constraints Honored
+
+- Kept transient split-corner authoring state AppShell-local instead of widening it into `useWorkspaceStore`.
+- Preserved the Phase 1 rule that split-corner interaction does not mutate `viewportLayoutNodesById` or `viewportSlotsById` during the held-session pass.
+- Stopped before dominant-axis preview rendering, ratio preview, or split-node commit behavior.
+
+#### Summary of Implementation
+
+- Added one local `viewportSplitCornerGestureSession` owner in `AppShell.tsx` that records the split node id, selected corner, pointer id, origin coordinates, latest coordinates, and deadzone crossing state.
+- Upgraded the split-corner hotspot interaction from a `pointerdown` stub into a captured pointer lifecycle with move, up, and cancel handling plus safe capture release cleanup.
+- Extended `WorkspaceViewportTree.tsx` so the shared corner buttons forward pointer move, up, and cancel events and expose a small held-versus-armed session read for the active hotspot.
+- Added focused AppShell coverage proving the gesture session arms past the deadzone, ignores non-primary clicks, and clears on pointer release or cancel without mutating the workspace tree.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Pressing an eligible split-corner hotspot with the primary pointer now starts a temporary held session instead of staying a pure no-op stub.
+- The active hotspot now tracks whether the drag is still within the deadzone or has meaningfully started, but no preview divider or layout mutation appears yet.
+- Releasing or canceling the captured corner gesture now clears the temporary session safely without changing committed workspace layout state.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx -t "renders split corner hotspots only on divider-adjacent pane corners and reports pointerdown without mutating layout state"`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner"`
+- `npm.cmd run build`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx src/app/AppShell.test.tsx`
+  - broad AppShell suite still reports unrelated pre-existing failures outside the new split-corner coverage; the targeted split-corner tests passed
 <!-- ENTRY 1805 -->
 
 ### [1805] - 2026-05-09 14:45 - `Cleanup Gen3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction`
