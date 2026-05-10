@@ -230,7 +230,7 @@ describe('WorkspaceViewportTree', () => {
     ).toBe(false)
   })
 
-  it('renders split corner hotspots only on divider-adjacent pane corners and reports pointerdown without mutating layout state', async () => {
+  it('renders split corner hotspots on all pane fillets after the first split and reports pointerdown without mutating layout state', async () => {
     await act(async () => {
       useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
         surfaceKind: 'console',
@@ -289,11 +289,102 @@ describe('WorkspaceViewportTree', () => {
     const hotspotButtons = Array.from(
       container.querySelectorAll('.ViewportSplitCornerHandle'),
     ) as HTMLButtonElement[]
+    const rootSplitNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    const primaryPaneNodeId = rootSplitNode?.kind === 'split' ? rootSplitNode.firstChildId : null
+    const siblingPaneNodeId = rootSplitNode?.kind === 'split' ? rootSplitNode.secondChildId : null
+    const primaryPaneHotspots = hotspotButtons.filter(
+      (button) => button.getAttribute('data-workspace-split-node-id') === primaryPaneNodeId,
+    )
+    const siblingPaneHotspots = hotspotButtons.filter(
+      (button) => button.getAttribute('data-workspace-split-node-id') === siblingPaneNodeId,
+    )
+
+    expect(rootSplitNode?.kind).toBe('split')
+    expect(hotspotButtons).toHaveLength(8)
+    expect(
+      primaryPaneHotspots.map((button) => button.getAttribute('data-workspace-split-corner')),
+    ).toEqual(['topLeft', 'topRight', 'bottomLeft', 'bottomRight'])
+    expect(
+      siblingPaneHotspots.map((button) => button.getAttribute('data-workspace-split-corner')),
+    ).toEqual(['topLeft', 'topRight', 'bottomLeft', 'bottomRight'])
+
+    await act(async () => {
+      primaryPaneHotspots[0]?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(onViewportSplitCornerPointerDown).toHaveBeenCalledTimes(1)
+    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[1]).toBe('viewer')
+    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[2]).toBe('topLeft')
+  })
+
+  it('renders root outer-corner split hotspots for the unsplit main model viewport and reports pointerdown through the shared corner path', async () => {
+    const workspaceState = useWorkspaceStore.getState()
+    const onViewportSplitCornerPointerDown = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          leftDockStackHeight={workspaceState.leftDockStackHeight}
+          leftDockStackSplitRatio={workspaceState.leftDockStackSplitRatio}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={() => {}}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={onViewportSplitCornerPointerDown}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    const hotspotButtons = Array.from(
+      container.querySelectorAll('.ViewportSplitCornerHandle'),
+    ) as HTMLButtonElement[]
 
     expect(hotspotButtons).toHaveLength(4)
     expect(
       hotspotButtons.map((button) => button.getAttribute('data-workspace-split-corner')),
-    ).toEqual(['topRight', 'bottomRight', 'topLeft', 'bottomLeft'])
+    ).toEqual(['topLeft', 'topRight', 'bottomLeft', 'bottomRight'])
+    for (const hotspotButton of hotspotButtons) {
+      expect(hotspotButton.getAttribute('data-workspace-split-node-id')).toBe(
+        workspaceState.viewportSlotRootNodeId,
+      )
+    }
 
     await act(async () => {
       hotspotButtons[0]?.dispatchEvent(
@@ -306,6 +397,10 @@ describe('WorkspaceViewportTree', () => {
     })
 
     expect(onViewportSplitCornerPointerDown).toHaveBeenCalledTimes(1)
-    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[1]).toBe('topRight')
+    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[0]).toBe(
+      workspaceState.viewportSlotRootNodeId,
+    )
+    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[1]).toBe('viewer')
+    expect(onViewportSplitCornerPointerDown.mock.calls[0]?.[2]).toBe('topLeft')
   })
 })

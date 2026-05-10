@@ -71,6 +71,7 @@ import {
   type WorkspaceLayoutNode,
   type WorkspaceDetachedSlotSurfaceState,
   type WorkspaceSurfaceKind,
+  type WorkspaceViewportSlot,
 } from './workspace/workspaceShellTypes'
 import { useWorkspacePersistenceBridge } from './workspace/useWorkspacePersistenceBridge'
 import { useUiPrefsPersistenceBridge } from './store/useUiPrefsPersistenceBridge'
@@ -92,7 +93,6 @@ type WorkspaceSplitPaneArea = 'viewer' | 'editor'
 
 type ViewportSplitCornerPreview = {
   anchorEdge: 'left' | 'right' | 'top' | 'bottom'
-  nodeId: string
   orientation: 'vertical' | 'horizontal'
   paneArea: WorkspaceSplitPaneArea
   rawRatio: number
@@ -114,6 +114,7 @@ type ViewportSplitCornerGestureSession = {
   latestClientX: number
   latestClientY: number
   nodeId: string
+  paneArea: WorkspaceSplitPaneArea
   corner: WorkspaceViewportSplitCorner
   paneRect: ViewportPaneRect
   pointerId: number
@@ -317,26 +318,6 @@ function clampDetachedViewerFloatingRect(
   }
 }
 
-function resolveViewportSplitCornerPaneArea(
-  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
-  corner: WorkspaceViewportSplitCorner,
-): WorkspaceSplitPaneArea {
-  if (node.splitDirection === 'vertical') {
-    const leftPaneArea = node.splitDockSide === 'left' ? 'editor' : 'viewer'
-    return corner === 'topRight' || corner === 'bottomRight'
-      ? leftPaneArea
-      : leftPaneArea === 'editor'
-        ? 'viewer'
-        : 'editor'
-  }
-  const topPaneArea = node.splitDockSide === 'top' ? 'editor' : 'viewer'
-  return corner === 'bottomLeft' || corner === 'bottomRight'
-    ? topPaneArea
-    : topPaneArea === 'editor'
-      ? 'viewer'
-      : 'editor'
-}
-
 function resolveViewportSplitCornerAnchorEdge(
   corner: WorkspaceViewportSplitCorner,
   orientation: 'vertical' | 'horizontal',
@@ -352,18 +333,22 @@ function clampViewportSplitCornerPreviewRatio(value: number): number {
 }
 
 function resolveViewportSplitCornerTargetNodeId(
-  node: Extract<WorkspaceLayoutNode, { kind: 'split' }>,
-  paneArea: WorkspaceSplitPaneArea,
-): string {
-  const firstChildArea =
-    node.splitDirection === 'vertical'
-      ? node.splitDockSide === 'left'
-        ? 'editor'
-        : 'viewer'
-      : node.splitDockSide === 'top'
-        ? 'editor'
-        : 'viewer'
-  return paneArea === firstChildArea ? node.firstChildId : node.secondChildId
+  nodeId: string,
+  viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>,
+  viewportSlotRootNodeId: string,
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>,
+): string | null {
+  const node = viewportLayoutNodesById[nodeId]
+  if (node?.kind !== 'leaf') {
+    return null
+  }
+  if (nodeId === viewportSlotRootNodeId) {
+    const slot = viewportSlotsById[node.slotId] ?? null
+    if (slot?.slotId !== defaultPrimaryViewportSlotId || slot.surfaceKind !== 'modelViewer') {
+      return null
+    }
+  }
+  return nodeId
 }
 
 export function AppShell() {
@@ -563,14 +548,15 @@ export function AppShell() {
     ) {
       return null
     }
-    const splitNode = viewportLayoutNodesById[viewportSplitCornerGestureSession.nodeId]
-    if (splitNode?.kind !== 'split') {
+    const targetNodeId = resolveViewportSplitCornerTargetNodeId(
+      viewportSplitCornerGestureSession.nodeId,
+      viewportLayoutNodesById,
+      viewportSlotRootNodeId,
+      viewportSlotsById,
+    )
+    if (targetNodeId === null) {
       return null
     }
-    const paneArea = resolveViewportSplitCornerPaneArea(
-      splitNode,
-      viewportSplitCornerGestureSession.corner,
-    )
     const orientation = viewportSplitCornerGestureSession.previewOrientation
     const axisTravel =
       orientation === 'vertical'
@@ -592,14 +578,18 @@ export function AppShell() {
         viewportSplitCornerGestureSession.corner,
         orientation,
       ),
-      nodeId: viewportSplitCornerGestureSession.nodeId,
       orientation,
-      paneArea,
+      paneArea: viewportSplitCornerGestureSession.paneArea,
       rawRatio,
       ratio: clampViewportSplitCornerPreviewRatio(rawRatio),
-      targetNodeId: resolveViewportSplitCornerTargetNodeId(splitNode, paneArea),
+      targetNodeId,
     }
-  }, [viewportLayoutNodesById, viewportSplitCornerGestureSession])
+  }, [
+    viewportLayoutNodesById,
+    viewportSlotRootNodeId,
+    viewportSlotsById,
+    viewportSplitCornerGestureSession,
+  ])
   const {
     spaghetti: {
       hasVisibleSpaghettiInAppShell,
@@ -1184,14 +1174,21 @@ export function AppShell() {
   const handleViewportSplitCornerPointerDown = useCallback(
     (
       nodeId: string,
+      paneArea: WorkspaceSplitPaneArea,
       corner: WorkspaceViewportSplitCorner,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {
       if (event.button !== 0) {
         return
       }
-      const splitNode = viewportLayoutNodesById[nodeId]
-      if (splitNode?.kind !== 'split') {
+      if (
+        resolveViewportSplitCornerTargetNodeId(
+          nodeId,
+          viewportLayoutNodesById,
+          viewportSlotRootNodeId,
+          viewportSlotsById,
+        ) === null
+      ) {
         return
       }
       const paneElement = event.currentTarget.closest('.ViewportSplitPane')
@@ -1208,6 +1205,7 @@ export function AppShell() {
       viewportSplitCornerGestureButtonRef.current = event.currentTarget
       setViewportSplitCornerGestureSession({
         nodeId,
+        paneArea,
         corner,
         pointerId: event.pointerId,
         originClientX: event.clientX,
@@ -1226,12 +1224,13 @@ export function AppShell() {
         previewOrientation: null,
       })
     },
-    [viewportLayoutNodesById],
+    [viewportLayoutNodesById, viewportSlotRootNodeId, viewportSlotsById],
   )
 
   const handleViewportSplitCornerPointerMove = useCallback(
     (
       _nodeId: string,
+      _paneArea: WorkspaceSplitPaneArea,
       _corner: WorkspaceViewportSplitCorner,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {
@@ -1290,6 +1289,7 @@ export function AppShell() {
   const handleViewportSplitCornerPointerUp = useCallback(
     (
       _nodeId: string,
+      _paneArea: WorkspaceSplitPaneArea,
       _corner: WorkspaceViewportSplitCorner,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {
@@ -1338,6 +1338,7 @@ export function AppShell() {
   const handleViewportSplitCornerPointerCancel = useCallback(
     (
       _nodeId: string,
+      _paneArea: WorkspaceSplitPaneArea,
       _corner: WorkspaceViewportSplitCorner,
       event: ReactPointerEvent<HTMLButtonElement>,
     ) => {

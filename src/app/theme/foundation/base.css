@@ -1947,6 +1947,8 @@ button.ParaSelectMenuAction:hover {
 
 .ViewportSplitPane {
   position: relative;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -1982,14 +1984,15 @@ button.ParaSelectMenuAction:hover {
 
 .ViewportSplitCornerHandle {
   position: absolute;
-  z-index: 3;
+  z-index: 45;
   width: var(--workspace-split-corner-hit-area, 18px);
   height: var(--workspace-split-corner-hit-area, 18px);
   padding: 0;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.82);
   cursor: crosshair;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.72));
 }
 
 .ViewportSplitCornerHandle::before,
@@ -2003,18 +2006,18 @@ button.ParaSelectMenuAction:hover {
 }
 
 .ViewportSplitCornerHandle::before {
-  width: 10px;
-  height: 1px;
+  width: 12px;
+  height: 2px;
 }
 
 .ViewportSplitCornerHandle::after {
-  width: 1px;
-  height: 10px;
+  width: 2px;
+  height: 12px;
 }
 
 .ViewportSplitCornerHandle:hover,
 .ViewportSplitCornerHandle:focus-visible {
-  color: rgba(255, 255, 255, 0.76);
+  color: rgba(255, 255, 255, 0.98);
   outline: none;
 }
 

@@ -81,21 +81,25 @@ type WorkspaceViewportTreeProps = {
   ) => void
   onViewportSplitCornerPointerDown: (
     nodeId: WorkspaceLayoutNodeId,
+    paneArea: 'viewer' | 'editor',
     corner: WorkspaceViewportSplitCorner,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void
   onViewportSplitCornerPointerMove: (
     nodeId: WorkspaceLayoutNodeId,
+    paneArea: 'viewer' | 'editor',
     corner: WorkspaceViewportSplitCorner,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void
   onViewportSplitCornerPointerUp: (
     nodeId: WorkspaceLayoutNodeId,
+    paneArea: 'viewer' | 'editor',
     corner: WorkspaceViewportSplitCorner,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void
   onViewportSplitCornerPointerCancel: (
     nodeId: WorkspaceLayoutNodeId,
+    paneArea: 'viewer' | 'editor',
     corner: WorkspaceViewportSplitCorner,
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => void
@@ -115,10 +119,10 @@ type WorkspaceViewportTreeProps = {
 export type WorkspaceViewportSplitCorner = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
 export type WorkspaceViewportSplitPreview = {
   anchorEdge: 'left' | 'right' | 'top' | 'bottom'
-  nodeId: WorkspaceLayoutNodeId
   orientation: 'vertical' | 'horizontal'
   paneArea: 'viewer' | 'editor'
   ratio: number
+  targetNodeId: WorkspaceLayoutNodeId
 }
 
 export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
@@ -168,6 +172,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
   const viewportChromeById = useWorkspaceStore((state) => state.viewportChromeById)
   const setViewportResultMode = useWorkspaceStore((state) => state.setViewportResultMode)
   const workspacePaneFilletRadiusPx = useUiPrefsStore((state) => state.workspacePaneFilletRadiusPx)
+  const splitCornerHitAreaPx = Math.max(18, workspacePaneFilletRadiusPx)
 
   const renderViewportSlot = (slotId: WorkspaceViewportSlotId): ReactNode => {
     const slot = viewportSlotsById[slotId] ?? null
@@ -321,12 +326,137 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     )
   }
 
+  const renderSplitCornerPaneShell = ({
+    child,
+    eligibleCorners,
+    gridArea,
+    paneArea,
+    targetNodeId,
+  }: {
+    child: ReactNode
+    eligibleCorners: WorkspaceViewportSplitCorner[]
+    gridArea?: string
+    paneArea: 'viewer' | 'editor'
+    targetNodeId: WorkspaceLayoutNodeId
+  }): ReactNode => {
+    const paneRoleClass =
+      paneArea === 'viewer' ? 'ViewportSplitPane--viewer' : 'ViewportSplitPane--editor'
+    const panePreview =
+      activeViewportSplitCornerPreview?.targetNodeId === targetNodeId &&
+      activeViewportSplitCornerPreview.paneArea === paneArea
+        ? activeViewportSplitCornerPreview
+        : null
+    const panePreviewInsetStyle =
+      panePreview === null
+        ? undefined
+        : panePreview.orientation === 'vertical'
+          ? panePreview.anchorEdge === 'right'
+            ? { width: `${panePreview.ratio * 100}%`, right: '0' }
+            : { width: `${panePreview.ratio * 100}%`, left: '0' }
+          : panePreview.anchorEdge === 'bottom'
+            ? { height: `${panePreview.ratio * 100}%`, bottom: '0' }
+            : { height: `${panePreview.ratio * 100}%`, top: '0' }
+    const panePreviewDividerStyle =
+      panePreview === null
+        ? undefined
+        : panePreview.orientation === 'vertical'
+          ? panePreview.anchorEdge === 'right'
+            ? { right: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+            : { left: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+          : panePreview.anchorEdge === 'bottom'
+            ? { bottom: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+            : { top: `calc(${panePreview.ratio * 100}% - 2.5px)` }
+
+    return (
+      <div
+        className={`ViewportSplitPane ${paneRoleClass} ViewportSplitPane--filletedShell`}
+        style={
+          {
+            gridArea,
+            '--workspace-pane-fillet-radius': `${workspacePaneFilletRadiusPx}px`,
+          } as CSSProperties
+        }
+      >
+        {eligibleCorners.map((corner) => {
+          const isActiveCornerSession =
+            activeViewportSplitCornerSession?.nodeId === targetNodeId &&
+            activeViewportSplitCornerSession.corner === corner
+          const cornerSessionState = isActiveCornerSession
+            ? activeViewportSplitCornerSession.deadzoneCrossed
+              ? 'armed'
+              : 'holding'
+            : undefined
+
+          return (
+            <button
+              key={corner}
+              type="button"
+              className={`ViewportSplitCornerHandle ViewportSplitCornerHandle--${corner}`}
+              data-workspace-split-corner={corner}
+              data-workspace-split-node-id={targetNodeId}
+              data-workspace-split-corner-session={cornerSessionState}
+              style={
+                {
+                  '--workspace-split-corner-hit-area': `${splitCornerHitAreaPx}px`,
+                } as CSSProperties
+              }
+              onPointerDown={(event) =>
+                onViewportSplitCornerPointerDown(targetNodeId, paneArea, corner, event)
+              }
+              onPointerMove={(event) =>
+                onViewportSplitCornerPointerMove(targetNodeId, paneArea, corner, event)
+              }
+              onPointerUp={(event) =>
+                onViewportSplitCornerPointerUp(targetNodeId, paneArea, corner, event)
+              }
+              onPointerCancel={(event) =>
+                onViewportSplitCornerPointerCancel(targetNodeId, paneArea, corner, event)
+              }
+              aria-label={`Prepare split from the ${corner} corner`}
+              title="Click and drag to split this pane"
+            />
+          )
+        })}
+        {panePreview !== null ? (
+          <>
+            <div
+              className={`ViewportSplitPreviewFootprint ViewportSplitPreviewFootprint--${panePreview.orientation}`}
+              data-workspace-split-preview-orientation={panePreview.orientation}
+              data-workspace-split-preview-edge={panePreview.anchorEdge}
+              data-workspace-split-preview-pane={paneArea}
+              style={panePreviewInsetStyle}
+            />
+            <div
+              className={`ViewportSplitPreviewDivider ViewportSplitPreviewDivider--${panePreview.orientation}`}
+              data-workspace-split-preview-divider={panePreview.orientation}
+              style={panePreviewDividerStyle}
+            />
+          </>
+        ) : null}
+        {child}
+      </div>
+    )
+  }
+
   const renderViewportLayoutNode = (nodeId: WorkspaceLayoutNodeId): ReactNode => {
     const node = viewportLayoutNodesById[nodeId] ?? null
     if (node === null) {
       return null
     }
     if (node.kind === 'leaf') {
+      const slot = viewportSlotsById[node.slotId] ?? null
+      if (
+        nodeId === viewportSlotRootNodeId &&
+        slot?.slotId === defaultPrimaryViewportSlotId &&
+        slot.surfaceKind === 'modelViewer'
+      ) {
+        return renderSplitCornerPaneShell({
+          child: renderViewportSlot(node.slotId),
+          eligibleCorners: ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
+          paneArea: 'viewer',
+          targetNodeId: node.nodeId,
+        })
+      }
       return renderViewportSlot(node.slotId)
     }
     const splitDirectionClass = node.splitDirection === 'vertical' ? 'isVertical' : 'isHorizontal'
@@ -348,128 +478,25 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
           ? 'editor'
           : 'viewer'
     const secondChildArea = firstChildArea === 'editor' ? 'viewer' : 'editor'
-    const leftChildArea =
-      node.splitDirection === 'vertical'
-        ? node.splitDockSide === 'left'
-          ? 'editor'
-          : 'viewer'
-        : null
-    const topChildArea =
-      node.splitDirection === 'horizontal'
-        ? node.splitDockSide === 'top'
-          ? 'editor'
-          : 'viewer'
-        : null
-
     const getEligiblePaneCorners = (
-      paneArea: 'viewer' | 'editor',
+      _childNodeId: WorkspaceLayoutNodeId,
+      _paneArea: 'viewer' | 'editor',
     ): WorkspaceViewportSplitCorner[] => {
-      if (node.splitDirection === 'vertical') {
-        return paneArea === leftChildArea ? ['topRight', 'bottomRight'] : ['topLeft', 'bottomLeft']
-      }
-      return paneArea === topChildArea ? ['bottomLeft', 'bottomRight'] : ['topLeft', 'topRight']
+      return ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
     }
 
     const renderSplitPane = (
       paneArea: 'viewer' | 'editor',
       childNodeId: WorkspaceLayoutNodeId,
     ): ReactNode => {
-      const eligibleCorners = getEligiblePaneCorners(paneArea)
-      const splitCornerHitAreaPx = Math.max(18, workspacePaneFilletRadiusPx)
-      const paneRoleClass = paneArea === 'viewer' ? 'ViewportSplitPane--viewer' : 'ViewportSplitPane--editor'
-      const panePreview =
-        activeViewportSplitCornerPreview?.nodeId === node.nodeId &&
-        activeViewportSplitCornerPreview.paneArea === paneArea
-          ? activeViewportSplitCornerPreview
-          : null
-      const panePreviewInsetStyle =
-        panePreview === null
-          ? undefined
-          : panePreview.orientation === 'vertical'
-            ? panePreview.anchorEdge === 'right'
-              ? { width: `${panePreview.ratio * 100}%`, right: '0' }
-              : { width: `${panePreview.ratio * 100}%`, left: '0' }
-            : panePreview.anchorEdge === 'bottom'
-              ? { height: `${panePreview.ratio * 100}%`, bottom: '0' }
-              : { height: `${panePreview.ratio * 100}%`, top: '0' }
-      const panePreviewDividerStyle =
-        panePreview === null
-          ? undefined
-          : panePreview.orientation === 'vertical'
-            ? panePreview.anchorEdge === 'right'
-              ? { right: `calc(${panePreview.ratio * 100}% - 2.5px)` }
-              : { left: `calc(${panePreview.ratio * 100}% - 2.5px)` }
-            : panePreview.anchorEdge === 'bottom'
-              ? { bottom: `calc(${panePreview.ratio * 100}% - 2.5px)` }
-              : { top: `calc(${panePreview.ratio * 100}% - 2.5px)` }
-
-      return (
-        <div
-          className={`ViewportSplitPane ${paneRoleClass} ViewportSplitPane--filletedShell`}
-          style={
-            {
-              gridArea: paneArea,
-              '--workspace-pane-fillet-radius': `${workspacePaneFilletRadiusPx}px`,
-            } as CSSProperties
-          }
-        >
-          {eligibleCorners.map((corner) => {
-            const isActiveCornerSession =
-              activeViewportSplitCornerSession?.nodeId === node.nodeId &&
-              activeViewportSplitCornerSession.corner === corner
-            const cornerSessionState = isActiveCornerSession
-              ? activeViewportSplitCornerSession.deadzoneCrossed
-                ? 'armed'
-                : 'holding'
-              : undefined
-
-            return (
-              <button
-                key={corner}
-                type="button"
-                className={`ViewportSplitCornerHandle ViewportSplitCornerHandle--${corner}`}
-                data-workspace-split-corner={corner}
-                data-workspace-split-node-id={node.nodeId}
-                data-workspace-split-corner-session={cornerSessionState}
-                style={
-                  {
-                    '--workspace-split-corner-hit-area': `${splitCornerHitAreaPx}px`,
-                  } as CSSProperties
-                }
-                onPointerDown={(event) =>
-                  onViewportSplitCornerPointerDown(node.nodeId, corner, event)
-                }
-                onPointerMove={(event) =>
-                  onViewportSplitCornerPointerMove(node.nodeId, corner, event)
-                }
-                onPointerUp={(event) => onViewportSplitCornerPointerUp(node.nodeId, corner, event)}
-                onPointerCancel={(event) =>
-                  onViewportSplitCornerPointerCancel(node.nodeId, corner, event)
-                }
-                aria-label={`Prepare split from the ${corner} corner`}
-                title="Click and drag to split this pane"
-              />
-            )
-          })}
-          {panePreview !== null ? (
-            <>
-              <div
-                className={`ViewportSplitPreviewFootprint ViewportSplitPreviewFootprint--${panePreview.orientation}`}
-                data-workspace-split-preview-orientation={panePreview.orientation}
-                data-workspace-split-preview-edge={panePreview.anchorEdge}
-                data-workspace-split-preview-pane={paneArea}
-                style={panePreviewInsetStyle}
-              />
-              <div
-                className={`ViewportSplitPreviewDivider ViewportSplitPreviewDivider--${panePreview.orientation}`}
-                data-workspace-split-preview-divider={panePreview.orientation}
-                style={panePreviewDividerStyle}
-              />
-            </>
-          ) : null}
-          {renderViewportLayoutNode(childNodeId)}
-        </div>
-      )
+      const eligibleCorners = getEligiblePaneCorners(childNodeId, paneArea)
+      return renderSplitCornerPaneShell({
+        child: renderViewportLayoutNode(childNodeId),
+        eligibleCorners,
+        gridArea: paneArea,
+        paneArea,
+        targetNodeId: childNodeId,
+      })
     }
 
     return (

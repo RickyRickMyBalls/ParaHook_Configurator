@@ -72,6 +72,387 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1826 -->
+
+### [1826] - 2026-05-10 11:14 - `Workspace-9 / Follow-Up - Restore Four-Corner Split Contract`
+
+<!-- ENTRY 1826 -->
+
+HUMAN SUMMARY: `This corrects the first Phase 11 closeout after the product direction was clarified: every viewport should always keep all four split points visible. The temporary primary-viewer top-left suppression rule is removed, the root and split-pane shells both return to a full four-corner contract, and the routing proof goes back to exercising the restored top-left path directly.` 
+
+#### Scope / Constraints Honored
+
+- Kept the correction inside the shared split-corner eligibility and proof seam.
+- Preserved the settled Phase 10 routing, preview, commit, and hit-area behavior.
+- Recorded the correction as new history instead of rewriting the earlier Phase 11 entry.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` to remove the temporary primary-viewport occupied-corner exception and restore `topLeft`, `topRight`, `bottomLeft`, and `bottomRight` on both the unsplit root viewer and already-split panes.
+- Updated `src/app/workspace/WorkspaceViewportTree.test.tsx` so the shell proof expects four root corners and eight split-pane corners again, and so pointerdown assertions follow the restored `topLeft` ordering.
+- Updated `src/app/AppShell.test.tsx` so the wrong-pane regression returns to the left-pane `topLeft` path and proves that the restored corner still previews and commits against the correct pane.
+- Updated the `Workspace 9` planning surfaces to explicitly note that the final Phase 11 contract is four visible split points on every viewport at all times.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- All viewports now keep all four split points visible again, including the primary viewer `topLeft` corner.
+- The restored `topLeft` corner continues to use the same shared split gesture and correct pane-target routing as the other corners.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner|left-pane top-left|right-pane top-right|unsplit main model viewport|corner-radius"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1825 -->
+
+### [1825] - 2026-05-10 11:07 - `Workspace-9 / Phase 11 - Shared Corner Contract And Shell-Layer Consistency`
+
+<!-- ENTRY 1825 -->
+
+HUMAN SUMMARY: `This closes the last shared-workspace cleanup pass for filleted split corners by making the crowded primary-model-viewport top-left corner an explicit occupied-corner suppression rule. The misleading corner is no longer shown where the left dock already owns that shell space, while the remaining visible corners keep the same shared split gesture and now have direct proof coverage for the tightened shell contract.` 
+
+#### Scope / Constraints Honored
+
+- Kept the cleanup inside the shared split-corner shell and proof seam.
+- Reused the already-landed top-corner layering and glyph styling instead of widening into more CSS-only polish work.
+- Preserved the settled AppShell gesture, preview, commit, and hit-area behavior without reopening routing or divider-resize ownership.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so any pane subtree that contains the primary model viewport slot now suppresses the `topLeft` split corner, covering both the unsplit root viewer and later split trees where that primary viewer still owns the crowded shell region.
+- Updated `src/app/workspace/WorkspaceViewportTree.test.tsx` to prove the structural suppression rule directly by expecting three root corners and seven two-pane corners instead of treating the occupied primary `topLeft` corner as still visible.
+- Updated `src/app/AppShell.test.tsx` so the left-pane regression now uses the remaining honest `bottomLeft` corner while preserving the no-regression shared routing proof for the other visible corners.
+- Updated the `Workspace 9` planning surfaces to mark `Phase 11` shipped and close the shared-workspace split-authoring family again.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The primary model viewport's occupied `topLeft` shell corner is no longer presented as a split handle.
+- The remaining visible split corners continue to use the same shared gesture path and now define the honest shell contract for both root and already-split workspace panes.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner|left-pane bottom-left|right-pane top-right|unsplit main model viewport|corner-radius"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1824 -->
+
+### [1824] - 2026-05-10 10:53 - `Workspace-9 / Phase 10 - Explicit Pane Ownership And Target Routing Cleanup`
+
+<!-- ENTRY 1824 -->
+
+HUMAN SUMMARY: `This closes the pane-ownership cleanup pass for the widened split-corner contract. AppShell now speaks in terms of one explicit target leaf instead of a blurrier context object, and the split-corner proof now covers both left-pane and right-pane outer-corner routing so outside-corner entry stays attached to the pane the user actually clicked.` 
+
+#### Scope / Constraints Honored
+
+- Kept the implementation inside the shared split-corner ownership and proof seam.
+- Reused the existing preview, release-time commit, and divider-resize behavior without widening into shell-visual cleanup.
+- Advanced the Workspace 9 planning family honestly to `Phase 11` instead of leaving the later shell-consistency cleanup implicit.
+
+#### Summary of Implementation
+
+- Updated `src/app/AppShell.tsx` to reduce the split-corner eligibility helper down to `resolveViewportSplitCornerTargetNodeId(...)`, which now validates the eligible target leaf directly instead of carrying a wider context object.
+- Updated the split-corner preview VM in `src/app/AppShell.tsx` and `src/app/workspace/WorkspaceViewportTree.tsx` so it now carries only the explicit `targetNodeId` pane target instead of duplicating a generic `nodeId`.
+- Updated `src/app/AppShell.test.tsx` so the routing proof targets panes by `data-workspace-split-node-id`, keeps the original left-pane regression, and adds the opposite right-pane outer-corner sanity path.
+- Updated the `Workspace 9` family docs to mark `Phase 10` shipped and hand the family forward to `Phase 11 - Shared Corner Contract And Shell-Layer Consistency`.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Outside split corners now stay formally attached to their owning pane subtree through one explicit target-leaf contract, and both left-pane and right-pane outer-corner entry paths are covered by focused runtime proof.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner|left-pane top-left|right-pane top-right|unsplit main model viewport"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1823 -->
+
+### [1823] - 2026-05-10 10:41 - `Workspace-9 / Follow-Up - Split Corner Pane Ownership Routing`
+
+<!-- ENTRY 1823 -->
+
+HUMAN SUMMARY: `This fixes the wrong-pane split-corner follow-through that appeared after outside-corner widening. Shared corner gestures now carry explicit pane ownership so preview and commit stay bound to the pane whose corner was actually clicked, and the Workspace 9 planning home is reopened with dedicated cleanup follow-through instead of leaving that tightening work only in chat.` 
+
+#### Scope / Constraints Honored
+
+- Kept the runtime fix inside the shared split-corner gesture and pane-shell routing seam.
+- Reused the existing preview, commit, and divider-resize owners instead of inventing a second split gesture path.
+- Reopened `Workspace 9` only enough to add explicit cleanup follow-through for shared corner ownership and shell consistency.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so split-pane corner handles now carry the child pane subtree they actually own instead of reusing the parent split node id.
+- Kept `src/app/AppShell.tsx` on the explicit pane-target routing path so split-corner preview and release-time commit stay attached to the clicked pane.
+- Updated `src/app/AppShell.test.tsx` with focused proof that a left-pane top-left corner gesture previews and splits that same left pane instead of the opposite pane.
+- Updated the `Workspace 9` planning surfaces to reopen the family with `Phase 10` and `Phase 11` cleanup follow-through and to correct the stale shipped read for the later corner-widening passes.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- After the first split, clicking an outside split corner now previews and commits against the pane that owns that corner instead of sometimes targeting the opposite pane.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner|left-pane top-left|unsplit main model viewport"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1818 -->
+
+### [1822] - 2026-05-10 10:19 - `Workspace-9 / Follow-Up - Split Pane Outside Corner Availability`
+
+<!-- ENTRY 1822 -->
+
+HUMAN SUMMARY: `This widens the already-split viewport contract so each pane now exposes the shared split-corner handles on its outside fillets as well as the middle divider-adjacent ones. After the first split, users can start the same split gesture from any visible pane corner instead of only the inner pair.` 
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change inside the shared split-pane hotspot eligibility seam.
+- Reused the existing AppShell gesture, preview, and commit path with no new pane-specific split logic.
+- Avoided widening into divider resize behavior, viewport header layout, or unrelated workspace shell changes.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so already-split panes now expose all four split-corner handles instead of only the divider-adjacent pair.
+- Updated `src/app/workspace/WorkspaceViewportTree.test.tsx` to prove a two-pane split now renders all eight pane-corner hotspots while still reporting pointerdown through the shared corner path.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Once the workspace has one split and two visible panes, each pane now shows split-entry corners on both its outside and inside fillets.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1818 -->
+
+### [1821] - 2026-05-10 10:18 - `Workspace-9 / Follow-Up - Root Top Corner Split Availability`
+
+<!-- ENTRY 1821 -->
+
+HUMAN SUMMARY: `This fixes the root main-model-viewport corner availability gap where only the bottom-right outer fillet could start a split. The unsplit main viewport now exposes the shared split-corner handles on all four outer fillets, so the top corners can finally enter the same split gesture path as the bottom ones.` 
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change inside the shared workspace split-corner owner seam.
+- Reused the existing AppShell gesture, preview, and commit logic instead of inventing a second root-only split path.
+- Avoided widening into viewport header layout, divider behavior, or unrelated workspace shell changes.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so the unsplit root main model viewport now renders `topLeft`, `topRight`, `bottomLeft`, and `bottomRight` outer-corner split handles instead of only `bottomRight`.
+- Updated `src/app/workspace/WorkspaceViewportTree.test.tsx` to prove the root workspace path now exposes all four outer-corner handles and still reports pointerdown through the shared corner route.
+- Updated `src/app/AppShell.test.tsx` to prove the unsplit root top-right corner can now start and commit a real top split through the live shared gesture path.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The main unsplit `Model Viewport` now supports split-entry from the top outer fillets as well as the bottom ones.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "unsplit main model viewport"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1818 -->
+
+### [1820] - 2026-05-10 10:02 - `Workspace-9 / Follow-Up - Split Corner Glyph Visibility`
+
+<!-- ENTRY 1820 -->
+
+HUMAN SUMMARY: `This strengthens the shared split-corner glyph styling so the small white corner lines stay visible against the dark viewport titlebar and chrome. The split-entry affordance now reads more clearly without changing the gesture path or hit area contract.` 
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the shared split-corner visual styling seam.
+- Preserved the existing split gesture, hit target sizing, and corner placement rules.
+- Avoided widening into viewport header layout, split logic, or menu behavior.
+
+#### Summary of Implementation
+
+- Updated `src/app/theme/foundation/base.css` so `.ViewportSplitCornerHandle` now uses a brighter default color, slightly thicker pseudo-element strokes, a slightly longer corner mark, and a subtle dark drop shadow for contrast.
+- Left the existing hit-area sizing and layering behavior intact.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The shared split-corner white corner markers are now easier to see, especially along the top viewport fillets where they sit over darker titlebar chrome.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+
+<!-- ENTRY 1818 -->
+
+### [1819] - 2026-05-10 10:00 - `Workspace-9 / Follow-Up - Top Split Corner Handle Layering`
+
+<!-- ENTRY 1819 -->
+
+HUMAN SUMMARY: `This fixes the split-corner layering regression where the top divider-adjacent viewport fillets could render under the viewport titlebar and fail to start a split. The shared corner handles now sit above the header chrome, so the top and bottom split-entry corners behave the same again.` 
+
+#### Scope / Constraints Honored
+
+- Kept the repair inside the shared split-corner CSS seam.
+- Preserved the shipped Phase 9 corner gesture, preview, and commit behavior.
+- Avoided widening into viewport header layout or menu behavior changes.
+
+#### Summary of Implementation
+
+- Updated `src/app/theme/foundation/base.css` so `.ViewportSplitCornerHandle` now layers above the `ViewportFrameHeader` instead of underneath it.
+- Left the existing shared hit-area sizing and corner-placement rules unchanged.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Top divider-adjacent split corners in the main workspace viewport can now start the same split gesture path that already worked from the bottom corners.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-corner"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1818 -->
+
+### [1818] - 2026-05-10 09:55 - `Workspace-9 / Follow-Up - Root Split Pane Restores Main Viewport Sizing`
+
+<!-- ENTRY 1818 -->
+
+HUMAN SUMMARY: `This fixes the Phase 9 root split-corner follow-up regression where the main model viewport could disappear after being wrapped in the new root filleted split-pane shell. The shared split-pane container now sizes itself to its parent so the unsplit root viewport still renders normally while keeping the new outer-corner entry seam.` 
+
+#### Scope / Constraints Honored
+
+- Kept the repair inside the shared split-pane CSS seam.
+- Preserved the shipped Phase 9 gesture-entry logic and hotspot contract.
+- Avoided widening into more workspace-shell behavior changes.
+
+#### Summary of Implementation
+
+- Updated `src/app/theme/foundation/base.css` so `.ViewportSplitPane` now explicitly fills its parent with `width: 100%` and `height: 100%`.
+- This restores the unsplit root model viewport render path while remaining compatible with the existing grid-hosted split panes.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The main root `Model Viewport` now renders normally again while still exposing the new Phase 9 outer-corner split-entry handle.
+
+#### Verification Steps
+
+- `npm.cmd run build`
+
+<!-- ENTRY 1817 -->
+
+### [1817] - 2026-05-10 09:08 - `Workspace-9 / Phase 9 - Main Model Viewport Outer-Corner Split Entry`
+
+<!-- ENTRY 1817 -->
+
+HUMAN SUMMARY: `This widens the shared split-corner contract so the unsplit main model viewport can now start the same corner-drag split gesture from an exposed outer fillet. The root primary viewport now exposes one honest bottom-right split-entry handle, while the existing divider-adjacent split-pane corners keep their current behavior.`
+
+#### Scope / Constraints Honored
+
+- Kept the widening inside the existing shared `WorkspaceViewportTree` and `AppShell` split-corner seams.
+- Reused the shipped preview, commit, and ratio-clamp behavior instead of inventing a root-only split flow.
+- Suppressed misleading occupied corners instead of broadly turning every root viewport corner into a hotspot.
+
+#### Summary of Implementation
+
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so the unsplit root primary model viewport now reuses the shared filleted split-pane shell and renders one `bottomRight` outer-corner split handle, while split panes keep the existing divider-adjacent corner mapping.
+- Updated `src/app/AppShell.tsx` so the existing split-corner eligibility, preview, and commit path now accepts that root primary model viewport entry case and still routes split creation through the normal shared workspace split owner.
+- Added focused proof in `src/app/workspace/WorkspaceViewportTree.test.tsx` and `src/app/AppShell.test.tsx` for root outer-corner entry while preserving the divider-adjacent hotspot contract.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The unsplit primary `Model Viewport` now exposes one outer-corner split-drag entry handle at `bottomRight`.
+- Dragging from that root outer corner enters the same shared split-corner preview and release-to-commit behavior that already shipped for divider-adjacent split panes.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx -t "root outer-corner|divider-adjacent pane corners"`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "unsplit main model viewport|split-corner"`
+- `npm.cmd run build`
+
 <!-- ENTRY 1816 -->
 
 ### [1816] - 2026-05-09 20:59 - `Home-Page / Follow-Up - Workspace Restore Toggle Honors Persisted Refresh State`

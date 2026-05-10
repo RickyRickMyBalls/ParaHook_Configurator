@@ -3,6 +3,15 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-05-10 11:14:53: Corrected the just-landed `Workspace-9 / Phase 11 - Shared Corner Contract And Shell-Layer Consistency` closeout after the user clarified the real contract is four visible split points on every viewport at all times, restoring the primary `topLeft` corner, reverting the temporary occupied-corner suppression rule, and tightening the phase result around unified all-four-corners behavior plus the already-landed shared routing proof.
+29. 2026-05-10 11:07:58: Implemented and closed `Workspace-9 / Phase 11 - Shared Corner Contract And Shell-Layer Consistency` by structurally suppressing the crowded primary-model-viewport `topLeft` split corner, keeping the shared split-corner gesture and hit-area contract unchanged, widening the tree and AppShell proof to cover the occupied-corner shell rule directly, and closing `Workspace 9` again as a complete shared-workspace split-authoring family.
+28. 2026-05-10 11:01:11: Tightened `Workspace-9 / Phase 11 - Shared Corner Contract And Shell-Layer Consistency` into an implementation-ready next cut by grounding it against the live `.ViewportSplitCornerHandle` layering and glyph seam in `base.css`, the absolute top-left occupancy seam from `PrimaryViewportLeftDock` plus `docks.css`, and the current proof gap where split-corner tests still verify routing far more than visible-corner suppression or shell-read consistency.
+27. 2026-05-10 10:53:50: Implemented and closed `Workspace-9 / Phase 10 - Explicit Pane Ownership And Target Routing Cleanup` by simplifying the AppShell target-validation helper down to the real explicit leaf-target seam, renaming the preview VM so it only carries that same explicit pane target, widening the runtime proof to cover both left-pane and right-pane outer-corner routing, and advancing the family handoff to `Phase 11 - Shared Corner Contract And Shell-Layer Consistency`.
+26. 2026-05-10 10:49:51: Tightened `Workspace-9 / Phase 10 - Explicit Pane Ownership And Target Routing Cleanup` into an implementation-ready next cut by grounding it against the now-landed child-pane `targetNodeId` seam in `WorkspaceViewportTree.tsx`, the still-lightweight `resolveViewportSplitCornerContext(...)` cleanup seam in `AppShell.tsx`, and the focused opposite-pane regression-proof gap that remains after the first wrong-pane routing fix.
+25. 2026-05-10 10:41:08: Reopened `Workspace 9` with explicit cleanup follow-through after the outer-corner widening landed, corrected the stale `Phase 7` through `Phase 9` shipped read to match the real runtime state, and added `Phase 10` plus `Phase 11` so split-corner pane ownership, suppression rules, and shell-layer consistency now have one honest next planning home instead of drifting through ad hoc follow-up fixes.
+24. 2026-05-10 09:08:21: Implemented and closed `Workspace-9 / Phase 9 - Main Model Viewport Outer-Corner Split Entry` by widening the shared filleted split-pane shell so the unsplit primary model viewport now exposes one honest outer-corner entry handle, reusing the existing AppShell split-corner gesture path instead of inventing a root-only flow, and adding focused root-entry proof while keeping divider-adjacent split-pane coverage intact.
+23. 2026-05-10 08:58:41: Tightened `Workspace-9 / Phase 9 - Main Model Viewport Outer-Corner Split Entry` into an implementation-ready next cut by grounding it against the live divider-adjacent-only eligibility rule in `WorkspaceViewportTree.tsx`, the existing shared corner-gesture owner in `AppShell.tsx`, the current hotspot proof in `WorkspaceViewportTree.test.tsx`, and the no-widening boundaries needed to extend root main viewport split entry without inventing a second gesture model.
+22. 2026-05-10 08:58:41: Reopened `Workspace 9` just enough to add `Workspace-9 / Phase 9 - Main Model Viewport Outer-Corner Split Entry`, separating the current divider-adjacent hotspot contract from the later always-available main viewport outer-corner follow-through so the Blender-style root viewport split-entry widening can land as one explicit next cut instead of staying only in chat.
 21. 2026-05-09 20:32:34: Implemented and closed `Workspace-9 / Phase 8 - Shared Workspace Corner Radius Consumption` by wiring the shipped `workspacePaneFilletRadiusPx` preference directly into the shared `ViewportSplitPane--filletedShell` CSS-variable seam, adding focused shared-workspace proof that the radius updates live and split-corner gesture entry still behaves correctly, and closing `Workspace 9` again as a complete shared-workspace family.
 20. 2026-05-09 20:28:48: Prepped `Workspace-9 / Phase 8 - Shared Workspace Corner Radius Consumption` for implementation with a code-grounded read of the live shared `WorkspaceViewportTree.tsx` fillet-shell seam, the existing `--workspace-pane-fillet-radius` default in `base.css`, the shipped `uiPrefsStore` owner from `Phase 7`, and the focused shared-workspace proof shape needed before the final shell-consumption pass lands.
 19. 2026-05-09 18:31:09: Implemented and closed `Workspace-9 / Phase 7 - Settings-Owned Workspace Corner Radius Preference` by landing a persisted `uiPrefsStore` owner plus one `Workspace` section slider in `SettingsSurface.tsx`, keeping the shared workspace shell unchanged, and advancing the active next implementation-ready handoff to `Phase 8 - Shared Workspace Corner Radius Consumption`.
@@ -201,16 +210,120 @@ Important direction that must stay true:
 - [x] If parity is not tiny, record the explicit deferral and keep the shared workspace gesture lane honestly closed.
 
 ### `Workspace-9 / Phase 7`
-- [ ] `HLG 5. Let the filleted workspace-corner radius be user-adjustable through the Settings workspace instead of forcing one permanent visual radius.`
-- [ ] Add one persisted Settings-owned preference for the shared workspace corner radius.
-- [ ] Add one Settings workspace slider and default-value read for that preference.
-- [ ] Keep this phase focused on owner state, Settings UI, and plumbing, not on the final shared workspace shell consumption.
+- [x] `HLG 5. Let the filleted workspace-corner radius be user-adjustable through the Settings workspace instead of forcing one permanent visual radius.`
+- [x] Add one persisted Settings-owned preference for the shared workspace corner radius.
+- [x] Add one Settings workspace slider and default-value read for that preference.
+- [x] Keep this phase focused on owner state, Settings UI, and plumbing, not on the final shared workspace shell consumption.
 
 ### `Workspace-9 / Phase 8`
-- [ ] `HLG 5. Let the filleted workspace-corner radius be user-adjustable through the Settings workspace instead of forcing one permanent visual radius.`
-- [ ] Read the stored Settings-owned radius preference into the shared workspace pane shell.
-- [ ] Reapply the existing fillet seam and hotspot visuals against real user-adjustable values.
-- [ ] Add focused proof that changing the preference updates the shared workspace corner shell without breaking split-corner affordance behavior.
+- [x] `HLG 5. Let the filleted workspace-corner radius be user-adjustable through the Settings workspace instead of forcing one permanent visual radius.`
+- [x] Read the stored Settings-owned radius preference into the shared workspace pane shell.
+- [x] Reapply the existing fillet seam and hotspot visuals against real user-adjustable values.
+- [x] Add focused proof that changing the preference updates the shared workspace corner shell without breaking split-corner affordance behavior.
+
+### `Workspace-9 / Phase 9`
+- [x] `HLG 1. Add a new Blender-style way to split workspaces from the filleted viewport corner instead of only from the existing split affordances.`
+- [x] `HLG 2. Let the user click and hold an empty fillet corner, drag to size the new viewport live, and only make the new viewport real when the left click is released.`
+- [x] Widen the hotspot eligibility rule so the main unsplit model viewport can start a split from its exposed outer filleted corners instead of requiring an already-divider-adjacent pane corner.
+- [x] Keep the existing shared split-corner gesture model, preview path, commit path, and ratio clamps instead of inventing a second root-viewport split authoring flow.
+- [x] Decide which outer corners should remain suppressed when shell chrome or dock ownership makes a corner non-empty or visually misleading.
+
+### `Workspace-9 / Phase 10`
+- [ ] `HLG 1. Add a new Blender-style way to split workspaces from the filleted viewport corner instead of only from the existing split affordances.`
+- [ ] `HLG 2. Let the user click and hold an empty fillet corner, drag to size the new viewport live, and only make the new viewport real when the left click is released.`
+- [ ] Replace corner-position inference with explicit pane-target ownership everywhere the shared split-corner gesture is routed.
+- [ ] Keep preview and commit bound to the pane subtree that owns the clicked corner even after the first split creates multiple visible panes.
+- [ ] Add focused regression proof for left-pane versus right-pane routing so outside-corner entry can no longer preview or split the wrong viewport.
+
+### `Workspace-9 / Phase 11`
+- [ ] `HLG 1. Add a new Blender-style way to split workspaces from the filleted viewport corner instead of only from the existing split affordances.`
+- [ ] `HLG 4. Tighten the pane visuals so the workspaces use filleted edges with no padding and the corner handle reads like part of the pane frame.`
+- [ ] Unify which corners stay visible, suppressed, or offset when titlebar chrome, the primary left dock, or other shell owners already occupy that corner.
+- [ ] Remove visual and layering drift between top and bottom corner glyphs so all four corners read like one shared affordance across radius extremes.
+- [ ] Keep popup-workspace deferral honest while tightening only the shared workspace shell contract.
+
+
+### Phase 9 Summary
+
+#### Purpose
+
+Finish the Blender-style split-entry promise for the root workspace by letting the main model viewport start the shared split-corner gesture from its exposed outer filleted corners even before any split already exists.
+
+#### Owns
+
+- widening split-corner hotspot eligibility beyond divider-adjacent pane corners for the shared main model viewport
+- keeping the existing shared split-corner gesture, preview, and commit behavior intact for the newly eligible outer-corner entry path
+- focused proof that the main root viewport can now begin the same shared split-corner flow without requiring a pre-existing split
+
+#### Does Not Own
+
+- a new split authoring model separate from the shipped shared corner gesture
+- popup workspace parity
+- changes to the settled split-ratio clamp, preview orientation, or release commit rules
+
+#### Current Live Read
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` still computes split-corner hotspot eligibility from the current split node and only renders divider-adjacent pane corners today.
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` already proves the current divider-adjacent-only hotspot contract, so this phase needs to widen that truth deliberately instead of accidentally.
+- `src/app/AppShell.tsx` already owns the shared corner gesture session, preview, and commit path, so the main viewport widening should reuse that existing owner instead of branching into a separate root-viewport authoring seam.
+- `WorkspaceViewportTree.tsx` currently renders hotspot buttons only while walking split nodes, which means the unsplit root model viewport has no outer-corner entry seam at all today and Phase 9 must introduce one explicit root-pane eligibility path rather than just tweaking a CSS affordance.
+- the main design risk is ambiguous outer corners near shell chrome or dock seams, not the already-shipped split gesture mechanics themselves.
+
+### Phase 9 Result
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` now reuses the existing shared filleted split-pane shell for the unsplit root primary model viewport, exposes all four root outer split-entry corners, and also exposes the same shared corners across already-split panes so outer and inner fillets stay available through one contract.
+- `src/app/AppShell.tsx` now widens the existing split-corner eligibility seam so the shared gesture session, preview, and commit path accept root primary-model entry and explicit pane-target follow-through without forking a second authoring flow.
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` and `src/app/AppShell.test.tsx` now prove the widened contract across both root and already-split panes, including the regression that a clicked left-pane outer corner keeps preview and commit ownership on that same left pane.
+
+### Phase 9 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Widen the shared hotspot eligibility read so the root main model viewport can expose valid outer filleted split corners even when no existing divider is present.
+2. Reuse the existing shared corner gesture session, dominant-axis preview, and release commit behavior unchanged for those newly eligible corners.
+3. Prefer the smallest root-pane eligibility surface that still leaves room to suppress occupied corners where left-dock or shell chrome makes a corner non-empty.
+4. Update the current divider-adjacent hotspot proof so it still covers split panes while adding a new root-viewport proof for pre-split outer-corner entry.
+
+#### Likely Files
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.tsx` only if the widened root-pane hotspot path exposes one tiny missing data seam for the existing shared gesture handlers
+- `src/app/theme/foundation/base.css` only if the widened outer-corner affordance needs one tiny visual clarification
+
+#### No-Widening Rule
+
+- Do not invent a second root-viewport split authoring flow.
+- Do not reopen the shipped preview orientation, release commit, or ratio-clamp rules.
+- Do not widen into popup parity or non-workspace shell ownership.
+- Do not silently broaden hotspot eligibility on every pane corner; keep the widening explicitly scoped to the main root viewport outer-corner entry case.
+
+#### Implementation Risks
+
+- If the root model viewport outer-corner path is bolted on outside `WorkspaceViewportTree.tsx`, the family will drift into a second gesture-entry owner instead of widening the settled shared split-pane shell.
+- If left-dock chrome or other shell occupancy is not accounted for, the newly exposed outer corners can look clickable while overlapping non-empty shell regions.
+- If the existing divider-adjacent-only test is simply replaced instead of extended, the widened contract can accidentally loosen hotspot coverage on already-split panes without anyone noticing.
+
+#### Checklist
+
+- [x] Widen hotspot eligibility so the main model viewport can expose valid outer split corners before any existing split.
+- [x] Keep the shipped shared corner gesture path unchanged for those corners.
+- [x] Suppress misleading occupied corners where shell chrome makes the corner non-empty.
+- [x] Keep the current divider-adjacent hotspot proof honest while extending it for the root main viewport case.
+- [x] Add focused proof for root main viewport outer-corner gesture entry.
+
+#### Verification Shape
+
+- focused shared-workspace proof that the main root viewport now renders valid outer split-corner entry affordances before any split exists
+- focused shared-gesture proof that the newly eligible main viewport corners enter the existing split-corner session and preview path without mutating the tree on `pointerdown`
+
+#### Done Shape
+
+- the main unsplit model viewport exposes real outer split-corner entry affordances through the shared workspace tree
+- the newly eligible root corners enter the same shipped split-corner gesture session, preview path, and release commit path as existing split panes
+- occupied or misleading outer corners remain suppressed where shell chrome already owns that corner
+- divider-adjacent hotspot behavior on already-split panes remains intact
 
 ## [x] `Workspace-9 / Phase 1` - `Corner Hotspot And Filleted Pane Shell`
 
@@ -932,3 +1045,256 @@ Finish the user-facing corner-radius story by wiring the Settings-owned preferen
 - changing the Settings slider changes the shared workspace fillet treatment without inventing a second owner
 - split-corner hotspot rendering and gesture entry still behave like the already-shipped shared gesture lane
 - popup workspace remains intentionally unchanged
+
+## [x] `Workspace-9 / Phase 9` - `Main Model Viewport Outer-Corner Split Entry`
+
+### Phase 9 Summary
+
+#### Purpose
+
+Finish the root-workspace follow-through by letting the unsplit main model viewport start the shared split-corner gesture from its exposed outer filleted corners instead of requiring a pre-existing split first.
+
+#### Owns
+
+- widening root shared-workspace split-corner eligibility beyond divider-adjacent panes
+- keeping root outer-corner entry on the same shared AppShell gesture, preview, and commit contract
+- focused proof that the root viewport and already-split panes both expose the widened shared corner contract honestly
+
+#### Does Not Own
+
+- a second root-only split-authoring model
+- popup workspace parity
+- new ratio-clamp, preview-orientation, or divider-resize behavior
+
+#### Current Live Read
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` now reuses the shared filleted split-pane shell for the unsplit root primary model viewport instead of limiting the corner shell to already-split nodes.
+- The shared split-corner contract has since widened further than the original `bottomRight` follow-through: the root main viewport now exposes all four outer corners, and already-split panes now expose outside plus inside corners through the same shared shell.
+- `src/app/AppShell.tsx` still owns the real gesture session, preview, and release-time commit, so the root widening remains a shared owner follow-through rather than a second gesture model.
+- The remaining risk after this phase is not root availability itself, but keeping pane ownership, suppression rules, and shell-layer reads consistent now that many more visible corners can start the same gesture.
+
+### Phase 9 Result
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` now reuses the existing shared filleted split-pane shell for the unsplit root primary model viewport, exposes all four root outer split-entry corners, and also exposes the same shared corners across already-split panes so outer and inner fillets stay available through one contract.
+- `src/app/AppShell.tsx` now widens the existing split-corner eligibility seam so the shared gesture session, preview, and commit path accept root primary-model entry without forking a second authoring flow.
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` and `src/app/AppShell.test.tsx` now prove the widened contract across both root and already-split panes, including top-corner entry and the continued shared release-to-commit path.
+
+### Phase 9 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Reuse the existing shared filleted split-pane shell for the unsplit root primary model viewport.
+2. Widen hotspot eligibility so the root primary model viewport can expose honest outer split-entry corners through that same shell.
+3. Keep the live AppShell gesture, preview, and release-time commit path unchanged except for the tiny eligibility widening needed to accept the new root entry case.
+4. Add focused proof for root outer-corner entry while preserving the already-shipped split-pane corner contract.
+
+#### Likely Files
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### No-Widening Rule
+
+- Do not invent a root-only split authoring seam.
+- Do not widen into popup parity.
+- Do not reopen the settled preview orientation, threshold, or divider-resize owners.
+- Keep shell-suppression and visual cleanup follow-through for later phases if the widening exposes new edge cases.
+
+#### Implementation Risks
+
+- If root outer-corner entry forks a second gesture path, the later cleanup burden will grow immediately.
+- If widened eligibility is still inferred from old divider-adjacent assumptions, later outside-corner entry can preview or commit against the wrong pane.
+- If shell chrome or dock occupancy conflicts are hidden rather than named, later visual cleanup will be harder to reason about honestly.
+
+#### Checklist
+
+- [x] Reuse the shared split-corner pane shell for the unsplit root primary model viewport.
+- [x] Widen hotspot eligibility so root outer corners can start the shared gesture path.
+- [x] Keep the existing AppShell preview and release-time commit owner path.
+- [x] Add focused proof for root outer-corner entry.
+- [x] Leave shell-conflict cleanup and popup parity to later explicit phases.
+
+#### Verification Shape
+
+- focused root-workspace proof for outer-corner split entry
+- focused shared-gesture proof that top-corner and already-split-pane entry still use the same release-time commit path
+
+#### Done Shape
+
+- the unsplit root primary model viewport can start the shared split-corner gesture from its outer filleted corners
+- already-split panes continue to use the same shared gesture path
+- the root widening lands without inventing a second split-authoring model
+
+## [x] `Workspace-9 / Phase 10` - `Explicit Pane Ownership And Target Routing Cleanup`
+
+### Phase 10 Summary
+
+#### Purpose
+
+Clean up the widened corner contract by making pane ownership explicit everywhere the shared split-corner gesture is routed, so outside-corner entry can never preview or split the wrong pane after the first split.
+
+#### Owns
+
+- explicit pane-target ownership for shared split-corner handlers
+- preview and release-time commit routing that stays attached to the pane subtree whose corner was actually clicked
+- focused regression proof for left-pane versus right-pane corner ownership after the widened outside-corner contract
+
+#### Does Not Own
+
+- broader shell-visual cleanup
+- popup workspace parity
+- new gesture thresholds, preview rules, or divider-resize behavior
+
+#### Current Live Read
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` now already passes `targetNodeId: childNodeId` plus the pane area directly through `renderSplitCornerPaneShell(...)`, and `Workspace-9 / Phase 10` keeps that explicit child-pane owner seam as the only target path instead of letting parent-split inference drift back in.
+- `src/app/AppShell.tsx` now validates split-corner eligibility through `resolveViewportSplitCornerTargetNodeId(...)`, which reduces the old context helper down to the real remaining responsibility: validating that the clicked node is an eligible target leaf and that the root case still belongs only to the primary model viewport.
+- The split-corner preview VM now only carries the explicit `targetNodeId` rather than both a generic `nodeId` and a separate target field, so the preview path reads more honestly as one pane-target contract.
+- `src/app/AppShell.test.tsx` now proves both sides of the widened contract by routing a left-pane `topLeft` gesture and a right-pane `topRight` gesture to their own panes through `data-workspace-split-node-id`, leaving shell-visibility cleanup as the remaining `Phase 11` follow-through instead of more pane-target logic.
+
+### Phase 10 Result
+
+- `src/app/AppShell.tsx` now routes split-corner eligibility and preview through the explicit target-leaf seam without the old context-object indirection, and the preview model now names only the real pane target it will split.
+- `src/app/workspace/WorkspaceViewportTree.tsx` continues to be the single source of explicit child-pane target identity for every visible corner handle, with no return to corner-position or parent-split target inference.
+- `src/app/AppShell.test.tsx` now widens the regression proof beyond the original left-pane repro and covers the opposite right-pane outer-corner case as a shared ownership rule.
+
+### Phase 10 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Keep the already-landed child-pane `targetNodeId` plus `paneArea` contract explicit all the way through the shared split-corner path and tighten any naming or helper seams that still make the routing read more inferred than it really is.
+2. Reduce or retire the remaining thin `resolveViewportSplitCornerContext(...)` residue in `AppShell.tsx` if it no longer adds meaningful ownership logic beyond leaf validation and root eligibility checks.
+3. Keep held gesture state, transient preview, and release-time commit bound to that same explicit pane target without reopening the settled preview or ratio logic.
+4. Add at least one more opposite-pane sanity proof so the widened outside-corner contract is covered as a shared ownership rule instead of one bug-specific regression.
+
+#### Likely Files
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` only if the ownership cleanup changes how pane-target data should be asserted at the shared shell seam
+
+#### No-Widening Rule
+
+- Do not restyle the shell in this phase except for tiny test-targeting or ownership-hook needs.
+- Do not widen into popup parity.
+- Do not change settled preview thresholds, hysteresis, or divider behavior.
+- Do not re-solve already-shipped wrong-pane behavior by adding corner-specific branching when the explicit pane-target seam can stay shared.
+
+#### Implementation Risks
+
+- If any routing helper still subtly infers pane ownership from corner position, the regression can reappear in another split orientation even though the first left-pane case is fixed.
+- If the explicit child-pane seam stays buried behind thin helper indirection, later cleanup work may accidentally reintroduce parent-split targeting because the real owner contract is harder to read than it needs to be.
+- If tests continue to prove only one repaired left-pane case and many generic top-right flows, later corner widening can regress silently on the opposite side or in nested panes.
+
+#### Checklist
+
+- [x] Tighten the already-landed explicit owning-pane shell contract so it reads as one settled shared target path instead of a thin compatibility layer.
+- [x] Keep held gesture state bound to that owning pane.
+- [x] Keep preview and release-time commit bound to that same pane.
+- [x] Remove or bypass old inferred-target assumptions that no longer match the widened corner contract.
+- [x] Add focused regression proof for wrong-pane preview and commit, including at least one opposite-pane sanity read beyond the original left-pane case.
+
+#### Verification Shape
+
+- focused regression test that a left-pane outer-corner gesture previews the left pane instead of the right pane
+- focused release-time proof that the resulting real split is attached to that same pane subtree
+- focused opposite-pane sanity proof that the shared routing contract still holds when the user starts from the other visible pane
+
+#### Done Shape
+
+- outside-corner entry always previews and commits against the pane whose corner was clicked
+- the widened split-corner contract no longer depends on brittle corner-position inference or leftover thin helpers that obscure the real explicit target seam
+- the shared AppShell gesture path remains the only owner
+
+## [x] `Workspace-9 / Phase 11` - `Shared Corner Contract And Shell-Layer Consistency`
+
+### Phase 11 Summary
+
+#### Purpose
+
+Finish the shared-workspace cleanup after the widened corner rollout by unifying visibility, layering, and behavior rules so all four corners stay available on every viewport and still read like one honest affordance even under extreme workspace fillet-radius values.
+
+#### Owns
+
+- shared-workspace all-four-corners visibility rules across root and already-split panes
+- top-versus-bottom split-corner visual and layering consistency
+- final shell-read cleanup so the visible corner language matches the actual split behavior contract
+
+#### Does Not Own
+
+- popup workspace parity
+- new split gesture semantics
+- broader dock redesign beyond the minimum needed to keep corner ownership honest
+
+#### Current Live Read
+
+- `src/app/theme/foundation/base.css` remains the shared split-corner affordance owner with the already-landed raised top-corner layering, brightened glyphs, and radius-scaled hit area, so the Phase 11 cleanup stays about consistency rather than more gesture-reachability repair.
+- `src/app/workspace/WorkspaceViewportTree.tsx` now keeps the unified contract explicit again by exposing `topLeft`, `topRight`, `bottomLeft`, and `bottomRight` on the unsplit root primary viewer and on already-split panes without a primary-viewport occupancy exception.
+- `src/app/theme/shell/docks.css` still leaves the primary left dock living in the main viewport's top-left shell region, but the clarified product rule is that this visual crowding does not remove that split handle; the fix in this correction is therefore contractual consistency, not suppression.
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` now proves the all-four-corners shell contract directly by expecting four root corners and eight total corners once the primary pane and one sibling pane are both visible, while `src/app/AppShell.test.tsx` keeps the shared routing proof alive through the restored left-pane `topLeft`, right-pane `topRight`, unsplit-root, and radius-stress gesture paths.
+
+### Phase 11 Result
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` now keeps all four split corners visible on every viewport, including the primary viewer's `topLeft`, so the final contract is consistent instead of making the primary pane a structural exception.
+- `src/app/theme/foundation/base.css` and `src/app/theme/shell/docks.css` stay unchanged in this corrected closeout because the earlier top-layer and glyph work was already enough to preserve reachability while the product rule remains four always-visible split points.
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` and `src/app/AppShell.test.tsx` now make the shell contract explicit in proof by checking four-corner hotspot counts plus no-regression routing on restored `topLeft` and existing right-side/root gesture paths.
+
+### Phase 11 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Audit the live shared split-corner shell against the actual top titlebar layer, the primary left dock occupancy seam, and a large-radius workspace-corner stress case so the phase starts from concrete shell conflicts instead of taste.
+2. Decide whether the clarified contract is four always-visible corners or a structural occupied-corner exception, then make the runtime and proof surfaces match that rule exactly.
+3. Tighten the visible top-versus-bottom glyph layering and presentation in `base.css` as much as possible without changing the settled hit area or reopening split behavior.
+4. Add focused proof for any structural corner-visibility or suppression rule that becomes part of the shared workspace contract.
+
+#### Likely Files
+
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/theme/shell/docks.css` only if the clarified all-four-corners contract later needs a more deliberate dock overlap presentation rule
+- `src/app/AppShell.test.tsx` if structural visibility rules need proof
+- `src/app/workspace/WorkspaceViewportTree.test.tsx` if hotspot eligibility changes again
+
+#### No-Widening Rule
+
+- Do not reopen pane-ownership routing once `Phase 10` lands.
+- Do not widen into popup-workspace convergence.
+- Do not turn this into a broader dock-layout redesign.
+- Do not treat “all four corners always visible” as untouchable if the shell read is dishonest; this phase is allowed to suppress corners, but only when the visible contract becomes clearer.
+
+#### Implementation Risks
+
+- If visibility stays maximally wide without honest suppression rules, some corners will still look equally available even when titlebar or dock ownership makes one corner feel like a different kind of control.
+- If suppression is too aggressive or too one-off, the shared corner contract can become inconsistent across panes for reasons the user cannot read from the shell itself.
+- If top and bottom corner layering remain visually divergent, especially at very large fillet-radius values, the split gesture can still feel unreliable even though the runtime behavior is now correct.
+- If the phase relies only on current routing tests, structural corner-visibility drift can sneak back in because the proof surface still mostly exercises behavior rather than shell-read rules.
+
+#### Checklist
+
+- [x] Audit the shared corner shell against titlebar, dock, and large-radius cases.
+- [x] Define honest visibility versus suppression rules for occupied corners, especially the crowded main-viewport `topLeft` case.
+- [x] Tighten top-versus-bottom corner layering and glyph consistency.
+- [x] Keep the gesture hit area stable while the visible corner language is cleaned up.
+- [x] Add focused proof for any structural shell-contract rules that change.
+
+#### Verification Shape
+
+- focused shell-read proof for any occupied-corner suppression or visibility rule
+- focused large-radius sanity read so top and bottom corners still feel like one shared affordance
+- focused no-regression read that structural corner-shell cleanup does not reopen the settled shared split routing behavior from `Phase 10`
+
+#### Done Shape
+
+- visible corners now match the real split-authoring contract more honestly because the occupied primary `topLeft` corner is no longer presented as a peer split handle
+- top and bottom corner affordances still share one workspace language without another CSS fork or hit-area change
+- the remaining shared-workspace corner cleanup is no longer living only in chat observations, and `Workspace 9` closes again as a complete shared-workspace family
+
+### Phase 11 Correction
+
+- The final product rule is now explicit: all four split points stay visible on every viewport at all times, including the primary viewer `topLeft` corner.
+- The temporary occupied-corner suppression read from the first Phase 11 closeout is superseded by the user-confirmed all-four-corners contract.
+- The live runtime and proof surfaces now match that clarified rule: root and already-split panes both expose `topLeft`, `topRight`, `bottomLeft`, and `bottomRight`, while the shared split gesture path from `Phase 10` stays unchanged.
