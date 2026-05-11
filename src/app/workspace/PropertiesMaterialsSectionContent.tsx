@@ -15,6 +15,8 @@ import {
   assignMaterialPresetToPartWithHistory,
   createAndAssignMaterialPresetWithHistory,
   duplicateMaterialPresetForPartWithHistory,
+  updateMaterialPresetCopiesForPartsWithHistory,
+  updateMaterialPresetsForPartsWithHistory,
   updateMaterialPresetWithHistory,
 } from '../store/materialEditHistory'
 import { useAppStore } from '../store/useAppStore'
@@ -22,6 +24,7 @@ import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   buildMaterialsAssignmentGroups,
   buildMaterialsPhase1ViewModel,
+  resolveSelectedMaterialScopeRead,
   resolveSelectedTargetMaterialRead,
   type MaterialsAssignmentGroup,
   type MaterialsSelectedMaterialRead,
@@ -242,6 +245,8 @@ type MaterialColorControlProps = {
   nativeInputLabel: string
   expandButtonLabel: string
   expandedControlsLabel: string
+  fieldState?: string
+  disabled?: boolean
 }
 
 function MaterialColorControl({
@@ -254,6 +259,8 @@ function MaterialColorControl({
   nativeInputLabel,
   expandButtonLabel,
   expandedControlsLabel,
+  fieldState = 'value',
+  disabled = false,
 }: MaterialColorControlProps) {
   const rgb = useMemo(() => parseHexColor(value), [value])
   const hsv = useMemo(() => rgbToHsv(rgb), [rgb])
@@ -304,12 +311,14 @@ function MaterialColorControl({
       }`}
       role="listitem"
       data-selected-material-control={id}
+      data-selected-material-field-state={fieldState}
     >
       <button
         type="button"
         className="PropertiesSelectedMaterialFieldToggle"
         aria-label={expandButtonLabel}
         aria-expanded={isExpanded}
+        disabled={disabled}
         onClick={() => onExpandedChange(!isExpanded)}
       >
         <span className="PropertiesSelectedMaterialChevron" aria-hidden="true">
@@ -321,6 +330,7 @@ function MaterialColorControl({
         aria-label={nativeInputLabel}
         type="color"
         value={value}
+        disabled={disabled}
         onInput={(event) => onChange(event.currentTarget.value)}
       />
       {isExpanded ? (
@@ -337,6 +347,7 @@ function MaterialColorControl({
               step={1}
               onChange={updateHue}
               formatValue={formatHueDegrees}
+              disabled={disabled}
             />
           </div>
           <div
@@ -351,6 +362,7 @@ function MaterialColorControl({
               step={0.01}
               onChange={updateSaturation}
               formatValue={formatScalarPercent}
+              disabled={disabled}
             />
           </div>
           <div
@@ -365,6 +377,7 @@ function MaterialColorControl({
               step={0.01}
               onChange={updateBrightness}
               formatValue={formatScalarPercent}
+              disabled={disabled}
             />
           </div>
           <div
@@ -379,6 +392,7 @@ function MaterialColorControl({
               step={1}
               onChange={(nextValue) => updateRgbChannel('r', nextValue)}
               formatValue={formatRgbChannel}
+              disabled={disabled}
             />
           </div>
           <div
@@ -393,6 +407,7 @@ function MaterialColorControl({
               step={1}
               onChange={(nextValue) => updateRgbChannel('g', nextValue)}
               formatValue={formatRgbChannel}
+              disabled={disabled}
             />
           </div>
           <div
@@ -407,10 +422,31 @@ function MaterialColorControl({
               step={1}
               onChange={(nextValue) => updateRgbChannel('b', nextValue)}
               formatValue={formatRgbChannel}
+              disabled={disabled}
             />
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function MixedSelectedMaterialField({
+  controlId,
+  label,
+}: {
+  controlId: string
+  label: string
+}) {
+  return (
+    <div
+      className="PropertiesSelectedMaterialField PropertiesSelectedMaterialField--mixed"
+      role="listitem"
+      data-selected-material-control={controlId}
+      data-selected-material-field-state="mixed"
+    >
+      <span>{label}</span>
+      <span className="PropertiesSelectedMaterialMixedValue">Multiple values</span>
     </div>
   )
 }
@@ -464,6 +500,7 @@ export function PropertiesMaterialsSectionContent({
   const [isResizingProjectMaterialList, setIsResizingProjectMaterialList] = useState(false)
   const [isBaseColorExpanded, setIsBaseColorExpanded] = useState(false)
   const [isEmissiveColorExpanded, setIsEmissiveColorExpanded] = useState(false)
+  const [createMaterialOnMultiEdit, setCreateMaterialOnMultiEdit] = useState(false)
   const [projectMaterialSearch, setProjectMaterialSearch] = useState('')
   const targetListResizeStartClientYRef = useRef(0)
   const targetListResizeStartHeightRef = useRef(MATERIAL_TARGET_LIST_DEFAULT_HEIGHT)
@@ -478,14 +515,16 @@ export function PropertiesMaterialsSectionContent({
   const selectedTarget =
     viewModel.targetRows.find((targetRow) => targetRow.targetId === effectiveSelectedTargetId) ?? null
   const selectedMaterialRead = useMemo(
-    () => resolveSelectedTargetMaterialRead(selectedTarget, materials),
-    [materials, selectedTarget],
+    () => resolveSelectedMaterialScopeRead(selectedTarget, viewModel.assignmentScope, materials),
+    [materials, selectedTarget, viewModel.assignmentScope],
   )
   const materialPropertyRows = useMemo(
     () => buildMaterialPropertyRows(selectedMaterialRead),
     [selectedMaterialRead],
   )
   const selectedMaterialPreset = selectedMaterialRead.preset
+  const selectedMaterialFields = selectedMaterialRead.fields
+  const isMultiTargetMaterialRead = selectedMaterialRead.targetCount > 1
   const projectMaterialSearchQuery = projectMaterialSearch.trim().toLocaleLowerCase()
   const visibleProjectMaterialPresets = useMemo(() => {
     if (projectMaterialSearchQuery.length === 0) {
@@ -500,8 +539,38 @@ export function PropertiesMaterialsSectionContent({
     () => buildMaterialsAssignmentGroups(viewModel.targetRows),
     [viewModel.targetRows],
   )
+  const selectedProjectMaterialPresetIds = useMemo(() => {
+    const readTargets =
+      viewModel.assignmentScope.targetRows.length > 0
+        ? viewModel.assignmentScope.targetRows
+        : selectedTarget === null
+          ? []
+          : [selectedTarget]
+    return new Set(
+      readTargets.flatMap((targetRow) => {
+        const read = resolveSelectedTargetMaterialRead(targetRow, materials)
+        return read.preset === null ? [] : [read.preset.id]
+      }),
+    )
+  }, [materials, selectedTarget, viewModel.assignmentScope.targetRows])
   const updateResolvedPreset = (patch: Partial<MaterialPreset>) => {
     if (selectedMaterialPreset === null) {
+      return
+    }
+
+    if (isMultiTargetMaterialRead) {
+      const patchTargets = viewModel.assignmentScope.targetRows.flatMap((targetRow) => {
+        const read = resolveSelectedTargetMaterialRead(targetRow, materials)
+        return read.preset === null ? [] : [{ partId: targetRow.partKey, preset: read.preset }]
+      })
+      const updateMultiTargetMaterials = createMaterialOnMultiEdit
+        ? updateMaterialPresetCopiesForPartsWithHistory
+        : updateMaterialPresetsForPartsWithHistory
+      updateMultiTargetMaterials(patchTargets, patch, {
+        label: 'Edit selected material objects',
+        targetId: `material-per-part:selected-objects:${viewModel.assignmentScope.partKeys.join('|')}:edit`,
+        targetLabel: 'Selected material objects',
+      })
       return
     }
 
@@ -859,7 +928,7 @@ export function PropertiesMaterialsSectionContent({
               style={projectMaterialListHeightStyle}
             >
               {visibleProjectMaterialPresets.map((preset) => {
-                const isSelected = preset.id === selectedMaterialPreset?.id
+                const isSelected = selectedProjectMaterialPresetIds.has(preset.id)
                 const materialSummary = `${formatScalarPercent(
                   preset.metalness,
                 )} metal / ${formatScalarPercent(preset.roughness)} rough`
@@ -928,7 +997,11 @@ export function PropertiesMaterialsSectionContent({
           <strong>
             {selectedMaterialPreset === null
               ? 'Material read pending'
-              : selectedMaterialPreset.name}
+              : selectedMaterialRead.source === 'mixed'
+                ? 'Multiple values'
+                : selectedMaterialFields.name.status === 'value'
+                  ? selectedMaterialFields.name.value
+                  : selectedMaterialPreset.name}
           </strong>
           <p>
             These controls edit current material truth: per-part assignment first, selected preset
@@ -973,126 +1046,187 @@ export function PropertiesMaterialsSectionContent({
               >
                 {selectedMaterialRead.sourceLabel}
               </span>
+              {isMultiTargetMaterialRead ? (
+                <label className="PropertiesSelectedMaterialMultiEditToggle">
+                  <input
+                    aria-label="Create new material on multi edit"
+                    type="checkbox"
+                    checked={createMaterialOnMultiEdit}
+                    onChange={(event) => setCreateMaterialOnMultiEdit(event.currentTarget.checked)}
+                  />
+                  <span>Create new material on multi edit</span>
+                </label>
+              ) : null}
             </div>
-            <label
-              className="PropertiesSelectedMaterialField PropertiesSelectedMaterialField--name"
-              role="listitem"
-              data-selected-material-control="name"
-            >
-              <span>Name</span>
-              <input
-                aria-label="Edit material name"
-                type="text"
-                value={selectedMaterialPreset.name}
-                onInput={(event) => updateResolvedPreset({ name: event.currentTarget.value })}
-              />
-            </label>
+            {selectedMaterialFields.name.status === 'mixed' ? (
+              <MixedSelectedMaterialField controlId="name" label="Name" />
+            ) : (
+              <label
+                className="PropertiesSelectedMaterialField PropertiesSelectedMaterialField--name"
+                role="listitem"
+                data-selected-material-control="name"
+                data-selected-material-field-state={selectedMaterialFields.name.status}
+              >
+                <span>Name</span>
+                <input
+                  aria-label="Edit material name"
+                  type="text"
+                  value={selectedMaterialFields.name.value ?? selectedMaterialPreset.name}
+                  onInput={(event) => updateResolvedPreset({ name: event.currentTarget.value })}
+                />
+              </label>
+            )}
             <MaterialColorControl
               id="color"
               label="Base color"
-              value={selectedMaterialPreset.color}
+              value={selectedMaterialFields.color.value ?? selectedMaterialPreset.color}
               isExpanded={isBaseColorExpanded}
               onExpandedChange={setIsBaseColorExpanded}
               onChange={(color) => updateResolvedPreset({ color })}
               nativeInputLabel="Edit base color"
               expandButtonLabel="Expand base color controls"
               expandedControlsLabel="Expanded base color controls"
+              fieldState={selectedMaterialFields.color.status}
             />
             <MaterialColorControl
               id="emissive"
               label="Emissive color"
-              value={selectedMaterialPreset.emissive}
+              value={selectedMaterialFields.emissive.value ?? selectedMaterialPreset.emissive}
               isExpanded={isEmissiveColorExpanded}
               onExpandedChange={setIsEmissiveColorExpanded}
               onChange={(emissive) => updateResolvedPreset({ emissive })}
               nativeInputLabel="Edit emissive color"
               expandButtonLabel="Expand emissive color controls"
               expandedControlsLabel="Expanded emissive color controls"
+              fieldState={selectedMaterialFields.emissive.status}
             />
             <div
               className="PropertiesSelectedMaterialControl"
               role="listitem"
               data-selected-material-control="metalness"
+              data-selected-material-field-state={selectedMaterialFields.metalness.status}
             >
               <ParaSlider
                 label="Metalness"
-                value={selectedMaterialPreset.metalness}
+                value={selectedMaterialFields.metalness.value ?? selectedMaterialPreset.metalness}
                 min={0}
                 max={1}
                 step={0.01}
                 onChange={(value) => updateResolvedScalarPreset('metalness', value)}
                 formatValue={formatScalarPercent}
+                displayValue={
+                  selectedMaterialFields.metalness.status === 'mixed'
+                    ? 'Multiple values'
+                    : undefined
+                }
               />
             </div>
             <div
               className="PropertiesSelectedMaterialControl"
               role="listitem"
               data-selected-material-control="roughness"
+              data-selected-material-field-state={selectedMaterialFields.roughness.status}
             >
               <ParaSlider
                 label="Roughness"
-                value={selectedMaterialPreset.roughness}
+                value={selectedMaterialFields.roughness.value ?? selectedMaterialPreset.roughness}
                 min={0}
                 max={1}
                 step={0.01}
                 onChange={(value) => updateResolvedScalarPreset('roughness', value)}
                 formatValue={formatScalarPercent}
+                displayValue={
+                  selectedMaterialFields.roughness.status === 'mixed'
+                    ? 'Multiple values'
+                    : undefined
+                }
               />
             </div>
             <div
               className="PropertiesSelectedMaterialControl"
               role="listitem"
               data-selected-material-control="opacity"
+              data-selected-material-field-state={selectedMaterialFields.opacity.status}
             >
               <ParaSlider
                 label="Opacity"
-                value={selectedMaterialPreset.opacity}
+                value={selectedMaterialFields.opacity.value ?? selectedMaterialPreset.opacity}
                 min={0}
                 max={1}
                 step={0.01}
                 onChange={(value) => updateResolvedScalarPreset('opacity', value)}
                 formatValue={formatScalarPercent}
+                displayValue={
+                  selectedMaterialFields.opacity.status === 'mixed' ? 'Multiple values' : undefined
+                }
               />
             </div>
             <div
               className="PropertiesSelectedMaterialControl"
               role="listitem"
               data-selected-material-control="emissiveIntensity"
+              data-selected-material-field-state={selectedMaterialFields.emissiveIntensity.status}
             >
               <ParaSlider
                 label="Emissive"
-                value={selectedMaterialPreset.emissiveIntensity}
+                value={
+                  selectedMaterialFields.emissiveIntensity.value ??
+                  selectedMaterialPreset.emissiveIntensity
+                }
                 min={0}
                 max={2}
                 step={0.01}
                 onChange={(value) => updateResolvedScalarPreset('emissiveIntensity', value)}
                 formatValue={formatScalarPercent}
+                displayValue={
+                  selectedMaterialFields.emissiveIntensity.status === 'mixed'
+                    ? 'Multiple values'
+                    : undefined
+                }
               />
             </div>
-            <div
-              className="PropertiesSelectedMaterialControl"
-              role="listitem"
-              data-selected-material-control="transparent"
-            >
-              <ParaSelect
-                label="Transparency"
-                value={selectedMaterialPreset.transparent ? 'transparent' : 'opaque'}
-                options={TRANSPARENCY_OPTIONS}
-                onChange={(value) => updateResolvedPreset({ transparent: value === 'transparent' })}
-              />
-            </div>
-            <div
-              className="PropertiesSelectedMaterialControl"
-              role="listitem"
-              data-selected-material-control="doubleSided"
-            >
-              <ParaSelect
-                label="Rendering"
-                value={selectedMaterialPreset.doubleSided ? 'double' : 'front'}
-                options={DOUBLE_SIDED_OPTIONS}
-                onChange={(value) => updateResolvedPreset({ doubleSided: value === 'double' })}
-              />
-            </div>
+            {selectedMaterialFields.transparent.status === 'mixed' ? (
+              <MixedSelectedMaterialField controlId="transparent" label="Transparency" />
+            ) : (
+              <div
+                className="PropertiesSelectedMaterialControl"
+                role="listitem"
+                data-selected-material-control="transparent"
+                data-selected-material-field-state={selectedMaterialFields.transparent.status}
+              >
+                <ParaSelect
+                  label="Transparency"
+                  value={
+                    (selectedMaterialFields.transparent.value ?? selectedMaterialPreset.transparent)
+                      ? 'transparent'
+                      : 'opaque'
+                  }
+                  options={TRANSPARENCY_OPTIONS}
+                  onChange={(value) => updateResolvedPreset({ transparent: value === 'transparent' })}
+                />
+              </div>
+            )}
+            {selectedMaterialFields.doubleSided.status === 'mixed' ? (
+              <MixedSelectedMaterialField controlId="doubleSided" label="Rendering" />
+            ) : (
+              <div
+                className="PropertiesSelectedMaterialControl"
+                role="listitem"
+                data-selected-material-control="doubleSided"
+                data-selected-material-field-state={selectedMaterialFields.doubleSided.status}
+              >
+                <ParaSelect
+                  label="Rendering"
+                  value={
+                    (selectedMaterialFields.doubleSided.value ?? selectedMaterialPreset.doubleSided)
+                      ? 'double'
+                      : 'front'
+                  }
+                  options={DOUBLE_SIDED_OPTIONS}
+                  onChange={(value) => updateResolvedPreset({ doubleSided: value === 'double' })}
+                />
+              </div>
+            )}
           </div>
         )}
         <div

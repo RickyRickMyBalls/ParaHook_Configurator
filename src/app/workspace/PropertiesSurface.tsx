@@ -86,6 +86,12 @@ const resolveFocusedObjectListDefaultHeight = (rowCount: number): number => {
   )
 }
 
+const areWorkspaceSelectedTargetsEqual = (
+  left: WorkspaceSelectedTarget | null,
+  right: WorkspaceSelectedTarget | null,
+): boolean =>
+  left !== null && right !== null && workspaceTargetKey(left) === workspaceTargetKey(right)
+
 export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const { slotId, surfaceInstanceId } = props
   const selectedTarget = useAppStore(selectWorkspaceSelectedTarget)
@@ -102,8 +108,7 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const selectPart = useAppStore((state) => state.selectPart)
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const selectLight = useUiPrefsStore((state) => state.selectLight)
-  const focusSummary = buildPropertiesFocusSummary(selectedTarget)
-  const focusedObjectRows = useMemo<PropertiesFocusedObjectRow[]>(() => {
+  const selectedFocusedObjectRows = useMemo<PropertiesFocusedObjectRow[]>(() => {
     const candidateTargets =
       explicitSelectedTargets.length > 0
         ? explicitSelectedTargets
@@ -144,12 +149,25 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
         }
       })
   }, [explicitSelectedTargets, projectContent.objectsById, referenceWorkspace, selectedTarget])
+  const selectedFocusedObjectRowIds = useMemo(
+    () => selectedFocusedObjectRows.map((row) => row.id),
+    [selectedFocusedObjectRows],
+  )
+  const selectedFocusedObjectRowIdKey = selectedFocusedObjectRowIds.join('\u001f')
+  const selectedTargetObjectId = selectedTarget?.kind === 'object' ? selectedTarget.objectId : null
+  const [focusedObjectRows, setFocusedObjectRows] = useState<PropertiesFocusedObjectRow[]>([])
+  const [activeFocusedObjectId, setActiveFocusedObjectId] = useState<string | null>(null)
   const focusedObjectRowIds = useMemo(
     () => focusedObjectRows.map((row) => row.id),
     [focusedObjectRows],
   )
   const focusedObjectRowIdKey = focusedObjectRowIds.join('\u001f')
-  const selectedTargetKey = selectedTarget === null ? null : workspaceTargetKey(selectedTarget)
+  const activeFocusedObjectRow =
+    focusedObjectRows.find((row) => row.id === activeFocusedObjectId) ?? focusedObjectRows[0] ?? null
+  const effectiveSelectedTarget = activeFocusedObjectRow?.target ?? selectedTarget ?? null
+  const focusSummary = buildPropertiesFocusSummary(effectiveSelectedTarget)
+  const selectedTargetKey =
+    activeFocusedObjectRow === null ? null : workspaceTargetKey(activeFocusedObjectRow.target)
   const sections = useMemo<PropertiesSectionDefinition[]>(
     () => [propertiesMaterialsSectionDefinition],
     [],
@@ -179,8 +197,52 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   }, [focusedObjectRows.length])
 
   useEffect(() => {
-    setIncludedFocusedObjectIds(new Set(focusedObjectRowIds))
-  }, [focusedObjectRowIdKey, focusedObjectRowIds])
+    if (selectedFocusedObjectRows.length === 0) {
+      if (selectedTarget !== null) {
+        setFocusedObjectRows([])
+      }
+      return
+    }
+
+    setFocusedObjectRows((currentRows) => {
+      if (currentRows.length === 0) {
+        return selectedFocusedObjectRows
+      }
+
+      const currentIds = new Set(currentRows.map((row) => row.id))
+      const hasSharedRow = selectedFocusedObjectRows.some((row) => currentIds.has(row.id))
+      if (!hasSharedRow) {
+        return selectedFocusedObjectRows
+      }
+
+      const nextRows = [...currentRows]
+      for (const selectedRow of selectedFocusedObjectRows) {
+        const existingIndex = nextRows.findIndex((row) => row.id === selectedRow.id)
+        if (existingIndex === -1) {
+          nextRows.push(selectedRow)
+        } else {
+          nextRows[existingIndex] = selectedRow
+        }
+      }
+      return nextRows
+    })
+  }, [selectedFocusedObjectRowIdKey, selectedFocusedObjectRows, selectedTarget])
+
+  useEffect(() => {
+    setIncludedFocusedObjectIds(new Set(selectedFocusedObjectRowIds))
+  }, [selectedFocusedObjectRowIdKey, selectedFocusedObjectRowIds])
+
+  useEffect(() => {
+    setActiveFocusedObjectId((currentId) => {
+      if (currentId !== null && focusedObjectRowIds.includes(currentId)) {
+        return currentId
+      }
+      if (selectedTargetObjectId !== null && focusedObjectRowIds.includes(selectedTargetObjectId)) {
+        return selectedTargetObjectId
+      }
+      return focusedObjectRows[0]?.id ?? null
+    })
+  }, [focusedObjectRowIdKey, focusedObjectRowIds, focusedObjectRows, selectedTargetObjectId])
 
   const selectedObjectTargets = useMemo(
     () =>
@@ -192,7 +254,7 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const shellState = resolvePropertiesShellState(
     sections,
     focusSummary,
-    selectedTarget,
+    effectiveSelectedTarget,
     activeSectionId,
     selectedObjectTargets,
   )
@@ -270,27 +332,64 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const handleFocusedObjectRowClick = (
     target: Extract<WorkspaceSelectedTarget, { kind: 'object' }>,
   ) => {
-    if (explicitSelectedTargets.length > 1) {
+    handleFocusedObjectIncludedToggle(target)
+  }
+
+  const handleFocusedObjectIncludedToggle = (
+    target: Extract<WorkspaceSelectedTarget, { kind: 'object' }>,
+  ) => {
+    setActiveFocusedObjectId(target.objectId)
+
+    const currentTargets =
+      explicitSelectedTargets.length > 0
+        ? explicitSelectedTargets
+        : selectedTarget === null
+          ? []
+          : [selectedTarget]
+    const isCurrentlySelected = currentTargets.some((candidateTarget) =>
+      areWorkspaceSelectedTargetsEqual(candidateTarget, target),
+    )
+
+    if (isCurrentlySelected) {
+      const nextExplicitSelectedTargets = currentTargets.filter(
+        (candidateTarget) => !areWorkspaceSelectedTargetsEqual(candidateTarget, target),
+      )
+      const nextSelectedTarget =
+        selectedTarget !== null && areWorkspaceSelectedTargetsEqual(selectedTarget, target)
+          ? (nextExplicitSelectedTargets[0] ?? null)
+          : selectedTarget
+      const nextSelectionAnchorTarget =
+        selectionAnchorTarget !== null && areWorkspaceSelectedTargetsEqual(selectionAnchorTarget, target)
+          ? (nextExplicitSelectedTargets[0] ?? null)
+          : selectionAnchorTarget
+
+      if (nextSelectedTarget === null && nextExplicitSelectedTargets.length === 0) {
+        clearWorkspaceTargetSelection(
+          {
+            setWorkspaceSelectedTarget,
+            selectLight,
+            selectPart,
+            requestConsoleContextSync,
+          },
+          {
+            syncReason: 'target-selection',
+          },
+        )
+        return
+      }
+
       setWorkspaceExplicitSelection({
-        selectedTarget: target,
-        explicitSelectedTargets,
-        selectionAnchorTarget: selectionAnchorTarget ?? explicitSelectedTargets[0] ?? target,
+        selectedTarget: nextSelectedTarget,
+        explicitSelectedTargets: nextExplicitSelectedTargets,
+        selectionAnchorTarget: nextSelectionAnchorTarget,
       })
       return
     }
 
-    setWorkspaceSelectedTarget(target)
-  }
-
-  const handleFocusedObjectIncludedToggle = (objectId: string) => {
-    setIncludedFocusedObjectIds((currentIds) => {
-      const nextIds = new Set(currentIds)
-      if (nextIds.has(objectId)) {
-        nextIds.delete(objectId)
-      } else {
-        nextIds.add(objectId)
-      }
-      return nextIds
+    setWorkspaceExplicitSelection({
+      selectedTarget: target,
+      explicitSelectedTargets: [...currentTargets, target],
+      selectionAnchorTarget: selectionAnchorTarget ?? currentTargets[0] ?? target,
     })
   }
 
@@ -303,6 +402,14 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
         : selectedTarget === null
           ? []
           : [selectedTarget]
+    setFocusedObjectRows((currentRows) =>
+      currentRows.filter((row) => row.id !== target.objectId),
+    )
+    setIncludedFocusedObjectIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+      nextIds.delete(target.objectId)
+      return nextIds
+    })
     const nextExplicitSelectedTargets = currentTargets.filter(
       (candidateTarget) =>
         candidateTarget.kind !== 'object' || candidateTarget.objectId !== target.objectId,
@@ -490,7 +597,7 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
                           aria-label={`${isIncluded ? 'Exclude' : 'Include'} ${row.label} from material assignment`}
                           aria-pressed={isIncluded}
                           data-properties-focused-object-include={row.id}
-                          onClick={() => handleFocusedObjectIncludedToggle(row.id)}
+                          onClick={() => handleFocusedObjectIncludedToggle(row.target)}
                         >
                           <span aria-hidden="true" />
                         </button>

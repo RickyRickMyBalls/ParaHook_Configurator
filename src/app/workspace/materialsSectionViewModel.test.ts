@@ -12,6 +12,7 @@ import {
   buildMaterialsAssignmentGroups,
   buildMaterialsPhase1ViewModel,
   buildMaterialsTargetRows,
+  resolveSelectedMaterialScopeRead,
   resolveSelectedTargetMaterialRead,
   type MaterialsTargetRow,
 } from './materialsSectionViewModel'
@@ -545,6 +546,146 @@ describe('buildMaterialsPhase1ViewModel', () => {
       expect(read.status).toBe('pending')
       expect(read.source).toBe('missing')
       expect(read.preset).toBeNull()
+    })
+  })
+
+  describe('resolveSelectedMaterialScopeRead', () => {
+    const leftTarget: MaterialsTargetRow = {
+      targetId: 'authored-part:left-part',
+      label: 'Left material target',
+      partKey: 'left-part',
+      sourceKind: 'authored-part',
+      detail: 'Project part',
+    }
+    const rightTarget: MaterialsTargetRow = {
+      targetId: 'authored-part:right-part',
+      label: 'Right material target',
+      partKey: 'right-part',
+      sourceKind: 'authored-part',
+      detail: 'Project part',
+    }
+    const defaultPreset = DEFAULT_VIEW_SETTINGS.materials.presets[0] as MaterialPreset
+    const brushedPreset = DEFAULT_VIEW_SETTINGS.materials.presets[1] as MaterialPreset
+    const plasticPreset = DEFAULT_VIEW_SETTINGS.materials.presets[2] as MaterialPreset
+
+    const multiObjectScope = {
+      kind: 'multi-object' as const,
+      objectCount: 2,
+      targetCount: 2,
+      partKeys: [leftTarget.partKey, rightTarget.partKey],
+      targetRows: [leftTarget, rightTarget],
+      objectGroups: [
+        {
+          objectId: 'left-object',
+          label: 'Left Object',
+          targetRows: [leftTarget],
+        },
+        {
+          objectId: 'right-object',
+          label: 'Right Object',
+          targetRows: [rightTarget],
+        },
+      ],
+    }
+
+    it('preserves the single-target material read for single-object scopes', () => {
+      const read = resolveSelectedMaterialScopeRead(
+        leftTarget,
+        {
+          ...multiObjectScope,
+          kind: 'single-object',
+          objectCount: 1,
+          targetCount: 1,
+          partKeys: [leftTarget.partKey],
+          targetRows: [leftTarget],
+          objectGroups: [multiObjectScope.objectGroups[0]!],
+        },
+        {
+          presets: DEFAULT_VIEW_SETTINGS.materials.presets,
+          selectedPresetId: brushedPreset.id,
+          usePerPart: true,
+          perPart: {
+            [leftTarget.partKey]: plasticPreset.id,
+          },
+        },
+      )
+
+      expect(read.source).toBe('per-part')
+      expect(read.targetCount).toBe(1)
+      expect(read.preset?.id).toBe(plasticPreset.id)
+      expect(read.fields.metalness).toEqual({
+        status: 'value',
+        value: plasticPreset.metalness,
+      })
+    })
+
+    it('returns concrete agreed values for multi-object material reads', () => {
+      const sharedPreset: MaterialPreset = {
+        ...defaultPreset,
+        id: 'shared-values',
+        name: 'Shared Values',
+      }
+      const read = resolveSelectedMaterialScopeRead(leftTarget, multiObjectScope, {
+        presets: [sharedPreset],
+        selectedPresetId: sharedPreset.id,
+        usePerPart: true,
+        perPart: {
+          [leftTarget.partKey]: sharedPreset.id,
+          [rightTarget.partKey]: sharedPreset.id,
+        },
+      })
+
+      expect(read.status).toBe('ready')
+      expect(read.source).toBe('multi-object')
+      expect(read.sourceLabel).toBe('Shared material values')
+      expect(read.targetCount).toBe(2)
+      expect(read.fields.name).toEqual({ status: 'value', value: 'Shared Values' })
+      expect(read.fields.metalness).toEqual({
+        status: 'value',
+        value: sharedPreset.metalness,
+      })
+    })
+
+    it('returns mixed markers for disagreeing multi-object material fields', () => {
+      const leftPreset: MaterialPreset = {
+        ...defaultPreset,
+        id: 'left-values',
+        name: 'Left Values',
+        color: '#101010',
+        metalness: 0.2,
+        roughness: 0.4,
+        transparent: false,
+        doubleSided: true,
+      }
+      const rightPreset: MaterialPreset = {
+        ...defaultPreset,
+        id: 'right-values',
+        name: 'Right Values',
+        color: '#202020',
+        metalness: 0.8,
+        roughness: 0.4,
+        transparent: true,
+        doubleSided: false,
+      }
+
+      const read = resolveSelectedMaterialScopeRead(leftTarget, multiObjectScope, {
+        presets: [leftPreset, rightPreset],
+        selectedPresetId: leftPreset.id,
+        usePerPart: true,
+        perPart: {
+          [leftTarget.partKey]: leftPreset.id,
+          [rightTarget.partKey]: rightPreset.id,
+        },
+      })
+
+      expect(read.source).toBe('mixed')
+      expect(read.sourceLabel).toBe('Multiple material values')
+      expect(read.fields.name.status).toBe('mixed')
+      expect(read.fields.color.status).toBe('mixed')
+      expect(read.fields.metalness.status).toBe('mixed')
+      expect(read.fields.transparent.status).toBe('mixed')
+      expect(read.fields.doubleSided.status).toBe('mixed')
+      expect(read.fields.roughness).toEqual({ status: 'value', value: 0.4 })
     })
   })
 })

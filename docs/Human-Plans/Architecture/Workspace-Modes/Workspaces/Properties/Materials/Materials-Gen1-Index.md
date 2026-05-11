@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+75. 2026-05-11 11:19: Recorded the `Materials-5 / Phase 2.1` focused-list pinning follow-up so row toggles now unhighlight or re-highlight Browser/viewport selection while keeping the object available in the Materials focused item list.
+74. 2026-05-11 11:05: Recorded the `Materials-5 / Phase 2.1` focused-row inclusion follow-up so row clicks can unhighlight assignment targets without losing active-detail switching or being visually overridden by focus styling.
+73. 2026-05-11 10:40: Recorded the `Materials-5 / Phase 4` project-material highlight follow-up so multi-object selections highlight every resolved material used by included focused targets instead of only the first active preset.
+72. 2026-05-11 10:33: Recorded the `Materials-5 / Phase 4` multi-edit toggle follow-up so direct multi-object edits update resolved materials by default and only create new per-target material copies when `Create new material on multi edit` is enabled.
+71. 2026-05-11 10:24: Recorded `Materials-5 / Phase 4 - Multi Object Field Editing` as shipped, with direct multi-object scalar/color edits now creating patched per-target material copies through one undoable material-history entry.
+70. 2026-05-11 10:18: Recorded the prepared implementation read for `Materials-5 / Phase 4 - Multi Object Field Editing`, choosing a safe per-target copy-and-assign write path for direct multi-object field edits while preserving project-material batch assignment behavior.
+69. 2026-05-11 09:41: Recorded `Materials-5 / Phase 3 - Mixed Selected Material Read` as shipped, with aggregate selected-material field reads, compact `Multiple values` rendering, and read-only multi-object controls before Phase 4 editing.
+68. 2026-05-11 09:23: Recorded the prepared implementation read for `Materials-5 / Phase 3 - Mixed Selected Material Read`, grounding the phase in the assignment scope, selected-material read resolver, compact editor controls, and focused mixed-value verification seams.
 67. 2026-05-11 08:40: Recorded the selected-material text input sizing follow-up so the full-width `Name` field uses border-box sizing and stays inside the compact row padding.
 66. 2026-05-11 08:38: Recorded the selected-material `Name` row width follow-up that gives the name input the full remaining row width by tightening the compact row label column.
 65. 2026-05-11 08:33: Recorded the `Materials-5 / Phase 2.1` single-selection `x` follow-up that clears mirrored selected part state through the shared workspace selection clear command when the last focused object is removed.
@@ -160,9 +168,9 @@ Current shipped richer-field phase:
 - `Materials-3 / Phase 3 - Hosted Field Projection And Library Handoff`
 
 Current next planning read:
-- prep `Materials-5 / Phase 3 - Mixed Selected Material Read`
-- use the locked focused-item inclusion scope to aggregate selected-material reads and show `Multiple values` when selected objects disagree
-- keep multi-object field editing deferred until the mixed-value read projection is honest
+- choose the next Materials family direction after `Materials-5` closes its first multi-object loop
+- likely next reads are either a focused cleanup follow-up for the multi-object editor UX, a broader material-library phase, or texture/shader field ownership planning
+- keep direct multi-object edits updating resolved materials by default, with copy-and-assign available only through the explicit `Create new material on multi edit` toggle
 
 Current editing owner:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
@@ -241,8 +249,8 @@ Important boundary rule:
 - [x] Derive a multi-object material target scope from shared workspace selection.
 - [x] Let project material row clicks apply to all selected material-bearing objects.
 - [x] Separate focused-item assignment inclusion toggling from right-anchored `x` global deselect/removal.
-- [ ] Show `Multiple values` when selected objects disagree on material fields.
-- [ ] Let later field edits apply across the selected material target scope through material history.
+- [x] Show `Multiple values` when selected objects disagree on material fields.
+- [x] Let later field edits apply across the selected material target scope through material history.
 - [ ] Preserve owner-boundary rules from `Materials-1`, `Materials-2`, `Materials-3`, and `Materials-4`.
 - [ ] `Materials-Gen1-HLG-2`
 - [ ] `Materials-Gen1-HLG-3`

@@ -511,14 +511,17 @@ describe('PropertiesSurface', () => {
       secondFocusedRow?.click()
     })
 
-    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(secondTarget)
-    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([
-      firstTarget,
-      secondTarget,
-    ])
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([firstTarget])
     expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toEqual(firstTarget)
     expect(firstFocusedRow?.getAttribute('data-properties-focused-object-active')).toBe('false')
     expect(secondFocusedRow?.getAttribute('data-properties-focused-object-active')).toBe('true')
+    expect(secondFocusedRow?.getAttribute('data-properties-focused-object-included')).toBe('false')
+    expect(
+      container
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-target-count'),
+    ).toBe('1')
     expect(
       container?.querySelector(
         '[data-material-target-row="authored-part:graph-document-1:output-entry-2"]',
@@ -621,9 +624,8 @@ describe('PropertiesSurface', () => {
     })
   })
 
-  it('unhighlights focused material objects for assignment without changing global selection', async () => {
-    const { firstTarget, secondTarget, leftPartKey, rightPartKey } =
-      await setTwoFocusedMaterialObjects()
+  it('unhighlights focused material objects for assignment while keeping them in the focused list', async () => {
+    const { firstTarget, leftPartKey } = await setTwoFocusedMaterialObjects()
     await renderSurface()
 
     const getMaterialsSection = () =>
@@ -648,16 +650,15 @@ describe('PropertiesSurface', () => {
 
     expect(secondIncludeButton?.getAttribute('aria-pressed')).toBe('false')
     expect(secondFocusButton?.getAttribute('data-properties-focused-object-included')).toBe('false')
+    expect(
+      container?.querySelector('[data-properties-focused-object-row="properties-include-object-2"]'),
+    ).not.toBeNull()
     expect(getMaterialsSection()?.getAttribute('data-material-assignment-target-count')).toBe('1')
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
-    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([
-      firstTarget,
-      secondTarget,
-    ])
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([firstTarget])
     expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toEqual(firstTarget)
     expect(useAppStore.getState().workspaceSelection.resolvedContentSelection?.partKeys).toEqual([
       leftPartKey,
-      rightPartKey,
     ])
 
     await act(async () => {
@@ -697,7 +698,7 @@ describe('PropertiesSurface', () => {
   })
 
   it('removes active focused material objects through global selection when x is clicked', async () => {
-    const { firstTarget, secondTarget, leftPartKey } = await setTwoFocusedMaterialObjects()
+    const { firstTarget, leftPartKey } = await setTwoFocusedMaterialObjects()
     await renderSurface()
 
     const getMaterialsSection = () =>
@@ -713,7 +714,9 @@ describe('PropertiesSurface', () => {
       secondFocusButton?.click()
     })
 
-    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(secondTarget)
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
+    expect(secondFocusButton?.getAttribute('data-properties-focused-object-active')).toBe('true')
+    expect(secondFocusButton?.getAttribute('data-properties-focused-object-included')).toBe('false')
 
     await act(async () => {
       secondRemoveButton?.click()
@@ -760,6 +763,280 @@ describe('PropertiesSurface', () => {
     expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
     expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toBeNull()
     expect(useAppStore.getState().selectedPartKey).toBeNull()
+  })
+
+  it('edits mixed selected material scalar values for included focused objects', async () => {
+    const { leftPartKey, rightPartKey } = await setTwoFocusedMaterialObjects()
+    const leftPreset = {
+      ...DEFAULT_VIEW_SETTINGS.materials.presets[0]!,
+      id: 'mixed-left-material',
+      name: 'Mixed Left Material',
+      color: '#101010',
+      metalness: 0.2,
+      roughness: 0.4,
+    }
+    const rightPreset = {
+      ...DEFAULT_VIEW_SETTINGS.materials.presets[0]!,
+      id: 'mixed-right-material',
+      name: 'Mixed Right Material',
+      color: '#202020',
+      metalness: 0.8,
+      roughness: 0.4,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          materials: {
+            ...state.view.materials,
+            presets: [leftPreset, rightPreset],
+            selectedPresetId: leftPreset.id,
+            usePerPart: true,
+            perPart: {
+              [leftPartKey]: leftPreset.id,
+              [rightPartKey]: rightPreset.id,
+            },
+          },
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const materialEditor = container?.querySelector(
+      '[data-selected-material-editor="compact"]',
+    ) as HTMLDivElement | null
+    const nameControl = container?.querySelector(
+      '[data-selected-material-control="name"]',
+    ) as HTMLElement | null
+    const metalnessControl = container?.querySelector(
+      '[data-selected-material-control="metalness"]',
+    ) as HTMLElement | null
+    const roughnessControl = container?.querySelector(
+      '[data-selected-material-control="roughness"]',
+    ) as HTMLElement | null
+    const increaseMetalnessButton = metalnessControl?.querySelector(
+      'button[aria-label="Increase Metalness"]',
+    ) as HTMLButtonElement | null
+    const createOnMultiEditToggle = container?.querySelector(
+      'input[aria-label="Create new material on multi edit"]',
+    ) as HTMLInputElement | null
+    const leftProjectMaterialRow = container?.querySelector(
+      '[data-project-material-row="mixed-left-material"]',
+    ) as HTMLButtonElement | null
+    const rightProjectMaterialRow = container?.querySelector(
+      '[data-project-material-row="mixed-right-material"]',
+    ) as HTMLButtonElement | null
+
+    expect(materialEditor?.getAttribute('data-selected-material-read-source')).toBe('mixed')
+    expect(createOnMultiEditToggle?.checked).toBe(false)
+    expect(leftProjectMaterialRow?.getAttribute('data-project-material-selected')).toBe('true')
+    expect(rightProjectMaterialRow?.getAttribute('data-project-material-selected')).toBe('true')
+    expect(nameControl?.getAttribute('data-selected-material-field-state')).toBe('mixed')
+    expect(metalnessControl?.getAttribute('data-selected-material-field-state')).toBe('mixed')
+    expect(roughnessControl?.getAttribute('data-selected-material-field-state')).toBe('value')
+    expect(nameControl?.textContent).toContain('Multiple values')
+    expect(metalnessControl?.textContent).toContain('Multiple values')
+    expect(increaseMetalnessButton?.disabled).toBe(false)
+
+    await act(async () => {
+      increaseMetalnessButton?.click()
+    })
+
+    const materialsAfterEdit = useUiPrefsStore.getState().view.materials
+    expect(materialsAfterEdit.perPart).toEqual({
+      [leftPartKey]: leftPreset.id,
+      [rightPartKey]: rightPreset.id,
+    })
+    expect(materialsAfterEdit.presets).toHaveLength(2)
+    expect(materialsAfterEdit.presets.find((preset) => preset.id === leftPreset.id)).toMatchObject({
+      color: leftPreset.color,
+      metalness: 0.21,
+    })
+    expect(materialsAfterEdit.presets.find((preset) => preset.id === rightPreset.id)).toMatchObject({
+      color: rightPreset.color,
+      metalness: 0.21,
+    })
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Edit selected material objects',
+        targetLabel: 'Selected material objects',
+      },
+    ])
+
+    const updatedMetalnessControl = container?.querySelector(
+      '[data-selected-material-control="metalness"]',
+    ) as HTMLElement | null
+    expect(updatedMetalnessControl?.getAttribute('data-selected-material-field-state')).toBe('value')
+    expect(updatedMetalnessControl?.textContent).not.toContain('Multiple values')
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      [leftPartKey]: leftPreset.id,
+      [rightPartKey]: rightPreset.id,
+    })
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.materials.presets.find((preset) => preset.id === leftPreset.id)?.metalness,
+    ).toBe(leftPreset.metalness)
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      [leftPartKey]: leftPreset.id,
+      [rightPartKey]: rightPreset.id,
+    })
+  })
+
+  it('edits mixed selected material base colors for included focused objects', async () => {
+    const { leftPartKey, rightPartKey } = await setTwoFocusedMaterialObjects()
+    const leftPreset = {
+      ...DEFAULT_VIEW_SETTINGS.materials.presets[0]!,
+      id: 'mixed-color-left-material',
+      name: 'Mixed Color Left Material',
+      color: '#101010',
+      metalness: 0.2,
+    }
+    const rightPreset = {
+      ...DEFAULT_VIEW_SETTINGS.materials.presets[0]!,
+      id: 'mixed-color-right-material',
+      name: 'Mixed Color Right Material',
+      color: '#202020',
+      metalness: 0.8,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          materials: {
+            ...state.view.materials,
+            presets: [leftPreset, rightPreset],
+            selectedPresetId: leftPreset.id,
+            usePerPart: true,
+            perPart: {
+              [leftPartKey]: leftPreset.id,
+              [rightPartKey]: rightPreset.id,
+            },
+          },
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const colorControl = container?.querySelector(
+      '[data-selected-material-control="color"]',
+    ) as HTMLElement | null
+    const colorInput = colorControl?.querySelector(
+      'input[aria-label="Edit base color"]',
+    ) as HTMLInputElement | null
+    const createOnMultiEditToggle = container?.querySelector(
+      'input[aria-label="Create new material on multi edit"]',
+    ) as HTMLInputElement | null
+
+    expect(colorControl?.getAttribute('data-selected-material-field-state')).toBe('mixed')
+    expect(colorInput?.disabled).toBe(false)
+    expect(createOnMultiEditToggle?.checked).toBe(false)
+
+    await act(async () => {
+      if (colorInput !== null) {
+        colorInput.value = '#abcdef'
+        colorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    const materialsAfterEdit = useUiPrefsStore.getState().view.materials
+    expect(materialsAfterEdit.perPart).toEqual({
+      [leftPartKey]: leftPreset.id,
+      [rightPartKey]: rightPreset.id,
+    })
+    expect(materialsAfterEdit.presets).toHaveLength(2)
+    expect(materialsAfterEdit.presets.find((preset) => preset.id === leftPreset.id)).toMatchObject({
+      color: '#abcdef',
+      metalness: leftPreset.metalness,
+    })
+    expect(materialsAfterEdit.presets.find((preset) => preset.id === rightPreset.id)).toMatchObject({
+      color: '#abcdef',
+      metalness: rightPreset.metalness,
+    })
+  })
+
+  it('creates material copies for multi edit only when the toggle is enabled', async () => {
+    const { leftPartKey, rightPartKey } = await setTwoFocusedMaterialObjects()
+    const leftPreset = {
+      ...DEFAULT_VIEW_SETTINGS.materials.presets[0]!,
+      id: 'copy-toggle-left-material',
+      name: 'Copy Toggle Left Material',
+      color: '#101010',
+      metalness: 0.2,
+    }
+    const rightPreset = {
+      ...DEFAULT_VIEW_SETTINGS.materials.presets[0]!,
+      id: 'copy-toggle-right-material',
+      name: 'Copy Toggle Right Material',
+      color: '#202020',
+      metalness: 0.8,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          materials: {
+            ...state.view.materials,
+            presets: [leftPreset, rightPreset],
+            selectedPresetId: leftPreset.id,
+            usePerPart: true,
+            perPart: {
+              [leftPartKey]: leftPreset.id,
+              [rightPartKey]: rightPreset.id,
+            },
+          },
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const createOnMultiEditToggle = container?.querySelector(
+      'input[aria-label="Create new material on multi edit"]',
+    ) as HTMLInputElement | null
+    const metalnessControl = container?.querySelector(
+      '[data-selected-material-control="metalness"]',
+    ) as HTMLElement | null
+    const increaseMetalnessButton = metalnessControl?.querySelector(
+      'button[aria-label="Increase Metalness"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      createOnMultiEditToggle?.click()
+    })
+
+    expect(createOnMultiEditToggle?.checked).toBe(true)
+    vi.spyOn(Date, 'now').mockReturnValue(2200000000000)
+
+    await act(async () => {
+      increaseMetalnessButton?.click()
+    })
+
+    const materialsAfterEdit = useUiPrefsStore.getState().view.materials
+    expect(materialsAfterEdit.perPart).toEqual({
+      [leftPartKey]: 'mat_2200000000000',
+      [rightPartKey]: 'mat_2200000000001',
+    })
+    expect(materialsAfterEdit.presets.find((preset) => preset.id === leftPreset.id)?.metalness).toBe(
+      leftPreset.metalness,
+    )
+    expect(materialsAfterEdit.presets.find((preset) => preset.id === 'mat_2200000000000')).toMatchObject({
+      color: leftPreset.color,
+      metalness: 0.21,
+    })
   })
 
   it('updates the selected material read from lane-local target selection without mutating material truth', async () => {

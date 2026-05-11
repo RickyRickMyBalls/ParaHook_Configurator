@@ -72,6 +72,254 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1875 -->
+
+### [1875] - 2026-05-11 11:19 - `Materials-5 / Phase 2.1 Follow-Up - Focused List Selection Pinning`
+
+HUMAN SUMMARY: `This connects the Materials focused item row toggle to the real Browser and viewport highlight state. Toggling a row off now removes that object from shared workspace selection, but the row stays pinned in the Materials list so the user can toggle it back on later.`
+
+#### Scope / Constraints Honored
+
+- Preserved the Materials focused list as the current batch control surface.
+- Preserved the right-anchored `x` as the permanent remove-from-list and global deselect control.
+- Kept Materials assignment scoped to rows that remain included/highlighted.
+
+#### Summary of Implementation
+
+- Added a pinned focused-object row layer inside `PropertiesSurface` so rows can remain visible after shared selection removes them.
+- Changed focused row/include toggles to remove or restore the object in shared workspace selection, which drives Browser/viewport highlighting.
+- Kept the Materials active-detail target local enough that an excluded row can still show its material target/editor content while muted.
+- Updated focused Properties surface tests for shared-selection unhighlighting and pinned-row behavior.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Focused item row toggles now unhighlight or re-highlight the matching object in Browser/viewport selection.
+- Unhighlighted focused rows stay in Materials so they can be restored without reselecting from the viewport or Browser.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1874 -->
+
+### [1874] - 2026-05-11 11:05 - `Materials-5 / Phase 2.1 Follow-Up - Focused Row Inclusion Toggle`
+
+HUMAN SUMMARY: `This makes the focused item row itself match the intended unhighlight behavior. Clicking an object row now excludes or includes it for Materials assignment while still making it the active object, and excluded rows stay visually muted instead of looking selected because of focus styling.`
+
+#### Scope / Constraints Honored
+
+- Preserved the right-anchored `x` behavior as the global selection removal path.
+- Preserved multi-object explicit selection when a row is clicked.
+- Kept material assignment scoped to included focused items only.
+
+#### Summary of Implementation
+
+- Made focused object row clicks toggle the local Materials assignment inclusion state while keeping the active object switch.
+- Fixed the inclusion reset effect so it only resets when the focused row id set actually changes.
+- Added muted styling for excluded focused rows even when they are active, hovered, or focused.
+- Extended focused Properties surface coverage to prove row-click unhighlighting changes assignment scope.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking a focused item row now toggles whether that object receives material assignment from the Materials panel.
+- Excluded focused item rows remain visibly unhighlighted even if they are the active detail row.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1873 -->
+
+### [1873] - 2026-05-11 10:40 - `Materials-5 / Phase 4 Follow-Up - Multi Material Project List Highlight`
+
+HUMAN SUMMARY: `This makes the Project materials list reflect multi-object selection honestly. When included focused objects use different materials, every resolved material used by those objects now highlights instead of only the first active object's material.`
+
+#### Scope / Constraints Honored
+
+- Preserved project material row assignment behavior.
+- Preserved selected-material mixed-value reads and multi-object edit behavior.
+- Reused the same material resolution order as the selected-material editor.
+
+#### Summary of Implementation
+
+- Derived the active project-material preset id set from the included assignment-scope target rows.
+- Updated project material rows to mark active when their preset id is used by any included focused target.
+- Added a Properties surface assertion proving two different selected object materials both highlight in the Project materials list.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Multi-object selections now highlight all resolved project materials used by included focused targets.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1872 -->
+
+### [1872] - 2026-05-11 10:33 - `Materials-5 / Phase 4 Follow-Up - Multi Edit Copy Toggle`
+
+HUMAN SUMMARY: `This changes the multi-object edit default to edit the resolved materials directly instead of creating new material copies. A new off-by-default Create new material on multi edit toggle keeps the copy-and-assign behavior available when the user wants isolated material copies.`
+
+#### Scope / Constraints Honored
+
+- Preserved single-object material editing behavior.
+- Preserved project-material row batch assignment behavior.
+- Kept the Phase 4 copy-and-assign path available behind an explicit toggle.
+- Kept multi-object material edits in one undoable material-history entry.
+
+#### Summary of Implementation
+
+- Added `updateMaterialPresetsForPartsWithHistory(...)` to update existing resolved material presets once per unique preset id.
+- Added the `Create new material on multi edit` toggle to the selected-material editor for multi-object reads.
+- Routed default multi-object field edits through existing resolved material updates.
+- Routed toggle-enabled multi-object field edits through the existing per-target copy-and-assign helper.
+- Updated tests so default scalar/color multi-edits do not create new presets, while toggle-enabled edits do create per-target copies.
+
+#### Files Changed
+
+- `src/app/store/materialEditHistory.ts`
+- `src/app/store/materialEditHistoryStore.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Multi-object direct edits now update the selected objects' resolved materials by default, which can affect other objects using those same materials.
+- Enabling `Create new material on multi edit` creates assigned material copies per included target instead.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1871 -->
+
+### [1871] - 2026-05-11 10:24 - `Materials-5 / Phase 4 - Multi Object Field Editing`
+
+HUMAN SUMMARY: `This lets direct selected-material edits apply across included focused objects. Multi-object field edits now create patched material copies per target and assign them in one undoable material-history entry, so changing Metalness or Base color updates every included object without mutating the original shared presets.`
+
+#### Scope / Constraints Honored
+
+- Preserved single-object field editing on the existing material preset update path.
+- Preserved project-material row batch assignment as same-preset assignment.
+- Used the safe per-target copy-and-assign behavior for direct multi-object field edits.
+- Kept material ownership in `ViewSettings['materials']` and material history rather than adding a panel-local owner.
+
+#### Summary of Implementation
+
+- Added `updateMaterialPresetCopiesForPartsWithHistory(...)` to create patched preset copies for selected part targets inside one material-history action.
+- Routed multi-object compact editor updates through the new helper.
+- Re-enabled multi-object scalar and base-color editing through the selected-material editor.
+- Added a material-history helper test proving per-target copy creation, assignment, and undo/redo.
+- Added Properties surface tests proving mixed `Metalness` and mixed `Base color` edits update every included focused object.
+
+#### Files Changed
+
+- `src/app/store/materialEditHistory.ts`
+- `src/app/store/materialEditHistoryStore.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Direct multi-object selected-material field edits now apply to every included focused material target.
+- Multi-object direct edits create assigned material copies per target instead of mutating the original shared presets.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1870 -->
+
+### [1870] - 2026-05-11 09:41 - `Materials-5 / Phase 3 - Mixed Selected Material Read`
+
+HUMAN SUMMARY: `This makes the selected-material editor honest for multi-object selection. When included focused objects disagree on material fields, the editor now shows Multiple values and keeps the multi-object controls read-only until the next phase owns editing.`
+
+#### Scope / Constraints Honored
+
+- Preserved existing single-object selected-material behavior.
+- Kept project material row assignment behavior from Phase 2 unchanged.
+- Kept direct multi-object field editing deferred to Phase 4.
+- Reused the included focused-item assignment scope as the multi-object read source.
+
+#### Summary of Implementation
+
+- Added `resolveSelectedMaterialScopeRead(...)` in the Materials view model to aggregate selected-material field reads across assignment-scope target rows.
+- Added typed per-field read states for agreed values, mixed values, and pending reads.
+- Updated the compact selected-material editor to show `Multiple values` for mixed name, color, scalar, transparency, and rendering fields.
+- Made multi-object selected-material controls read-only in Phase 3 so mixed reads cannot accidentally mutate material truth.
+- Added view-model tests for single-scope preservation, agreed multi-object values, and mixed multi-object values.
+- Added a Properties surface test proving mixed values are displayed and clicking a disabled mixed control does not edit material presets.
+
+#### Files Changed
+
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Multi-object Materials selections now show `Multiple values` when selected material fields disagree.
+- Multi-object selected-material controls are read-only until multi-object editing is implemented.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
 <!-- ENTRY 1869 -->
 
 ### [1869] - 2026-05-11 08:40 - `Materials-4 Follow-Up - Selected Material Name Input Padding`

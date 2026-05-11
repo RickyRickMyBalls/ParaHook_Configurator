@@ -229,6 +229,14 @@
     inset 0 0 0 1px rgba(139, 185, 255, 0.1);
 }
 
+.PropertiesFocusedItemRow:not(.isIncluded):hover,
+.PropertiesFocusedItemRow:not(.isIncluded):focus-within,
+.PropertiesFocusedItemRow:not(.isIncluded).isActive {
+  border-color: rgba(139, 185, 255, 0.18);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 0 0 1px rgba(139, 185, 255, 0.04);
+}
+
 .PropertiesFocusedItemButton {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
@@ -841,6 +849,9 @@
 
 .PropertiesSelectedMaterialHeader {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -856,6 +867,35 @@
   font-size: 0.58rem;
   font-weight: 800;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.PropertiesSelectedMaterialMultiEditToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(230, 236, 248, 0.78);
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.PropertiesSelectedMaterialMultiEditToggle input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: #8bb9ff;
+}
+
+.PropertiesSelectedMaterialMultiEditToggle span {
+  overflow: hidden;
+  min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -885,6 +925,27 @@
 
 .PropertiesSelectedMaterialField--name {
   grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.PropertiesSelectedMaterialField--mixed {
+  grid-template-columns: minmax(88px, 0.42fr) minmax(0, 1fr);
+}
+
+.PropertiesSelectedMaterialMixedValue {
+  justify-self: end;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid rgba(139, 185, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(139, 185, 255, 0.1);
+  color: rgba(231, 240, 255, 0.86);
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .PropertiesSelectedMaterialField--expandable {

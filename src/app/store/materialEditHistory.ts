@@ -19,6 +19,11 @@ type MaterialHistoryOptions = {
   targetLabel?: string
 }
 
+export type MultiTargetMaterialPresetPatchTarget = {
+  partId: string
+  preset: MaterialPreset
+}
+
 let materialHistorySequence = 0
 
 const materialHistorySource = {
@@ -195,6 +200,77 @@ export const updateMaterialPresetWithHistory = (
     targetLabel: 'Material preset properties',
     ...options,
   })
+
+export const updateMaterialPresetsForPartsWithHistory = (
+  targets: MultiTargetMaterialPresetPatchTarget[],
+  patch: Partial<MaterialPreset>,
+  options: MaterialHistoryOptions = {},
+): boolean => {
+  const uniquePresetIds = Array.from(new Set(targets.map((target) => target.preset.id))).filter(
+    (presetId) => presetId.length > 0,
+  )
+  if (uniquePresetIds.length === 0) {
+    return false
+  }
+
+  return runMaterialHistoryAction(
+    () => {
+      uniquePresetIds.forEach((presetId) => {
+        useUiPrefsStore.getState().updateMaterialPreset(presetId, patch)
+      })
+    },
+    {
+      targetId: `material-preset:batch:${uniquePresetIds.join('|')}:update`,
+      targetLabel: 'Selected material objects',
+      ...options,
+    },
+  )
+}
+
+export const updateMaterialPresetCopiesForPartsWithHistory = (
+  targets: MultiTargetMaterialPresetPatchTarget[],
+  patch: Partial<MaterialPreset>,
+  options: MaterialHistoryOptions = {},
+): boolean => {
+  const uniqueTargets = targets.filter(
+    (target, index, candidateTargets) =>
+      target.partId.length > 0 &&
+      candidateTargets.findIndex((candidate) => candidate.partId === target.partId) === index,
+  )
+  if (uniqueTargets.length === 0) {
+    return false
+  }
+
+  return runMaterialHistoryAction(
+    () => {
+      const store = useUiPrefsStore.getState()
+      store.setUsePerPartMaterial(true)
+      uniqueTargets.forEach((target) => {
+        const seed = {
+          name: patch.name ?? `${target.preset.name} Multi Edit`,
+          color: patch.color ?? target.preset.color,
+          metalness: patch.metalness ?? target.preset.metalness,
+          roughness: patch.roughness ?? target.preset.roughness,
+          emissive: patch.emissive ?? target.preset.emissive,
+          emissiveIntensity: patch.emissiveIntensity ?? target.preset.emissiveIntensity,
+          opacity: patch.opacity ?? target.preset.opacity,
+          transparent: patch.transparent ?? target.preset.transparent,
+          doubleSided: patch.doubleSided ?? target.preset.doubleSided,
+        }
+        useUiPrefsStore.getState().addMaterialPreset(seed)
+        const createdPresetId = useUiPrefsStore.getState().view.materials.selectedPresetId
+        useUiPrefsStore.getState().assignPartMaterial(target.partId, createdPresetId)
+      })
+    },
+    {
+      targetId: `material-per-part:batch:${uniqueTargets
+        .map((target) => target.partId)
+        .join('|')}:edit-copies`,
+      targetLabel: 'Selected material objects',
+      ...options,
+    },
+  )
+}
 
 export const setMaterialPresetTransparentWithHistory = (
   id: MaterialPresetId,

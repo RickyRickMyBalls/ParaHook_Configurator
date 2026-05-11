@@ -59,6 +59,8 @@ export type MaterialsSelectedMaterialReadSource =
   | 'per-part'
   | 'selected-preset'
   | 'first-preset-fallback'
+  | 'multi-object'
+  | 'mixed'
   | 'missing'
 
 export type MaterialsSelectedMaterialRead = {
@@ -67,6 +69,45 @@ export type MaterialsSelectedMaterialRead = {
   source: MaterialsSelectedMaterialReadSource
   sourceLabel: string
   preset: MaterialPreset | null
+  targetCount: number
+  fields: MaterialsSelectedMaterialFieldReads
+}
+
+export type MaterialsSelectedMaterialFieldKey =
+  | 'name'
+  | 'color'
+  | 'emissive'
+  | 'metalness'
+  | 'roughness'
+  | 'opacity'
+  | 'emissiveIntensity'
+  | 'transparent'
+  | 'doubleSided'
+
+export type MaterialsSelectedMaterialFieldRead<T> =
+  | {
+      status: 'value'
+      value: T
+    }
+  | {
+      status: 'mixed'
+      value: null
+    }
+  | {
+      status: 'pending'
+      value: null
+    }
+
+export type MaterialsSelectedMaterialFieldReads = {
+  name: MaterialsSelectedMaterialFieldRead<string>
+  color: MaterialsSelectedMaterialFieldRead<string>
+  emissive: MaterialsSelectedMaterialFieldRead<string>
+  metalness: MaterialsSelectedMaterialFieldRead<number>
+  roughness: MaterialsSelectedMaterialFieldRead<number>
+  opacity: MaterialsSelectedMaterialFieldRead<number>
+  emissiveIntensity: MaterialsSelectedMaterialFieldRead<number>
+  transparent: MaterialsSelectedMaterialFieldRead<boolean>
+  doubleSided: MaterialsSelectedMaterialFieldRead<boolean>
 }
 
 export type MaterialsPhase1ViewModel = {
@@ -92,6 +133,58 @@ const findMaterialPreset = (
   return materials.presets.find((preset) => preset.id === presetId) ?? null
 }
 
+const buildValueFieldReads = (preset: MaterialPreset): MaterialsSelectedMaterialFieldReads => ({
+  name: { status: 'value', value: preset.name },
+  color: { status: 'value', value: preset.color },
+  emissive: { status: 'value', value: preset.emissive },
+  metalness: { status: 'value', value: preset.metalness },
+  roughness: { status: 'value', value: preset.roughness },
+  opacity: { status: 'value', value: preset.opacity },
+  emissiveIntensity: { status: 'value', value: preset.emissiveIntensity },
+  transparent: { status: 'value', value: preset.transparent },
+  doubleSided: { status: 'value', value: preset.doubleSided },
+})
+
+const buildPendingFieldReads = (): MaterialsSelectedMaterialFieldReads => ({
+  name: { status: 'pending', value: null },
+  color: { status: 'pending', value: null },
+  emissive: { status: 'pending', value: null },
+  metalness: { status: 'pending', value: null },
+  roughness: { status: 'pending', value: null },
+  opacity: { status: 'pending', value: null },
+  emissiveIntensity: { status: 'pending', value: null },
+  transparent: { status: 'pending', value: null },
+  doubleSided: { status: 'pending', value: null },
+})
+
+const buildAggregateFieldRead = <T,>(
+  presets: MaterialPreset[],
+  selectValue: (preset: MaterialPreset) => T,
+): MaterialsSelectedMaterialFieldRead<T> => {
+  if (presets.length === 0) {
+    return { status: 'pending', value: null }
+  }
+
+  const firstValue = selectValue(presets[0]!)
+  const hasMixedValue = presets.some((preset) => selectValue(preset) !== firstValue)
+  return hasMixedValue ? { status: 'mixed', value: null } : { status: 'value', value: firstValue }
+}
+
+const buildAggregateFieldReads = (presets: MaterialPreset[]): MaterialsSelectedMaterialFieldReads => ({
+  name: buildAggregateFieldRead(presets, (preset) => preset.name),
+  color: buildAggregateFieldRead(presets, (preset) => preset.color),
+  emissive: buildAggregateFieldRead(presets, (preset) => preset.emissive),
+  metalness: buildAggregateFieldRead(presets, (preset) => preset.metalness),
+  roughness: buildAggregateFieldRead(presets, (preset) => preset.roughness),
+  opacity: buildAggregateFieldRead(presets, (preset) => preset.opacity),
+  emissiveIntensity: buildAggregateFieldRead(presets, (preset) => preset.emissiveIntensity),
+  transparent: buildAggregateFieldRead(presets, (preset) => preset.transparent),
+  doubleSided: buildAggregateFieldRead(presets, (preset) => preset.doubleSided),
+})
+
+const hasMixedFieldRead = (fields: MaterialsSelectedMaterialFieldReads): boolean =>
+  Object.values(fields).some((field) => field.status === 'mixed')
+
 export const resolveSelectedTargetMaterialRead = (
   target: MaterialsTargetRow | null,
   materials: ViewSettings['materials'],
@@ -103,6 +196,8 @@ export const resolveSelectedTargetMaterialRead = (
       source: 'missing',
       sourceLabel: 'No selected target',
       preset: null,
+      targetCount: 0,
+      fields: buildPendingFieldReads(),
     }
   }
 
@@ -115,6 +210,8 @@ export const resolveSelectedTargetMaterialRead = (
       source: 'per-part',
       sourceLabel: 'Per-part assignment',
       preset: perPartPreset,
+      targetCount: 1,
+      fields: buildValueFieldReads(perPartPreset),
     }
   }
 
@@ -126,6 +223,8 @@ export const resolveSelectedTargetMaterialRead = (
       source: 'selected-preset',
       sourceLabel: 'Selected preset',
       preset: selectedPreset,
+      targetCount: 1,
+      fields: buildValueFieldReads(selectedPreset),
     }
   }
 
@@ -137,6 +236,8 @@ export const resolveSelectedTargetMaterialRead = (
       source: 'first-preset-fallback',
       sourceLabel: 'First preset fallback',
       preset: fallbackPreset,
+      targetCount: 1,
+      fields: buildValueFieldReads(fallbackPreset),
     }
   }
 
@@ -146,6 +247,50 @@ export const resolveSelectedTargetMaterialRead = (
     source: 'missing',
     sourceLabel: 'Material preset missing',
     preset: null,
+    targetCount: 0,
+    fields: buildPendingFieldReads(),
+  }
+}
+
+export const resolveSelectedMaterialScopeRead = (
+  activeTarget: MaterialsTargetRow | null,
+  assignmentScope: MaterialsAssignmentScope,
+  materials: ViewSettings['materials'],
+): MaterialsSelectedMaterialRead => {
+  if (assignmentScope.kind !== 'multi-object' || assignmentScope.targetRows.length <= 1) {
+    return resolveSelectedTargetMaterialRead(activeTarget, materials)
+  }
+
+  const targetReads = assignmentScope.targetRows.map((targetRow) =>
+    resolveSelectedTargetMaterialRead(targetRow, materials),
+  )
+  const readyReads = targetReads.filter(
+    (read): read is MaterialsSelectedMaterialRead & { preset: MaterialPreset } =>
+      read.status === 'ready' && read.preset !== null,
+  )
+
+  if (readyReads.length === 0) {
+    return {
+      status: 'pending',
+      target: activeTarget,
+      source: 'missing',
+      sourceLabel: 'Material preset missing',
+      preset: null,
+      targetCount: assignmentScope.targetRows.length,
+      fields: buildPendingFieldReads(),
+    }
+  }
+
+  const fields = buildAggregateFieldReads(readyReads.map((read) => read.preset))
+  const hasMixedFields = hasMixedFieldRead(fields)
+  return {
+    status: 'ready',
+    target: activeTarget,
+    source: hasMixedFields ? 'mixed' : 'multi-object',
+    sourceLabel: hasMixedFields ? 'Multiple material values' : 'Shared material values',
+    preset: readyReads[0]!.preset,
+    targetCount: assignmentScope.targetRows.length,
+    fields,
   }
 }
 

@@ -13,6 +13,8 @@ import {
   selectMaterialPresetWithHistory,
   setMaterialPresetTransparentWithHistory,
   setUsePerPartMaterialWithHistory,
+  updateMaterialPresetCopiesForPartsWithHistory,
+  updateMaterialPresetsForPartsWithHistory,
   updateMaterialPresetWithHistory,
 } from './materialEditHistory'
 import { useUiPrefsStore } from './uiPrefsStore'
@@ -383,5 +385,115 @@ describe('material edit history', () => {
       'material-redo-sentinel',
     ])
     expect(editHistoryStore.canRedo()).toBe(true)
+  })
+
+  it('creates patched preset copies for multiple parts in one undoable entry', () => {
+    const defaultPreset = DEFAULT_VIEW_SETTINGS.materials.presets[0]!
+    const secondPreset = DEFAULT_VIEW_SETTINGS.materials.presets[1]!
+    vi.spyOn(Date, 'now').mockReturnValue(1900000000000)
+
+    expect(
+      updateMaterialPresetCopiesForPartsWithHistory(
+        [
+          { partId: 'part:left', preset: defaultPreset },
+          { partId: 'part:right', preset: secondPreset },
+        ],
+        {
+          metalness: 0.66,
+        },
+        {
+          entryId: 'material-multi-edit-test',
+          label: 'Edit selected material objects',
+        },
+      ),
+    ).toBe(true)
+
+    const materials = useUiPrefsStore.getState().view.materials
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        entryId: 'material-multi-edit-test',
+        label: 'Edit selected material objects',
+        targetLabel: 'Selected material objects',
+      },
+    ])
+    expect(materials.usePerPart).toBe(true)
+    expect(materials.perPart).toEqual({
+      'part:left': 'mat_1900000000000',
+      'part:right': 'mat_1900000000001',
+    })
+    expect(materials.presets.find((preset) => preset.id === 'mat_1900000000000')).toMatchObject({
+      name: 'Default Matte Multi Edit',
+      color: defaultPreset.color,
+      metalness: 0.66,
+    })
+    expect(materials.presets.find((preset) => preset.id === 'mat_1900000000001')).toMatchObject({
+      name: `${secondPreset.name} Multi Edit`,
+      color: secondPreset.color,
+      metalness: 0.66,
+    })
+
+    expect(editHistoryStore.undo()?.entryId).toBe('material-multi-edit-test')
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({})
+
+    expect(editHistoryStore.redo()?.entryId).toBe('material-multi-edit-test')
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      'part:left': 'mat_1900000000000',
+      'part:right': 'mat_1900000000001',
+    })
+  })
+
+  it('updates resolved presets for multiple parts in one undoable entry', () => {
+    const defaultPreset = DEFAULT_VIEW_SETTINGS.materials.presets[0]!
+    const secondPreset = DEFAULT_VIEW_SETTINGS.materials.presets[1]!
+
+    expect(
+      updateMaterialPresetsForPartsWithHistory(
+        [
+          { partId: 'part:left', preset: defaultPreset },
+          { partId: 'part:right', preset: secondPreset },
+          { partId: 'part:other-left', preset: defaultPreset },
+        ],
+        {
+          roughness: 0.22,
+        },
+        {
+          entryId: 'material-multi-update-existing-test',
+          label: 'Edit selected material objects',
+        },
+      ),
+    ).toBe(true)
+
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        entryId: 'material-multi-update-existing-test',
+        label: 'Edit selected material objects',
+        targetLabel: 'Selected material objects',
+      },
+    ])
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.materials.presets.find((preset) => preset.id === defaultPreset.id)?.roughness,
+    ).toBe(0.22)
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.materials.presets.find((preset) => preset.id === secondPreset.id)?.roughness,
+    ).toBe(0.22)
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({})
+
+    expect(editHistoryStore.undo()?.entryId).toBe('material-multi-update-existing-test')
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.materials.presets.find((preset) => preset.id === defaultPreset.id)?.roughness,
+    ).toBe(defaultPreset.roughness)
+
+    expect(editHistoryStore.redo()?.entryId).toBe('material-multi-update-existing-test')
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.materials.presets.find((preset) => preset.id === secondPreset.id)?.roughness,
+    ).toBe(0.22)
   })
 })

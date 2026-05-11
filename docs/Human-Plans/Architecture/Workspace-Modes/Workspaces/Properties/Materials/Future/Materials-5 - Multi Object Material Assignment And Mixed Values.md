@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-05-11 11:19: Added a `Materials-5 / Phase 2.1` follow-up so focused item row toggles now remove or restore the object from shared Browser/viewport selection while keeping the row pinned in Materials for re-highlighting.
+18. 2026-05-11 11:05: Added a `Materials-5 / Phase 2.1` follow-up fix so clicking a focused item row toggles Materials assignment inclusion, preserves the active-detail switch, and keeps excluded rows visually muted instead of resetting on re-render.
+17. 2026-05-11 10:40: Updated the `Materials-5 / Phase 4` multi-object project-material list read so every resolved material used by included focused targets highlights in the Project materials list instead of only the first active preset.
+16. 2026-05-11 10:33: Updated the `Materials-5 / Phase 4` multi-edit behavior so direct multi-object edits update the resolved materials by default, with an off-by-default `Create new material on multi edit` toggle preserving the copy-and-assign path when needed.
+15. 2026-05-11 10:24: Implemented `Materials-5 / Phase 4 - Multi Object Field Editing` by routing direct multi-object field edits through patched per-target preset copies, one undoable material-history entry, and focused scalar/color edit tests.
+14. 2026-05-11 10:18: Prepped `Materials-5 / Phase 4 - Multi Object Field Editing` for implementation against the shipped mixed-value read projection, compact editor update handlers, material history snapshot layer, preset creation/assignment helpers, and focused multi-object edit verification seams.
+13. 2026-05-11 09:41: Implemented `Materials-5 / Phase 3 - Mixed Selected Material Read` with aggregate selected-material field reads, compact `Multiple values` rendering, and read-only multi-object editor controls ahead of Phase 4 editing.
+12. 2026-05-11 09:23: Prepped `Materials-5 / Phase 3 - Mixed Selected Material Read` for implementation against the live assignment scope, selected-material read resolver, compact editor controls, and focused view-model/Properties surface test seams.
 11. 2026-05-11 08:33: Added a `Materials-5 / Phase 2.1` follow-up fix so using the focused item `x` on a single selected object clears the mirrored selected part state through the shared workspace selection clear command.
 10. 2026-05-11 08:27: Implemented `Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics` by splitting the focused-item Properties surface coverage into assignment-only unhighlighting, inactive-row `x` removal, and active-row `x` removal proofs.
 9. 2026-05-11 08:22: Prepped `Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics` against the live focused-item include/remove controls, assignment-scope handoff, project-material assignment path, and current broad regression test, with the next cut narrowed to explicit semantic proof and any small behavior tightening needed.
@@ -364,6 +372,8 @@ Shipped implementation:
 - The active-row `x` proof locks that removing the active focused row clears it from `selectedTarget`, `explicitSelectedTargets`, `selectionAnchorTarget`, and resolved content part keys by moving focus to the remaining object.
 - Follow-up fix: when the `x` removes the only focused object, `PropertiesSurface.tsx` now routes through `clearWorkspaceTargetSelection(...)` so mirrored selection state such as `selectedPartKey` is cleared along with `workspaceSelection`.
 - `PropertiesSurface.test.tsx` now proves the single-object `x` path clears the row, selected target, explicit selection, anchor, resolved content selection, and selected part mirror.
+- Follow-up fix: clicking a focused item row now toggles assignment inclusion while still switching the active material-detail object, and excluded rows stay muted even when focused or active.
+- Follow-up fix: focused item rows are now pinned in the Materials surface while row toggles remove or restore the object from shared workspace selection, so Browser/viewport highlighting follows inclusion without dropping the row from Materials.
 
 Next handoff:
 - `Phase 3` should use the now-locked focused item inclusion scope as the trusted source for mixed selected-material reads.
@@ -378,7 +388,7 @@ Next handoff:
 - `npm.cmd run build` if runtime code changes
 - changelog and doc-log entries when runtime code changes
 
-## [ ] `Materials-5 / Phase 3` - `Mixed Selected Material Read`
+## [x] `Materials-5 / Phase 3` - `Mixed Selected Material Read`
 
 ### Phase 3 Summary
 
@@ -401,22 +411,64 @@ Teach the selected-material editor to show `Multiple values` when the multi-obje
 
 This phase should start after Phase 2 proves the multi-object assignment scope.
 
-Likely direction:
-1. Build a selected-material aggregate read that compares resolved material values across selected objects.
-2. For each field, return either a concrete value or a mixed marker.
-3. Show `Multiple values` in the compact selected-material editor for mixed fields.
-4. Keep native controls disabled or neutral for mixed fields until Phase 4 owns editing them.
-5. Preserve single-target selected material behavior.
+Prepared live seam read:
+- `materialsSectionViewModel.ts` already builds `assignmentScope` from `context.selectedObjectTargets`, dedupes part keys, and preserves the active focused object's visible `targetRows`.
+- `resolveSelectedTargetMaterialRead(...)` is currently single-target only: selected target row -> per-part preset -> selected preset -> first preset fallback.
+- `PropertiesMaterialsSectionContent.tsx` currently derives `selectedMaterialRead` from the active visible `selectedTarget`, then renders the compact editor directly from `selectedMaterialRead.preset`.
+- The compact editor controls are normal editable controls for `name`, base color, emissive color, metalness, roughness, opacity, emissive intensity, transparency, and rendering.
+- The current edit path still calls `updateMaterialPresetWithHistory(...)` against one resolved preset. Phase 3 should not widen that path.
+
+Implementation-ready direction:
+1. Add a view-model-level aggregate read for the assignment scope, likely beside `resolveSelectedTargetMaterialRead(...)`, that resolves each included assignment-scope target row through the same per-part -> selected preset -> first preset fallback order.
+2. Keep single-object scope returning the existing single-target read behavior so current single selection remains unchanged.
+3. For multi-object scope, compare resolved preset fields across the included `assignmentScope.targetRows`.
+4. Track per-field read state for:
+   - `name`
+   - `color`
+   - `emissive`
+   - `metalness`
+   - `roughness`
+   - `opacity`
+   - `emissiveIntensity`
+   - `transparent`
+   - `doubleSided`
+5. Return a concrete field value only when all included material targets agree; otherwise return a mixed marker displayed as `Multiple values`.
+6. Prefer a small typed result shape over string-only rows so the editor can decide which controls should be normal, mixed, or pending.
+7. In the compact editor, show `Multiple values` for mixed fields without writing any material changes.
+8. Mixed fields should be neutral/read-only in this phase. For sliders/selects/color/name fields, either disable the control or replace the control surface with a compact `Multiple values` row/badge; do not let a Phase 3 interaction mutate materials.
+9. Keep the project material preset list assignment behavior from Phase 2 unchanged; clicking a project material still applies that preset to included focused items.
+10. Keep active-detail target selection behavior unchanged; the material target list still follows the active focused object, while the selected-material read can aggregate over the included focused items.
+
+Phase 3 is ready to implement.
+
+### Implementation Result
+
+Shipped implementation:
+- `materialsSectionViewModel.ts` now exposes `resolveSelectedMaterialScopeRead(...)`, which preserves the existing single-target read path and aggregates multi-object assignment-scope target rows.
+- Multi-object selected-material reads compare `name`, base color, emissive color, metalness, roughness, opacity, emissive intensity, transparency, and rendering.
+- Fields that agree return concrete values; fields that differ return mixed markers shown as `Multiple values`.
+- `PropertiesMaterialsSectionContent.tsx` now reads selected material state from the included focused-item assignment scope instead of only the active visible target when multiple objects are included.
+- Mixed text/color/select fields render compact `Multiple values` rows.
+- Mixed scalar fields show `Multiple values` through the compact `ParaSlider` surface.
+- Multi-object selected-material controls are read-only in this phase, so changing fields remains deferred to `Phase 4`.
+- The project material preset list assignment behavior from Phase 2 is unchanged.
+
+Next handoff:
+- `Phase 4` should decide the exact write semantics for multi-object field editing, especially whether edits mutate a shared preset or create per-object material copies when selected targets disagree.
 
 ### Verification Shape
 
-- tests for agreed values showing normally
-- tests for mixed color/scalar/mode fields showing `Multiple values`
-- no field-edit widening yet
-- production build
-- changelog and doc-log entries
+- view-model tests for single-object scope preserving current resolved selected-material read behavior
+- view-model tests for multi-object scope with agreed values showing concrete values
+- view-model tests for multi-object scope with different color/scalar/mode fields returning mixed markers
+- Properties surface test where two included focused objects with different material assignments show `Multiple values`
+- Properties surface test or assertion proving Phase 3 mixed controls do not edit material truth
+- existing Phase 2 batch assignment and Phase 2.1 inclusion/remove tests still pass
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- changelog and doc-log entries when runtime code changes
 
-## [ ] `Materials-5 / Phase 4` - `Multi Object Field Editing`
+## [x] `Materials-5 / Phase 4` - `Multi Object Field Editing`
 
 ### Phase 4 Summary
 
@@ -439,19 +491,68 @@ After this phase, if two selected objects have different roughness values and th
 
 ### Implementation Direction
 
-This phase needs a careful prep pass before runtime implementation.
+Prepared live seam read:
+- `Phase 3` shipped `resolveSelectedMaterialScopeRead(...)` and typed field reads so the compact editor knows which fields agree and which fields are mixed.
+- `PropertiesMaterialsSectionContent.tsx` currently blocks `updateResolvedPreset(...)` whenever `selectedMaterialRead.targetCount > 1`; Phase 4 should replace that guard with a multi-object write path.
+- Single-object edits still use `updateMaterialPresetWithHistory(...)` against the resolved preset id.
+- Project-material row clicks already apply one preset id to every included assignment-scope part key through `assignMaterialPresetToPartsWithHistory(...)`.
+- `materialEditHistory.ts` snapshots the full `ViewSettings['materials']` tree before and after a mutation, so a new multi-object edit helper can still produce one undoable history entry.
+- `uiPrefsStore.addMaterialPreset(...)` creates a preset and selects it, while `assignPartMaterial(...)` maps a part key to a preset id. There is no direct helper yet for creating several patched per-target copies inside one history action.
+- `duplicateMaterialPresetForPartWithHistory(...)` already demonstrates the safe copy-and-assign model for one target.
 
 Open decision before implementation:
-- whether multi-object field edits should edit a shared selected preset when all selected targets already use the same preset, or create/assign per-object material copies when targets differ
+- whether multi-object field edits should mutate a shared preset when all selected targets already use the same preset, or create/assign per-object material copies when targets differ
 
-Likely safe default:
-- project material row clicks assign the same preset to all selected objects
-- direct field edits across mixed objects should avoid accidentally mutating a shared project preset used elsewhere unless the phase explicitly chooses that behavior
+Implementation-ready direction:
+1. Keep single-object edits on the existing `updateMaterialPresetWithHistory(...)` path.
+2. Add a material-history helper for multi-target field edits, likely in `materialEditHistory.ts`, that accepts included assignment-scope target rows plus a `Partial<MaterialPreset>` patch and commits one undoable history entry.
+3. Safe default: direct multi-object field edits should create a patched material preset copy per included target and assign each copy to that target's part key.
+4. The helper should resolve each target row through the same per-part -> selected preset -> first preset fallback read used by Phase 3, then seed the copy from that target's resolved preset.
+5. The helper should call `setUsePerPartMaterial(true)` and assign every included part key to its newly created patched preset.
+6. Name the generated per-target copies deterministically enough for tests, for example `<base material name> Multi Edit` or `<base material name> <field> Edit`; do not expose naming as a Phase 4 UX decision.
+7. Preserve project material list behavior: clicking a project material row still assigns the same chosen project preset to all included targets. Only direct field controls create per-target edited copies.
+8. Re-enable compact editor controls for multi-object reads by routing scalar/color/select changes through the multi-object edit helper.
+9. For mixed fields, controls should use a neutral starting value from `selectedMaterialRead.preset` or the first resolved preset, but the displayed value should remain `Multiple values` until the user changes it.
+10. After the user changes a mixed field, the selected-material read should refresh and show the edited concrete value for that field when all included targets now agree.
+11. Keep field scope narrow to the Phase 3 fields: name, base color, emissive color, metalness, roughness, opacity, emissive intensity, transparency, and rendering.
+12. Keep grouped all/odds/evens assignment actions, `New Material`, `Duplicate Material`, and project material search unchanged.
+
+Phase 4 is ready to implement.
+
+### Implementation Result
+
+Shipped implementation:
+- `materialEditHistory.ts` now exposes `updateMaterialPresetCopiesForPartsWithHistory(...)` for one undoable multi-target field edit.
+- Direct multi-object field edits create patched material preset copies per included target and assign each created preset to that target's part key.
+- Single-object field edits still use the existing `updateMaterialPresetWithHistory(...)` path.
+- `PropertiesMaterialsSectionContent.tsx` now routes multi-object direct field edits through the new copy-and-assign helper instead of blocking them.
+- Mixed scalar controls can be changed from the compact `ParaSlider` surface, and the edited field becomes a concrete agreed value after the write.
+- Mixed base-color edits can be applied from the compact color input, creating per-target copies that preserve each target's other material values.
+- Project-material row assignment remains unchanged and still assigns one chosen project preset to all included targets.
+
+Follow-up adjustment:
+- Direct multi-object edits now update the resolved materials by default, even when those material presets are shared by other objects.
+- `PropertiesMaterialsSectionContent.tsx` adds an off-by-default `Create new material on multi edit` toggle for users who want the safer copy-and-assign behavior.
+- `materialEditHistory.ts` now also exposes `updateMaterialPresetsForPartsWithHistory(...)` for one undoable multi-target edit of existing resolved presets.
+- The copy-and-assign helper remains available and is used only when the toggle is enabled.
+- Project material rows now highlight every resolved preset used by the included focused-item assignment scope, so multi-object selections with different materials show all participating project materials as active.
+
+Completed verification:
+- material-history helper test for patched per-target preset copies, per-part assignments, and undo/redo
+- material-history helper test for updating existing resolved presets once per unique preset id
+- Properties surface test for editing mixed `Metalness` across included focused objects
+- Properties surface test for editing mixed `Base color` across included focused objects
+- Properties surface test proving the copy-and-assign behavior only runs when `Create new material on multi edit` is enabled
+- Properties surface assertion proving two different selected object materials both highlight in the Project materials list
 
 ### Verification Shape
 
-- tests for editing mixed scalar fields across selected objects
-- tests for editing mixed color fields across selected objects
-- material history undo proof
-- production build
+- material-history helper test proving one multi-object field edit creates patched per-target preset copies, assigns them to every included part key, and commits one undoable entry
+- Properties surface test for editing a mixed scalar field such as `Metalness` across two included focused objects
+- Properties surface test for editing a mixed color field such as `Base color` across two included focused objects
+- assertion that after editing a mixed field, the read for that field becomes a concrete agreed value instead of `Multiple values`
+- undo/redo proof for the multi-object edit
+- existing Phase 2 project-material batch assignment and Phase 3 mixed-read tests still pass
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
 - changelog and doc-log entries
