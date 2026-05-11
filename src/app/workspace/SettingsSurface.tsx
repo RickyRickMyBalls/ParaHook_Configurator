@@ -10,6 +10,7 @@ import {
   type SpaghettiWindowAppearance,
 } from '../panels/spaghettiWindowAppearance'
 import {
+  setConsoleInputPriorityModeWithHistory,
   setSpaghettiWindowAppearanceDefaultsWithHistory,
   setWorkspacePanelShellPaddingWithHistory,
   setWorkspacePaneFilletRadiusWithHistory,
@@ -22,6 +23,7 @@ import {
   MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
   MIN_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  type ConsoleInputPriorityMode,
   useUiPrefsStore,
 } from '../store/uiPrefsStore'
 import { WorkspacePanelSplitShell } from './WorkspacePanelSplitShell'
@@ -153,6 +155,9 @@ const formatOnOff = (value: boolean): string => (value ? 'On' : 'Off')
 const formatStartupSurface = (value: 'homePage' | 'modelViewer'): string =>
   value === 'modelViewer' ? 'Model Viewport' : 'Home Page'
 
+const formatConsoleInputPriorityMode = (value: ConsoleInputPriorityMode): string =>
+  value === 'shortcuts-first' ? 'Shortcuts first' : 'Console first'
+
 const formatProjectionMode = (value: string): string =>
   value === 'orthographic' ? 'Orthographic' : 'Perspective'
 
@@ -168,6 +173,7 @@ const formatLibraryStatus = (value: string): string =>
 
 const buildSettingsRows = (options: {
   workspaceStartupSurface: 'homePage' | 'modelViewer'
+  consoleInputPriorityMode: ConsoleInputPriorityMode
   workspaceRestorePersistence: boolean
   viewSettingsPersistence: boolean
   environmentPersistence: boolean
@@ -188,6 +194,14 @@ const buildSettingsRows = (options: {
     label: 'Startup surface',
     value: formatStartupSurface(options.workspaceStartupSurface),
     description: 'Where the workspace opens first.',
+    sectionIds: ['general'],
+  },
+  {
+    id: 'console-input-priority',
+    label: 'Console input priority',
+    value: formatConsoleInputPriorityMode(options.consoleInputPriorityMode),
+    description:
+      'Console first types plain letters into Console and uses Shift+letter shortcuts; Shortcuts first lets letters trigger shortcuts and uses C to enter Console.',
     sectionIds: ['general'],
   },
   {
@@ -325,6 +339,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
     (state) => state.spaghettiWindowAppearanceDefaults,
   )
   const workspaceStartupSurface = useUiPrefsStore((state) => state.workspaceStartupSurface)
+  const consoleInputPriorityMode = useUiPrefsStore((state) => state.consoleInputPriorityMode)
   const workspaceRestorePersistence = useUiPrefsStore(
     (state) => state.workspaceRestorePersistence,
   )
@@ -369,6 +384,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
     () =>
       buildSettingsRows({
         workspaceStartupSurface,
+        consoleInputPriorityMode,
         workspaceRestorePersistence,
         viewSettingsPersistence,
         environmentPersistence,
@@ -389,6 +405,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
       browserIsFloating,
       browserIsViewportSplit,
       browserPresentationMode,
+      consoleInputPriorityMode,
       dashboardPersistence,
       environmentPersistence,
       leftDockWidth,
@@ -661,6 +678,50 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                       </div>
                     </div>
                   </div>
+                ) : section.id === 'general' ? (
+                  <>
+                    <div className="SettingsSurfaceEditorPanel">
+                      <div className="SettingsSurfaceEditorGrid">
+                        <div className="SettingsSurfaceEditorField">
+                          <label className="HomePageSurfaceStoragePolicyToggle">
+                            <span>Console first input priority</span>
+                            <input
+                              className="HomePageSurfacePersistenceSwitch"
+                              type="checkbox"
+                              role="switch"
+                              aria-label="Console first input priority"
+                              checked={consoleInputPriorityMode === 'console-first'}
+                              onChange={() =>
+                                setConsoleInputPriorityModeWithHistory(
+                                  consoleInputPriorityMode === 'console-first'
+                                    ? 'shortcuts-first'
+                                    : 'console-first',
+                                )
+                              }
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="SettingsSurfaceRowList" role="list">
+                      {rows.map((row) => (
+                        <article
+                          key={row.id}
+                          className="SettingsSurfaceRowCard"
+                          role="listitem"
+                          data-settings-row-id={row.id}
+                        >
+                          <div className="SettingsSurfaceRowCopy">
+                            <strong>{row.label}</strong>
+                            <p>{row.description}</p>
+                          </div>
+                          <div className="SettingsSurfaceRowValue" aria-label={`${row.label} value`}>
+                            {row.value}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </>
                 ) : section.id === 'workspace' ? (
                   <>
                     <div className="SettingsSurfaceEditorPanel">

@@ -72,6 +72,211 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1890 -->
+
+### [1890] - 2026-05-11 17:53 - `Settings-3 - Phase 5 Follow-Up - Viewer-Local Zoom Object Priority`
+
+HUMAN SUMMARY: `The viewer-local fallback for Zoom Object now honors the Console input-priority setting. Shortcuts-first plain Z can frame the same selected object or multi-selection target as the shared shortcut hook, while Console-first keeps plain Z dormant for Console typing.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix scoped to the legacy viewer-local keyboard fallback.
+- Reused the existing Zoom Object target resolver instead of adding a second selection interpretation.
+- Did not add new shortcut commands or key-binding UI.
+
+#### Summary of Implementation
+
+- Made `Viewer.ts` resolve viewer-local Zoom Object through `resolveViewerCameraShortcutAction(...)` and `resolveZoomObjectTarget(...)`.
+- Removed the old unconditional plain `z` local frame-selected shortcut so Console-first mode no longer frames from the viewer fallback.
+- Added focused viewer tests for modified `Z` chords, Console-first plain `Z` dormancy, and Shortcuts-first plain `Z` multi-selection framing.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- In Shortcuts-first mode, plain `Z` can now work through the viewer-local fallback and frame multi-selected objects as a set.
+- In Console-first mode, plain `Z` is no longer handled by the viewer-local fallback, preserving the Console-first typing expectation.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "viewer-local"`
+- `npm.cmd test -- src/app/useViewerCameraShortcuts.test.tsx src/app/inputRouting.test.ts`
+
+<!-- ENTRY 1889 -->
+
+### [1889] - 2026-05-11 17:46 - `Settings-3 - Phase 5 - Shortcut Priority Hardening And Handoff`
+
+HUMAN SUMMARY: `The Console input-priority setting now has final routing hardening coverage. Phase 5 adds regression proof that Console-first capture, Shortcuts-first C entry, editable fields, fly movement, sketch, reference, staged Console, and edit-history owners keep the intended priority while leaving runtime behavior unchanged.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5 as a hardening and handoff pass.
+- Did not add new shortcut commands.
+- Did not change runtime routing after the existing Phase 4 behavior passed the new regression matrix.
+- Avoided widening into the unrelated full `ConsoleDock.test.tsx` staged-navigation/reference-flow failures.
+
+#### Summary of Implementation
+
+- Added focused `inputRouting.test.ts` coverage for Console-first `C` capture versus Shortcuts-first deliberate `C` entry.
+- Added proof that Shortcuts-first deliberate Console entry is limited to unmodified `C` and still requires Console capture eligibility.
+- Added proof that edit history, fly movement, sketch draw, sketch-plane, reference, and staged Console owners keep priority over the input-priority mode changes.
+- Recorded the key-binding handoff for later `Settings-2` or rebinding work.
+
+#### Files Changed
+
+- `src/app/inputRouting.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "input priority is Shortcuts first"`
+
+<!-- ENTRY 1888 -->
+
+### [1888] - 2026-05-11 17:35 - `Settings-3 - Phase 4 - Input Priority Routing`
+
+HUMAN SUMMARY: `The Console input-priority setting now affects runtime keyboard routing. Console-first keeps printable Console capture and Shift+Z Zoom Object, while Shortcuts-first suppresses ordinary printable Console capture, uses plain Z for Zoom Object, and uses C to focus Console without typing c.`
+
+#### Scope / Constraints Honored
+
+- Kept the Settings UI unchanged after Phase 3.
+- Did not add a key-binding editor or broad shortcut inventory.
+- Limited the first mode-aware shortcut proof to existing Zoom Object behavior.
+- Preserved editable-field ownership before Console entry or shortcut handling.
+
+#### Summary of Implementation
+
+- Added `consoleInputPriorityMode` to shared keyboard routing and introduced a `console-entry` routing owner for Shortcuts-first `C`.
+- Gated flat printable Console capture to Console-first mode.
+- Made Zoom Object mode-aware: `Shift+Z` in Console-first mode and plain `Z` in Shortcuts-first mode.
+- Threaded the persisted input-priority mode through `useConsoleInteraction` and `useViewerCameraShortcuts`.
+- Handled Shortcuts-first `C` in docked/floating and popout Console keydown paths by focusing Console without calling `seedInputText('c')`.
+- Added focused routing, viewer shortcut, and Console keydown coverage.
+
+#### Files Changed
+
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/cameraShortcuts.ts`
+- `src/app/useViewerCameraShortcuts.ts`
+- `src/app/useViewerCameraShortcuts.test.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- In Console-first mode, printable keys still auto-focus and seed Console when no higher-priority owner claims them.
+- In Console-first mode, Zoom Object remains `Shift+Z`.
+- In Shortcuts-first mode, ordinary printable keys no longer auto-focus and seed Console.
+- In Shortcuts-first mode, Zoom Object uses plain `Z`.
+- In Shortcuts-first mode, `C` focuses Console without seeding `c` in docked/floating and popout Console contexts.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "input priority is Shortcuts first"`
+- `npm.cmd run build`
+- Full `ConsoleDock.test.tsx` currently has unrelated staged-navigation/reference-flow failures outside the focused Phase 4 assertions.
+
+<!-- ENTRY 1887 -->
+
+### [1887] - 2026-05-11 17:21 - `Settings-3 - Phase 3 - Settings Console Input Priority Control`
+
+HUMAN SUMMARY: `Settings now exposes the persisted Console input-priority preference in the General section, with a Console-first toggle plus All/General read-row projection. The edit is undoable through the UI preference history helper, while keyboard routing behavior remains deferred to Phase 4.`
+
+#### Scope / Constraints Honored
+
+- Kept Settings as a projection over the existing `consoleInputPriorityMode` preference instead of creating a new Settings-owned value.
+- Kept the control in the existing `General` section for this phase.
+- Did not change Console capture, `C` Console entry, `Z`, `Shift+Z`, or any keyboard routing behavior.
+
+#### Summary of Implementation
+
+- Added a General-section `Console first input priority` toggle where on means `Console first` and off means `Shortcuts first`.
+- Added an All/General read row that displays the current mode and names the Console-first `Shift+letter` and Shortcuts-first `C` entry semantics.
+- Added `setConsoleInputPriorityModeWithHistory(...)` so Settings changes produce a stable `ui-pref:consoleInputPriorityMode` undo entry.
+- Extended Settings surface tests to prove render, mutation, store update, and undo behavior.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/store/uiPreferenceEditHistory.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Users can now change the stored Console input-priority mode from Settings.
+- The change affects the persisted preference value only; runtime keyboard interpretation remains unchanged until `Settings-3 / Phase 4`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/SettingsSurface.test.tsx src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1886 -->
+
+### [1886] - 2026-05-11 16:56 - `Settings-3 - Phase 2 - Console Input Priority Preference Contract`
+
+HUMAN SUMMARY: `ParaHook now has a persisted Console input-priority preference contract with a Console-first default and Shortcuts-first option. This only adds the owner-backed setting value and persistence path; Settings UI, C Console entry, Shift+letter shortcuts, and keyboard routing behavior are intentionally unchanged until later phases.`
+
+#### Scope / Constraints Honored
+
+- Kept the phase to the owner-backed preference contract.
+- Preserved the current Console-first default behavior for existing users.
+- Left Settings UI projection to Phase 3.
+- Left `useConsoleInteraction`, `routeKeyboardInput`, `C` Console entry, and `Shift+letter` shortcut routing to Phase 4.
+
+#### Summary of Implementation
+
+- Added `ConsoleInputPriorityMode`, `DEFAULT_CONSOLE_INPUT_PRIORITY_MODE`, `consoleInputPriorityMode`, and `setConsoleInputPriorityMode(...)` to `uiPrefsStore`.
+- Serialized and normalized the preference through `uiPrefsPersistence`, with missing or invalid saved values falling back to `console-first`.
+- Hydrated and re-persisted the preference through `useUiPrefsPersistenceBridge`.
+- Added focused store and persistence bridge tests for default, mutation, fallback, and `shortcuts-first` round-trip behavior.
+
+#### Files Changed
+
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The UI preferences store now contains a persisted `consoleInputPriorityMode` value.
+- The default value is `console-first`; persisted `shortcuts-first` values are retained across reloads.
+- No keyboard routing behavior changes yet.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd run build`
+
 <!-- ENTRY 1885 -->
 
 ### [1885] - 2026-05-11 16:28 - `Workspace-10 - Phase 5 - Popup Parity Decision And Final Shell Closeout`

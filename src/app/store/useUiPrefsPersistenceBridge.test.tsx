@@ -85,6 +85,7 @@ describe('useUiPrefsPersistenceBridge', () => {
       rotationDeg: 90,
     })
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(12)
     expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(0)
     expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(true)
@@ -93,6 +94,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     expect(persistedAfterHydration).toEqual({
       version: 3,
       workspaceStartupSurface: 'homePage',
+      consoleInputPriorityMode: 'console-first',
       workspacePaneFilletRadiusPx: 12,
       workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
@@ -152,6 +154,7 @@ describe('useUiPrefsPersistenceBridge', () => {
       expect.objectContaining({
         version: 3,
         workspaceStartupSurface: 'homePage',
+        consoleInputPriorityMode: 'console-first',
         workspacePaneFilletRadiusPx: 12,
         workspacePanelShellPaddingPx: 0,
         workspaceNestedResizeKeepsFarPane: true,
@@ -204,6 +207,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         version: 2,
         view: persistedView,
         workspaceStartupSurface: 'modelViewer',
+        consoleInputPriorityMode: 'shortcuts-first',
         workspacePaneFilletRadiusPx: 18,
         workspacePanelShellPaddingPx: 8,
         workspaceNestedResizeKeepsFarPane: true,
@@ -225,6 +229,7 @@ describe('useUiPrefsPersistenceBridge', () => {
 
     const state = useUiPrefsStore.getState()
     expect(state.workspaceStartupSurface).toBe('modelViewer')
+    expect(state.consoleInputPriorityMode).toBe('shortcuts-first')
     expect(state.workspacePaneFilletRadiusPx).toBe(18)
     expect(state.workspacePanelShellPaddingPx).toBe(8)
     expect(state.workspaceNestedResizeKeepsFarPane).toBe(true)
@@ -257,6 +262,7 @@ describe('useUiPrefsPersistenceBridge', () => {
           projectionMode: 'perspective',
         },
         workspaceStartupSurface: 'not-a-real-surface',
+        consoleInputPriorityMode: 'not-a-real-mode',
         workspacePaneFilletRadiusPx: 99,
         workspacePanelShellPaddingPx: 99,
         workspaceNestedResizeKeepsFarPane: true,
@@ -278,11 +284,13 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
 
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(99)
     expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(24)
     expect(readPersistedUiPrefs()).toEqual({
       version: 3,
       workspaceStartupSurface: 'homePage',
+      consoleInputPriorityMode: 'console-first',
       workspacePaneFilletRadiusPx: 99,
       workspacePanelShellPaddingPx: 24,
       workspaceNestedResizeKeepsFarPane: true,
@@ -347,6 +355,7 @@ describe('useUiPrefsPersistenceBridge', () => {
       expect.objectContaining({
         version: 3,
         view: expect.any(Object),
+        consoleInputPriorityMode: 'console-first',
         workspacePaneFilletRadiusPx: 12,
         workspacePanelShellPaddingPx: 0,
         workspaceNestedResizeKeepsFarPane: true,
@@ -362,6 +371,30 @@ describe('useUiPrefsPersistenceBridge', () => {
     )
     expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).not.toHaveProperty(
       'environmentLookComparisonActive',
+    )
+  })
+
+  it('persists Console input priority edits without adding routing behavior', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<UiPrefsPersistenceBridgeHarness />)
+    })
+
+    expect(readPersistedUiPrefs()?.consoleInputPriorityMode).toBe('console-first')
+
+    await act(async () => {
+      useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    })
+
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('shortcuts-first')
+    expect(readPersistedUiPrefs()?.consoleInputPriorityMode).toBe('shortcuts-first')
+    expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).toEqual(
+      expect.objectContaining({
+        consoleInputPriorityMode: 'shortcuts-first',
+      }),
     )
   })
 })

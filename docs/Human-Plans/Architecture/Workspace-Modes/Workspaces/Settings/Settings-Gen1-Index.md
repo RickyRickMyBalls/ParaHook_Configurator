@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-05-11 17:46:18: Marked `Settings-3 / Phase 5 - Shortcut Priority Hardening And Handoff` complete after the future doc recorded final input-priority routing regression coverage, targeted Console side-effect proof, and the handoff from the first Console input-priority setting to later `Settings-2` key-binding visibility and rebinding work.
+17. 2026-05-11 17:35:50: Marked `Settings-3 / Phase 4 - Input Priority Routing` complete after the future doc recorded Console-first printable capture preservation, Console-first `Shift+Z`, Shortcuts-first plain `Z`, Shortcuts-first `C` Console entry without seeding text, focused routing/Console verification, and build proof.
+16. 2026-05-11 17:21:55: Marked `Settings-3 / Phase 3 - Settings Console Input Priority Control` complete after the future doc recorded the General-section Console-first toggle, All/General read row projection, history-backed preference mutation, focused Settings tests, and no-routing boundary.
+15. 2026-05-11 16:56:10: Marked `Settings-3 / Phase 2 - Console Input Priority Preference Contract` complete after the future doc recorded the persisted `consoleInputPriorityMode` preference, `console-first` default, `shortcuts-first` support, focused tests, build verification, and no-routing/no-UI boundary.
+14. 2026-05-11 16:47:28: Corrected the `Settings-3` Console typing-capture overview into the Console-first versus Shortcuts-first input-priority model, clarifying that Console-first keeps plain letters for Console typing while shortcuts use `Shift+letter`, and Shortcuts-first lets plain letters trigger shortcuts while `C` enters Console.
 13. 2026-05-10 14:02:14: Marked `Settings-3 / Phase 1 - Console Capture Owner Audit` complete after the future doc recorded the verified automatic Console capture route, proposed preference read seam, manual `C` owner split, priority rules, and follow-on test targets without changing runtime code.
 12. 2026-05-10 13:52:11: Added `Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md` and expanded the `Settings-3` ladder into five first implementation phases for Console capture audit, preference contract, Settings control projection, manual `C` routing, and shortcut-priority hardening.
 11. 2026-05-10 13:46:31: Added the open `Settings-3` family phase as a flexible lane for small owner-backed Settings additions that can be implemented one by one, seeding the first candidate around Console typing-capture mode so auto-capture can later be separated from shortcut-friendly manual Console entry.
@@ -84,7 +89,7 @@ The next open-ended family lane is `Settings-3`.
 - capture focused user-requested settings as separate implementation phases
 - keep each setting owner-backed instead of turning Settings into the owner
 - leave room for one-by-one Codex implementation passes
-- start with Console typing-capture mode so users can choose between automatic command typing and a shortcut-friendly manual Console entry mode
+- start with Console input-priority mode so users can choose between Console-first command typing and Shortcuts-first letter shortcuts
 
 ### Current Planning Read
 
@@ -121,9 +126,9 @@ It should own the dedicated `Key Bindings` section and the first shortcut invent
 `Settings-3` is an open follow-on family phase.
 It should collect focused Settings additions that the user wants to implement one at a time:
 - `Phase 1` - Console capture owner audit
-- `Phase 2` - Console capture preference contract
-- `Phase 3` - Settings Console capture control
-- `Phase 4` - manual Console entry routing
+- `Phase 2` - Console input-priority preference contract
+- `Phase 3` - Settings Console input-priority control
+- `Phase 4` - input priority routing
 - `Phase 5` - shortcut priority hardening and handoff
 - later phases - user-added Settings controls, grouped only when a narrower owner family is not justified yet
 
@@ -180,7 +185,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] Settings-Gen1-CLG-4. Keep the left rail narrow and full-height so the layout feels like Unreal Engine settings.
 - [ ] Settings-Gen1-CLG-5. Keep the surface store-like and section-driven, not a flat catch-all page.
 - [ ] Settings-Gen1-CLG-6. Add a dedicated `Key Bindings` settings section that groups shortcuts by mode or surface context without inventing a new shortcut owner.
-- [ ] Settings-Gen1-CLG-7. Add an open `Settings-3` family lane for small owner-backed Settings controls, beginning with the Console typing-capture mode toggle.
+- [ ] Settings-Gen1-CLG-7. Add an open `Settings-3` family lane for small owner-backed Settings controls, beginning with the Console input-priority mode toggle.
 
 ### `Settings-1`
 
@@ -228,16 +233,17 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 
 - [ ] Keep `Settings-3` open as a flexible family phase for focused Settings additions that can be implemented one at a time.
 - [x] Create a standalone `Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md` Family Phase Doc when the first implementation slice is ready.
-- [ ] Seed `Phase 1` around Console typing-capture mode:
-  - automatic typing mode keeps the current behavior where printable keys can enter the Console after workspace interaction
-  - manual Console-entry mode prevents normal letters from auto-capturing so those letters can become shortcuts
-  - manual mode should use a deliberate Console focus chord or key, currently planned as `C`, before free typing enters the Console
+- [x] Seed `Phase 1` around Console input-priority mode:
+  - Console-first mode keeps the current behavior where printable keys can enter the Console after workspace interaction
+  - Console-first mode routes letter shortcuts through `Shift+letter`, such as `Shift+Z` for `Zoom object`
+  - Shortcuts-first mode lets normal letters such as `Z` become shortcuts
+  - Shortcuts-first mode should use `C` as the deliberate Console entry key before free typing enters the Console
 - [x] Use `Settings-3 / Phase 1` to audit the current Console capture owner path before code changes.
-- [ ] Use `Settings-3 / Phase 2` to add the typed owner-backed preference and preserve the current default.
-- [ ] Use `Settings-3 / Phase 3` to project the preference into Settings.
-- [ ] Use `Settings-3 / Phase 4` to honor manual `C` entry in input routing.
-- [ ] Use `Settings-3 / Phase 5` to harden priority and record the key-binding handoff.
-- [ ] Keep the Console typing-capture setting owned by the Console/input-routing preference seam, with Settings only projecting and changing that preference.
+- [x] Use `Settings-3 / Phase 2` to add the typed owner-backed preference and preserve the current default.
+- [x] Use `Settings-3 / Phase 3` to project the preference into Settings.
+- [x] Use `Settings-3 / Phase 4` to honor Console-first `Shift+letter` shortcut routing and Shortcuts-first plain-letter plus `C` Console-entry routing.
+- [x] Use `Settings-3 / Phase 5` to harden priority and record the key-binding handoff.
+- [x] Keep the Console input-priority setting owned by the Console/input-routing preference seam, with Settings only projecting and changing that preference.
 - [ ] Leave later `Settings-3` phases open for user-added controls instead of pretending this index already knows every random Settings item.
 - [ ] Keep each later phase small enough for one Codex implementation pass.
 - [ ] `Settings-Gen1-HLG-2`
@@ -406,13 +412,13 @@ This phase exists so Settings can keep growing without forcing every small prefe
 - [ ] Settings-Gen1-CLG-2. Make `All` the first category and let it show the full settings surface by default.
 - [ ] Settings-Gen1-CLG-3. Keep settings content as a projection over the real owner systems instead of a new preference owner.
 - [ ] Settings-Gen1-CLG-5. Keep the surface store-like and section-driven, not a flat catch-all page.
-- [ ] Settings-Gen1-CLG-7. Add an open `Settings-3` family lane for small owner-backed Settings controls, beginning with the Console typing-capture mode toggle.
+- [ ] Settings-Gen1-CLG-7. Add an open `Settings-3` family lane for small owner-backed Settings controls, beginning with the Console input-priority mode toggle.
 
 ### Owns
 
 - an open planning lane for small Settings additions
 - owner-backed toggle and control requests that do not yet justify a narrower family
-- the first planned Console typing-capture mode setting
+- the first planned Console input-priority mode setting
 - one-by-one implementation phase routing for user-added Settings controls
 
 ### Does Not Own
@@ -424,12 +430,13 @@ This phase exists so Settings can keep growing without forcing every small prefe
 
 ### Planning Read
 
-`Settings-3 / Phase 1` should start with the Console typing-capture setting.
+`Settings-3 / Phase 1` should start with the Console input-priority setting.
 
 The user-facing behavior should be:
-- automatic mode keeps the current quick-console behavior where normal printable keys can enter the Console after workspace interaction
-- manual mode lets the model viewport and other surfaces keep ordinary letters available for shortcuts
-- manual mode uses a deliberate Console entry key or chord before free typing enters the Console, currently planned as `C`
+- Console-first mode keeps the current quick-console behavior where normal printable keys can enter the Console after workspace interaction
+- Console-first mode makes letter shortcuts use `Shift+letter`, such as `Shift+Z` for `Zoom object`
+- Shortcuts-first mode lets the model viewport and other surfaces keep ordinary letters available for shortcuts, such as plain `Z`
+- Shortcuts-first mode uses `C` as the deliberate Console entry key before free typing enters the Console
 
 The implementation plan should stay honest:
 - store the preference in the existing UI/settings preference owner area
@@ -437,4 +444,4 @@ The implementation plan should stay honest:
 - keep direct Console input focus working in both modes
 - keep editable fields native
 - keep higher-priority tool, camera, and viewport shortcuts ahead of Console capture
-- add focused tests for auto mode, manual mode, `C` Console entry, editable fields, and shortcut priority
+- add focused tests for Console-first plain typing, Console-first `Shift+letter` shortcuts, Shortcuts-first plain-letter shortcuts, Shortcuts-first `C` Console entry, editable fields, and shortcut priority

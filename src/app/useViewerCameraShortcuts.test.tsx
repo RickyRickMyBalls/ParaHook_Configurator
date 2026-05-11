@@ -236,6 +236,46 @@ describe('useViewerCameraShortcuts', () => {
     expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
   })
 
+  it('routes plain Z through the selected-part framing seam when Console input priority is Shortcuts first', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as any)
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(505)
+    useAppStore.setState((state) => ({
+      ...state,
+      selectedPartKey: 'part:object-1',
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'z',
+          code: 'KeyZ',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(frameSelectedCommandMock).toHaveBeenCalledWith('part:object-1', viewportId, {
+      animate: true,
+      durationMs: 505,
+    })
+    expect(frameReferenceCommandMock).not.toHaveBeenCalled()
+    expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
+  })
+
   it('routes Shift+Z through the shared selected-reference framing seam when no part target exists', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,

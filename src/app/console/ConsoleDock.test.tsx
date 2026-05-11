@@ -3018,6 +3018,55 @@ describe('ConsoleDock', () => {
     expect(popoutDocument.querySelector('.ConsoleDock--popoutSurface')).not.toBeNull()
   })
 
+  it('focuses the popout console with C without seeding text when input priority is Shortcuts first', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    const popoutDocument = document.implementation.createHTMLDocument('Console Popout')
+    let isPopoutClosed = false
+    let popoutKeydownHandler: ((event: KeyboardEvent) => void) | null = null
+    const popoutWindow = {
+      get closed() {
+        return isPopoutClosed
+      },
+      document: popoutDocument,
+      focus: () => undefined,
+      close: () => {
+        isPopoutClosed = true
+      },
+      addEventListener: (type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'keydown' && typeof handler === 'function') {
+          popoutKeydownHandler = handler as (event: KeyboardEvent) => void
+        }
+      },
+      removeEventListener: () => undefined,
+    } as unknown as Window
+
+    window.open = (() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().switchToPopout()
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+    expect(popoutKeydownHandler).not.toBeNull()
+
+    const keyEvent = new KeyboardEvent('keydown', { key: 'c', bubbles: true, cancelable: true })
+    await act(async () => {
+      popoutKeydownHandler?.(keyEvent)
+    })
+
+    const popoutInput = popoutDocument.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+    expect(popoutInput).not.toBeNull()
+    expect(keyEvent.defaultPrevented).toBe(true)
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+  })
+
   it('focuses the console from slash and recalls command history with arrow keys', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -3092,6 +3141,54 @@ describe('ConsoleDock', () => {
     ) as HTMLInputElement | null
     expect(document.activeElement).toBe(input)
     expect(useConsoleStore.getState().inputText).toBe('b')
+  })
+
+  it('focuses the console with C without seeding text when input priority is Shortcuts first', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'c', bubbles: true, cancelable: true }),
+      )
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+    expect(document.activeElement).toBe(input)
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+  })
+
+  it('does not auto-capture ordinary printable typing when input priority is Shortcuts first', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'b', bubbles: true, cancelable: true }),
+      )
+    })
+
+    const input = container.querySelector(
+      'input[aria-label="Console input"]',
+    ) as HTMLInputElement | null
+    expect(document.activeElement).not.toBe(input)
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
   })
 
   it('does not steal typing from protected text inputs during hybrid capture', async () => {

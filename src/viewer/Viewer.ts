@@ -64,8 +64,12 @@ import type {
   ReferenceTransformOverride,
 } from '../app/references/referenceManifest'
 import type { ActiveReferenceTransformHandle } from '../app/store/useAppStore'
+import { useAppStore } from '../app/store/useAppStore'
+import { useUiPrefsStore } from '../app/store/uiPrefsStore'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
+import { resolveViewerCameraShortcutAction } from '../app/cameraShortcuts'
+import { resolveZoomObjectTarget } from '../app/zoomObjectTarget'
 import type {
   FlyActivationMode,
   FlyModeType,
@@ -5716,6 +5720,37 @@ export class Viewer {
       }
     }
 
+    const uiPrefsState = useUiPrefsStore.getState()
+    const viewerShortcutAction = resolveViewerCameraShortcutAction(
+      event,
+      uiPrefsState.consoleInputPriorityMode,
+    )
+    if (viewerShortcutAction === 'zoom-object') {
+      const zoomTarget = resolveZoomObjectTarget(useAppStore.getState())
+      if (zoomTarget === null) {
+        return
+      }
+      event.preventDefault()
+      const animationOptions = {
+        animate: true,
+        durationMs: uiPrefsState.cameraShortcutTransitionDurationMs,
+      } as const
+      if (zoomTarget.kind === 'part') {
+        this.frameSelected(zoomTarget.partKey, animationOptions)
+        return
+      }
+      if (zoomTarget.kind === 'environment-light') {
+        this.frameEnvironmentLight(zoomTarget.lightId, animationOptions)
+        return
+      }
+      if (zoomTarget.kind === 'selection-set') {
+        this.frameSelectionSet(zoomTarget.partKeys, zoomTarget.referenceIds)
+        return
+      }
+      this.frameReference(zoomTarget.referenceId, animationOptions)
+      return
+    }
+
     const key = event.key.toLowerCase()
     if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
       return
@@ -5791,7 +5826,7 @@ export class Viewer {
       }
       return
     }
-    if (key === 'f' || key === 'z') {
+    if (key === 'f') {
       event.preventDefault()
       this.frameSelected(this.selectedPartKey)
       return

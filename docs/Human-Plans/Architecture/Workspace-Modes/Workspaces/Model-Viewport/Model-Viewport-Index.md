@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+39. 2026-05-11 16:39:36: Added the dedicated future doc `Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`, reserving the presentation-mode follow-on for a `Shift+D` radial display-mode menu, Solid/Wireframe/Material/Rendered modes, and a fifth render-preview mode with iteration progress in the viewport HUD while keeping display mode separate from `Auto / Draft / Final` result policy
 38. 2026-04-18 10:45:51: Marked `Model-Viewport-2 / Phase 5 - Full Primary Workspace Reassignment Coverage` shipped inside the dedicated `Model-Viewport-2` child doc after the repo retired the remaining primary-slot target limits, widened the shared primary-slot workspace coverage to the remaining slotted surfaces through the existing titlebar type submenu path, and completed the current `Model-Viewport-2` ladder while still leaving `Home Page` ownership and startup semantics with the `Home Page` family
 37. 2026-04-18 10:38:12: Marked `Model-Viewport-2 / Phase 4 - Restore And Zero-Viewer Honesty` shipped inside the dedicated `Model-Viewport-2` child doc after the repo added one shared active-surface resolver, taught both live store transitions and persisted-layout normalization to re-resolve active workspace ownership to real surviving model viewers or the honest current primary-slot surface, and advanced the later lane so `Phase 5 - Full Primary Workspace Reassignment Coverage` is now the next open step
 36. 2026-04-18 10:20:49: Updated the dedicated `Model-Viewport-2` child planning lane to add `Phase 5 - Full Primary Workspace Reassignment Coverage` after the existing restore and zero-viewer honesty pass, reserving the later "switch the main slot to any supported workspace surface" widening as its own explicit follow-up instead of folding it into `Phase 4`
@@ -102,6 +103,7 @@ The immediate dedicated follow-on docs for that stack are:
 
 The next later family follow-on reserved here is:
 - `Model-Viewport-2 - Primary Viewport Workspace Reassignment`
+- `Model-Viewport-3 - Display Mode Radial Menu And Render Preview`
 
 The current `Model-Viewport-1` status is:
 - umbrella phase created
@@ -174,6 +176,7 @@ The next real `Model Viewport` work should center on:
 - later authoritative geometry handoff and clean `.step` export staying downstream from the retained geometry-result family
 - the first authoritative-capable retained-result contract and placeholder boundary before real engine work widens
 - later primary-slot workspace reassignment so the user can switch the main `Model Viewport` to another workspace surface without the shell forcing one protected viewer to remain in place
+- later display-mode and render-preview presentation so the user can choose Solid, Wireframe, Material, Rendered, or progressive Render Preview without changing geometry/build truth
 
 ### Core Naming Decisions
 
@@ -300,6 +303,7 @@ Recommended early future phase themes:
 - draft preview execution and viewport swap rules
 - authoritative geometry execution and export handoff
 - later primary viewport workspace reassignment after the protected-main-viewer rule is retired
+- later display-mode radial menu and progressive render-preview HUD after the core result-policy seams stay honest
 - later follow-ons after the first geometry-overhaul baseline proves itself
 
 ### Folder Structure
@@ -367,6 +371,15 @@ Current status:
 - `Phase 4 - Restore And Zero-Viewer Honesty` is now shipped inside that dedicated future doc
 - `Phase 5 - Full Primary Workspace Reassignment Coverage` is now shipped inside that dedicated future doc
 - reserved here so the user goal of changing the main `Model Viewport` into a different workspace now has one honest planning home
+
+6. `Model-Viewport 3 - Display Mode Radial Menu And Render Preview`
+Reason:
+- the repo needs one explicit presentation-mode follow-on for choosing how the currently selected model-viewport result is displayed without mixing that choice into `Auto / Draft / Final` geometry result policy
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+Current status:
+- planned
+- reserved here so `Shift+D` display-mode selection, Solid/Wireframe/Material/Rendered modes, and a fifth progressive render-preview mode with HUD iteration progress have one honest planning home
 
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
 
@@ -480,6 +493,51 @@ Definition of done:
 - that phase is scoped to switching the main `Model Viewport` slot to another supported workspace surface
 - that phase does not pretend `Model Viewport` now owns broader workspace-shell routing, project truth, or `Home Page` ownership
 - that phase now has its own dedicated future-doc planning home instead of living only as an inline placeholder here
+
+## [ ] Model-Viewport 3 - Display Mode Radial Menu And Render Preview
+
+### Summary
+
+#### Purpose:
+- add one model-viewport display-mode system for choosing how the currently visible geometry result is presented
+- let the user press `Shift+D` to pick from a radial menu
+- reserve `Solid`, `Wireframe`, `Material`, `Rendered`, and `Render Preview` as the initial display-mode ladder
+- keep progressive render-preview progress visible in the viewport HUD without turning presentation into geometry truth
+
+#### Current read:
+- the current model-viewport result policy is already named separately as `Auto / Draft / Final`
+- current view settings already include presentation concepts such as wireframe, shadows, environment, ground, and materials
+- Three.js can support fast interactive presentation modes now, while true path-traced or progressive render preview should be treated as a later special mode
+- this lane is intentionally presentation-only and should not replace the still-open `Model-Viewport 1.3` authoritative geometry/export handoff
+
+### Questions
+
+#### [x] Question 1 - What should `Model-Viewport 3` own?
+
+##### Locked answer
+- display-mode selection and render-preview presentation for the active model viewport
+
+##### Why
+- display mode answers how visible geometry is drawn, while `Auto / Draft / Final` answers which geometry result class is visible
+
+#### [x] Question 2 - Should render preview be part of the same mode ladder?
+
+##### Locked answer
+- yes, as the fifth presentation mode, but with its own HUD progress and unsupported/stale-state honesty
+
+##### Why
+- users should be able to ask the viewport for a higher-quality render from the same display-mode picker, while implementation can keep expensive progressive rendering isolated from normal interactive viewport behavior
+
+### Spec
+
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+
+Definition of done:
+- the family has one explicit later phase reserved for model-viewport display modes
+- that phase includes the `Shift+D` radial menu, the first four fast presentation modes, and the fifth progressive render-preview mode
+- render-preview progress is planned as a HUD/status read with iteration or sample progress
+- the phase stays separate from geometry result policy, build scheduling, authoritative geometry truth, and export ownership
 
 ## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment
 

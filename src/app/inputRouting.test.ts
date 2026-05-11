@@ -632,6 +632,45 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Shortcuts-first plain Z to active viewer camera shortcuts before console capture', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'z',
+        code: 'KeyZ',
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
+  it('does not route Shortcuts-first Shift+Z as the active viewer camera shortcut', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'Z',
+        code: 'KeyZ',
+        shiftKey: true,
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
   it('keeps camera navigation shortcuts out of edit history routing', () => {
     expect(routeKeyboardInput({
       event: {
@@ -761,6 +800,154 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('keeps Console-first C as ordinary Console capture instead of deliberate Console entry', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('c'),
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+    })).toEqual({
+      owner: 'flat-console',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('c'),
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+    })).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
+  it('suppresses ordinary printable console capture in Shortcuts-first mode', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('b'),
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('b'),
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
+  it('routes Shortcuts-first C to deliberate Console entry when no higher owner claims it', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('c'),
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'console-entry',
+      decision: 'handle',
+    })
+  })
+
+  it('does not route Shortcuts-first C to Console entry when Console capture is not enabled', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('c'),
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
+  it('keeps Shortcuts-first deliberate Console entry limited to an unmodified C key', () => {
+    for (const event of [
+      { key: 'C', shiftKey: true, target: null },
+      { key: 'c', ctrlKey: true, target: null },
+      { key: 'c', altKey: true, target: null },
+      { key: 'c', metaKey: true, target: null },
+    ]) {
+      expect(routeKeyboardInput({
+        event,
+        allowFlatConsoleCapture: true,
+        consoleInputPriorityMode: 'shortcuts-first',
+      })).toEqual({
+        owner: 'none',
+        decision: 'ignore',
+      })
+    }
+  })
+
+  it('keeps higher-priority owners ahead of Shortcuts-first Console entry', () => {
+    const input = document.createElement('input')
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'c',
+        target: input,
+      },
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'text-field',
+      decision: 'defer-native',
+    })
+  })
+
+  it('keeps edit history shortcuts ahead of Shortcuts-first Console entry and printable suppression', () => {
+    expect(routeKeyboardInput({
+      event: {
+        key: 'z',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanUndo: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'undo',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'y',
+        ctrlKey: true,
+        target: null,
+      },
+      editHistoryCanRedo: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'edit-history',
+      decision: 'handle',
+      editHistoryAction: 'redo',
+    })
+  })
+
+  it('keeps fly movement ownership ahead of Shortcuts-first printable suppression', () => {
+    for (const key of ['w', 'a', 's', 'd', 'q', 'e', 'Shift', 'Control', ' ']) {
+      expect(routeKeyboardInput({
+        event: createEvent(key),
+        viewerFlyActive: true,
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+        consoleInputPriorityMode: 'shortcuts-first',
+      })).toEqual({
+        owner: 'viewer-fly',
+        decision: 'handle',
+      })
+    }
+  })
+
   it('keeps staged console capture active while sketch draw is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('b'),
@@ -771,6 +958,30 @@ describe('routeKeyboardInput', () => {
 
     expect(result).toEqual({
       owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
+  it('keeps sketch draw command ownership ahead of Shortcuts-first routing changes', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('Escape'),
+      geometrySketchMode: 'draw',
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'sketch-draw',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('Delete'),
+      geometrySketchMode: 'draw',
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'sketch-draw',
       decision: 'handle',
     })
   })
@@ -788,6 +999,29 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('keeps sketch-plane local ownership ahead of Shortcuts-first Console entry', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('Escape'),
+      sketchPlanePickStage: 'pick',
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'sketch-plane',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: createEvent('m'),
+      sketchPlanePickStage: 'adjust',
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'sketch-plane',
+      decision: 'handle',
+    })
+  })
+
   it('keeps staged console capture active while reference transform is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('b'),
@@ -798,6 +1032,32 @@ describe('routeKeyboardInput', () => {
 
     expect(result).toEqual({
       owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
+  it('keeps reference command ownership ahead of Shortcuts-first routing changes', () => {
+    expect(routeKeyboardInput({
+      event: createEvent('m'),
+      referenceTransformActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'reference-transform',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      event: {
+        key: 'H',
+        shiftKey: true,
+        target: null,
+      },
+      selectedReferenceHideAvailable: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'reference-selection',
       decision: 'handle',
     })
   })
@@ -837,6 +1097,20 @@ describe('routeKeyboardInput', () => {
       owner: 'staged-console',
       decision: 'handle',
     })
+  })
+
+  it('keeps staged console submit, cancel, and recall owners ahead of Shortcuts-first routing changes', () => {
+    for (const key of ['Enter', 'Escape', 'ArrowUp', 'ArrowDown']) {
+      expect(routeKeyboardInput({
+        event: createEvent(key),
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+        consoleInputPriorityMode: 'shortcuts-first',
+      })).toEqual({
+        owner: 'staged-console',
+        decision: 'handle',
+      })
+    }
   })
 
   it('keeps console recall, focus/menu, sketch, and reference local owners out of edit history routing', () => {

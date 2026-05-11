@@ -5,6 +5,7 @@ export type InputRoutingOwner =
   | 'text-field'
   | 'viewer-fly'
   | 'viewer-camera-shortcuts'
+  | 'console-entry'
   | 'sketch-plane'
   | 'sketch-draw'
   | 'reference-selection'
@@ -16,6 +17,8 @@ export type InputRoutingOwner =
 export type InputRoutingDecision = 'handle' | 'defer-native' | 'ignore'
 
 export type EditHistoryShortcutAction = 'undo' | 'redo'
+
+export type ConsoleInputPriorityMode = 'console-first' | 'shortcuts-first'
 
 type KeyboardLikeEvent = {
   key: string
@@ -44,6 +47,7 @@ export type InputRoutingRequest = {
   referenceTransformHasPendingKeyboardTransform?: boolean
   stagedConsoleActive?: boolean
   allowFlatConsoleCapture?: boolean
+  consoleInputPriorityMode?: ConsoleInputPriorityMode
 }
 
 export type InputRoutingResult = {
@@ -88,6 +92,13 @@ const isPrintableKey = (event: KeyboardLikeEvent): boolean =>
 
 const isConsoleCapturePrintableKey = (event: KeyboardLikeEvent): boolean =>
   isPrintableKey(event) && event.key !== ' '
+
+const isDeliberateConsoleEntryKey = (event: KeyboardLikeEvent): boolean =>
+  event.key.toLowerCase() === 'c' &&
+  !event.shiftKey &&
+  !event.ctrlKey &&
+  !event.altKey &&
+  !event.metaKey
 
 const isViewerFlyMovementKey = (event: KeyboardLikeEvent): boolean => {
   const { key } = event
@@ -167,6 +178,7 @@ export const routeKeyboardInput = ({
   referenceTransformHasPendingKeyboardTransform = false,
   stagedConsoleActive = false,
   allowFlatConsoleCapture = false,
+  consoleInputPriorityMode = 'console-first',
 }: InputRoutingRequest): InputRoutingResult => {
   if (
     consoleInputAllowsCommandSessionUndo &&
@@ -297,14 +309,33 @@ export const routeKeyboardInput = ({
     return { owner: 'reference-transform', decision: 'handle' }
   }
 
-  if (!viewerFlyActive && viewerCameraShortcutsEnabled && resolveViewerCameraShortcutAction(event) !== null) {
+  if (
+    !viewerFlyActive &&
+    viewerCameraShortcutsEnabled &&
+    resolveViewerCameraShortcutAction(event, consoleInputPriorityMode) !== null
+  ) {
     return {
       owner: 'viewer-camera-shortcuts',
       decision: 'handle',
     }
   }
 
-  if (allowFlatConsoleCapture && isConsoleCapturePrintableKey(event)) {
+  if (
+    allowFlatConsoleCapture &&
+    consoleInputPriorityMode === 'shortcuts-first' &&
+    isDeliberateConsoleEntryKey(event)
+  ) {
+    return {
+      owner: 'console-entry',
+      decision: 'handle',
+    }
+  }
+
+  if (
+    allowFlatConsoleCapture &&
+    consoleInputPriorityMode === 'console-first' &&
+    isConsoleCapturePrintableKey(event)
+  ) {
     return {
       owner: stagedConsoleActive ? 'staged-console' : 'flat-console',
       decision: 'handle',

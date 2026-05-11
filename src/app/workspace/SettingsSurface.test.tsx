@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_VIEW_SETTINGS } from '../../shared/viewSettingsTypes'
+import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { SettingsSurface } from './SettingsSurface'
@@ -17,10 +18,12 @@ describe('SettingsSurface', () => {
 
   beforeEach(() => {
     window.localStorage.clear()
+    editHistoryStore.clear()
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useUiPrefsStore.setState({
       view: structuredClone(DEFAULT_VIEW_SETTINGS),
       workspaceStartupSurface: 'homePage',
+      consoleInputPriorityMode: 'console-first',
       workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
       workspaceRestorePersistence: true,
@@ -84,6 +87,8 @@ describe('SettingsSurface', () => {
     const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
     expect(content).not.toBeNull()
     expect(content?.textContent).toContain('Startup surface')
+    expect(content?.textContent).toContain('Console input priority')
+    expect(content?.textContent).toContain('Console first')
     expect(content?.textContent).toContain('Left dock width')
     expect(content?.textContent).toContain('Workspace corner radius')
     expect(content?.textContent).toContain('Workspace panel shell padding')
@@ -156,6 +161,53 @@ describe('SettingsSurface', () => {
     expect(container?.textContent).toContain('Title bar opacity')
     expect(container?.textContent).toContain('Body color')
     expect(container?.textContent).toContain('Text size')
+  })
+
+  it('edits Console input priority through the General section control', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="general"
+        />,
+      )
+    })
+
+    const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
+    const priorityToggle = container?.querySelector(
+      'input[aria-label="Console first input priority"]',
+    ) as HTMLInputElement | null
+
+    expect(content?.textContent).toContain('Console input priority')
+    expect(content?.textContent).toContain('Console first')
+    expect(content?.textContent).toContain('Console first input priority')
+    expect(content?.textContent).toContain('Shift+letter')
+    expect(priorityToggle).not.toBeNull()
+    expect(priorityToggle?.checked).toBe(true)
+
+    await act(async () => {
+      priorityToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('shortcuts-first')
+    expect(content?.textContent).toContain('Shortcuts first')
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change Console input priority',
+      targetId: 'ui-pref:consoleInputPriorityMode',
+    })
+
+    let undoneTargetId: string | undefined
+    await act(async () => {
+      undoneTargetId = editHistoryStore.undo()?.targetId
+    })
+
+    expect(undoneTargetId).toBe('ui-pref:consoleInputPriorityMode')
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
   })
 
   it('opens on a requested section when the surface is launched from a contextual float-window shortcut', async () => {

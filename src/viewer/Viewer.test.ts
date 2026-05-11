@@ -1622,8 +1622,11 @@ describe('Viewer baseline replacement', () => {
     expect(controller.frameBox).not.toHaveBeenCalled()
   })
 
-  it('keeps modified Z chords out of the viewer-local frame-selected shortcut', async () => {
+  it('keeps modified Z chords out of the viewer-local zoom-object shortcut', async () => {
     const { Viewer } = await import('./Viewer')
+    const { Mesh, BoxGeometry, MeshBasicMaterial } = await import('three')
+    const { useAppStore } = await import('../app/store/useAppStore')
+    const { useUiPrefsStore } = await import('../app/store/uiPrefsStore')
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -1641,6 +1644,17 @@ describe('Viewer baseline replacement', () => {
     resizeObserverCallback?.([], {} as ResizeObserver)
 
     const controller = cameraControllerMocks.instances[0]!
+    const frameViewer = viewer as unknown as {
+      partMeshes: Map<string, object>
+    }
+    frameViewer.partMeshes.set(
+      'part:object-1',
+      new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial()),
+    )
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState({ selectedPartKey: 'part:object-1' })
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
 
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -1664,7 +1678,144 @@ describe('Viewer baseline replacement', () => {
       }),
     )
 
+    expect(controller.frameObject).toHaveBeenCalledTimes(1)
+    expect(controller.frameBox).not.toHaveBeenCalled()
+  })
+
+  it('keeps plain Z dormant in viewer-local Console-first mode', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { useUiPrefsStore } = await import('../app/store/uiPrefsStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('console-first')
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'z',
+        code: 'KeyZ',
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(controller.frameObject).not.toHaveBeenCalled()
+    expect(controller.frameBox).not.toHaveBeenCalled()
+  })
+
+  it('frames viewer-local multi-selection with plain Z in Shortcuts-first mode', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { Mesh, BoxGeometry, MeshBasicMaterial } = await import('three')
+    const { useAppStore } = await import('../app/store/useAppStore')
+    const { useUiPrefsStore } = await import('../app/store/uiPrefsStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    const frameViewer = viewer as unknown as {
+      partMeshes: Map<string, object>
+    }
+    frameViewer.partMeshes.set(
+      'graph-document-1:output-entry-1',
+      new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial()),
+    )
+    frameViewer.partMeshes.set(
+      'graph-document-1:output-entry-2',
+      new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial()),
+    )
+
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    useAppStore.setState((state) => ({
+      ...useAppStore.getInitialState(),
+      projectContent: {
+        ...state.projectContent,
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-output-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      selectedPartKey: null,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+          {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+        ],
+      },
+    }), true)
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'z',
+        code: 'KeyZ',
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
     expect(controller.frameBox).toHaveBeenCalledTimes(1)
+    expect(controller.frameObject).not.toHaveBeenCalled()
   })
 
   it('forwards animated frame-reference options through the shared viewer framing seam', async () => {

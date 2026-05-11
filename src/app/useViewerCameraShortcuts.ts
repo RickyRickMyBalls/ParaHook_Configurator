@@ -29,6 +29,7 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
       const workspaceState = useWorkspaceStore.getState()
       const spaghettiState = useSpaghettiStore.getState()
       const consoleState = useConsoleStore.getState()
+      const uiPrefsState = useUiPrefsStore.getState()
       const viewerSurfaceOwnsShortcuts =
         appState.workspaceSelection.activeSurface === 'viewer' &&
         workspaceState.activeViewerViewportId === viewportId &&
@@ -48,6 +49,7 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
         referenceTransformActive:
           appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
           appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true,
+        consoleInputPriorityMode: uiPrefsState.consoleInputPriorityMode,
       })
 
       if (dispatchEditHistoryShortcut(routing, event, editHistoryStore)) {
@@ -58,7 +60,7 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
         return
       }
 
-      const action = resolveViewerCameraShortcutAction(event)
+      const action = resolveViewerCameraShortcutAction(event, uiPrefsState.consoleInputPriorityMode)
       if (action === null) {
         return
       }
@@ -71,7 +73,7 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
           }
           const animationOptions = {
             animate: true,
-            durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+            durationMs: uiPrefsState.cameraShortcutTransitionDurationMs,
           } as const
           event.preventDefault()
           event.stopImmediatePropagation()
@@ -99,7 +101,7 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
           event.stopImmediatePropagation()
           const animationOptions = {
             animate: true,
-            durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+            durationMs: uiPrefsState.cameraShortcutTransitionDurationMs,
           } as const
           if (action === 'preset-top') {
             setCameraPresetCommand('top', viewportId, animationOptions)

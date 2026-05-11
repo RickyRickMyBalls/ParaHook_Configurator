@@ -9,6 +9,7 @@ import {
 } from '../../shared/viewSettingsTypes'
 import { defaultSpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 import {
+  DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
   DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
   MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
   MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
@@ -35,6 +36,9 @@ describe('uiPrefsStore environment source state', () => {
       DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
     )
     expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(true)
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe(
+      DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
+    )
 
     useUiPrefsStore.getState().setWorkspaceRestorePersistence(false)
     useUiPrefsStore.getState().setViewSettingsPersistence(false)
@@ -43,6 +47,7 @@ describe('uiPrefsStore environment source state', () => {
     useUiPrefsStore.getState().setNotepadPersistence(false)
     useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(18.4)
     useUiPrefsStore.getState().setWorkspaceNestedResizeKeepsFarPane(false)
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     useUiPrefsStore.getState().setSpaghettiWindowAppearanceDefaults({
       ...defaultSpaghettiWindowAppearance,
       titlebarTint: 'blue',
@@ -55,7 +60,18 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(18)
     expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(false)
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('shortcuts-first')
     expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults.titlebarTint).toBe('blue')
+  })
+
+  it('stores the Console input priority mode without changing keyboard routing', () => {
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
+
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('shortcuts-first')
+
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('console-first')
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
   })
 
   it('defaults and clamps the workspace corner radius preference', () => {

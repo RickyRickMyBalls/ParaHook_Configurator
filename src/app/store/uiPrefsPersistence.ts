@@ -9,12 +9,14 @@ import {
   type SpaghettiWindowAppearance,
 } from '../panels/spaghettiWindowAppearance'
 import {
+  DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
   DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
   DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
   MAX_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
   MIN_WORKSPACE_PANEL_SHELL_PADDING_PX,
+  type ConsoleInputPriorityMode,
   type WorkspaceStartupSurface,
 } from './uiPrefsStore'
 
@@ -40,6 +42,7 @@ type PersistedUiPrefsState = UiPrefsPersistencePolicy & {
   version: 3
   view: ViewSettings
   workspaceStartupSurface: WorkspaceStartupSurface
+  consoleInputPriorityMode: ConsoleInputPriorityMode
   spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
   workspacePaneFilletRadiusPx: number
   workspacePanelShellPaddingPx: number
@@ -63,6 +66,9 @@ const normalizePersistedView = (value: unknown): ViewSettings | null => {
 
 const normalizeWorkspaceStartupSurface = (value: unknown): WorkspaceStartupSurface =>
   value === 'modelViewer' ? 'modelViewer' : 'homePage'
+
+const normalizeConsoleInputPriorityMode = (value: unknown): ConsoleInputPriorityMode =>
+  value === 'shortcuts-first' ? 'shortcuts-first' : DEFAULT_CONSOLE_INPUT_PRIORITY_MODE
 
 const normalizeWorkspacePaneFilletRadiusPx = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value)
@@ -146,10 +152,12 @@ export const serializePersistedUiPrefs = (
   workspacePaneFilletRadiusPx = DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
   workspacePanelShellPaddingPx = DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   workspaceNestedResizeKeepsFarPane = true,
+  consoleInputPriorityMode: ConsoleInputPriorityMode = DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
 ): PersistedUiPrefsState => ({
   version: 3,
   view: normalizeViewSettings(view),
   workspaceStartupSurface,
+  consoleInputPriorityMode: normalizeConsoleInputPriorityMode(consoleInputPriorityMode),
   spaghettiWindowAppearanceDefaults: normalizeSpaghettiWindowAppearance(
     spaghettiWindowAppearanceDefaults,
   ),
@@ -180,6 +188,9 @@ export const normalizePersistedUiPrefs = (value: unknown): PersistedUiPrefsState
     view,
     workspaceStartupSurface: normalizeWorkspaceStartupSurface(
       isRecord(value) ? value.workspaceStartupSurface : null,
+    ),
+    consoleInputPriorityMode: normalizeConsoleInputPriorityMode(
+      isRecord(value) ? value.consoleInputPriorityMode : null,
     ),
     spaghettiWindowAppearanceDefaults: normalizeSpaghettiWindowAppearance(
       isRecord(value) && isRecord(value.spaghettiWindowAppearanceDefaults)

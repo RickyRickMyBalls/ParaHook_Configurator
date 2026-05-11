@@ -889,6 +889,7 @@ export function useConsoleInteraction(
     const spaghettiState = useSpaghettiStore.getState()
     const appState = useAppStore.getState()
     const consoleState = useConsoleStore.getState()
+    const uiPrefsState = useUiPrefsStore.getState()
     const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
     const selectedReferenceDeleteAvailable =
       (selectedConsoleTarget?.kind === 'object' &&
@@ -944,6 +945,7 @@ export function useConsoleInteraction(
         consoleState.consolePromptSession !== null ||
         consoleState.featureAssistDescriptor !== null,
       allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: uiPrefsState.consoleInputPriorityMode,
     })
   }, [])
 
@@ -5198,6 +5200,12 @@ export function useConsoleInteraction(
       if (dispatchEditHistoryShortcut(routing, event, editHistoryStore)) {
         return
       }
+      if (routing.owner === 'console-entry') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusMainConsoleInput()
+        return
+      }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -5369,6 +5377,12 @@ export function useConsoleInteraction(
       }
       const routing = routeConsoleGlobalKey(event)
       if (dispatchEditHistoryShortcut(routing, event, editHistoryStore)) {
+        return
+      }
+      if (routing.owner === 'console-entry') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        focusPopoutConsoleInput()
         return
       }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {

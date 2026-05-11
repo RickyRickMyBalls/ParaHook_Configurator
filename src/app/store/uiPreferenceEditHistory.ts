@@ -1,5 +1,5 @@
 import { editHistoryStore } from './editHistoryStore'
-import type { WorkspaceStartupSurface } from './uiPrefsStore'
+import type { ConsoleInputPriorityMode, WorkspaceStartupSurface } from './uiPrefsStore'
 import { useUiPrefsStore } from './uiPrefsStore'
 import type { SpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 
@@ -64,6 +64,16 @@ const workspaceStartupSurfaceConfig: UiPreferenceHistoryConfig<WorkspaceStartupS
   targetLabel: 'Startup surface',
   getValue: () => useUiPrefsStore.getState().workspaceStartupSurface,
   setValue: (value) => useUiPrefsStore.getState().setWorkspaceStartupSurface(value),
+}
+
+const consoleInputPriorityModeConfig: UiPreferenceHistoryConfig<ConsoleInputPriorityMode> = {
+  label: 'Change Console input priority',
+  sourceId: 'general-settings',
+  sourceLabel: 'General Settings',
+  targetId: 'ui-pref:consoleInputPriorityMode',
+  targetLabel: 'Console input priority',
+  getValue: () => useUiPrefsStore.getState().consoleInputPriorityMode,
+  setValue: (value) => useUiPrefsStore.getState().setConsoleInputPriorityMode(value),
 }
 
 const spaghettiWindowAppearanceDefaultsConfig: UiPreferenceHistoryConfig<SpaghettiWindowAppearance> = {
@@ -160,6 +170,11 @@ export const setWorkspaceStartupSurfaceWithHistory = (
   nextValue: WorkspaceStartupSurface,
   options?: UiPreferenceHistoryOptions,
 ): boolean => commitUiPreferenceWithHistory(workspaceStartupSurfaceConfig, nextValue, options)
+
+export const setConsoleInputPriorityModeWithHistory = (
+  nextValue: ConsoleInputPriorityMode,
+  options?: UiPreferenceHistoryOptions,
+): boolean => commitUiPreferenceWithHistory(consoleInputPriorityModeConfig, nextValue, options)
 
 export const setSpaghettiWindowAppearanceDefaultsWithHistory = (
   nextValue: SpaghettiWindowAppearance,

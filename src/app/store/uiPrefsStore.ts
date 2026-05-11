@@ -38,6 +38,8 @@ export const DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX = 12
 export const MIN_WORKSPACE_PANEL_SHELL_PADDING_PX = 0
 export const MAX_WORKSPACE_PANEL_SHELL_PADDING_PX = 24
 export const DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX = 0
+export type ConsoleInputPriorityMode = 'console-first' | 'shortcuts-first'
+export const DEFAULT_CONSOLE_INPUT_PRIORITY_MODE: ConsoleInputPriorityMode = 'console-first'
 
 const normalizeWorkspacePaneFilletRadiusPx = (value: number | undefined): number =>
   Number.isFinite(value)
@@ -199,6 +201,7 @@ export type WorkspaceStartupSurface = 'homePage' | 'modelViewer'
 type UiPrefsState = {
   view: ViewSettings
   workspaceStartupSurface: WorkspaceStartupSurface
+  consoleInputPriorityMode: ConsoleInputPriorityMode
   spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
   workspacePaneFilletRadiusPx: number
   workspacePanelShellPaddingPx: number
@@ -230,6 +233,7 @@ type UiPrefsState = {
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
   setWorkspaceStartupSurface: (workspaceStartupSurface: WorkspaceStartupSurface) => void
+  setConsoleInputPriorityMode: (consoleInputPriorityMode: ConsoleInputPriorityMode) => void
   setSpaghettiWindowAppearanceDefaults: (
     spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance,
   ) => void
@@ -285,6 +289,7 @@ type UiPrefsState = {
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
   workspaceStartupSurface: 'homePage',
+  consoleInputPriorityMode: DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
   spaghettiWindowAppearanceDefaults: defaultSpaghettiWindowAppearance,
   workspacePaneFilletRadiusPx: DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
   workspacePanelShellPaddingPx: DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
@@ -321,6 +326,9 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setWorkspaceStartupSurface: (workspaceStartupSurface) => {
     set({ workspaceStartupSurface })
+  },
+  setConsoleInputPriorityMode: (consoleInputPriorityMode) => {
+    set({ consoleInputPriorityMode })
   },
   setSpaghettiWindowAppearanceDefaults: (spaghettiWindowAppearanceDefaults) => {
     set((state) => {
