@@ -91,6 +91,11 @@ export type MaterialPreset = {
   emissiveIntensity: number
   opacity: number
   transparent: boolean
+  doubleSided: boolean
+}
+
+type MaterialPresetInput = Omit<MaterialPreset, 'doubleSided'> & {
+  doubleSided?: boolean
 }
 
 export type PartMaterialMap = Record<string, MaterialPresetId>
@@ -140,6 +145,11 @@ const cloneLightingSettings = (
 ): ViewSettings['lighting'] => ({
   selectedLightId: lighting.selectedLightId,
   lights: lighting.lights.map(cloneLightSpec),
+})
+
+const normalizeMaterialPreset = (preset: MaterialPresetInput): MaterialPreset => ({
+  ...preset,
+  doubleSided: preset.doubleSided ?? true,
 })
 
 const cloneEnvironmentSource = (
@@ -618,13 +628,13 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
     materials:
       settings.materials === undefined
         ? {
-            presets: DEFAULT_VIEW_SETTINGS.materials.presets.map((preset) => ({ ...preset })),
+            presets: DEFAULT_VIEW_SETTINGS.materials.presets.map(normalizeMaterialPreset),
             selectedPresetId: DEFAULT_VIEW_SETTINGS.materials.selectedPresetId,
             usePerPart: DEFAULT_VIEW_SETTINGS.materials.usePerPart,
             perPart: { ...DEFAULT_VIEW_SETTINGS.materials.perPart },
           }
         : {
-            presets: settings.materials.presets.map((preset) => ({ ...preset })),
+            presets: settings.materials.presets.map(normalizeMaterialPreset),
             selectedPresetId: settings.materials.selectedPresetId,
             usePerPart: settings.materials.usePerPart,
             perPart: { ...settings.materials.perPart },
@@ -652,10 +662,11 @@ export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
     color: '#5f83d6',
     metalness: 0.06,
     roughness: 0.84,
-    emissive: '#000000',
+    emissive: '#ffffff',
     emissiveIntensity: 0,
     opacity: 1,
     transparent: false,
+    doubleSided: true,
   },
   {
     id: 'studio_plastic',
@@ -663,10 +674,11 @@ export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
     color: '#9aa9be',
     metalness: 0.02,
     roughness: 0.5,
-    emissive: '#000000',
+    emissive: '#ffffff',
     emissiveIntensity: 0,
     opacity: 1,
     transparent: false,
+    doubleSided: true,
   },
   {
     id: 'brushed_metal',
@@ -674,10 +686,11 @@ export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
     color: '#afb5bf',
     metalness: 0.9,
     roughness: 0.28,
-    emissive: '#000000',
+    emissive: '#ffffff',
     emissiveIntensity: 0,
     opacity: 1,
     transparent: false,
+    doubleSided: true,
   },
   {
     id: 'highlight_gloss',
@@ -689,6 +702,7 @@ export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
     emissiveIntensity: 0.08,
     opacity: 1,
     transparent: false,
+    doubleSided: true,
   },
 ]
 

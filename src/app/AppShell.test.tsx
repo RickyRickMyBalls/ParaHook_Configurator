@@ -110,6 +110,7 @@ vi.mock('./store/useAppStore', () => {
   return {
     useAppStore: store,
     selectConsoleWorkspaceContextTarget: (state: any) => state.workspaceSelection.selectedTarget,
+    selectWorkspaceSelectedTarget: (state: any) => state.workspaceSelection.selectedTarget,
   }
 })
 
@@ -1960,6 +1961,59 @@ describe('AppShell', () => {
     expect(replacedSlot?.surfaceKind).toBe('notepad')
     expect(replacedSlot?.surfaceInstanceId).toBe(`notepad-${browserSlotId}`)
     expect(container?.textContent).toContain('Focused notes land here')
+  })
+
+  it('switches a non-primary slot into properties from the viewport type picker', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let browserSlotId: string | null = null
+    await act(async () => {
+      browserSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === browserSlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton).not.toBeNull()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const propertiesAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Properties') as HTMLButtonElement | undefined
+
+    expect(propertiesAction).not.toBeUndefined()
+
+    await act(async () => {
+      propertiesAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await rerenderAppShell(root!)
+
+    const replacedSlot =
+      browserSlotId === null ? null : useWorkspaceStore.getState().viewportSlotsById[browserSlotId]
+    expect(replacedSlot?.surfaceKind).toBe('properties')
+    expect(replacedSlot?.surfaceInstanceId).toBe(`properties-${browserSlotId}`)
+    expect(container?.textContent).toContain('Properties')
+    expect(container?.textContent).toContain('Materials')
+    expect(container?.textContent).toContain('Child section contract and shell states')
+    expect(container?.textContent).toContain('No focused item')
   })
 
   it('pops out a non-primary model viewport into a child window and quick docks it back', async () => {

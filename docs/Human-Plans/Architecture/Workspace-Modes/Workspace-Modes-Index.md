@@ -3,6 +3,24 @@
 ## Doc Header
 
 ### Doc History
+150. 2026-05-10 13:15:16: Expanded the nested `Materials` ladder under `Properties` by adding explicit phase-2 and phase-3 planning to `Materials-1` plus the new `Materials-2 - First Material Editing And Action Flows` future doc, so the workspace family now records a full foundation ladder followed by a separate editing ladder.
+149. 2026-05-10 13:05:32: Added the new standalone nested `Materials-1` future doc under `Workspaces/Properties/Materials/Future/`, tightened the `Properties` family handoff so the active nested implementation owner now points at that doc instead of the generation index, and locked the next cut to `Phase 1 - Focused Object Intake And Current Material Truth Read`.
+148. 2026-05-10 12:58:35: Recorded the landed `Properties-2 / Phase 3 - Child Section Contract And Shell States` shared-shell closeout after the `Properties` workspace gained an explicit section-facing contract plus shell-owned empty/unsupported/no-section behavior, and advanced the active handoff from the shared-shell ladder to `Materials-1` as the first nested runtime owner-mapping pass.
+147. 2026-05-10 12:56:14: Tightened `Properties-2 / Phase 3 - Child Section Contract And Shell States` into an implementation-ready shell closeout by grounding it against the landed `PropertiesSurface` section host, locking the next cut around one explicit section-facing contract plus shell-owned empty/unsupported/no-section behavior, and preserving `Materials-1` as the first child-lane owner-mapping pass after that closeout.
+146. 2026-05-10 12:52:18: Recorded the landed `Properties-2 / Phase 2 - Section Registry And Tab Framing` shared-shell follow-on after `PropertiesSurface` replaced its phase-1 placeholder with a real hosted-section frame, made `Materials` the first active section and default tab, and advanced the active implementation handoff to `Properties-2 / Phase 3 - Child Section Contract And Shell States`.
+145. 2026-05-10 12:50:31: Tightened `Properties-2 / Phase 2 - Section Registry And Tab Framing` into an implementation-ready shared-shell follow-on by grounding it against the landed `PropertiesSurface` placeholder shell, making `Materials` the first real hosted-section/default-tab read, and locking the next cut around shell-owned section framing instead of materials-specific workflow behavior.
+144. 2026-05-10 12:44:58: Implemented `Workspace-10 / Phase 4 - Canonical Viewport Type Menu Reads`, landing one shared viewport-type choice helper that now feeds both the runtime picker and Console staged-navigation path, retiring the `ViewportFrame` fallback list plus duplicate label shaping, and proving catalog-driven menu expansion through focused tests and a passing production build.
+143. 2026-05-10 12:42:54: Tightened `Workspace-10 / Phase 4 - Canonical Viewport Type Menu Reads` into an implementation-ready cleanup pass by grounding it against the live workspace-surface catalog, action-eligibility, `ViewportFrame`, and Console staged-navigation seams, making the duplicate picker label/order logic explicit, and locking the next cut around one shared derived viewport-type choice helper instead of parallel menu builders.
+142. 2026-05-10 12:36:58: Tightened `Workspace-10 / Phase 1 - Anchored Split-Pane Close Button` into an implementation-ready first cut by grounding it against the live `ViewportFrame`, `WorkspaceViewportTree`, and `useAppShellViewportActions` close-owner seams, while making the primary root `modelViewer -> homePage` exception and the focused proof boundaries explicit.
+141. 2026-05-10 12:31:42: Expanded the open `Workspace 10 - Split Workspace Top-Right Close Controls` family to add `Phase 4 - Canonical Viewport Type Menu Reads`, so the same shared shell-cleanup ladder now also captures the follow-on work to replace hard-coded runtime viewport-type allowlists with one canonical surface-catalog-derived menu read.
+140. 2026-05-10 12:17:27: Added the new open `Workspace 10 - Split Workspace Top-Right Close Controls` family phase plus its dedicated future doc so split-workspace close-button cleanup can be edited phase by phase, with the first cleanup slice explicitly aimed at anchoring an `x` close control at the top-right of every split workspace pane through the shared close-owner path instead of a new pane-removal model.
+139. 2026-05-10 12:13:32: Recorded the landed `Properties-2 / Phase 1 - Workspace Mount And Focus Context` shared-shell pass after the new `Properties` workspace was registered as a real optional surface, given a canonical surface-registry branch plus shell-level focused-target read, and advanced the active implementation handoff to `Properties-2 / Phase 2 - Section Registry And Tab Framing`.
+138. 2026-05-10 12:05:25: Tightened `Properties-2 / Phase 1 - Workspace Mount And Focus Context` into an implementation-ready shared-shell slice by grounding it against the live workspace-surface catalog, surface-registry, shared workspace-store placement seam, and existing workspace-selection owner path, so the new `Properties` shell now has one honest first runtime cut before tab framing or materials-specific behavior widens.
+137. 2026-05-10 12:01:29: Recorded the landed `Properties-1 / Phase 3 - Later Lane Reservation And Closeout` umbrella closeout, keeping later candidates such as `Transform` reservation-only, closing `Properties-1` as the structural `Properties` family phase, and advancing the active implementation-planning handoff to `Properties-2 / Phase 1` while preserving `Materials-1` as the first nested child-lane runtime-forward lane after the shared shell.
+136. 2026-05-10 11:30:56: Tightened `Properties-1 / Phase 3 - Later Lane Reservation And Closeout` into an implementation-ready final umbrella cut by grounding it against the now-landed focused-item entry plus no-overlap handoff rules, keeping later candidates such as `Transform` reservation-only, and making `Materials-1` the explicit next family-level implementation handoff after closeout.
+135. 2026-05-10 11:28:44: Recorded the landed `Properties-1 / Phase 2` handoff pass after the `Properties` umbrella locked its no-overlap rule with the nested `Materials` lane, made `Materials-1` the explicit first material-specific runtime-forward phase, and advanced the last remaining umbrella work to `Phase 3 - Later Lane Reservation And Closeout`.
+134. 2026-05-10 11:27:21: Tightened `Properties-1 / Phase 2 - Materials Handoff And Owner Boundary` into an implementation-ready next cut by grounding it against the landed umbrella entry rule plus the existing nested `Materials` planning home, narrowing the no-overlap contract, and keeping the later `Materials-1` runtime-forward lane explicit.
+133. 2026-05-10 11:24:25: Recorded the landed `Properties-1 / Phase 1` umbrella pass after the new `Properties` family locked its top-level focused-item meaning above the nested `Materials` lane, and advanced the active next internal handoff inside that umbrella doc to `Phase 2 - Materials Handoff And Owner Boundary` while keeping `Materials-1` as the later runtime-forward family handoff.
 132. 2026-05-10 11:22:51: Tightened the new `Properties-1` umbrella family phase into an implementation-ready next cut by grounding it against the now-landed `Properties` index plus nested `Materials` planning home, narrowing the work to focused-item entry and no-overlap boundary clarification, and keeping the explicit next runtime-forward handoff aimed at `Materials-1`.
 131. 2026-05-10 11:14:53: Corrected the `Workspace-9 / Phase 11 - Shared Corner Contract And Shell-Layer Consistency` family closeout after the user clarified the true product rule is four visible split points on every viewport at all times, restoring the primary `topLeft` split corner, removing the temporary occupied-corner exception from the runtime, and tightening the workspace-family read around a unified all-four-corners contract.
 130. 2026-05-10 11:07:51: Added the first standalone `Properties-1` family phase doc under `Workspaces/Properties/Future/`, refreshed the umbrella workspace read so the new `Properties` family now points at one explicit implementation-planning owner surface, and kept the next runtime-forward handoff aimed at the nested `Materials-1` lane instead of widening the umbrella into a fake all-at-once properties implementation.
@@ -1021,12 +1039,20 @@ The right mental model is:
 - `Properties`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
   - dedicated home for the focused-item property workspace umbrella, including the rule that `Materials` is the first nested property-editing subfamily instead of the whole workspace identity forever
-  - current implementation-planning owner:
+  - landed structural umbrella phase:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-1 - Workspace Umbrella And Focused-Item Property Routing.md`
+  - current implementation-planning owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
+  - current next implementation phase:
+    - `Materials-1 / Phase 1 - Focused Object Intake And Current Material Truth Read`
+  - later editing follow-on:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-2 - First Material Editing And Action Flows.md`
   - first nested subfamily:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Vision.md`
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
     - object-focused materials editing lane, including focused object -> target list -> property editor flow, new-material creation, and explicit owner boundaries before wider material-library, assignment, or preview behavior is planned
+    - current first child-lane runtime-forward handoff:
+      - `Materials-1`
 - `Pubwheel Builder`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md`
@@ -1552,6 +1578,8 @@ Current source doc:
 - `Workspace 8` should then lock Browser/project-content render truth so every resolved published object across all project graphs renders by default once it exists in Browser, while explicit graph/object visibility becomes the honest user control for turning that published content off
 - `Workspace 9` should then turn the exposed filleted viewport corners into Blender-style split-authoring hotspots so one click-hold-drag from an empty corner can preview a new split, pick vertical versus horizontal by dominant absolute pointer movement, size the new pane live during the hold, and only commit the new viewport on pointer release
 - the `Workspace 9` pane shell should also leave room for a user-controlled fillet radius instead of baking one permanent corner size into the workspace visuals
+- `Workspace 10` should then add one always-legible top-right `x` close control to every split workspace pane so pane removal no longer depends only on titlebar menus or indirect commands
+- the first `Workspace 10` cleanup slice should anchor that close control directly into the shared split-pane shell whenever the workspace is actually in split mode, while keeping unsplit root behavior and protected-pane rules honest instead of hiding them inside one-off button branching
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
@@ -1565,6 +1593,7 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7a-Phase 2d.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-9 - Spaghetti Presentation Mode Truth.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/workspace7-featurestocarry.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace-Cleanup-Task-Stack.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
@@ -1684,3 +1713,28 @@ Current source doc:
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
+
+### [ ] Workspace 10 - Split Workspace Top-Right Close Controls
+#### Header
+- add one anchored top-right `x` close control to every workspace pane when the workspace is in split mode
+- make pane removal discoverable from the pane shell itself instead of depending only on titlebar context menus or command surfaces
+- keep pane close behavior on the existing shared remove-slot owner path instead of inventing a second split-removal model
+
+#### Forward read
+- `Workspace 10` should treat split-pane close affordance as shared shell behavior, not as a one-off capability owned by one workspace type
+- the first cleanup slice should anchor the `x` button into the top-right of every visible split workspace pane through the same shared pane frame used across Browser, Model Viewport, Console, and the later workspace surfaces
+- the `x` control should only appear when the workspace is actually in a split state:
+  - the unsplit root workspace should not gain a misleading close affordance
+  - split panes should surface the close action directly at the shell level
+- the button should call the already-settled close owner path rather than creating a new removal mutation:
+  - `ViewportFrame.tsx` already accepts `onClose`
+  - `WorkspaceViewportTree.tsx` already threads close actions into slotted panes
+  - `useWorkspaceStore.ts` already owns `removeViewportSlot(...)`
+- the first family phase should stay narrow:
+  - add the anchored top-right close control
+  - keep the current menu-based `Close` action alive
+  - prove the shared close button appears on split panes and removes the correct pane
+- later follow-through can still tighten protected-pane rules, popup parity, and shell polish if the first shared button pass exposes new edge cases
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`

@@ -179,6 +179,7 @@ const sanitizePreset = (preset: MaterialPreset): MaterialPreset => ({
   roughness: clamp(preset.roughness, 0, 1),
   emissiveIntensity: clamp(preset.emissiveIntensity, 0, 2),
   opacity: clamp(preset.opacity, 0, 1),
+  doubleSided: preset.doubleSided ?? true,
 })
 
 export type WorkspaceStartupSurface = 'homePage' | 'modelViewer'
@@ -722,10 +723,11 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
       color: preset?.color ?? base?.color ?? '#d9dde6',
       metalness: preset?.metalness ?? base?.metalness ?? 0.1,
       roughness: preset?.roughness ?? base?.roughness ?? 0.75,
-      emissive: preset?.emissive ?? base?.emissive ?? '#000000',
+      emissive: preset?.emissive ?? base?.emissive ?? '#ffffff',
       emissiveIntensity: preset?.emissiveIntensity ?? base?.emissiveIntensity ?? 0,
       opacity: preset?.opacity ?? base?.opacity ?? 1,
       transparent: preset?.transparent ?? base?.transparent ?? false,
+      doubleSided: preset?.doubleSided ?? base?.doubleSided ?? true,
     })
 
     set({

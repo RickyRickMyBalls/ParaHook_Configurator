@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { editHistoryStore } from '../store/editHistoryStore'
+import { useAppStore } from '../store/useAppStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 
@@ -36,6 +37,7 @@ describe('ViewportSurfaceRegistry', () => {
 
   beforeEach(() => {
     editHistoryStore.clear()
+    useAppStore.setState(useAppStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     window.localStorage.clear()
   })
@@ -162,6 +164,46 @@ describe('ViewportSurfaceRegistry', () => {
     expect(settingsSurface).not.toBeNull()
     expect(settingsSurface?.textContent).toContain('Settings')
     expect(settingsSurface?.textContent).toContain('All')
+  })
+
+  it('renders properties through the canonical workspace surface registry branch and hosts the materials section', async () => {
+    useAppStore.setState((state) => ({
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'project-object-properties-1',
+        },
+      },
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ViewportSurfaceRegistry
+          slotId="workspace-slot-properties"
+          surfaceKind="properties"
+          surfaceInstanceId="properties-workspace-slot-properties"
+          onActivateSpaghettiSurface={vi.fn()}
+        />,
+      )
+    })
+
+    const propertiesSurface = container?.querySelector(
+      '.WorkspaceViewportSlotSurface--properties[data-workspace-surface-instance-id="properties-workspace-slot-properties"]',
+    ) as HTMLDivElement | null
+
+    expect(propertiesSurface).not.toBeNull()
+    expect(propertiesSurface?.getAttribute('data-properties-active-section')).toBe('materials')
+    expect(propertiesSurface?.textContent).toContain('Properties')
+    expect(propertiesSurface?.textContent).toContain('Object')
+    expect(propertiesSurface?.textContent).toContain('project-object-properties-1')
+    expect(propertiesSurface?.textContent).toContain('Materials')
+    expect(propertiesSurface?.textContent).toContain('Child section contract and shell states')
+    expect(propertiesSurface?.textContent).toContain('Ready for Materials-1')
   })
 
   it('renders edit history through the canonical workspace surface registry branch', async () => {

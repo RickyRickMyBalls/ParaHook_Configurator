@@ -201,6 +201,7 @@ describe('ViewportFrame', () => {
     expect(container?.textContent).toContain('Spaghetti Editor')
     expect(container?.textContent).toContain('Notepad')
     expect(container?.textContent).toContain('Dashboard')
+    expect(container?.textContent).toContain('Properties')
     expect(container?.textContent).toContain('Edit History')
   })
 
@@ -240,6 +241,7 @@ describe('ViewportFrame', () => {
     const notepadButton = typeButtons.find((button) => button.textContent?.trim() === 'Notepad')
     const dashboardButton = typeButtons.find((button) => button.textContent?.trim() === 'Dashboard')
     const homePageButton = typeButtons.find((button) => button.textContent?.trim() === 'Home Page')
+    const propertiesButton = typeButtons.find((button) => button.textContent?.trim() === 'Properties')
     const editHistoryButton = typeButtons.find((button) => button.textContent?.trim() === 'Edit History')
 
     expect(modelViewerButton).toBeDefined()
@@ -258,6 +260,8 @@ describe('ViewportFrame', () => {
     expect(dashboardButton?.disabled).toBe(false)
     expect(homePageButton).toBeDefined()
     expect(homePageButton?.disabled).toBe(false)
+    expect(propertiesButton).toBeDefined()
+    expect(propertiesButton?.disabled).toBe(false)
     expect(editHistoryButton).toBeDefined()
     expect(editHistoryButton?.disabled).toBe(false)
   })
@@ -348,6 +352,7 @@ describe('ViewportFrame', () => {
     ['Notepad', 'notepad'],
     ['Dashboard', 'dashboard'],
     ['Home Page', 'homePage'],
+    ['Properties', 'properties'],
     ['Edit History', 'editHistory'],
   ] as const)(
     'calls the primary-slot %s type action from the titlebar submenu',
@@ -449,6 +454,31 @@ describe('ViewportFrame', () => {
     })
 
     expect(onRequestSurfaceKind).toHaveBeenCalledWith('editHistory')
+    expect(container?.querySelector('.ViewportFrameTypePicker')).toBeNull()
+  })
+
+  it('includes properties in the default viewport type picker', async () => {
+    const onRequestSurfaceKind = vi.fn()
+    await renderFrame({ onRequestSurfaceKind })
+
+    const modeButton = container?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const propertiesButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Properties') as HTMLButtonElement | undefined
+
+    expect(propertiesButton).not.toBeUndefined()
+    expect(propertiesButton?.disabled).toBe(false)
+
+    await act(async () => {
+      propertiesButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onRequestSurfaceKind).toHaveBeenCalledWith('properties')
     expect(container?.querySelector('.ViewportFrameTypePicker')).toBeNull()
   })
 

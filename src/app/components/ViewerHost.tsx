@@ -16,6 +16,7 @@ import {
 import { useViewerCameraShortcuts } from '../useViewerCameraShortcuts'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { Viewer, type ViewerViewportRenderLayers } from '../../viewer/Viewer'
+import { buildReferenceObjectMaterialTargetKey } from '../../shared/materialTargetKeys'
 import type {
   BuildResultBundle,
   PartArtifact,
@@ -956,6 +957,40 @@ export function ViewerHost(props: ViewerHostProps) {
       renderedProjectPartSet,
     ],
   )
+  const contentObjectMaterialFallbackGroups = useMemo(
+    () => {
+      const partKeysByReferenceId = new Map<string, Set<string>>()
+      renderedProjectPartSet.parts.forEach((part) => {
+        const referenceId =
+          referenceWorkspace.importedReferenceOrder.find(
+            (candidateReferenceId) =>
+              buildImportedReferenceRowId(candidateReferenceId) === part.objectId,
+          ) ?? null
+        if (referenceId === null) {
+          return
+        }
+
+        const referenceRecord = referenceWorkspace.importedReferencesById[referenceId]
+        if (
+          referenceRecord === undefined ||
+          (referenceRecord.sourcePartKey !== null && referenceRecord.sourceMeshIndex !== null) ||
+          (referenceWorkspace.partRowsByReferenceId[referenceId]?.length ?? 0) > 0
+        ) {
+          return
+        }
+
+        const currentPartKeys = partKeysByReferenceId.get(referenceId) ?? new Set<string>()
+        currentPartKeys.add(part.viewerKey)
+        partKeysByReferenceId.set(referenceId, currentPartKeys)
+      })
+
+      return [...partKeysByReferenceId.entries()].map(([referenceId, partKeys]) => ({
+        fallbackPartKey: buildReferenceObjectMaterialTargetKey(referenceId),
+        partKeys: [...partKeys],
+      }))
+    },
+    [renderedProjectPartSet, referenceWorkspace],
+  )
   const activeViewerTransformHistoryOverlay = useMemo<ViewerTransformHistoryOverlayVm | null>(() => {
     const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
     const activeSession = selectActiveViewerTransformSession(referenceWorkspace)
@@ -1154,6 +1189,15 @@ export function ViewerHost(props: ViewerHostProps) {
 
     viewer.setContentObjectTransformGroups(contentObjectTransformGroups)
   }, [contentObjectTransformGroups])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (viewer === null) {
+      return
+    }
+
+    viewer.setContentObjectMaterialFallbackGroups(contentObjectMaterialFallbackGroups)
+  }, [contentObjectMaterialFallbackGroups])
 
   useEffect(() => {
     const viewer = viewerRef.current

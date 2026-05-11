@@ -260,7 +260,7 @@ describe('HomePageSurface', () => {
     ])
 
     expect(readPersistedUiPrefs()).toMatchObject({
-      version: 2,
+      version: 3,
       workspaceRestorePersistence: false,
       viewSettingsPersistence: false,
       environmentPersistence: false,
@@ -466,6 +466,7 @@ describe('HomePageSurface', () => {
       'Dashboard',
       'Notepad',
       'Settings',
+      'Properties',
       'Edit History',
     ])
     expect(launchButtons.map((button) => button.textContent)).not.toEqual(
@@ -488,6 +489,7 @@ describe('HomePageSurface', () => {
     const openDashboardButton = launchButtons.find((button) => button.textContent === 'Dashboard')
     const openNotepadButton = launchButtons.find((button) => button.textContent === 'Notepad')
     const openSettingsButton = launchButtons.find((button) => button.textContent === 'Settings')
+    const openPropertiesButton = launchButtons.find((button) => button.textContent === 'Properties')
     const openEditHistoryButton = launchButtons.find(
       (button) => button.textContent === 'Edit History',
     )
@@ -500,6 +502,7 @@ describe('HomePageSurface', () => {
       openDashboardButton?.click()
       openNotepadButton?.click()
       openSettingsButton?.click()
+      openPropertiesButton?.click()
       openEditHistoryButton?.click()
     })
 
@@ -512,6 +515,7 @@ describe('HomePageSurface', () => {
       ['dashboard'],
       ['notepad'],
       ['settings'],
+      ['properties'],
       ['editHistory'],
     ])
   })

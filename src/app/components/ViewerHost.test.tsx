@@ -25,6 +25,7 @@ let viewerSetReferenceVisible: ReturnType<typeof vi.fn>
 let viewerRemoveReference: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformSession: ReturnType<typeof vi.fn>
 let viewerSetContentObjectTransformGroups: ReturnType<typeof vi.fn>
+let viewerSetContentObjectMaterialFallbackGroups: ReturnType<typeof vi.fn>
 let viewerSetContentObjectTransformSession: ReturnType<typeof vi.fn>
 let viewerSetContentObjectTransformOverrides: ReturnType<typeof vi.fn>
 let viewerSetViewerTransformSession: ReturnType<typeof vi.fn>
@@ -154,6 +155,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetReferenceTransformSession(...args)
     public setContentObjectTransformGroups = (...args: unknown[]) =>
       viewerSetContentObjectTransformGroups(...args)
+    public setContentObjectMaterialFallbackGroups = (...args: unknown[]) =>
+      viewerSetContentObjectMaterialFallbackGroups(...args)
     public setContentObjectTransformSession = (...args: unknown[]) =>
       viewerSetContentObjectTransformSession(...args)
     public setContentObjectTransformOverrides = (...args: unknown[]) =>
@@ -520,6 +523,7 @@ describe('ViewerHost reference loading', () => {
     viewerRemoveReference = vi.fn()
     viewerSetReferenceTransformSession = vi.fn()
     viewerSetContentObjectTransformGroups = vi.fn()
+    viewerSetContentObjectMaterialFallbackGroups = vi.fn()
     viewerSetContentObjectTransformSession = vi.fn()
     viewerSetContentObjectTransformOverrides = vi.fn()
     viewerSetViewerTransformSession = vi.fn()

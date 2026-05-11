@@ -12,6 +12,10 @@ import {
   type WorkspaceSurfaceKind,
   type WorkspaceViewportSlotId,
 } from './workspaceShellTypes'
+import {
+  getWorkspaceViewportTypeChoiceEntries,
+  getWorkspaceViewportTypeLabel,
+} from './workspaceViewportTypeChoices'
 
 export type ViewportFrameHeaderDragOutPayload = {
   pointerId: number
@@ -47,19 +51,6 @@ type ViewportFrameProps = {
   onClose?: () => void
   onHeaderDragOut?: (payload: ViewportFrameHeaderDragOutPayload) => void
   children: ReactNode
-}
-
-const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
-  modelViewer: 'Model Viewport',
-  browser: 'Browser',
-  catalog: 'Catalog',
-  console: 'Console',
-  spaghettiEditor: 'Spaghetti Editor',
-  notepad: 'Notepad',
-  dashboard: 'Dashboard',
-  homePage: 'Home Page',
-  settings: 'Settings',
-  editHistory: 'Edit History',
 }
 
 const typePickerWidth = 180
@@ -120,23 +111,10 @@ export function ViewportFrame(props: ViewportFrameProps) {
   } | null>(null)
   const surfaceChoices = useMemo(
     () =>
-      (availableSurfaceKinds ??
-        ([
-          'modelViewer',
-          'browser',
-          'catalog',
-          'console',
-          'spaghettiEditor',
-          'notepad',
-          'dashboard',
-          'homePage',
-          'settings',
-          'editHistory',
-        ] as const)
-      ).map((kind) => ({
-        kind,
-        label: surfaceKindLabels[kind],
-        disabled: isPrimary && !workspacePrimarySlotSupportsSurfaceKind(kind),
+      getWorkspaceViewportTypeChoiceEntries(availableSurfaceKinds).map((choice) => ({
+        kind: choice.kind,
+        label: choice.label,
+        disabled: isPrimary && !workspacePrimarySlotSupportsSurfaceKind(choice.kind),
       })),
     [availableSurfaceKinds, isPrimary],
   )
@@ -401,7 +379,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
             onClick={onPrimaryButtonClick}
             onContextMenu={handleViewportButtonContextMenu}
             aria-label={
-              props.primaryButtonAriaLabel ?? `Viewport controls for ${surfaceKindLabels[surfaceKind]}`
+              props.primaryButtonAriaLabel ??
+              `Viewport controls for ${getWorkspaceViewportTypeLabel(surfaceKind)}`
             }
             aria-expanded={props.primaryButtonExpanded}
             title={
@@ -411,7 +390,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
           >
             {props.primaryButtonLabel ?? '-'}
           </button>
-          <span className="ViewportFrameTitle">{surfaceKindLabels[surfaceKind]}</span>
+          <span className="ViewportFrameTitle">{getWorkspaceViewportTypeLabel(surfaceKind)}</span>
         </div>
         {headerSupplement !== undefined ? (
           <div
@@ -430,7 +409,9 @@ export function ViewportFrame(props: ViewportFrameProps) {
             type="button"
             className="ViewportFrameActionMenuButton"
             onClick={handlePopOutButtonClick}
-            aria-label={props.popOutButtonAriaLabel ?? `Pop out ${surfaceKindLabels[surfaceKind]}`}
+            aria-label={
+              props.popOutButtonAriaLabel ?? `Pop out ${getWorkspaceViewportTypeLabel(surfaceKind)}`
+            }
             title={props.popOutButtonTitle ?? 'Pop out viewport'}
           >
             ↗

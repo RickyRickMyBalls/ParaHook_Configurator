@@ -31,6 +31,27 @@ Canonical direction and docs-structure references:
 - `docs/Agents/Implementation-Behavior.md`
 - `docs/Phase-Plans/00_Phase-Setup.md`
 
+## User Communication Rule
+
+The primary user may describe product intent using informal language, incorrect
+technical terms, partial mental models, imperfect spelling, or casual phrasing.
+
+Codex should:
+- interpret user intent generously
+- avoid over-correcting terminology unless clarity truly depends on it
+- explain technical decisions in plain English without assuming coding fluency
+- translate user intent into the repo's planning and phase-doc structure before
+  implementation when that extra structure is helpful
+- treat planning docs as the canonical bridge between user intent and source
+  code changes
+- ask clarifying questions only when a choice has meaningful product,
+  architecture, or workflow consequences
+
+The user may work in a doc-first "vibe coding" style and may not write source
+code directly. Codex should optimize for collaboration, translation, planning
+discipline, and safe execution rather than expecting precise engineering
+vocabulary from the user.
+
 ## Implementation Behavior Rule
 
 For implementation, cleanup, and refactor work, Codex should follow

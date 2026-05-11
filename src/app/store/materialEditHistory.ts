@@ -1,4 +1,9 @@
-import type { MaterialPresetId, PartMaterialMap, ViewSettings } from '../../shared/viewSettingsTypes'
+import type {
+  MaterialPreset,
+  MaterialPresetId,
+  PartMaterialMap,
+  ViewSettings,
+} from '../../shared/viewSettingsTypes'
 import { normalizeViewSettings } from '../../shared/viewSettingsTypes'
 import { editHistoryStore } from './editHistoryStore'
 import { useUiPrefsStore } from './uiPrefsStore'
@@ -69,7 +74,8 @@ export const areMaterialHistorySnapshotsEqual = (
       preset.emissive === rightPreset.emissive &&
       preset.emissiveIntensity === rightPreset.emissiveIntensity &&
       preset.opacity === rightPreset.opacity &&
-      preset.transparent === rightPreset.transparent
+      preset.transparent === rightPreset.transparent &&
+      preset.doubleSided === rightPreset.doubleSided
     )
   }) &&
   arePartMaterialMapsEqual(left.perPart, right.perPart)
@@ -139,6 +145,36 @@ export const addMaterialPresetWithHistory = (
     ...options,
   })
 
+export const createMaterialPresetWithHistory = (
+  preset: Partial<MaterialPreset> = {},
+  options: MaterialHistoryOptions = {},
+): boolean =>
+  runMaterialHistoryAction(() => useUiPrefsStore.getState().addMaterialPreset(preset), {
+    targetId: 'material-preset:create',
+    targetLabel: 'Material preset',
+    ...options,
+  })
+
+export const createAndAssignMaterialPresetWithHistory = (
+  partId: string,
+  preset: Partial<MaterialPreset> = {},
+  options: MaterialHistoryOptions = {},
+): boolean =>
+  runMaterialHistoryAction(
+    () => {
+      const store = useUiPrefsStore.getState()
+      store.addMaterialPreset(preset)
+      const createdPresetId = useUiPrefsStore.getState().view.materials.selectedPresetId
+      useUiPrefsStore.getState().setUsePerPartMaterial(true)
+      useUiPrefsStore.getState().assignPartMaterial(partId, createdPresetId)
+    },
+    {
+      targetId: `material-per-part:${partId}:create-assign`,
+      targetLabel: 'Material preset assignment',
+      ...options,
+    },
+  )
+
 export const deleteMaterialPresetWithHistory = (
   id: MaterialPresetId,
   options: MaterialHistoryOptions = {},
@@ -146,6 +182,17 @@ export const deleteMaterialPresetWithHistory = (
   runMaterialHistoryAction(() => useUiPrefsStore.getState().deleteMaterialPreset(id), {
     targetId: `material-preset:${id}:delete`,
     targetLabel: 'Material preset',
+    ...options,
+  })
+
+export const updateMaterialPresetWithHistory = (
+  id: MaterialPresetId,
+  patch: Partial<MaterialPreset>,
+  options: MaterialHistoryOptions = {},
+): boolean =>
+  runMaterialHistoryAction(() => useUiPrefsStore.getState().updateMaterialPreset(id, patch), {
+    targetId: `material-preset:${id}:update`,
+    targetLabel: 'Material preset properties',
     ...options,
   })
 
@@ -183,6 +230,78 @@ export const assignPartMaterialWithHistory = (
     targetLabel: 'Per-part material assignment',
     ...options,
   })
+
+export const assignMaterialPresetToPartWithHistory = (
+  partId: string,
+  presetId: MaterialPresetId,
+  options: MaterialHistoryOptions = {},
+): boolean =>
+  runMaterialHistoryAction(
+    () => {
+      useUiPrefsStore.getState().setUsePerPartMaterial(true)
+      useUiPrefsStore.getState().assignPartMaterial(partId, presetId)
+    },
+    {
+      targetId: `material-per-part:${partId}:assign`,
+      targetLabel: 'Per-part material assignment',
+      ...options,
+    },
+  )
+
+export const assignMaterialPresetToPartsWithHistory = (
+  partIds: string[],
+  presetId: MaterialPresetId,
+  options: MaterialHistoryOptions = {},
+): boolean => {
+  const uniquePartIds = Array.from(new Set(partIds)).filter((partId) => partId.length > 0)
+  if (uniquePartIds.length === 0) {
+    return false
+  }
+
+  return runMaterialHistoryAction(
+    () => {
+      const store = useUiPrefsStore.getState()
+      if (!store.view.materials.presets.some((preset) => preset.id === presetId)) {
+        return
+      }
+
+      store.setUsePerPartMaterial(true)
+      uniquePartIds.forEach((partId) => {
+        useUiPrefsStore.getState().assignPartMaterial(partId, presetId)
+      })
+    },
+    {
+      targetId: `material-per-part:batch:${uniquePartIds.join('|')}:assign`,
+      targetLabel: 'Grouped material assignment',
+      ...options,
+    },
+  )
+}
+
+export const duplicateMaterialPresetForPartWithHistory = (
+  partId: string,
+  preset: MaterialPreset,
+  options: MaterialHistoryOptions = {},
+): boolean =>
+  createAndAssignMaterialPresetWithHistory(
+    partId,
+    {
+      name: `${preset.name} Copy`,
+      color: preset.color,
+      metalness: preset.metalness,
+      roughness: preset.roughness,
+      emissive: preset.emissive,
+      emissiveIntensity: preset.emissiveIntensity,
+      opacity: preset.opacity,
+      transparent: preset.transparent,
+      doubleSided: preset.doubleSided,
+    },
+    {
+      targetId: `material-per-part:${partId}:duplicate-assign`,
+      targetLabel: 'Material preset duplicate assignment',
+      ...options,
+    },
+  )
 
 export const clearPartMaterialWithHistory = (
   partId: string,

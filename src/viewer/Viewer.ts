@@ -13,6 +13,7 @@ import {
   EdgesGeometry,
   EquirectangularReflectionMapping,
   Float32BufferAttribute,
+  FrontSide,
   Group,
   CircleGeometry,
   HemisphereLight,
@@ -284,15 +285,26 @@ const fallbackPreset = (): MaterialPreset => ({
   color: '#5f83d6',
   metalness: 0.06,
   roughness: 0.84,
-  emissive: '#000000',
+  emissive: '#ffffff',
   emissiveIntensity: 0,
   opacity: 1,
   transparent: false,
+  doubleSided: true,
 })
 
 const groundMaterialPreset = (
   presetId: GroundMaterialPresetId,
-): Pick<MaterialPreset, 'color' | 'metalness' | 'roughness' | 'emissive' | 'emissiveIntensity' | 'opacity' | 'transparent'> => {
+): Pick<
+  MaterialPreset,
+  | 'color'
+  | 'metalness'
+  | 'roughness'
+  | 'emissive'
+  | 'emissiveIntensity'
+  | 'opacity'
+  | 'transparent'
+  | 'doubleSided'
+> => {
   if (presetId === 'matte_dark') {
     return {
       color: '#2c313b',
@@ -302,6 +314,7 @@ const groundMaterialPreset = (
       emissiveIntensity: 0,
       opacity: 1,
       transparent: false,
+      doubleSided: true,
     }
   }
 
@@ -314,6 +327,7 @@ const groundMaterialPreset = (
       emissiveIntensity: 0,
       opacity: 1,
       transparent: false,
+      doubleSided: true,
     }
   }
 
@@ -325,6 +339,7 @@ const groundMaterialPreset = (
     emissiveIntensity: 0,
     opacity: 1,
     transparent: false,
+    doubleSided: true,
   }
 }
 
@@ -661,6 +676,7 @@ export class Viewer {
   private readonly environmentLightHelpersById = new Map<string, Group>()
   private readonly materialCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
   private readonly assignedPresetByPartKey = new Map<string, MaterialPresetId>()
+  private readonly materialFallbackPartKeyByViewerPartKey = new Map<string, string>()
   private environmentTexture: Texture | null = null
   private environmentTextureSourcePath: string | null = null
   private environmentLoadRequestId = 0
@@ -1590,6 +1606,21 @@ export class Viewer {
         this.partKeyToContentObjectId.set(partKey, group.objectId)
       })
     })
+  }
+
+  public setContentObjectMaterialFallbackGroups(
+    groups: Array<{
+      fallbackPartKey: string
+      partKeys: string[]
+    }>,
+  ): void {
+    this.materialFallbackPartKeyByViewerPartKey.clear()
+    groups.forEach((group) => {
+      group.partKeys.forEach((partKey) => {
+        this.materialFallbackPartKeyByViewerPartKey.set(partKey, group.fallbackPartKey)
+      })
+    })
+    this.applyMaterialAssignmentsToScene()
   }
 
   public setContentObjectTransformOverrides(
@@ -3057,6 +3088,7 @@ export class Viewer {
     }
     this.materialCacheByPresetId.clear()
     this.assignedPresetByPartKey.clear()
+    this.materialFallbackPartKeyByViewerPartKey.clear()
 
     this.transformGizmo.dispose()
     this.axisGizmo?.dispose()
@@ -3403,8 +3435,7 @@ export class Viewer {
     material.emissiveIntensity = clamp(preset.emissiveIntensity, 0, 2)
     material.opacity = clamp(preset.opacity, 0, 1)
     material.transparent = preset.transparent || material.opacity < 1
-    // Runtime CAD previews should remain legible from either side of the authored sketch plane.
-    material.side = DoubleSide
+    material.side = preset.doubleSided ? DoubleSide : FrontSide
     material.wireframe = this.currentViewSettings.wireframe
     material.needsUpdate = true
   }
@@ -3468,6 +3499,17 @@ export class Viewer {
         const mappedMaterial = this.materialCacheByPresetId.get(mapped)
         if (mappedMaterial !== undefined) {
           return mappedMaterial
+        }
+      }
+
+      const fallbackPartKey = this.materialFallbackPartKeyByViewerPartKey.get(partKey)
+      if (fallbackPartKey !== undefined) {
+        const fallbackMapped = this.assignedPresetByPartKey.get(fallbackPartKey)
+        if (fallbackMapped !== undefined) {
+          const fallbackMaterial = this.materialCacheByPresetId.get(fallbackMapped)
+          if (fallbackMaterial !== undefined) {
+            return fallbackMaterial
+          }
         }
       }
     }

@@ -72,6 +72,1015 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1858 -->
+
+### [1858] - 2026-05-10 21:30 - `Materials-4 / Phase 5 - Compact Material Action Rail`
+
+HUMAN SUMMARY: `This finishes the Materials-4 cleanup ladder by moving material creation actions into Project materials and compacting grouped assignment actions. New Material, Duplicate Material, project material assignment, and all/odds/evens assignment keep their existing material-history paths.`
+
+#### Scope / Constraints Honored
+
+- Preserved material preset ownership, selected target behavior, assignment semantics, grouped assignment rules, and material history labels.
+- Kept project material row assignment unchanged.
+- Did not add material-library, texture, or shader behavior.
+
+#### Summary of Implementation
+
+- Added a compact `Project material actions` rail inside the `Project materials` section.
+- Moved `New Material` and `Duplicate Material` into the project-material action rail.
+- Removed the old large `Material actions` card block from below the selected-material editor.
+- Converted grouped all/odds/evens assignment cards into a compact action rail while preserving hooks, labels, target counts, disabled states, and handlers.
+- Added scoped CSS for the compact Materials action buttons.
+- Updated Properties surface tests to assert the moved project-material actions, the removed old action block, and compact grouped assignment behavior.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `New Material` and `Duplicate Material` now appear in the `Project materials` section.
+- The selected-material editor no longer carries a separate large `Material actions` card block.
+- Grouped assignment controls are visually compact while keeping the same assignment behavior.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1857 -->
+
+### [1857] - 2026-05-10 21:20 - `Materials-4 / Phase 4.1 Follow-Up - White Emissive Defaults`
+
+HUMAN SUMMARY: `This changes the default Emissive color from black to white for zero-intensity material presets. Emissive intensity still defaults to zero, so default materials do not visibly glow; the color picker simply starts from white.`
+
+#### Scope / Constraints Honored
+
+- Kept emissive intensity defaults unchanged.
+- Preserved material preset shape, material history behavior, assignment behavior, and viewer consumption semantics.
+- Kept the Phase 4.1 reusable color-control behavior unchanged except for the default color shown by seeded presets.
+
+#### Summary of Implementation
+
+- Changed zero-intensity default material preset emissive colors from `#000000` to `#ffffff`.
+- Updated the viewer material fallback emissive color to match the default matte preset.
+- Updated the no-base new-material fallback emissive color to white.
+- Added Properties surface coverage proving the Emissive color input starts on white for the default material.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The default Emissive color control now opens on white instead of black.
+- Default materials still have `emissiveIntensity: 0`, so this does not add visible glow by itself.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/uiPrefsStore.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1856 -->
+
+### [1856] - 2026-05-10 21:15 - `Materials-4 / Phase 4.1 - Reusable Material Color Control Template`
+
+HUMAN SUMMARY: `This turns the expanded Base color editor into a reusable material color control and applies the same control to Emissive color. Both rows now share the native picker plus Hue, Saturation, Brightness, R, G, and B ParaSlider controls while still writing through material history.`
+
+#### Scope / Constraints Honored
+
+- Kept the reusable color control local to the selected-material editor boundary.
+- Preserved `MaterialPreset` shape, selected target state, project-material assignment, grouped assignment, viewer consumption, and `emissiveIntensity`.
+- Preserved the existing `updateResolvedPreset(...)` path for both `color` and `emissive`.
+
+#### Summary of Implementation
+
+- Added a local `MaterialColorControl` component for reusable selected-material color fields.
+- Moved RGB/HSV derived state and channel update helpers into the reusable color-control component.
+- Replaced the inline `Base color` expandable row with the reusable control.
+- Replaced the simple `Emissive color` row with the same expandable control.
+- Updated Properties surface coverage so base color and emissive color each prove expanded controls and history-backed color edits.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Emissive color now has the same expandable Hue, Saturation, Brightness, R, G, and B controls as Base color.
+- Base color keeps the same expanded controls, but they now come from the reusable color-control template.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1855 -->
+
+### [1855] - 2026-05-10 21:00 - `Materials-4 / Phase 4 Follow-Up - Muted Hue Track Styling`
+
+HUMAN SUMMARY: `This softens the Hue slider rainbow so it fits the dark Materials panel better. The control still reads as a hue strip, but now uses muted color stops, a subtle dark overlay, and an inset track shadow instead of full-saturation picker colors.`
+
+#### Scope / Constraints Honored
+
+- Kept the change styling-only and scoped to the expanded base-color Hue slider.
+- Preserved Hue, Saturation, Brightness, RGB behavior, material history writes, and the existing hex material color owner.
+
+#### Summary of Implementation
+
+- Replaced raw rainbow hue stops with softer theme-fit color stops.
+- Added a translucent dark overlay to reduce brightness.
+- Added an inset shadow so the hue strip feels embedded in the same ParaSlider track chrome.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Hue slider is visually less saturated and better matched to the Materials theme.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1854 -->
+
+### [1854] - 2026-05-10 20:56 - `Materials-4 / Phase 4 Follow-Up - Hue Slider Rainbow Track`
+
+HUMAN SUMMARY: `This adds a Hue ParaSlider to the expanded Base color controls and gives that slider a rainbow track matching the native hue strip. Hue changes preserve the current saturation and brightness while continuing to store the material color as the existing hex value.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the expanded base-color controls.
+- Preserved the existing `MaterialPreset.color` hex owner and history-wrapped update route.
+- Did not change project material assignment, selected target behavior, grouped assignment, action placement, or viewer material consumption.
+
+#### Summary of Implementation
+
+- Added a `Hue` `ParaSlider` before Saturation, Brightness, and RGB controls.
+- Added hue formatting in degrees.
+- Added HSV hue updates that preserve current saturation and brightness.
+- Scoped a rainbow track style to only the hue slider.
+- Updated Properties surface coverage to prove the hue control renders and changes material color through the existing history path.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Expanded base color controls now expose Hue, Saturation, Brightness, R, G, and B sliders.
+- The Hue slider uses a rainbow track so the control visually communicates the hue spectrum.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1853 -->
+
+### [1853] - 2026-05-10 20:48 - `Materials-4 / Phase 4 Follow-Up - Base Color Saturation And Brightness`
+
+HUMAN SUMMARY: `This corrects the expanded Base color controls so they match the native color picker model more directly. The previous White/Black lightness slider is replaced with Brightness, and a separate Saturation ParaSlider is added.`
+
+#### Scope / Constraints Honored
+
+- Kept the change limited to the expanded base-color controls.
+- Preserved the same material preset shape and history-wrapped color update route.
+- Did not change project material assignment, selected target behavior, grouped assignment, action placement, or viewer material consumption.
+
+#### Summary of Implementation
+
+- Replaced HSL lightness conversion with HSV conversion helpers for the expanded color controls.
+- Replaced the `White/Black` slider with `Brightness`.
+- Added a separate `Saturation` `ParaSlider`.
+- Updated Properties surface coverage for the expanded base-color control hooks.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Expanded base color controls now expose RGB, Saturation, and Brightness sliders.
+- Brightness now maps to HSV value, so it behaves like the vertical brightness axis in the native color picker.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1852 -->
+
+### [1852] - 2026-05-10 20:43 - `Materials-4 / Phase 4 Follow-Up - Expandable Base Color Controls`
+
+HUMAN SUMMARY: `This makes the compact Base color row expandable. Users can keep using the native color picker, or open the row to adjust red, green, blue, and black-to-white lightness with ParaSlider controls.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the selected-material control area.
+- Preserved the existing material preset owner shape and history-wrapped update path.
+- Did not change project-material assignment, target selection, grouped assignment, viewer consumption, or Phase 5 action placement.
+
+#### Summary of Implementation
+
+- Added color conversion helpers for hex, RGB, and HSL lightness updates.
+- Added expandable `Base color` row state with a chevron toggle.
+- Added red, green, blue, and `White/Black` `ParaSlider` controls under the expanded base-color row.
+- Kept the native base-color picker available in the row.
+- Updated Properties surface coverage for the expanded color controls.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected material `Base color` row can now expand to show RGB and lightness sliders.
+- Base color updates still flow through the existing material history edit path.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1851 -->
+
+### [1851] - 2026-05-10 20:32 - `Materials-4 / Phase 4 Follow-Up - Compact Para Control Styling`
+
+HUMAN SUMMARY: `This fixes the selected-material ParaSlider and ParaSelect styling so the rows match the compact view toolbar control language. The change is styling-only: material field behavior, history writes, and assignment behavior stay unchanged.`
+
+#### Scope / Constraints Honored
+
+- Kept the follow-up limited to selected-material control styling.
+- Did not change material owner state, history behavior, selected target state, project-material assignment, grouped assignment, or action placement.
+- Left `Materials-4 / Phase 5` as the action-placement cleanup pass.
+
+#### Summary of Implementation
+
+- Added Materials editor scoped styling for `ParaSlider` and `ParaSelect` caps, tracks, fills, markers, content spacing, and typography.
+- Matched the compact dimensions and 10px text treatment used by the view toolbar Para controls.
+- Preserved the existing compact selected-material editor structure from Phase 4.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected-material `ParaSlider` and `ParaSelect` rows now visually align with the view toolbar control styling.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1850 -->
+
+### [1850] - 2026-05-10 20:27 - `Materials-4 / Phase 4 - Inline Material Source And Compact Control Layout`
+
+HUMAN SUMMARY: `This compacts the selected material editor so source and controls read like a tool panel instead of explanatory cards. The material source is now an inline badge, scalar fields use shared ParaSlider controls, and boolean material modes use shared ParaSelect controls while preserving the existing material history path.`
+
+#### Scope / Constraints Honored
+
+- Kept `ViewSettings['materials']`, `MaterialPreset`, selected target state, project-material list behavior, material actions, grouped assignment behavior, and viewer material consumption unchanged.
+- Kept material name, base color, and emissive color as native controls for this pass.
+- Deferred action-placement cleanup to `Materials-4 / Phase 5`.
+
+#### Summary of Implementation
+
+- Replaced selected-material row-card controls with a compact selected-material editor shell.
+- Moved `Material source` from a full row into an inline source badge while preserving source/status data hooks.
+- Routed metalness, roughness, opacity, and emissive intensity through shared `ParaSlider` controls.
+- Routed transparency and rendering side mode through shared `ParaSelect` controls.
+- Updated Properties surface tests for compact editor hooks and Para control-backed editing.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected material editor no longer renders the material source as a large card row.
+- Selected material scalar and mode controls now match the existing Para control language used elsewhere in the app.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1849 -->
+
+### [1849] - 2026-05-10 20:04 - `Materials-4 / Phase 3 - Project Material Preset List`
+
+HUMAN SUMMARY: `This adds the visible project-material list under Material targets. Users can now pick an existing project material from compact rows to assign it to the selected object or part, while the old assign dropdown is removed from the large action area.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added a compact `Project materials` list below the material target list, sourced from `ViewSettings['materials'].presets`.
+- Added project-material row selection state, swatches, dark scrolling, and bottom resize behavior.
+- Reused the existing history-wrapped `assignMaterialPresetToPartWithHistory(...)` path for row assignment.
+- Removed the duplicate `Assign Material` dropdown row while preserving new, duplicate, and grouped assignment actions.
+- Updated focused Properties surface tests for visible preset rows, list resize, selected row state, selected-target assignment, and whole imported object fallback assignment.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1848 -->
+
+### [1848] - 2026-05-10 19:38 - `Materials-4 / Phase 2 Follow-Up - Compact Scroll List Defaults`
+
+HUMAN SUMMARY: `This tunes both Materials scroll lists so their default height is about three rows, while one-row and two-row lists shrink to match their real item count. The focused-object list and material-target list still keep the dark scroll treatment and bottom resize handle for longer selections.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added row-count-aware default heights for the focused-object list and material-target list.
+- Kept three-or-more item lists compact by defaulting them to about three visible rows.
+- Let one-item and two-item lists shrink to their actual row count instead of leaving empty scroll-list space.
+- Updated the focused Properties regression coverage for one-row, two-row, drag-resize, and keyboard-resize behavior.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1847 -->
+
+### [1847] - 2026-05-10 19:33 - `Materials-4 / Phase 2 Follow-Up - Resizable Focused Item List`
+
+HUMAN SUMMARY: `This makes the new focused-object list feel like the material target list instead of a separate header widget. Focused items now use the same dark-scroll list treatment and bottom-edge resize behavior, with tests covering drag and keyboard resizing.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added focused-object list height state, pointer resizing, and keyboard resizing.
+- Added a bottom resize handle for the focused-object list with the same affordance as the material target list.
+- Applied dark scrollbar styling, stable gutter behavior, and fixed-height list sizing to focused items.
+- Extended the Properties surface regression to cover default height, mouse drag resizing, and keyboard resizing.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1846 -->
+
+### [1846] - 2026-05-10 18:02 - `Materials-4 / Phase 2 - Focused Item List And Target Header Simplification`
+
+HUMAN SUMMARY: `This turns the Properties focused-object header into a compact Materials object picker. Multi-selected objects now stay visible in a focused-items list, choosing another object switches the active Materials content without collapsing the shared selection, and the material target copy reads like normal user-facing panel text.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added a compact `Focused items` list in the Properties shell, backed by `workspaceSelection.explicitSelectedTargets` with a single-object fallback.
+- Preserved multi-selection when switching the active Materials object by using `setWorkspaceExplicitSelection(...)` for explicit multi-select cases.
+- Kept object ids out of primary visible copy while preserving them as row metadata and button titles.
+- Simplified material target labels/details and replaced the implementation-facing `Object Part` header copy with user-facing `Material targets` language.
+- Added regression coverage for focused-object list rendering, active row switching, preserved multi-selection, and the simplified material target copy.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1845 -->
+
+### [1845] - 2026-05-10 17:50 - `Materials-4 / Phase 1 - Diagnostic And Reference-Proof Row Removal`
+
+HUMAN SUMMARY: `This removes the last bottom proof sections from the ready Materials panel. The user now sees the real material target list, selected-material editor, and actions without the owner-seam diagnostics or old-window baseline block sitting underneath them.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Removed the ready-state `Materials owner seam read` block that rendered `viewModel.rows`.
+- Removed the `Materials follow-on baseline` block that rendered `viewModel.owedFeatureGroups`.
+- Updated the Properties surface regression so the old proof labels are expected to be absent while the material editor controls and actions remain covered.
+- Closed `Materials-4 / Phase 1` in the Materials cleanup doc and advanced the family index to `Phase 2`.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1844 -->
+
+### [1844] - 2026-05-10 17:25 - `Materials-4 / Cleanup Follow-Through - Remove Phase-Proof Headers`
+
+HUMAN SUMMARY: `This removes the visible phase-proof scaffolding from the hosted Materials panel. The Properties shell contract block and the Materials-2 phase header no longer appear in the ready Materials UI, leaving the user-facing material targets and selected-material editor to lead the surface.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Removed the ready-state `Properties shell status` contract explainer from the Properties content body.
+- Removed the top `Materials-2 / Phase 3` material-editor proof header from the hosted Materials section.
+- Replaced the remaining selected-material phase eyebrow with a user-facing `Selected Material` label.
+- Updated the Properties surface regression to prove those phase-proof strings no longer render in the ready Materials panel.
+
+<!-- ENTRY 1843 -->
+
+### [1843] - 2026-05-10 17:21 - `Materials-4 / Cleanup Follow-Through - Resizable Material Target List`
+
+HUMAN SUMMARY: `This brings the compact Materials target list closer to the Catalog browse-list behavior. The target list now uses the Catalog-style dark scrollbar treatment and has a bottom resize handle so users can adjust how much vertical space the part list takes.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added local height state for the compact material target list with Catalog-matched min, default, max, and keyboard-step behavior.
+- Added a bottom row-resize handle with mouse drag and keyboard `ArrowUp`, `ArrowDown`, `Home`, and `End` support.
+- Applied the Catalog dark scrollbar colors, stable gutter, WebKit thumb styling, and row-resize cursor affordance to the material target list.
+- Extended the Properties surface proof to cover default height, drag resizing, keyboard resizing, and the list height CSS variable.
+
+<!-- ENTRY 1842 -->
+
+### [1842] - 2026-05-10 17:16 - `Materials-4 / Cleanup Follow-Through - Compact Material Target List`
+
+HUMAN SUMMARY: `This tightens the hosted Materials target picker for objects with many material parts. The oversized target cards are now a compact scrollable list, and the redundant selected-target summary row is removed because the active list row carries that state directly.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Replaced the material target card stack with a compact numbered target list that keeps the existing lane-local selection behavior and data attributes.
+- Added a fixed-height scroll container for multi-part material targets so large imported objects stay navigable inside the hosted Materials lane.
+- Removed the separate `Selected material target` summary row from the target section because the selected state is visible on the active target row.
+- Extended the Properties surface proof around compact target-list rendering and selection-state behavior.
+
+<!-- ENTRY 1841 -->
+
+### [1841] - 2026-05-10 16:53 - `Materials-3 / Phase 3 - Hosted Field Projection And Library Handoff`
+
+HUMAN SUMMARY: `This completes the first richer-field loop in the hosted Materials lane. The selected material editor now exposes the owner-backed \`Double-sided\` control, writes it through material history, and keeps texture, library, and broader shader controls as explicit follow-on work instead of smuggling them into the checkbox pass.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-3 - Richer Material Fields And Library Direction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added `doubleSided` to the hosted selected-material control list as a compact `Double-sided` checkbox.
+- Routed checkbox changes through the existing `updateResolvedPreset(...)` material-history path.
+- Extended the hosted Properties surface proof so the control is present, writes `doubleSided: false`, and still records material-history entries.
+- Closed the phase docs with material library, texture asset, preset browser, and broader shader controls preserved as follow-on planning.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/materialEditHistoryStore.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1840 -->
+
+### [1840] - 2026-05-10 15:43 - `Materials-3 / Phase 2 - First Typed Richer Field Expansion`
+
+HUMAN SUMMARY: `This lands the first richer material field as real owner state. Material presets now carry a typed \`doubleSided\` flag that defaults to the old double-sided preview behavior, persists through sanitization and history, copies through duplicate material creation, and drives viewer material side selection when explicitly set false.`
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/materialEditHistory.ts`
+- `src/app/store/materialEditHistoryStore.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-3 - Richer Material Fields And Library Direction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added `doubleSided` to the typed material preset owner, default presets, legacy normalization, UI-store sanitization, and material creation seeds.
+- Included `doubleSided` in material history equality and duplicate preset creation so undo, redo, and selected-target duplication preserve the richer field.
+- Updated the viewer material consumer so `doubleSided: true` uses `DoubleSide` and `doubleSided: false` uses `FrontSide`, with all fallbacks defaulting to the old double-sided behavior.
+- Left the hosted Materials UI control for `Phase 3` so the field becomes owner-backed before the lane projects it.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/materialEditHistoryStore.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1839 -->
+
+### [1839] - 2026-05-10 15:28 - `Materials-3 / Phase 0.1 - Whole Imported Object Material Target Fallback`
+
+HUMAN SUMMARY: `This closes the partless imported-object Materials blocker. Focused imported references without stored part rows or terminal source part keys now get one stable whole-object material target, selected-target material actions can assign to that fallback key, and the viewer consumes that assignment for rendered imported parts while exact part assignments still take priority.`
+
+#### Files Changed
+
+- `src/shared/materialTargetKeys.ts`
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-3 - Richer Material Fields And Library Direction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added the shared `reference-object:<referenceId>` material target key helper for whole imported object fallback assignments.
+- Extended imported Materials target discovery so partless focused imported references project one whole-object target only after stored part rows and terminal source part keys are absent.
+- Routed viewer material resolution through a whole-object fallback map after exact part-key assignments fail, preserving real part-row assignment priority.
+- Added focused tests for fallback target projection, hosted assignment storage, grouped-action inertness on the single fallback target, and viewer fallback consumption.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesSurface.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1838 -->
+
+### [1838] - 2026-05-10 15:09 - `Materials-3 / Phase 0 - Imported Object Material Target Discovery`
+
+HUMAN SUMMARY: `This fixes the first imported-object Materials gap before richer field work starts. Terminal imported part references now appear as editable material targets when they carry a stable source part key, imported references with stored part rows keep using those rows, and truly targetless focused items now show a clearer no-material-parts message instead of an engineer-facing target-discovery warning.`
+
+#### Files Changed
+
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-3 - Richer Material Fields And Library Direction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added a terminal imported-part fallback so focused imported references with `sourcePartKey` and `sourceMeshIndex` project as a single Materials target row.
+- Preserved the existing stored imported part-row path through `referenceWorkspace.partRowsByReferenceId`.
+- Replaced the user-facing no-target copy with `No material parts found` and a clearer empty-state description.
+- Added focused view-model tests for stored imported part rows, terminal imported part references, and truly unavailable material targets.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/workspace/materialsSectionViewModel.ts src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `npm.cmd test -- --run src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1837 -->
+
+### [1837] - 2026-05-10 14:25 - `Materials-2 / Phase 3 - Wider Assignment Reuse And Richer Field Follow-Through`
+
+HUMAN SUMMARY: `This closes the first Materials editing ladder with grouped assignment reuse. The hosted lane now derives all, odd, and even target groups from the visible material rows, assigns the selected resolved preset to those groups through one undoable material-history action, and keeps richer shader or texture fields deferred until the typed material owner can support them.`
+
+#### Files Changed
+
+- `src/app/store/materialEditHistory.ts`
+- `src/app/store/materialEditHistoryStore.test.ts`
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-2 - First Material Editing And Action Flows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added deterministic all, odd, and even material assignment groups derived from the existing `MaterialsTargetRow[]` order.
+- Added `assignMaterialPresetToPartsWithHistory(...)` so grouped assignment commits as one material-history action and restores prior per-part assignments on undo.
+- Added hosted Materials controls for `Assign To All`, `Assign To Odds`, and `Assign To Evens`, scoped to the current focused object's target rows.
+- Kept richer shader, texture, and render fields deferred instead of adding unsupported UI-only fields.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/store/materialEditHistory.ts src/app/store/materialEditHistoryStore.test.ts src/app/workspace/materialsSectionViewModel.ts src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/materialEditHistoryStore.test.ts src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1836 -->
+
+### [1836] - 2026-05-10 14:11 - `Materials-2 / Phase 2 - New Material Assign And Duplicate Flows`
+
+HUMAN SUMMARY: `This turns the Materials action rail into real owner-routed workflows. New Material creates and assigns a real preset to the selected target, Assign Material uses a compact existing-preset picker, and Duplicate Material creates a seeded copy of the resolved preset and assigns it through material history.`
+
+#### Files Changed
+
+- `src/app/store/materialEditHistory.ts`
+- `src/app/store/materialEditHistoryStore.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-2 - First Material Editing And Action Flows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added owner-routed helpers for create-and-assign, assign-to-target, and duplicate-and-assign material flows.
+- Replaced disabled action handoff buttons with live `New Material`, `Assign Material`, and `Duplicate Material` flows scoped to the lane-local selected target.
+- Kept assignment single-target-first through selected target `partKey` and deferred material library browsing, multi-target assignment, odds/evens actions, and wider reuse.
+- Added focused store and hosted-surface tests for all three action flows.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/store/materialEditHistory.ts src/app/store/materialEditHistoryStore.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/materialEditHistoryStore.test.ts src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1835 -->
+
+### [1835] - 2026-05-10 14:01 - `Materials-2 / Phase 1 - First Editable Material Property Controls`
+
+HUMAN SUMMARY: `This turns the selected-target Materials read into the first real editor. The lane now edits the resolved material preset fields through material history, keeps selected target identity downstream from the Materials-1 read helper, and leaves New Material, Assign Material, and Duplicate Material disabled for the next phase.`
+
+#### Files Changed
+
+- `src/app/store/materialEditHistory.ts`
+- `src/app/store/materialEditHistoryStore.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-2 - First Material Editing And Action Flows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added `updateMaterialPresetWithHistory(...)` so preset field edits are undoable material-history entries.
+- Replaced the selected material display rows with editable controls for name, base color, metalness, roughness, opacity, emissive color, emissive intensity, and transparency.
+- Kept edits bound to the resolved selected-target preset and preserved the disabled `New Material`, `Assign Material`, and `Duplicate Material` action handoff rail.
+- Added focused store and hosted-surface tests for owner-routed edits, selected-target continuity, and action deferral.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/store/materialEditHistory.ts src/app/store/materialEditHistoryStore.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1834 -->
+
+### [1834] - 2026-05-10 13:48 - `Materials-1 / Phase 3 - First Material Property Projection And Action Handoff`
+
+HUMAN SUMMARY: `This closes the Materials-1 foundation ladder by turning the lane-local selected material target into a real display-only material-property read. The hosted Materials lane now resolves per-part overrides, selected-preset fallback, and first-preset fallback from typed material truth, shows color and core material facts, and presents New Material, Assign Material, and Duplicate Material as disabled handoff actions for Materials-2.`
+
+#### Files Changed
+
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Implementation Notes
+
+- Added `resolveSelectedTargetMaterialRead(...)` so material-property projection uses the same selected-target `partKey` contract that Phase 2 created.
+- Rendered selected material source, name, color, metalness, roughness, opacity, transparency, and emissive state as display-only lane rows.
+- Added disabled action handoff buttons for `New Material`, `Assign Material`, and `Duplicate Material` without wiring mutation callbacks.
+- Added VM and hosted-surface tests for per-part override precedence, selected-preset fallback, first-preset fallback, selected-target UI updates, and non-mutating action handoff.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/workspace/materialsSectionViewModel.ts src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1833 -->
+
+### [1833] - 2026-05-10 13:37 - `Materials-1 / Phase 2 - Material-Bearing Target List Projection And Selection Flow`
+
+HUMAN SUMMARY: `This turns the hosted `Materials` lane from an owner-read surface into the first object-focused target picker. Authored object targets now project from resolved part keys, imported/reference targets project from stored part rows, and selecting a material target stays local to the lane without rewriting global workspace selection.`
+
+#### Files Changed
+
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The `Properties -> Materials` hosted section now renders material target rows for focused objects when explicit authored part keys or stored reference part rows are available.
+- Selecting a material target updates only lane-local state and reserves that selected row for the next read-only material-property phase.
+- Objects without available material target rows now show an explicit target-discovery pending state inside the lane.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/workspace/materialsSectionViewModel.ts src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1832 -->
+
+### [1832] - 2026-05-10 13:25 - `Materials-1 / Phase 1 - Focused Object Intake And Current Material Truth Read`
+
+HUMAN SUMMARY: `This starts the real hosted `Materials` lane by replacing the placeholder with a read-only focused-object and material-owner seam projection. The lane now names the shell-provided object id, typed material truth, mutation/history seam, viewer per-part consumer, and pending target-discovery work without shipping editable controls before the target-list foundation is ready.`
+
+#### Files Changed
+
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesMaterialsSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The `Properties -> Materials` hosted section now renders a concrete owner-read surface for focused objects instead of phase-placeholder explanatory rows.
+- The lane shows current material truth, mutation/history, viewer consumer, and target-discovery readiness while keeping editable controls, material creation, assignment, and grouped target actions deferred to later phases.
+
+#### Verification
+
+- `npm.cmd exec eslint -- src/app/workspace/materialsSectionViewModel.ts src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesMaterialsSectionContent.tsx src/app/workspace/PropertiesMaterialsSection.tsx src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1831 -->
+
+### [1831] - 2026-05-10 12:58 - `Properties-2 / Phase 3 - Child Section Contract And Shell States`
+
+HUMAN SUMMARY: `This closes the shared `Properties` shell by extracting a real section-facing contract, moving no-focused-item plus unsupported and no-section behavior into shell-owned states, and routing the hosted `Materials` section through that explicit seam. The `Properties` workspace can now hand off cleanly into `Materials-1` without asking the first child lane to rebuild top-level shell behavior.`
+
+#### Files Changed
+
+- `src/app/workspace/propertiesSectionContract.tsx`
+- `src/app/workspace/propertiesSectionContract.test.ts`
+- `src/app/workspace/PropertiesMaterialsSection.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-2 - Shared Properties Workspace Shell And Section Hosting.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/propertiesSectionContract.test.ts`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "properties"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1830 -->
+
+### [1830] - 2026-05-10 12:52 - `Properties-2 / Phase 2 - Section Registry And Tab Framing`
+
+HUMAN SUMMARY: `This lands the first real hosted-section layer inside the shared `Properties` shell by replacing the phase-1 placeholder with a shell-owned section registry and active tab framing. `Materials` now mounts as the first active hosted section and default tab, while focused-target context still enters once at the shell and flows into that section frame without widening into `Materials-1` owner or field behavior.`
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-2 - Shared Properties Workspace Shell And Section Hosting.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "properties"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1829 -->
+
+### [1829] - 2026-05-10 12:44 - `Workspace-10 / Phase 4 - Canonical Viewport Type Menu Reads`
+
+HUMAN SUMMARY: `This lands the shared viewport-type menu cleanup by extracting one canonical viewport-type choice helper and wiring both the runtime right-click picker and Console Workspace Modes to it. `ViewportFrame` no longer carries its own fallback surface list or duplicate label shaping, and the focused proof now covers catalog-order choices, shared labels and aliases, runtime picker behavior, Console menu behavior, and production build integrity.`
+
+#### Files Changed
+
+- `src/app/workspace/workspaceViewportTypeChoices.ts`
+- `src/app/workspace/workspaceViewportTypeChoices.test.ts`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/console/stagedNavigation.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/workspaceViewportTypeChoices.test.ts`
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "viewport type picker|Properties"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1828 -->
+
+### [1828] - 2026-05-10 12:20 - `Properties / Follow-Up - Viewport Type Picker Availability`
+
+HUMAN SUMMARY: `Restored `Properties` to the live viewport right-click `Viewport Type` picker by bringing the titlebar menu fallback surface-kind list back into sync with the shared workspace surface family. Added focused frame-level and AppShell picker proof so secondary viewports can switch into the landed `Properties` workspace shell from the runtime menu path the user actually uses.`
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "viewport type picker|Properties"`
+
+<!-- ENTRY 1827 -->
+
+### [1827] - 2026-05-10 12:13 - `Properties-2 / Phase 1 - Workspace Mount And Focus Context`
+
+<!-- ENTRY 1827 -->
+
+HUMAN SUMMARY: `This lands the first real `Properties` workspace shell by registering it as an optional workspace surface, wiring it through the canonical surface registry, and letting the shell read the current focused workspace target before any section or materials-specific behavior exists. The shared launcher and focused workspace tests now prove that `Properties` can mount honestly as its own workspace instead of hiding inside later child-lane work.`
+
+#### Scope / Constraints Honored
+
+- Kept the implementation inside the shared workspace-surface family, shell mount, and focused-selection read seams.
+- Reused the existing workspace-selection owner path instead of inventing a properties-local focus store.
+- Stopped before section tabs, section registration, or materials-specific property editing so Phase 1 stays shell-only.
+
+#### Summary of Implementation
+
+- Updated the shared workspace surface types and catalog so `properties` is a real optional persisted surface with explicit slot instance ids, label coverage, and viewport type aliases alongside the existing workspace kinds.
+- Added `src/app/workspace/PropertiesSurface.tsx` as the first phase-1 shell that reads `workspaceSelection.selectedTarget`, reports the current focused target kind and id, and reserves `Materials` as the next hosted section without pretending the section host already exists.
+- Wired the canonical `ViewportSurfaceRegistry` branch so slotted workspace rendering can mount the new shell through the same registry path used by the other optional workspace surfaces.
+- Expanded focused verification and Home Page launcher coverage so the new workspace appears in the shared launch path and the phase-1 shell proves the focused-target read at runtime.
+
+#### Files Changed
+
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-2 - Shared Properties Workspace Shell And Section Hosting.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Properties` now appears as a real optional workspace surface in the shared workspace catalog, viewport type-picker path, and Home Page launcher.
+- Opening `Properties` now mounts a dedicated shell that reads and displays the currently focused workspace target instead of deferring all runtime identity to a future materials lane.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/HomePageSurface.test.tsx`
+
 <!-- ENTRY 1826 -->
 
 ### [1826] - 2026-05-10 11:14 - `Workspace-9 / Follow-Up - Restore Four-Corner Split Contract`

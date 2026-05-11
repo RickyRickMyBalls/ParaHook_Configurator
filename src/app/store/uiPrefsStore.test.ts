@@ -182,7 +182,7 @@ describe('uiPrefsStore environment source state', () => {
       environmentGrade: undefined,
       toneMapping: 'none',
       exposure: 0.72,
-    } as Parameters<typeof normalizeViewSettings>[0])
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
 
     expect(normalized.environmentGrade).toEqual({
       toneMapping: 'none',
@@ -200,6 +200,19 @@ describe('uiPrefsStore environment source state', () => {
       kind: 'custom',
       label: 'Custom Baseline',
     })
+  })
+
+  it('defaults legacy material presets to double-sided rendering', () => {
+    const legacyPreset = structuredClone(DEFAULT_VIEW_SETTINGS.materials.presets[0])
+    const normalized = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      materials: {
+        ...structuredClone(DEFAULT_VIEW_SETTINGS.materials),
+        presets: [{ ...legacyPreset, doubleSided: undefined }],
+      },
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(normalized.materials.presets[0]?.doubleSided).toBe(true)
   })
 
   it('applies HDRI environment files and updates first-pass HDRI controls', () => {
@@ -327,6 +340,7 @@ describe('uiPrefsStore environment source state', () => {
       emissiveIntensity: 5,
       opacity: 2,
       transparent: true,
+      doubleSided: false,
     })
 
     expect(
@@ -341,6 +355,7 @@ describe('uiPrefsStore environment source state', () => {
       emissiveIntensity: 2,
       opacity: 1,
       transparent: true,
+      doubleSided: false,
     })
 
     useUiPrefsStore.getState().addMaterialPreset({
@@ -361,6 +376,7 @@ describe('uiPrefsStore environment source state', () => {
       color: '#445566',
       metalness: 0.24,
       roughness: 0.64,
+      doubleSided: false,
     })
 
     useUiPrefsStore.getState().setUsePerPartMaterial(true)

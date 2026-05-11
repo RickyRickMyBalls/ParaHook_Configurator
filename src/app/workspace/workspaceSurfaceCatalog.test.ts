@@ -102,6 +102,38 @@ describe('workspaceSurfaceCatalog', () => {
     )
   })
 
+  it('registers properties as an optional persisted workspace surface with split support only', () => {
+    expect(parseWorkspaceSurfaceKind('properties')).toBe('properties')
+    expect(isWorkspaceSurfaceOptional('properties')).toBe(true)
+    expect(workspaceSurfaceSupportsSplit('properties')).toBe(true)
+    expect(workspaceSurfaceParticipatesInPersistence('properties')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('properties', 'floating')).toBe(false)
+    expect(workspaceSurfaceSupportsHostMode('properties', 'popout')).toBe(false)
+    expect(workspacePrimarySlotSupportsSurfaceKind('properties')).toBe(true)
+    expect(getWorkspaceSurfaceCatalogEntry('properties')).toEqual(
+      expect.objectContaining({
+        kind: 'properties',
+        defaultLabel: 'Properties',
+        renderFamily: 'properties',
+        scope: 'optional',
+        participatesInPersistence: true,
+        coordination: 'plain',
+        supports: expect.objectContaining({
+          slotted: true,
+          floating: false,
+          popout: false,
+          split: true,
+        }),
+      }),
+    )
+  })
+
+  it('creates explicit slot instance ids for properties instead of falling through to spaghetti ids', () => {
+    expect(createWorkspaceSurfaceInstanceIdForSlot('properties', 'workspace-slot-properties')).toBe(
+      'properties-workspace-slot-properties',
+    )
+  })
+
   it('creates explicit slot instance ids for home page instead of falling through to spaghetti ids', () => {
     expect(createWorkspaceSurfaceInstanceIdForSlot('homePage', 'workspace-slot-primary')).toBe(
       'home-page-workspace-slot-primary',

@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-05-10 14:02:14: Marked `Settings-3 / Phase 1 - Console Capture Owner Audit` complete after the future doc recorded the verified automatic Console capture route, proposed preference read seam, manual `C` owner split, priority rules, and follow-on test targets without changing runtime code.
+12. 2026-05-10 13:52:11: Added `Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md` and expanded the `Settings-3` ladder into five first implementation phases for Console capture audit, preference contract, Settings control projection, manual `C` routing, and shortcut-priority hardening.
+11. 2026-05-10 13:46:31: Added the open `Settings-3` family phase as a flexible lane for small owner-backed Settings additions that can be implemented one by one, seeding the first candidate around Console typing-capture mode so auto-capture can later be separated from shortcut-friendly manual Console entry.
 10. 2026-05-07 15:42:03: Re-audited the new `Settings-2` ladder for Codex-sized execution, splitting the broader shortcut-reference work into five smaller phases for inventory source mapping, shared read-model normalization, section-entry routing, grouped pane rendering, and final deep-link or drift-hardening follow-through.
 9. 2026-05-07 15:10:23: Updated the active Settings Generation 1 ladder so the later owner-backed workspace controls now explicitly include a fillet-radius slider for shared workspace pane corners, keeping that visual preference routed through the Settings workspace instead of hard-coding one permanent radius in the `Workspace 9` shell.
 8. 2026-05-07 15:06:41: Added the new `Settings-2` family phase, created the matching `Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md` planning doc, and reopened the Generation 1 ladder so Settings can gain a dedicated mode-aware shortcut reference section without overloading the existing owner-backed control ladder inside `Settings-1`.
@@ -75,6 +78,14 @@ The next family lane is `Settings-2`.
 - reuse the same Settings shell instead of inventing a second shortcut browser
 - stay downstream from the systems that actually define shortcut behavior
 
+The next open-ended family lane is `Settings-3`.
+
+`Settings-3` should stay available for smaller Settings additions that do not need a whole new workspace family yet:
+- capture focused user-requested settings as separate implementation phases
+- keep each setting owner-backed instead of turning Settings into the owner
+- leave room for one-by-one Codex implementation passes
+- start with Console typing-capture mode so users can choose between automatic command typing and a shortcut-friendly manual Console entry mode
+
 ### Current Planning Read
 
 This file owns the active `Generation 1` family-phase routing.
@@ -82,6 +93,7 @@ This file owns the active `Generation 1` family-phase routing.
 Current legal family-phase ladder:
 - `Settings-1` - Unreal-style settings shell, section rail, and detail pane
 - `Settings-2` - Key Bindings and mode shortcut reference
+- `Settings-3` - Open miscellaneous Settings additions and owner-backed toggles
 
 `Settings-1` remains the family doc for the shell plus the current owner-backed control ladder.
 It now contains three internal implementation phases:
@@ -106,6 +118,15 @@ It should own the dedicated `Key Bindings` section and the first shortcut invent
 - `Phase 4` - grouped shortcut pane rendering
 - `Phase 5` - context launch, drift hardening, and follow-on boundary
 
+`Settings-3` is an open follow-on family phase.
+It should collect focused Settings additions that the user wants to implement one at a time:
+- `Phase 1` - Console capture owner audit
+- `Phase 2` - Console capture preference contract
+- `Phase 3` - Settings Console capture control
+- `Phase 4` - manual Console entry routing
+- `Phase 5` - shortcut priority hardening and handoff
+- later phases - user-added Settings controls, grouped only when a narrower owner family is not justified yet
+
 Important planning rule:
 - use this index to choose and bound the next `Settings-N` family phase
 - use a matching standalone `Future/` family phase doc for Codex-sized implementation phases and implementation specs
@@ -127,6 +148,7 @@ The healthy Generation 1 read is:
 - the surface should feel structured and store-like, not like an unorganized dump of controls
 - settings values should stay owned by their real systems, with the workspace acting as the navigation and projection surface
 - shortcut visibility should be grouped by mode or surface context instead of scattered across separate menus or notes
+- miscellaneous Settings additions should be phaseable one at a time while still naming the real owner system for each setting
 
 Important boundary rule:
 - if a question is about the broad `Settings` purpose, use `Settings-Vision.md`
@@ -148,6 +170,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] `Settings-Gen1-HLG-5. The surface should feel like a store-like settings browser, not a junk drawer.`
 - [ ] `Settings-Gen1-HLG-6. Settings should stay downstream from the owner systems that actually own each setting value.`
 - [ ] `Settings-Gen1-HLG-7. Settings should include a Key Bindings section that lists shortcuts clearly by mode and surface context.`
+- [ ] `Settings-Gen1-HLG-8. Settings should provide a safe lane for small user-requested controls that can be implemented one by one without losing owner boundaries.`
 
 ### Codex Level Goals
 
@@ -157,6 +180,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] Settings-Gen1-CLG-4. Keep the left rail narrow and full-height so the layout feels like Unreal Engine settings.
 - [ ] Settings-Gen1-CLG-5. Keep the surface store-like and section-driven, not a flat catch-all page.
 - [ ] Settings-Gen1-CLG-6. Add a dedicated `Key Bindings` settings section that groups shortcuts by mode or surface context without inventing a new shortcut owner.
+- [ ] Settings-Gen1-CLG-7. Add an open `Settings-3` family lane for small owner-backed Settings controls, beginning with the Console typing-capture mode toggle.
 
 ### `Settings-1`
 
@@ -200,6 +224,32 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] Settings-Gen1-CLG-5.
 - [ ] Settings-Gen1-CLG-6.
 
+### `Settings-3`
+
+- [ ] Keep `Settings-3` open as a flexible family phase for focused Settings additions that can be implemented one at a time.
+- [x] Create a standalone `Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md` Family Phase Doc when the first implementation slice is ready.
+- [ ] Seed `Phase 1` around Console typing-capture mode:
+  - automatic typing mode keeps the current behavior where printable keys can enter the Console after workspace interaction
+  - manual Console-entry mode prevents normal letters from auto-capturing so those letters can become shortcuts
+  - manual mode should use a deliberate Console focus chord or key, currently planned as `C`, before free typing enters the Console
+- [x] Use `Settings-3 / Phase 1` to audit the current Console capture owner path before code changes.
+- [ ] Use `Settings-3 / Phase 2` to add the typed owner-backed preference and preserve the current default.
+- [ ] Use `Settings-3 / Phase 3` to project the preference into Settings.
+- [ ] Use `Settings-3 / Phase 4` to honor manual `C` entry in input routing.
+- [ ] Use `Settings-3 / Phase 5` to harden priority and record the key-binding handoff.
+- [ ] Keep the Console typing-capture setting owned by the Console/input-routing preference seam, with Settings only projecting and changing that preference.
+- [ ] Leave later `Settings-3` phases open for user-added controls instead of pretending this index already knows every random Settings item.
+- [ ] Keep each later phase small enough for one Codex implementation pass.
+- [ ] `Settings-Gen1-HLG-2`
+- [ ] `Settings-Gen1-HLG-3`
+- [ ] `Settings-Gen1-HLG-5`
+- [ ] `Settings-Gen1-HLG-6`
+- [ ] `Settings-Gen1-HLG-8`
+- [ ] Settings-Gen1-CLG-2.
+- [ ] Settings-Gen1-CLG-3.
+- [ ] Settings-Gen1-CLG-5.
+- [ ] Settings-Gen1-CLG-7.
+
 ### Phase Prep Notes
 
 - the first implementation cut should stop after the shell, section rail, and right-pane routing proof
@@ -207,6 +257,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - keep `Phase 2` focused on the Spaghetti Editor window defaults before the float-window menu work widens the shell
 - keep `Phase 3` focused on the per-float-window `I` menu controls after the default editor settings are honest
 - keep the later owner-backed control sections inside `Settings-1` unless a cross-mode surface like `Key Bindings` needs a separate family doc to stay honest
+- keep `Settings-3` available for focused user-requested controls that are too concrete for the broad vision but too scattered to deserve a new family yet
 
 ## [x] `Settings-1` - `Unreal-Style Settings Shell And Section Router`
 
@@ -272,6 +323,7 @@ The first implementation should prefer a clean navigation-plus-projection path:
 
 - [x] `Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
 - [x] `Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- [x] `Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
 
 ## [ ] `Settings-2` - `Key Bindings And Mode Shortcut Reference`
 
@@ -331,3 +383,58 @@ The implementation ladder should stay small enough for Codex to execute one slic
 - then add the Settings entry point
 - then render the grouped pane
 - then harden deep links and drift checks
+
+## [ ] `Settings-3` - `Open Settings Additions And Owner-Backed Toggles`
+
+### Family Phase Summary
+
+Keep one flexible Settings family phase open for small user-requested controls that should be implemented one at a time.
+
+This phase exists so Settings can keep growing without forcing every small preference into a new architecture family:
+- a user can add one desired Settings control at a time
+- each control still names its real owner system
+- Settings remains the projection and editing surface, not the hidden owner
+- later `Settings-2` key-binding work can benefit from shortcut-friendly preferences without being blocked by them
+
+### HLG / CLG Coverage
+
+- [ ] `Settings-Gen1-HLG-2. Settings should use a left rail of categories with All first.`
+- [ ] `Settings-Gen1-HLG-3. The right side should show all settings or the selected section's settings.`
+- [ ] `Settings-Gen1-HLG-5. The surface should feel like a store-like settings browser, not a junk drawer.`
+- [ ] `Settings-Gen1-HLG-6. Settings should stay downstream from the owner systems that actually own each setting value.`
+- [ ] `Settings-Gen1-HLG-8. Settings should provide a safe lane for small user-requested controls that can be implemented one by one without losing owner boundaries.`
+- [ ] Settings-Gen1-CLG-2. Make `All` the first category and let it show the full settings surface by default.
+- [ ] Settings-Gen1-CLG-3. Keep settings content as a projection over the real owner systems instead of a new preference owner.
+- [ ] Settings-Gen1-CLG-5. Keep the surface store-like and section-driven, not a flat catch-all page.
+- [ ] Settings-Gen1-CLG-7. Add an open `Settings-3` family lane for small owner-backed Settings controls, beginning with the Console typing-capture mode toggle.
+
+### Owns
+
+- an open planning lane for small Settings additions
+- owner-backed toggle and control requests that do not yet justify a narrower family
+- the first planned Console typing-capture mode setting
+- one-by-one implementation phase routing for user-added Settings controls
+
+### Does Not Own
+
+- full shortcut rebinding, which belongs to the `Settings-2` / later key-binding lane
+- changing shortcut behavior without naming the input-routing or feature owner seam
+- turning Settings into the source of truth for values owned by Console, workspace, viewport, Browser, or other systems
+- bundling many unrelated Settings controls into one implementation pass
+
+### Planning Read
+
+`Settings-3 / Phase 1` should start with the Console typing-capture setting.
+
+The user-facing behavior should be:
+- automatic mode keeps the current quick-console behavior where normal printable keys can enter the Console after workspace interaction
+- manual mode lets the model viewport and other surfaces keep ordinary letters available for shortcuts
+- manual mode uses a deliberate Console entry key or chord before free typing enters the Console, currently planned as `C`
+
+The implementation plan should stay honest:
+- store the preference in the existing UI/settings preference owner area
+- route global printable capture through that preference
+- keep direct Console input focus working in both modes
+- keep editable fields native
+- keep higher-priority tool, camera, and viewport shortcuts ahead of Console capture
+- add focused tests for auto mode, manual mode, `C` Console entry, editable fields, and shortcut priority

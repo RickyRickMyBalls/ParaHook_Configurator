@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+26. 2026-05-10 13:30:05: Added `Cleanup-Gen4-Index.md`, added `Future/Gen4 - Cleanup 1 - Shared Workspace Panel Shell.md`, and refreshed this family index so Cleanup now has an explicit Gen 4 planning surface for unifying the visible two-panel workspace pattern across `Catalog`, `Settings`, and `Properties` without flattening their workspace-specific content.
 25. 2026-05-05 20:30:15: Added `Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`, `Future/Gen3 - Cleanup 3 - ViewportOverlay Runtime Surface Decomposition.md`, and `Future/Gen3 - Cleanup 4 - Viewer Runtime Boundary Decomposition.md`, then refreshed the Cleanup family read so `Gen3` now carries an explicit next-lane sink ladder with small-phase future docs instead of leaving the post-`useAppStore` cleanup wave as a recommendation-only note
 24. 2026-05-05 16:19:03: Added `Cleanup-Gen3-Index.md`, added `Future/Cleanup-Gen3-1 - useAppStore Ownership Decomposition.md`, and refreshed this family index so Cleanup now has an explicit Gen 3 planning surface for oversized ownership-sink decomposition starting with a phased `useAppStore.ts` split plan instead of leaving that next cleanup wave as review-only notes
 23. 2026-04-13 14:45:19: Closed out `Cleanup 10 - Optional Workspace Family Scope Decisions` as a shipped cleanup lane after its optional-family boundary baseline, scope-drift inventory, decision-rule lock, first proof-boundary lock, narrow `radio` optional-background-runtime proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the optional-family scope-decision lane now reads as completed history before the later naming/docs hardening follow-on
@@ -60,6 +61,8 @@ Use this folder like this:
   - second-generation worker and legacy cleanup routing
 - `Cleanup-Gen3-Index.md`
   - third-generation oversized ownership-sink decomposition routing
+- `Cleanup-Gen4-Index.md`
+  - fourth-generation shared workspace panel-shell cleanup routing
 - `Cleanup-Vision.md`
   - broad cleanup north star
   - lane framing
@@ -89,6 +92,9 @@ Use this folder like this:
 
 - `Cleanup-Gen3-Index.md`
   - post-family oversized ownership-sink cleanup planning starting with `useAppStore.ts` and now routing the next `useSpaghettiStore.ts`, `ViewportOverlay.tsx`, and `Viewer.ts` family phases
+
+- `Cleanup-Gen4-Index.md`
+  - post-family shared workspace panel-shell cleanup planning for unifying the two-panel shell pattern across `Catalog`, `Settings`, and `Properties`
 
 - `Canonical-Ownership-Targets.md`
   - one-owner target map
@@ -137,7 +143,7 @@ It is the place where ParaHook records deliberate cleanup work around:
 `Cleanup-Vision.md` explains the north star.
 `Canonical-Ownership-Targets.md` explains where one true owners should live.
 `Cleanup-Index.md` is the family map that points at concrete cleanup phases.
-`Cleanup-Gen2-Index.md` and `Cleanup-Gen3-Index.md` hold later-generation follow-on planning after the original family ladder.
+`Cleanup-Gen2-Index.md`, `Cleanup-Gen3-Index.md`, and `Cleanup-Gen4-Index.md` hold later-generation follow-on planning after the original family ladder.
 
 ### Scope
 
@@ -507,6 +513,7 @@ Current read:
 - `Canonical Owner Decision Lock` should happen early so the later cleanup lanes are moving toward named owners instead of vague cleanup taste
 - Browser, node-authoring, and graph-result cleanup should follow the owner decisions rather than precede them
 - `Cleanup Gen3` is now the active post-family oversized-sink ladder, with `useAppStore` closed and `useSpaghettiStore`, `ViewportOverlay`, and `Viewer` queued as explicit future family phases that each already have one-pass Codex-sized internal ladders
+- `Cleanup Gen4` is now queued as the shared workspace panel-shell cleanup lane for turning the visible `Catalog` / `Settings` / `Properties` two-panel pattern into one reusable adjustable shell foundation
 
 ### Success Read
 

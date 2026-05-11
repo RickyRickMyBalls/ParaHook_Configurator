@@ -7,6 +7,7 @@ import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
 import { EditHistoryReaderSurface } from './EditHistoryReaderSurface'
 import { HomePageSurface } from './HomePageSurface'
+import { PropertiesSurface } from './PropertiesSurface'
 import { SettingsSurface } from './SettingsSurface'
 import {
   getWorkspaceSurfaceRenderFamily,
@@ -137,6 +138,10 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         initialSectionId={settingsInitialSectionId}
       />
     )
+  }
+
+  if (renderFamily === 'properties') {
+    return <PropertiesSurface slotId={slotId} surfaceInstanceId={surfaceInstanceId} />
   }
 
   if (renderFamily === 'editHistory') {

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-05-10 14:33:48: Linked the older ParaHook materials-window screenshot as the canonical visual baseline for this family, adding explicit UI-density and anti-drift rules so future materials phases keep the compact focused-object, target-list, property-control, action, and preset-list shape instead of growing into a noisy all-controls surface.
 3. 2026-05-10 11:02:35: Added an explicit material-property option matrix to this vision doc so the family now records which editable fields fit the first practical workspace pass, which ones are likely next once the owner seams are clearer, and which later advanced controls should stay deferred until the material system widens honestly.
 2. 2026-05-10 10:56:07: Updated this moved materials vision doc so it now reads as the first nested subfamily under `Workspaces/Properties/` instead of a standalone top-level workspace family, keeping the same focused-object materials direction while aligning the cross-doc references to the new umbrella.
 1. 2026-05-10 10:44:20: Added this dedicated `Materials` workspace vision doc so the old focused-object materials editor flow now has one stable planning home inside the current workspace-family architecture, preserving object-focused part/material editing, material-property inspection, and new-material creation while keeping material truth downstream from real object and project owners.
@@ -79,6 +80,30 @@ Without a dedicated vision doc, `Materials` could drift into weak shapes:
 - a one-off product-specific panel that cannot survive the newer workspace architecture
 
 This doc exists to preserve the good user-facing workflow while translating it into the repo’s current owner and workspace rules.
+
+### Canonical Visual Baseline
+
+The older ParaHook materials-window screenshot is the visual baseline for this family:
+
+![Older ParaHook materials window](<C:/Users/Rubbe/Desktop/ParaHookConfig/20/img ref/Screenshot 2026-05-10 131952.png>)
+
+Use that image as the minimum UX shape to preserve, adapted to the new stack and current workspace shell.
+
+The important visual commitments are:
+- a compact dark workspace lane
+- focused-item read at the top
+- object-part or material-target list immediately after focus
+- odds and evens group actions near the target-list area
+- selected material controls grouped below the target list
+- `New Material` as a clear full-width action
+- a default material or preset list below the editor
+- dense readable rows instead of scattered oversized cards
+
+Anti-drift rule:
+- when the current implementation feels busy, prefer returning toward this screenshot's compact stack and section order before adding more visible controls
+- do not add every future field directly into the main lane at once
+- use collapsible groups, compact rows, or a separate later library/preset surface when new material fields would crowd the focused-object workflow
+- the new app may improve styling and ownership, but it should not ship with less practical materials workflow than this reference shows
 
 ### Short Version
 

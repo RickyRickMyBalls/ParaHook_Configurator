@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { Texture, Vector3 } from 'three'
+import { DoubleSide, FrontSide, Texture, Vector3 } from 'three'
 import type { Camera, Vector3 as ThreeVector3 } from 'three'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CameraClipRangeMode } from './scene/CameraController'
@@ -2389,6 +2389,156 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.groundPlane.material.metalness).toBe(0.04)
     expect(runtime.minorGridHelper.material.opacity).toBe(0.1)
     expect(runtime.scene.background?.getHexString()).toBe('0b0b0f')
+  })
+
+  it('uses whole-object material fallback keys when rendered imported parts lack exact assignments', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setContentObjectMaterialFallbackGroups: (
+        groups: Array<{ fallbackPartKey: string; partKeys: string[] }>,
+      ) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      partMeshes: Map<string, { material: { color: { getHexString: () => string } } }>
+    }
+
+    runtime.setContentObjectMaterialFallbackGroups([
+      {
+        fallbackPartKey: 'reference-object:shoe-import',
+        partKeys: ['reference-part:shoe-import:0', 'reference-part:shoe-import:1'],
+      },
+    ])
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [
+          toViewerRenderablePart(createArtifact('reference-part:shoe-import:0', 10)),
+          toViewerRenderablePart(createArtifact('reference-part:shoe-import:1', 12)),
+        ],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      materials: {
+        presets: DEFAULT_VIEW_SETTINGS.materials.presets,
+        selectedPresetId: 'default_matte',
+        usePerPart: true,
+        perPart: {
+          'reference-object:shoe-import': 'brushed_metal',
+          'reference-part:shoe-import:1': 'highlight_gloss',
+        },
+      },
+    })
+
+    expect(
+      runtime.partMeshes.get('reference-part:shoe-import:0')?.material.color.getHexString(),
+    ).toBe('afb5bf')
+    expect(
+      runtime.partMeshes.get('reference-part:shoe-import:1')?.material.color.getHexString(),
+    ).toBe('f3f4f7')
+  })
+
+  it('applies typed material side settings from material presets', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      partMeshes: Map<string, { material: { side: number } }>
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:side-proof', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      materials: {
+        ...DEFAULT_VIEW_SETTINGS.materials,
+        presets: DEFAULT_VIEW_SETTINGS.materials.presets.map((preset) =>
+          preset.id === 'default_matte' ? { ...preset, doubleSided: false } : preset,
+        ),
+      },
+    })
+
+    expect(runtime.partMeshes.get('part:side-proof')?.material.side).toBe(FrontSide)
+
+    runtime.applyViewSettings(DEFAULT_VIEW_SETTINGS)
+
+    expect(runtime.partMeshes.get('part:side-proof')?.material.side).toBe(DoubleSide)
   })
 
   it('uses an explicit base fly speed value and keeps boost multiplicative on top of it', async () => {

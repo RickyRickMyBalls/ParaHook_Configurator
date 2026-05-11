@@ -6,10 +6,10 @@ import type {
 import { REFERENCE_ROOT_ROW_ID, buildReferenceCategoryRowId } from '../store/useAppStore'
 import type { WorkspaceSurfaceHostMode, WorkspaceSurfaceKind } from '../workspace/workspaceShellTypes'
 import {
-  getWorkspaceSurfaceCatalogEntries,
   getWorkspaceSurfaceDefaultLabel,
 } from '../workspace/workspaceSurfaceCatalog'
 import { getWorkspaceSurfaceActionEligibility } from '../workspace/workspaceSurfaceActionEligibility'
+import { getWorkspaceViewportTypeChoiceEntries } from '../workspace/workspaceViewportTypeChoices'
 
 export type ConsoleStagedNodeOption = {
   nodeId: string
@@ -1273,36 +1273,20 @@ const buildWorkspaceViewportSplitChoices = (): ConsoleStagedNavigationChoice[] =
   createBackChoice(),
 ]
 
-const workspaceViewportTypeAliasesByKind: Partial<Record<WorkspaceSurfaceKind, string[]>> = {
-  modelViewer: ['MV'],
-  browser: ['BRO'],
-  console: ['C'],
-  spaghettiEditor: ['SE', 'SP'],
-  catalog: ['CAT'],
-  dashboard: ['DASH'],
-  notepad: ['NOTE'],
-  homePage: ['HP', 'HOME'],
-}
-
-const getWorkspaceViewportTypeChoiceLabel = (surfaceKind: WorkspaceSurfaceKind): string => {
-  const label = getWorkspaceSurfaceDefaultLabel(surfaceKind)
-  return surfaceKind === 'modelViewer' ? label : label.replace(/ Viewport$/, '')
-}
-
 const createWorkspaceViewportTypeChoice = (
-  surfaceKind: WorkspaceSurfaceKind,
+  choice: ReturnType<typeof getWorkspaceViewportTypeChoiceEntries>[number],
 ): ConsoleStagedNavigationChoice => ({
-  canonicalToken: normalizeCompactChoiceToken(getWorkspaceSurfaceDefaultLabel(surfaceKind)),
-  aliases: workspaceViewportTypeAliasesByKind[surfaceKind] ?? [],
-  label: getWorkspaceViewportTypeChoiceLabel(surfaceKind),
+  canonicalToken: normalizeCompactChoiceToken(getWorkspaceSurfaceDefaultLabel(choice.kind)),
+  aliases: [...choice.aliases],
+  label: choice.label,
   kind: 'action',
-  workspaceSurfaceKind: surfaceKind,
+  workspaceSurfaceKind: choice.kind,
 })
 
 const buildWorkspaceViewportTypeChoices = (): ConsoleStagedNavigationChoice[] => [
-  ...getWorkspaceSurfaceCatalogEntries()
-    .filter((entry) => entry.supports.slotted)
-    .map((entry) => createWorkspaceViewportTypeChoice(entry.kind)),
+  ...getWorkspaceViewportTypeChoiceEntries().map((choice) =>
+    createWorkspaceViewportTypeChoice(choice),
+  ),
   createBackChoice(),
 ]
 
