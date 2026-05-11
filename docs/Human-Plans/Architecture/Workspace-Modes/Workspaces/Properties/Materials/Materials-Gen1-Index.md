@@ -3,6 +3,22 @@
 ## Doc Header
 
 ### Doc History
+67. 2026-05-11 08:40: Recorded the selected-material text input sizing follow-up so the full-width `Name` field uses border-box sizing and stays inside the compact row padding.
+66. 2026-05-11 08:38: Recorded the selected-material `Name` row width follow-up that gives the name input the full remaining row width by tightening the compact row label column.
+65. 2026-05-11 08:33: Recorded the `Materials-5 / Phase 2.1` single-selection `x` follow-up that clears mirrored selected part state through the shared workspace selection clear command when the last focused object is removed.
+64. 2026-05-11 08:27: Recorded `Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics` as shipped, with split Properties surface tests locking assignment-only unhighlighting, inactive-row `x` global removal, and active-row `x` global removal.
+63. 2026-05-11 08:22: Recorded the prepared implementation read for `Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics`, grounding the phase in the live focused-item include/remove controls, local inclusion state, assignment-scope handoff, project-material assignment path, and needed split semantic tests.
+62. 2026-05-11 08:17: Added `Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics` before mixed-value reads so Materials can explicitly separate assignment-only inclusion toggles from right-anchored `x` global deselect/removal behavior.
+61. 2026-05-11 07:42: Strengthened the `Materials-5 / Phase 2` focused-item remove coverage so the right-anchored `x` button is proven to clear the removed active object from shared selection truth and resolved content part keys.
+60. 2026-05-11 07:24: Recorded the `Materials-5 / Phase 2` focused-item inclusion follow-up that lets users unhighlight focused material objects to exclude them from batch assignment or remove them from the focused item list with a right-anchored `x`.
+59. 2026-05-11 07:16: Recorded `Materials-5 / Phase 2 - Project Material Batch Assignment` as shipped, with project-material row clicks now applying through the Phase 1 multi-object assignment scope and one undoable batch material-history entry.
+58. 2026-05-10 23:08: Recorded the prepared implementation read for `Materials-5 / Phase 2 - Project Material Batch Assignment`, grounding the next cut in the shipped Phase 1 `assignmentScope`, project-material row click handler, existing batch material-history helper, and focused Properties surface/history verification.
+57. 2026-05-10 23:03: Recorded `Materials-5 / Phase 1 - Multi Object Target Read And Assignment Scope` as shipped, with the Properties section context now carrying selected object targets and the Materials view model exposing a non-visual multi-object assignment scope read for Phase 2.
+56. 2026-05-10 22:36: Recorded the prepared implementation read for `Materials-5 / Phase 1 - Multi Object Target Read And Assignment Scope`, grounding the phase in the live Properties shell selection context, focused-object list, Materials target-row derivation, imported-reference fallback rows, and deferred batch-assignment seam.
+55. 2026-05-10 21:55:15: Added `Materials-5 - Multi Object Material Assignment And Mixed Values` as the next family phase for applying project materials across multi-object selections and planning mixed-value selected-material reads.
+54. 2026-05-10 21:48:04: Recorded the `Materials-4 / Phase 5` search follow-up that removes the visible `Search materials` label while keeping the accessible search input label.
+53. 2026-05-10 21:46:12: Recorded the `Materials-4 / Phase 5` follow-up that adds a compact Project materials search field above the preset list.
+52. 2026-05-10 21:41:50: Recorded the `Materials-4 / Phase 5` follow-up that keeps the project-material list height stable when new or duplicated material presets are added.
 51. 2026-05-10 21:30:48: Recorded `Materials-4 / Phase 5 - Compact Material Action Rail` as shipped, with project-material actions moved into the project-material section and grouped assignment actions compacted.
 50. 2026-05-10 21:24:42: Recorded the prepared implementation read for `Materials-4 / Phase 5 - Compact Material Action Rail`, grounding it in the live project-material section, material action cards, grouped assignment cards, and owner-routed history tests.
 49. 2026-05-10 21:20:36: Recorded the `Materials-4 / Phase 4.1` default-color follow-up that changes zero-intensity default material emissive colors to white while keeping emissive intensity at zero.
@@ -119,9 +135,10 @@ Current legal family-phase ladder:
 - `Materials-2` - First Material Editing And Action Flows
 - `Materials-3` - Richer Material Fields And Library Direction
 - `Materials-4` - Materials Content Simplification Cleanup
+- `Materials-5` - Multi Object Material Assignment And Mixed Values
 
 Current active implementation-planning owner:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
 
 Current shipped editing phase:
 - `Materials-2 / Phase 3 - Wider Assignment Reuse And Richer Field Follow-Through`
@@ -143,12 +160,12 @@ Current shipped richer-field phase:
 - `Materials-3 / Phase 3 - Hosted Field Projection And Library Handoff`
 
 Current next planning read:
-- `Materials-4` is closed through `Phase 5`
-- choose the next Materials cleanup/family direction before starting another implementation phase
-- likely next reads are either a new Materials cleanup family, a `Materials-3` library/texture follow-on, or a broader Properties cleanup phase
+- prep `Materials-5 / Phase 3 - Mixed Selected Material Read`
+- use the locked focused-item inclusion scope to aggregate selected-material reads and show `Multiple values` when selected objects disagree
+- keep multi-object field editing deferred until the mixed-value read projection is honest
 
 Current editing owner:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
 
 Current planning rules:
 - use this index to choose and bound the next `Materials-N` family phase
@@ -180,6 +197,7 @@ Important boundary rule:
 - [ ] `Materials-Gen1-HLG-2. The Materials workspace should fit the same hybrid workspace model as the other major workspaces.`
 - [ ] `Materials-Gen1-HLG-3. The Materials workspace should stay downstream from the real material owner systems instead of becoming a hidden second owner.`
 - [ ] `Materials-Gen1-HLG-4. The first Materials family phase should map the real owner seams before broader library, assignment, or preview behavior is planned.`
+- [ ] `Materials-Gen1-HLG-5. Materials should support natural multi-object workflows without forcing users to edit one object at a time.`
 
 ### Codex Level Goals
 
@@ -217,6 +235,19 @@ Important boundary rule:
 - [x] `Materials-Gen1-HLG-3`
 - [x] `Materials-Gen1-HLG-4`
 
+### `Materials-5`
+
+- [x] Create the standalone `Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md` Family Phase Doc.
+- [x] Derive a multi-object material target scope from shared workspace selection.
+- [x] Let project material row clicks apply to all selected material-bearing objects.
+- [x] Separate focused-item assignment inclusion toggling from right-anchored `x` global deselect/removal.
+- [ ] Show `Multiple values` when selected objects disagree on material fields.
+- [ ] Let later field edits apply across the selected material target scope through material history.
+- [ ] Preserve owner-boundary rules from `Materials-1`, `Materials-2`, `Materials-3`, and `Materials-4`.
+- [ ] `Materials-Gen1-HLG-2`
+- [ ] `Materials-Gen1-HLG-3`
+- [ ] `Materials-Gen1-HLG-5`
+
 ### Phase Prep Notes
 
 - the first implementation-planning cut should start with a code-grounded owner read
@@ -224,6 +255,7 @@ Important boundary rule:
 - the wider editing and action ladder now lives explicitly in `Materials-2`
 - the richer field and library-direction ladder now lives explicitly in `Materials-3`
 - the user-facing content simplification ladder now lives explicitly in `Materials-4`
+- the multi-object selection and mixed-value ladder now lives explicitly in `Materials-5`
 
 ## [x] `Materials-1` - `Workspace Foundation And Material Owner Read`
 
@@ -303,7 +335,7 @@ The phase ladder is:
 
 `Materials-3` has closed the first richer-field loop by shipping `doubleSided` as owner-backed state and projecting it as a hosted `Double-sided` checkbox.
 
-`Materials-4` has compacted the material target list, removed the earlier phase-proof chrome, shipped `Phase 1` by removing the remaining bottom diagnostic/proof sections, shipped `Phase 2` by adding a focused-object list plus cleaner material-target copy, shipped `Phase 3` by adding a visible project material preset list under the material targets, shipped `Phase 4` by moving material source into compact selected-material context while tightening controls with shared `ParaSlider` / `ParaSelect` components, shipped `Phase 4.1` by extracting the expanded color picker into a reusable color-control template for both base color and emissive color, and shipped `Phase 5` by moving project-material creation actions into the project-material section while compacting grouped assignment actions. A Phase 4.1 follow-up also changed zero-intensity default material emissive colors to white so the Emissive color control starts from white without making default materials glow.
+`Materials-4` has compacted the material target list, removed the earlier phase-proof chrome, shipped `Phase 1` by removing the remaining bottom diagnostic/proof sections, shipped `Phase 2` by adding a focused-object list plus cleaner material-target copy, shipped `Phase 3` by adding a visible project material preset list under the material targets, shipped `Phase 4` by moving material source into compact selected-material context while tightening controls with shared `ParaSlider` / `ParaSelect` components, shipped `Phase 4.1` by extracting the expanded color picker into a reusable color-control template for both base color and emissive color, and shipped `Phase 5` by moving project-material creation actions into the project-material section while compacting grouped assignment actions. Follow-ups changed zero-intensity default material emissive colors to white, kept the project-material list height stable when new or duplicated presets are added, and added a compact Project materials search field above the preset list.
 
 ### First Pass Decisions
 
@@ -318,5 +350,54 @@ The phase ladder is:
 ### Verification Shape
 
 - focused Properties surface tests
+- production build for runtime slices
+- changelog and doc-log entries for shipped implementation phases
+
+## [ ] `Materials-5` - `Multi Object Material Assignment And Mixed Values`
+
+### Family Phase Summary
+
+Widen Materials from active-object-only editing into multi-object editing.
+
+The owning future doc is:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+
+The phase ladder is:
+- `Phase 1` - Multi Object Target Read And Assignment Scope
+- `Phase 2` - Project Material Batch Assignment
+- `Phase 3` - Mixed Selected Material Read
+- `Phase 4` - Multi Object Field Editing
+
+### Owns
+
+- applying a clicked project material preset to every selected material-bearing object
+- preserving single-object assignment behavior
+- showing `Multiple values` when selected objects disagree on selected-material fields
+- later applying material field edits across the selected material target scope
+- preserving material owner and history behavior
+
+### Does Not Own
+
+- material library browsing
+- texture asset, shader graph, or new material field work
+- changing workspace selection ownership
+- making Materials a second material owner
+
+### Current Live Read
+
+`Materials-4` made the normal Materials panel compact enough to support the next workflow widening. The focused-object list already shows multiple selected objects, but project material rows still assign against the active focused object/target. `Materials-5` should first derive the full selected-object material target scope, then let project material row clicks apply to all selected objects, and only then introduce `Multiple values` reads and multi-object field editing.
+
+### First Pass Decisions
+
+1. Start with `Phase 1` as a view-model/readiness phase before changing assignment behavior.
+2. Keep the focused-object list as the active-detail selector, not the only assignment scope.
+3. For `Phase 2`, clicking `Brushed Metal` with two objects selected should assign `Brushed Metal` to both selected objects.
+4. Treat `Multiple values` as a read projection, not material truth.
+5. Defer direct mixed-field editing decisions until after batch preset assignment works.
+
+### Verification Shape
+
+- focused Materials view-model tests
+- focused Properties surface tests for two selected objects
 - production build for runtime slices
 - changelog and doc-log entries for shipped implementation phases

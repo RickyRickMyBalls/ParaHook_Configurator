@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import type { WorkspaceSelectedTarget } from '../store/useAppStore'
 
+export type WorkspaceObjectSelectedTarget = Extract<WorkspaceSelectedTarget, { kind: 'object' }>
+
 export type PropertiesFocusSummary =
   | {
       state: 'empty'
@@ -18,6 +20,7 @@ export type PropertiesSectionId = 'materials'
 
 export type PropertiesSectionContext = {
   selectedTarget: WorkspaceSelectedTarget
+  selectedObjectTargets: WorkspaceObjectSelectedTarget[]
   focusSummary: Extract<PropertiesFocusSummary, { state: 'selected' }>
 }
 
@@ -129,6 +132,7 @@ export const resolvePropertiesShellState = (
   focusSummary: PropertiesFocusSummary,
   selectedTarget: WorkspaceSelectedTarget | null,
   activeSectionId: PropertiesSectionId | null,
+  selectedObjectTargets?: readonly WorkspaceObjectSelectedTarget[],
 ): PropertiesShellState => {
   if (registeredSections.length === 0) {
     return {
@@ -172,6 +176,12 @@ export const resolvePropertiesShellState = (
     activeSection,
     sectionContext: {
       selectedTarget,
+      selectedObjectTargets:
+        selectedObjectTargets !== undefined
+          ? [...selectedObjectTargets]
+          : selectedTarget.kind === 'object'
+            ? [selectedTarget]
+            : [],
       focusSummary,
     },
   }

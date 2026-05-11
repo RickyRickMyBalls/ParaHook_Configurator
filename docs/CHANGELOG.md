@@ -72,6 +72,414 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1869 -->
+
+### [1869] - 2026-05-11 08:40 - `Materials-4 Follow-Up - Selected Material Name Input Padding`
+
+HUMAN SUMMARY: `This fixes the selected-material Name input overhang. The input now sizes with its padding and border included, so it respects the right edge padding of the selected-material row.`
+
+#### Scope / Constraints Honored
+
+- Kept the selected-material name row layout from the previous follow-up.
+- Preserved selected-material name editing behavior.
+- Limited the change to text input sizing inside selected-material fields.
+
+#### Summary of Implementation
+
+- Added border-box sizing to selected-material text inputs so `width: 100%` includes padding and border.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected-material `Name` input no longer overhangs the right side of its row.
+
+#### Verification Steps
+
+- `git diff --check`
+
+<!-- ENTRY 1868 -->
+
+### [1868] - 2026-05-11 08:38 - `Materials-4 Follow-Up - Full Width Selected Material Name Input`
+
+HUMAN SUMMARY: `This makes the selected-material Name input use the available row width. The row keeps its compact label, but the input is no longer squeezed by the generic two-column material field layout.`
+
+#### Scope / Constraints Honored
+
+- Kept selected-material name editing behavior unchanged.
+- Preserved the compact selected-material row shell and existing input styling.
+- Limited the layout change to the `Name` row.
+
+#### Summary of Implementation
+
+- Added a specific `PropertiesSelectedMaterialField--name` grid rule with a fixed compact label column and flexible input column.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected-material `Name` input now spans the remaining row width in the Materials content area.
+
+#### Verification Steps
+
+- `git diff --check`
+
+<!-- ENTRY 1867 -->
+
+### [1867] - 2026-05-11 08:33 - `Materials-5 / Phase 2.1 Follow-Up - Single Focused Item Clear Selection`
+
+HUMAN SUMMARY: `This fixes the single-object focused item x path so it truly clears selection instead of only removing the Properties-side selected target. The clear now also drops the mirrored selected part state that can keep the object looking selected in the model or browser surfaces.`
+
+#### Scope / Constraints Honored
+
+- Kept multi-object focused item inclusion and remove behavior unchanged.
+- Reused the shared workspace selection clear command instead of adding a Materials-only deselect path.
+- Preserved project-material assignment, mixed-value planning, and selected-material controls.
+
+#### Summary of Implementation
+
+- Updated `PropertiesSurface.tsx` so removing the last focused object routes through `clearWorkspaceTargetSelection(...)`.
+- Wired the clear command with the existing workspace selected-target setter, selected-part setter, selected-light setter, and console sync request.
+- Added a Properties surface regression proving a single selected object removed with `x` clears the focused row, selected target, explicit selection, anchor, resolved content selection, and `selectedPartKey`.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking `x` on the only focused material object now clears shared workspace selection and the mirrored selected part highlight.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1866 -->
+
+### [1866] - 2026-05-11 08:27 - `Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics`
+
+HUMAN SUMMARY: `This locks the focused item list's two different actions into separate regression tests. Unhighlighting a focused object now has explicit proof that it only affects Materials assignment, while the right-side x has separate inactive and active row proofs that it changes shared workspace selection truth.`
+
+#### Scope / Constraints Honored
+
+- Kept the shipped focused item include and remove UI behavior unchanged.
+- Preserved the distinction between Materials-local assignment inclusion and global workspace selection truth.
+- Left mixed-value selected-material reads and multi-object field editing deferred to later Materials-5 phases.
+
+#### Summary of Implementation
+
+- Added a shared two-object focused material test fixture in `PropertiesSurface.test.tsx`.
+- Split the previous broad include/remove regression into direct tests for assignment-only unhighlighting, inactive-row global removal, and active-row global removal.
+- Verified unhighlighting keeps `selectedTarget`, `explicitSelectedTargets`, `selectionAnchorTarget`, and resolved content part keys unchanged while excluding the object from project-material assignment.
+- Verified `x` removal updates shared explicit selection and resolved content part keys for both inactive and active focused rows.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior change; this phase adds explicit regression coverage for the clarified focused item inclusion and global deselect semantics.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+
+<!-- ENTRY 1865 -->
+
+### [1865] - 2026-05-11 07:42 - `Materials-5 / Phase 2 Follow-Up - Focused Item Remove Truth Proof`
+
+HUMAN SUMMARY: `This verifies that the focused item x button removes the object from shared selection truth, not just from the visible Materials list. The covered active-object case now proves selected target, explicit selection, anchor, and resolved part keys all drop the removed object.`
+
+#### Scope / Constraints Honored
+
+- Kept the focused item remove behavior unchanged.
+- Focused the change on regression coverage for shared selection truth.
+- Preserved material assignment, focused item inclusion toggles, project-material actions, and selected-material controls.
+
+#### Summary of Implementation
+
+- Extended the focused item inclusion/remove Properties surface test to click the second focused item, remove it while active, and assert shared workspace selection moves back to the remaining object.
+- Added assertions for `selectedTarget`, `explicitSelectedTargets`, `selectionAnchorTarget`, and resolved content `partKeys`.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior change; this adds explicit regression coverage for the focused item remove path.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+
+<!-- ENTRY 1864 -->
+
+### [1864] - 2026-05-11 07:24 - `Materials-5 / Phase 2 Follow-Up - Focused Item Inclusion Controls`
+
+HUMAN SUMMARY: `This gives the focused item list its own assignment inclusion controls. Multi-selected objects start highlighted for material assignment, can be unhighlighted to stay visible but excluded from material changes, and can be removed from the focused list with a right-side x button.`
+
+#### Scope / Constraints Honored
+
+- Kept workspace multi-selection as the source of focused item rows.
+- Kept focused-row click behavior for changing the active Materials detail object.
+- Kept material assignment downstream from the focused item inclusion scope and existing material target rows.
+- Preserved project material search, selected-material controls, grouped actions, `New Material`, and `Duplicate Material` behavior.
+
+#### Summary of Implementation
+
+- Split focused item rows into an include toggle, focus button, and right-anchored remove button.
+- Added local focused-item inclusion state that defaults to all focused objects whenever the focused object list changes.
+- Passed only highlighted focused item rows into the Materials assignment scope.
+- Updated project material assignment so one highlighted object still uses the single-part history path even when the active detail row differs.
+- Added a Properties surface test proving unhighlighted objects are excluded from assignment and removed objects leave the focused item list and explicit workspace selection.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Focused material objects now start highlighted for material assignment.
+- Unhighlighting a focused item excludes it from project material assignment without removing it from the focused list.
+- Clicking the right-side `x` removes a focused object from the focused item list and explicit workspace selection.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1863 -->
+
+### [1863] - 2026-05-11 07:16 - `Materials-5 / Phase 2 - Project Material Batch Assignment`
+
+HUMAN SUMMARY: `This makes Project materials work naturally with multi-object selection. When multiple material-bearing objects are selected, clicking a project material now applies it to all selected object targets through one undoable material-history action.`
+
+#### Scope / Constraints Honored
+
+- Preserved the existing single-object project material assignment path.
+- Kept `New Material`, `Duplicate Material`, grouped all/odds/evens actions, selected-material controls, and project-material search behavior unchanged.
+- Kept assignment downstream from material target rows and part keys.
+- Routed the multi-object operation through existing material history instead of adding a panel-local owner.
+
+#### Summary of Implementation
+
+- Updated project-material row assignment to use the Phase 1 multi-object `assignmentScope.partKeys` when the scope is `multi-object`.
+- Reused `assignMaterialPresetToPartsWithHistory(...)` so multi-object assignment is one undoable action.
+- Kept single-object row clicks on the existing `assignMaterialPresetToPartWithHistory(...)` path.
+- Added a Properties surface test that assigns `Brushed Metal` to two selected authored objects and proves undo/redo restores both assignments together.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Project material preset rows now apply to every selected material-bearing object when the Materials assignment scope is multi-object.
+- Single-object project material assignment behavior is unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts src/app/store/materialEditHistoryStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1862 -->
+
+### [1862] - 2026-05-10 23:03 - `Materials-5 / Phase 1 - Multi Object Target Read And Assignment Scope`
+
+HUMAN SUMMARY: `This gives Materials a real multi-object assignment scope read without changing assignment behavior yet. The focused object still drives the visible target list and editor, while the view model now knows the full selected-object material scope for the next batch-apply phase.`
+
+#### Scope / Constraints Honored
+
+- Kept project material row clicks assigned to the current selected target only.
+- Preserved the focused-object list as the active-detail selector.
+- Reused authored part rows, imported reference part rows, and whole imported-object fallback rows.
+- Kept material truth downstream from view settings and material history.
+
+#### Summary of Implementation
+
+- Extended the Properties section context with object-only selected targets from the shared workspace selection.
+- Added a Materials assignment scope view-model read with single-object and multi-object scope kinds, grouped object rows, flattened target rows, and deduped part keys.
+- Exposed non-visual assignment-scope data hooks on the Materials section for focused tests and the next implementation phase.
+- Added view-model and Properties surface tests for the multi-object scope read while preserving active focused-object detail behavior.
+
+#### Files Changed
+
+- `src/app/workspace/propertiesSectionContract.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/materialsSectionViewModel.test.ts`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Materials now exposes whether the current assignment scope is `single-object` or `multi-object`, plus selected-object and material-target counts.
+- The visible material target list and selected-material editor still follow the active focused object only.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/materialsSectionViewModel.test.ts src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1861 -->
+
+### [1861] - 2026-05-10 21:48 - `Materials-4 / Phase 5 Follow-Up - Project Material Search Label Removal`
+
+HUMAN SUMMARY: `This removes the visible Search materials label from the compact Project materials search row. The search input keeps its accessible label, so the UI is cleaner without losing screen-reader naming.`
+
+#### Scope / Constraints Honored
+
+- Kept the Project materials search behavior unchanged.
+- Preserved the input's accessible `aria-label`.
+- Did not change project material ownership, assignment, creation, duplication, or history behavior.
+
+#### Summary of Implementation
+
+- Removed the visible `Search materials` text from the Project materials search control.
+- Removed now-unused CSS for the visible search label.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Project materials search field no longer shows a separate visible label above the input.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1860 -->
+
+### [1860] - 2026-05-10 21:46 - `Materials-4 / Phase 5 Follow-Up - Project Material Search`
+
+HUMAN SUMMARY: `This adds a compact search field to Project materials, placed between the New/Duplicate actions and the preset list. The search filters visible project material rows by name or id without changing assignment behavior or material ownership.`
+
+#### Scope / Constraints Honored
+
+- Kept the search local to the hosted Materials project-material list.
+- Preserved project material preset ownership, assignment behavior, creation, duplication, and history paths.
+- Did not change selected-material controls, grouped assignment behavior, or material library scope.
+
+#### Summary of Implementation
+
+- Added project-material search state in `PropertiesMaterialsSectionContent.tsx`.
+- Derived visible project material rows from the existing `ViewSettings['materials'].presets` array.
+- Added a compact `Search project materials` input below the project-material action rail and above the preset list.
+- Added an empty filtered-list message for no matches.
+- Added scoped styling for the search row and empty filtered state.
+- Updated Properties surface coverage to prove searching filters the visible preset rows.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Project materials can now be filtered from a compact search field above the preset list.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1859 -->
+
+### [1859] - 2026-05-10 21:41 - `Materials-4 / Phase 5 Follow-Up - Stable Project Material List Height`
+
+HUMAN SUMMARY: `This keeps the Project materials list at the user's current height when New Material or Duplicate Material adds another preset. The new preset appears in the existing list without snapping the list back to its default size.`
+
+#### Scope / Constraints Honored
+
+- Preserved material creation, duplication, assignment, selection, and history behavior.
+- Kept the project-material list default sizing behavior for empty/non-empty transitions.
+- Did not change material preset ownership or grouped assignment behavior.
+
+#### Summary of Implementation
+
+- Added a previous preset-count ref so project-material list height is not recalculated on ordinary preset-count growth.
+- Preserved list-height reset only when the project-material list enters or leaves the empty state.
+- Updated Properties surface coverage to resize the project-material list, create a material, duplicate a material, and prove the resized height remains stable.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking `New Material` or `Duplicate Material` no longer resizes the Project materials list.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`
+- `npm.cmd run build`
+
 <!-- ENTRY 1858 -->
 
 ### [1858] - 2026-05-10 21:30 - `Materials-4 / Phase 5 - Compact Material Action Rail`

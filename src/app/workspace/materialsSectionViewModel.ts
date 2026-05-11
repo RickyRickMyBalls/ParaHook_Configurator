@@ -5,7 +5,10 @@ import {
   resolveOwnedContentSelection,
   type AppState,
 } from '../store/useAppStore'
-import type { PropertiesSectionContext } from './propertiesSectionContract'
+import type {
+  PropertiesSectionContext,
+  WorkspaceObjectSelectedTarget,
+} from './propertiesSectionContract'
 
 export type MaterialsPhase1Status = 'ready' | 'pending'
 export type MaterialsTargetSourceKind = 'authored-part' | 'reference-part' | 'reference-object'
@@ -25,6 +28,23 @@ export type MaterialsAssignmentGroup = {
   label: string
   description: string
   partKeys: string[]
+}
+
+export type MaterialsAssignmentScopeKind = 'single-object' | 'multi-object'
+
+export type MaterialsAssignmentObjectGroup = {
+  objectId: string
+  label: string
+  targetRows: MaterialsTargetRow[]
+}
+
+export type MaterialsAssignmentScope = {
+  kind: MaterialsAssignmentScopeKind
+  objectCount: number
+  targetCount: number
+  partKeys: string[]
+  targetRows: MaterialsTargetRow[]
+  objectGroups: MaterialsAssignmentObjectGroup[]
 }
 
 export type MaterialsPhase1Row = {
@@ -52,6 +72,7 @@ export type MaterialsSelectedMaterialRead = {
 export type MaterialsPhase1ViewModel = {
   focusedObjectId: string
   focusedObjectLabel: string
+  assignmentScope: MaterialsAssignmentScope
   targetRows: MaterialsTargetRow[]
   targetStatusLabel: string
   rows: MaterialsPhase1Row[]
@@ -129,10 +150,10 @@ export const resolveSelectedTargetMaterialRead = (
 }
 
 const buildAuthoredPartTargetRows = (
-  context: PropertiesSectionContext,
+  selectedTarget: WorkspaceObjectSelectedTarget,
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
 ): MaterialsTargetRow[] => {
-  const selection = resolveOwnedContentSelection(state, context.selectedTarget)
+  const selection = resolveOwnedContentSelection(state, selectedTarget)
   if (selection === null || selection.rootKind !== 'object') {
     return []
   }
@@ -202,6 +223,38 @@ const buildReferencePartTargetRows = (
   return []
 }
 
+const resolveMaterialObjectLabel = (
+  target: WorkspaceObjectSelectedTarget,
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+): string => {
+  const objectRecord = state.projectContent.objectsById[target.objectId]
+  if (objectRecord !== undefined) {
+    return objectRecord.label
+  }
+
+  const referenceId =
+    state.referenceWorkspace.importedReferenceOrder.find(
+      (candidateReferenceId) => buildImportedReferenceRowId(candidateReferenceId) === target.objectId,
+    ) ?? null
+  if (referenceId !== null) {
+    return state.referenceWorkspace.importedReferencesById[referenceId]?.label ?? target.objectId
+  }
+
+  return target.objectId
+}
+
+export const buildMaterialsTargetRowsForObjectTarget = (
+  selectedTarget: WorkspaceObjectSelectedTarget,
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+): MaterialsTargetRow[] => {
+  const referenceRows = buildReferencePartTargetRows(selectedTarget.objectId, state)
+  if (referenceRows.length > 0) {
+    return referenceRows
+  }
+
+  return buildAuthoredPartTargetRows(selectedTarget, state)
+}
+
 export const buildMaterialsTargetRows = (
   context: PropertiesSectionContext,
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
@@ -210,13 +263,54 @@ export const buildMaterialsTargetRows = (
     return []
   }
 
-  const focusedObjectId = context.selectedTarget.objectId
-  const referenceRows = buildReferencePartTargetRows(focusedObjectId, state)
-  if (referenceRows.length > 0) {
-    return referenceRows
+  return buildMaterialsTargetRowsForObjectTarget(context.selectedTarget, state)
+}
+
+export const buildMaterialsAssignmentScope = (
+  context: PropertiesSectionContext,
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+): MaterialsAssignmentScope => {
+  const selectedObjectTargets =
+    context.selectedObjectTargets.length > 0
+      ? context.selectedObjectTargets
+      : context.selectedTarget.kind === 'object'
+        ? [context.selectedTarget]
+        : []
+  const seenObjectIds = new Set<string>()
+  const objectGroups = selectedObjectTargets
+    .filter((target) => {
+      if (seenObjectIds.has(target.objectId)) {
+        return false
+      }
+      seenObjectIds.add(target.objectId)
+      return true
+    })
+    .map((target) => ({
+      objectId: target.objectId,
+      label: resolveMaterialObjectLabel(target, state),
+      targetRows: buildMaterialsTargetRowsForObjectTarget(target, state),
+    }))
+
+  const seenPartKeys = new Set<string>()
+  const targetRows: MaterialsTargetRow[] = []
+  for (const group of objectGroups) {
+    for (const targetRow of group.targetRows) {
+      if (seenPartKeys.has(targetRow.partKey)) {
+        continue
+      }
+      seenPartKeys.add(targetRow.partKey)
+      targetRows.push(targetRow)
+    }
   }
 
-  return buildAuthoredPartTargetRows(context, state)
+  return {
+    kind: objectGroups.length > 1 ? 'multi-object' : 'single-object',
+    objectCount: objectGroups.length,
+    targetCount: targetRows.length,
+    partKeys: targetRows.map((targetRow) => targetRow.partKey),
+    targetRows,
+    objectGroups,
+  }
 }
 
 export const buildMaterialsAssignmentGroups = (
@@ -256,10 +350,12 @@ export const buildMaterialsPhase1ViewModel = (
   const presetCount = materials.presets.length
   const assignedPartCount = Object.keys(materials.perPart).length
   const targetRows = buildMaterialsTargetRows(context, state)
+  const assignmentScope = buildMaterialsAssignmentScope(context, state)
 
   return {
     focusedObjectId,
     focusedObjectLabel: `${context.focusSummary.title}: ${context.focusSummary.detail}`,
+    assignmentScope,
     targetRows,
     targetStatusLabel:
       targetRows.length > 0

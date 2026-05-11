@@ -464,10 +464,12 @@ export function PropertiesMaterialsSectionContent({
   const [isResizingProjectMaterialList, setIsResizingProjectMaterialList] = useState(false)
   const [isBaseColorExpanded, setIsBaseColorExpanded] = useState(false)
   const [isEmissiveColorExpanded, setIsEmissiveColorExpanded] = useState(false)
+  const [projectMaterialSearch, setProjectMaterialSearch] = useState('')
   const targetListResizeStartClientYRef = useRef(0)
   const targetListResizeStartHeightRef = useRef(MATERIAL_TARGET_LIST_DEFAULT_HEIGHT)
   const projectMaterialListResizeStartClientYRef = useRef(0)
   const projectMaterialListResizeStartHeightRef = useRef(PROJECT_MATERIAL_LIST_DEFAULT_HEIGHT)
+  const previousProjectMaterialPresetCountRef = useRef(materials.presets.length)
   const effectiveSelectedTargetId = viewModel.targetRows.some(
     (targetRow) => targetRow.targetId === selectedTargetId,
   )
@@ -484,6 +486,16 @@ export function PropertiesMaterialsSectionContent({
     [selectedMaterialRead],
   )
   const selectedMaterialPreset = selectedMaterialRead.preset
+  const projectMaterialSearchQuery = projectMaterialSearch.trim().toLocaleLowerCase()
+  const visibleProjectMaterialPresets = useMemo(() => {
+    if (projectMaterialSearchQuery.length === 0) {
+      return materials.presets
+    }
+
+    return materials.presets.filter((preset) =>
+      `${preset.name} ${preset.id}`.toLocaleLowerCase().includes(projectMaterialSearchQuery),
+    )
+  }, [materials.presets, projectMaterialSearchQuery])
   const assignmentGroups = useMemo(
     () => buildMaterialsAssignmentGroups(viewModel.targetRows),
     [viewModel.targetRows],
@@ -506,6 +518,8 @@ export function PropertiesMaterialsSectionContent({
     updateResolvedPreset({ [field]: value })
   }
   const canRunMaterialAction = selectedTarget !== null && selectedMaterialPreset !== null
+  const canAssignProjectMaterial =
+    viewModel.assignmentScope.partKeys.length > 0 || selectedTarget !== null
   const handleNewMaterial = () => {
     if (selectedTarget === null || selectedMaterialPreset === null) {
       return
@@ -522,6 +536,26 @@ export function PropertiesMaterialsSectionContent({
     )
   }
   const handleAssignMaterial = (presetId: string) => {
+    if (viewModel.assignmentScope.partKeys.length === 1) {
+      const targetRow = viewModel.assignmentScope.targetRows[0] ?? selectedTarget
+      const partKey = viewModel.assignmentScope.partKeys[0]
+      assignMaterialPresetToPartWithHistory(partKey, presetId, {
+        label: 'Assign material',
+        targetId: `material-per-part:${partKey}:assign`,
+        targetLabel: targetRow?.label ?? 'Material target',
+      })
+      return
+    }
+
+    if (viewModel.assignmentScope.partKeys.length > 1) {
+      assignMaterialPresetToPartsWithHistory(viewModel.assignmentScope.partKeys, presetId, {
+        label: 'Assign material to selected objects',
+        targetId: `material-per-part:selected-objects:${viewModel.assignmentScope.partKeys.join('|')}:assign`,
+        targetLabel: 'Selected material objects',
+      })
+      return
+    }
+
     if (selectedTarget === null) {
       return
     }
@@ -560,7 +594,12 @@ export function PropertiesMaterialsSectionContent({
     setTargetListHeight(resolveMaterialTargetListDefaultHeight(viewModel.targetRows.length))
   }, [viewModel.targetRows.length])
   useEffect(() => {
-    setProjectMaterialListHeight(resolveProjectMaterialListDefaultHeight(materials.presets.length))
+    const previousPresetCount = previousProjectMaterialPresetCountRef.current
+    previousProjectMaterialPresetCountRef.current = materials.presets.length
+
+    if (previousPresetCount === 0 || materials.presets.length === 0) {
+      setProjectMaterialListHeight(resolveProjectMaterialListDefaultHeight(materials.presets.length))
+    }
   }, [materials.presets.length])
   useEffect(() => {
     if (!isResizingTargetList) {
@@ -688,7 +727,13 @@ export function PropertiesMaterialsSectionContent({
   }
 
   return (
-    <section className="SettingsSurfaceGroup" aria-label="Properties materials section">
+    <section
+      className="SettingsSurfaceGroup"
+      aria-label="Properties materials section"
+      data-material-assignment-scope={viewModel.assignmentScope.kind}
+      data-material-assignment-object-count={viewModel.assignmentScope.objectCount}
+      data-material-assignment-target-count={viewModel.assignmentScope.targetCount}
+    >
       <section className="SettingsSurfaceGroup" aria-label="Material targets">
         <header className="SettingsSurfaceGroupHeader">
           <span className="SettingsSurfaceGroupEyebrow">Material targets</span>
@@ -795,6 +840,15 @@ export function PropertiesMaterialsSectionContent({
             <span>Copy</span>
           </button>
         </div>
+        <label className="PropertiesProjectMaterialSearch">
+          <input
+            aria-label="Search project materials"
+            type="search"
+            value={projectMaterialSearch}
+            placeholder="Search"
+            onInput={(event) => setProjectMaterialSearch(event.currentTarget.value)}
+          />
+        </label>
         {materials.presets.length > 0 ? (
           <>
             <div
@@ -804,7 +858,7 @@ export function PropertiesMaterialsSectionContent({
               data-project-material-list="compact"
               style={projectMaterialListHeightStyle}
             >
-              {materials.presets.map((preset) => {
+              {visibleProjectMaterialPresets.map((preset) => {
                 const isSelected = preset.id === selectedMaterialPreset?.id
                 const materialSummary = `${formatScalarPercent(
                   preset.metalness,
@@ -816,7 +870,7 @@ export function PropertiesMaterialsSectionContent({
                     role="listitem"
                     key={preset.id}
                     aria-pressed={isSelected}
-                    disabled={selectedTarget === null}
+                    disabled={!canAssignProjectMaterial}
                     title={preset.name}
                     data-project-material-row={preset.id}
                     data-project-material-selected={isSelected}
@@ -834,6 +888,11 @@ export function PropertiesMaterialsSectionContent({
                   </button>
                 )
               })}
+              {visibleProjectMaterialPresets.length === 0 ? (
+                <div className="PropertiesProjectMaterialEmptySearch" role="listitem">
+                  No matching materials
+                </div>
+              ) : null}
             </div>
             <div
               className="PropertiesProjectMaterialListResizeHandle"

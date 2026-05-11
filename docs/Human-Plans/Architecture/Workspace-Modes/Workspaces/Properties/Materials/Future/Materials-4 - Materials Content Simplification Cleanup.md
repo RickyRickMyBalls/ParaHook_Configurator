@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-05-11 08:40: Tightened the selected-material text input sizing so the full-width `Name` field uses border-box sizing and respects the right padding of its row.
+29. 2026-05-11 08:38: Tightened the selected-material `Name` row label column so the material name input can fill the available row width instead of being constrained by the shared two-column field ratio.
+28. 2026-05-10 21:48:04: Removed the visible `Search materials` label from the `Materials-4 / Phase 5` Project materials search field while keeping the accessible input label.
+27. 2026-05-10 21:46:12: Implemented a `Materials-4 / Phase 5` follow-up that adds a compact Project materials search field between the project-material actions and preset list.
+26. 2026-05-10 21:41:50: Implemented a `Materials-4 / Phase 5` follow-up so creating or duplicating a project material no longer resets the user-sized project-material list height.
 25. 2026-05-10 21:30:48: Implemented and closed `Materials-4 / Phase 5 - Compact Material Action Rail` by moving project-material creation actions into the project-material section and compacting grouped assignment actions.
 24. 2026-05-10 21:24:42: Prepped `Materials-4 / Phase 5 - Compact Material Action Rail` for implementation against the live project-material preset section, large material action cards, grouped assignment cards, and existing owner-routed material history tests.
 23. 2026-05-10 21:20:36: Implemented a `Materials-4 / Phase 4.1` default-color follow-up so zero-intensity default material presets now seed emissive color as white while keeping emissive intensity at zero.
@@ -806,4 +811,7 @@ Test direction:
 - Kept project material row assignment unchanged.
 - Added scoped Materials action-rail styling in `settings.css`.
 - Updated Properties surface tests to query the moved project-material actions and compact grouped action region.
+- Follow-up: preserved the current project-material list height when `New Material` or `Duplicate Material` adds presets, so the list does not resize after those actions.
+- Follow-up: added a compact Project materials search field below the project-material action rail and above the preset list, filtering visible presets by name or id without changing preset ownership or assignment behavior.
+- Follow-up: removed the visible `Search materials` label from that search field while preserving the input's accessible name.
 - Verification: `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/workspace/materialsSectionViewModel.test.ts`; `npm.cmd run build`.

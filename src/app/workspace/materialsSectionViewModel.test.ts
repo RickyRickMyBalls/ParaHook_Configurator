@@ -8,6 +8,7 @@ import {
   type ReferenceWorkspaceState,
 } from '../store/useAppStore'
 import {
+  buildMaterialsAssignmentScope,
   buildMaterialsAssignmentGroups,
   buildMaterialsPhase1ViewModel,
   buildMaterialsTargetRows,
@@ -23,19 +24,26 @@ describe('buildMaterialsPhase1ViewModel', () => {
     objectsById: {},
   }
   const emptyReferenceWorkspace = createInitialReferenceWorkspaceState()
-
-  const context: PropertiesSectionContext = {
+  const buildObjectContext = (objectId: string): PropertiesSectionContext => ({
     selectedTarget: {
       kind: 'object',
-      objectId: 'footpad-2',
+      objectId,
     },
+    selectedObjectTargets: [
+      {
+        kind: 'object',
+        objectId,
+      },
+    ],
     focusSummary: {
       state: 'selected',
       title: 'Object',
-      detail: 'footpad-2',
+      detail: objectId,
       targetKind: 'object',
     },
-  }
+  })
+
+  const context = buildObjectContext('footpad-2')
 
   it('names the focused object and current material owner seams without creating editor actions', () => {
     const viewModel = buildMaterialsPhase1ViewModel(context, DEFAULT_VIEW_SETTINGS.materials, {
@@ -56,6 +64,9 @@ describe('buildMaterialsPhase1ViewModel', () => {
     )
     expect(viewModel.rows.find((row) => row.id === 'target-discovery')?.status).toBe('pending')
     expect(viewModel.targetRows).toEqual([])
+    expect(viewModel.assignmentScope.kind).toBe('single-object')
+    expect(viewModel.assignmentScope.objectCount).toBe(1)
+    expect(viewModel.assignmentScope.targetCount).toBe(0)
     expect(viewModel.owedFeatureGroups).toContain('new, assign, and duplicate material actions')
     expect(viewModel.owedFeatureGroups).toContain('odds and evens grouped target actions')
   })
@@ -80,18 +91,7 @@ describe('buildMaterialsPhase1ViewModel', () => {
     }
 
     const targetRows = buildMaterialsTargetRows(
-      {
-        selectedTarget: {
-          kind: 'object',
-          objectId: 'authored-object-1',
-        },
-        focusSummary: {
-          state: 'selected',
-          title: 'Object',
-          detail: 'authored-object-1',
-          targetKind: 'object',
-        },
-      },
+      buildObjectContext('authored-object-1'),
       {
         projectContent,
         referenceWorkspace: emptyReferenceWorkspace,
@@ -106,6 +106,167 @@ describe('buildMaterialsPhase1ViewModel', () => {
         sourceKind: 'authored-part',
         detail: 'Project part',
       },
+    ])
+  })
+
+  it('builds a single-object assignment scope from the active material target rows', () => {
+    const projectContent: ProjectContentState = {
+      ...emptyProjectContent,
+      objectsById: {
+        'authored-object-1': {
+          objectId: 'authored-object-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          sourceNodeId: 'node-1',
+          slotId: null,
+          label: 'Authored Object',
+          resolutionState: 'resolved',
+        },
+      },
+    }
+
+    const viewModel = buildMaterialsPhase1ViewModel(
+      buildObjectContext('authored-object-1'),
+      DEFAULT_VIEW_SETTINGS.materials,
+      {
+        projectContent,
+        referenceWorkspace: emptyReferenceWorkspace,
+      },
+    )
+
+    expect(viewModel.assignmentScope.kind).toBe('single-object')
+    expect(viewModel.assignmentScope.objectCount).toBe(1)
+    expect(viewModel.assignmentScope.targetCount).toBe(1)
+    expect(viewModel.assignmentScope.partKeys).toEqual(['graph-document-1:output-entry-1'])
+    expect(viewModel.assignmentScope.objectGroups[0]?.label).toBe('Authored Object')
+    expect(viewModel.targetRows).toEqual(viewModel.assignmentScope.targetRows)
+  })
+
+  it('builds a multi-object assignment scope from selected authored objects without changing active detail rows', () => {
+    const projectContent: ProjectContentState = {
+      ...emptyProjectContent,
+      objectsById: {
+        'authored-object-1': {
+          objectId: 'authored-object-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          sourceNodeId: 'node-1',
+          slotId: null,
+          label: 'Left Object',
+          resolutionState: 'resolved',
+        },
+        'authored-object-2': {
+          objectId: 'authored-object-2',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          sourceNodeId: 'node-2',
+          slotId: null,
+          label: 'Right Object',
+          resolutionState: 'resolved',
+        },
+      },
+    }
+    const context: PropertiesSectionContext = {
+      ...buildObjectContext('authored-object-1'),
+      selectedObjectTargets: [
+        { kind: 'object', objectId: 'authored-object-1' },
+        { kind: 'object', objectId: 'authored-object-2' },
+      ],
+    }
+
+    const viewModel = buildMaterialsPhase1ViewModel(context, DEFAULT_VIEW_SETTINGS.materials, {
+      projectContent,
+      referenceWorkspace: emptyReferenceWorkspace,
+    })
+
+    expect(viewModel.assignmentScope.kind).toBe('multi-object')
+    expect(viewModel.assignmentScope.objectCount).toBe(2)
+    expect(viewModel.assignmentScope.targetCount).toBe(2)
+    expect(viewModel.assignmentScope.partKeys).toEqual([
+      'graph-document-1:output-entry-1',
+      'graph-document-1:output-entry-2',
+    ])
+    expect(viewModel.assignmentScope.objectGroups.map((group) => group.label)).toEqual([
+      'Left Object',
+      'Right Object',
+    ])
+    expect(viewModel.targetRows.map((row) => row.partKey)).toEqual([
+      'graph-document-1:output-entry-1',
+    ])
+  })
+
+  it('includes imported whole-object fallback rows in the multi-object assignment scope', () => {
+    const referenceId = 'reference-import:whole-shoe'
+    const importedReference: ImportedReferenceRecord = {
+      referenceId,
+      sourceKind: 'imported',
+      categoryId: 'user-references',
+      label: 'Whole Shoe',
+      fileType: 'glb',
+      assetPath: 'blob:whole-shoe',
+      parentAssemblyId: null,
+      parentComponentId: null,
+      directPartSourceKind: null,
+      directPartSourceGroupId: null,
+      explodedFromReferenceId: null,
+      sourcePartKey: null,
+      sourceMeshIndex: null,
+    }
+    const projectContent: ProjectContentState = {
+      ...emptyProjectContent,
+      objectsById: {
+        'authored-object-1': {
+          objectId: 'authored-object-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'component-1',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          sourceNodeId: 'node-1',
+          slotId: null,
+          label: 'Authored Object',
+          resolutionState: 'resolved',
+        },
+      },
+    }
+    const referenceWorkspace: ReferenceWorkspaceState = {
+      ...emptyReferenceWorkspace,
+      importedReferencesById: {
+        [referenceId]: importedReference,
+      },
+      importedReferenceOrder: [referenceId],
+      partRowsByReferenceId: {
+        [referenceId]: [],
+      },
+    }
+    const importedObjectId = buildImportedReferenceRowId(referenceId)
+    const context: PropertiesSectionContext = {
+      ...buildObjectContext('authored-object-1'),
+      selectedObjectTargets: [
+        { kind: 'object', objectId: 'authored-object-1' },
+        { kind: 'object', objectId: importedObjectId },
+      ],
+    }
+
+    const scope = buildMaterialsAssignmentScope(context, {
+      projectContent,
+      referenceWorkspace,
+    })
+
+    expect(scope.kind).toBe('multi-object')
+    expect(scope.objectGroups.map((group) => group.label)).toEqual(['Authored Object', 'Whole Shoe'])
+    expect(scope.partKeys).toEqual([
+      'graph-document-1:output-entry-1',
+      'reference-object:reference-import:whole-shoe',
     ])
   })
 
@@ -151,18 +312,7 @@ describe('buildMaterialsPhase1ViewModel', () => {
     }
 
     const targetRows = buildMaterialsTargetRows(
-      {
-        selectedTarget: {
-          kind: 'object',
-          objectId: buildImportedReferenceRowId(referenceId),
-        },
-        focusSummary: {
-          state: 'selected',
-          title: 'Object',
-          detail: buildImportedReferenceRowId(referenceId),
-          targetKind: 'object',
-        },
-      },
+      buildObjectContext(buildImportedReferenceRowId(referenceId)),
       {
         projectContent: emptyProjectContent,
         referenceWorkspace,
@@ -202,18 +352,7 @@ describe('buildMaterialsPhase1ViewModel', () => {
     }
 
     const targetRows = buildMaterialsTargetRows(
-      {
-        selectedTarget: {
-          kind: 'object',
-          objectId: buildImportedReferenceRowId(referenceId),
-        },
-        focusSummary: {
-          state: 'selected',
-          title: 'Object',
-          detail: buildImportedReferenceRowId(referenceId),
-          targetKind: 'object',
-        },
-      },
+      buildObjectContext(buildImportedReferenceRowId(referenceId)),
       {
         projectContent: emptyProjectContent,
         referenceWorkspace,
@@ -260,18 +399,7 @@ describe('buildMaterialsPhase1ViewModel', () => {
     }
 
     const targetRows = buildMaterialsTargetRows(
-      {
-        selectedTarget: {
-          kind: 'object',
-          objectId: buildImportedReferenceRowId(referenceId),
-        },
-        focusSummary: {
-          state: 'selected',
-          title: 'Object',
-          detail: buildImportedReferenceRowId(referenceId),
-          targetKind: 'object',
-        },
-      },
+      buildObjectContext(buildImportedReferenceRowId(referenceId)),
       {
         projectContent: emptyProjectContent,
         referenceWorkspace,

@@ -82,6 +82,64 @@ describe('PropertiesSurface', () => {
     })
   }
 
+  const setTwoFocusedMaterialObjects = async () => {
+    const firstTarget = {
+      kind: 'object',
+      objectId: 'properties-include-object-1',
+    } satisfies WorkspaceSelectedTarget
+    const secondTarget = {
+      kind: 'object',
+      objectId: 'properties-include-object-2',
+    } satisfies WorkspaceSelectedTarget
+
+    await act(async () => {
+      useAppStore.setState((state) => ({
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            ...state.projectContent.objectsById,
+            'properties-include-object-1': {
+              objectId: 'properties-include-object-1',
+              ownerGraphDocumentId: 'graph-document-include',
+              parentComponentId: 'component-include',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-include',
+              sourceOutputEntryId: 'output-entry-left',
+              sourceNodeId: 'node-left',
+              slotId: null,
+              label: 'Included Left Object',
+              resolutionState: 'resolved',
+            },
+            'properties-include-object-2': {
+              objectId: 'properties-include-object-2',
+              ownerGraphDocumentId: 'graph-document-include',
+              parentComponentId: 'component-include',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-include',
+              sourceOutputEntryId: 'output-entry-right',
+              sourceNodeId: 'node-right',
+              slotId: null,
+              label: 'Included Right Object',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: firstTarget,
+        explicitSelectedTargets: [firstTarget, secondTarget],
+        selectionAnchorTarget: firstTarget,
+      })
+    })
+
+    return {
+      firstTarget,
+      secondTarget,
+      leftPartKey: 'graph-document-include:output-entry-left',
+      rightPartKey: 'graph-document-include:output-entry-right',
+    }
+  }
+
   it('frames materials as the first active hosted section', async () => {
     await act(async () => {
       useAppStore.setState((state) => ({
@@ -144,6 +202,21 @@ describe('PropertiesSurface', () => {
     ).toBe('34px')
     expect(focusedObjectListResizeHandle?.getAttribute('aria-valuenow')).toBe('34')
     expect(materialsPanel?.textContent).toContain('Material target')
+    expect(
+      materialsPanel
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-scope'),
+    ).toBe('single-object')
+    expect(
+      materialsPanel
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-object-count'),
+    ).toBe('1')
+    expect(
+      materialsPanel
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-target-count'),
+    ).toBe('1')
     expect(materialsPanel?.textContent).toContain('Material targets')
     expect(materialsPanel?.textContent).toContain('Choose the part or imported mesh')
     expect(materialsPanel?.textContent).not.toContain('Object Part')
@@ -418,6 +491,21 @@ describe('PropertiesSurface', () => {
         '[data-material-target-row="authored-part:graph-document-1:output-entry-1"]',
       ),
     ).not.toBeNull()
+    expect(
+      container
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-scope'),
+    ).toBe('multi-object')
+    expect(
+      container
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-object-count'),
+    ).toBe('2')
+    expect(
+      container
+        ?.querySelector('[aria-label="Properties materials section"]')
+        ?.getAttribute('data-material-assignment-target-count'),
+    ).toBe('2')
 
     await act(async () => {
       secondFocusedRow?.click()
@@ -436,6 +524,242 @@ describe('PropertiesSurface', () => {
         '[data-material-target-row="authored-part:graph-document-1:output-entry-2"]',
       ),
     ).not.toBeNull()
+  })
+
+  it('assigns a project material row to all selected material objects through one history entry', async () => {
+    const firstTarget = {
+      kind: 'object',
+      objectId: 'properties-batch-object-1',
+    } satisfies WorkspaceSelectedTarget
+    const secondTarget = {
+      kind: 'object',
+      objectId: 'properties-batch-object-2',
+    } satisfies WorkspaceSelectedTarget
+
+    await act(async () => {
+      useAppStore.setState((state) => ({
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            ...state.projectContent.objectsById,
+            'properties-batch-object-1': {
+              objectId: 'properties-batch-object-1',
+              ownerGraphDocumentId: 'graph-document-batch',
+              parentComponentId: 'component-batch',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-batch',
+              sourceOutputEntryId: 'output-entry-left',
+              sourceNodeId: 'node-left',
+              slotId: null,
+              label: 'Batch Left Object',
+              resolutionState: 'resolved',
+            },
+            'properties-batch-object-2': {
+              objectId: 'properties-batch-object-2',
+              ownerGraphDocumentId: 'graph-document-batch',
+              parentComponentId: 'component-batch',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-batch',
+              sourceOutputEntryId: 'output-entry-right',
+              sourceNodeId: 'node-right',
+              slotId: null,
+              label: 'Batch Right Object',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: firstTarget,
+        explicitSelectedTargets: [firstTarget, secondTarget],
+        selectionAnchorTarget: firstTarget,
+      })
+    })
+
+    await renderSurface()
+
+    const materialsSection = container?.querySelector(
+      '[aria-label="Properties materials section"]',
+    ) as HTMLElement | null
+    const brushedMetalProjectRow = container?.querySelector(
+      '[data-project-material-row="brushed_metal"]',
+    ) as HTMLButtonElement | null
+
+    expect(materialsSection?.getAttribute('data-material-assignment-scope')).toBe('multi-object')
+    expect(materialsSection?.getAttribute('data-material-assignment-target-count')).toBe('2')
+    expect(brushedMetalProjectRow?.disabled).toBe(false)
+
+    await act(async () => {
+      brushedMetalProjectRow?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.materials.usePerPart).toBe(true)
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      'graph-document-batch:output-entry-left': 'brushed_metal',
+      'graph-document-batch:output-entry-right': 'brushed_metal',
+    })
+    expect(editHistoryStore.getUndoEntries()).toMatchObject([
+      {
+        label: 'Assign material to selected objects',
+        targetLabel: 'Selected material objects',
+      },
+    ])
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({})
+
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      'graph-document-batch:output-entry-left': 'brushed_metal',
+      'graph-document-batch:output-entry-right': 'brushed_metal',
+    })
+  })
+
+  it('unhighlights focused material objects for assignment without changing global selection', async () => {
+    const { firstTarget, secondTarget, leftPartKey, rightPartKey } =
+      await setTwoFocusedMaterialObjects()
+    await renderSurface()
+
+    const getMaterialsSection = () =>
+      container?.querySelector('[aria-label="Properties materials section"]') as HTMLElement | null
+    const secondIncludeButton = container?.querySelector(
+      '[data-properties-focused-object-include="properties-include-object-2"]',
+    ) as HTMLButtonElement | null
+    const secondFocusButton = container?.querySelector(
+      '[data-properties-focused-object-row="properties-include-object-2"]',
+    ) as HTMLButtonElement | null
+    const brushedMetalProjectRow = container?.querySelector(
+      '[data-project-material-row="brushed_metal"]',
+    ) as HTMLButtonElement | null
+
+    expect(secondIncludeButton?.getAttribute('aria-pressed')).toBe('true')
+    expect(secondFocusButton?.getAttribute('data-properties-focused-object-included')).toBe('true')
+    expect(getMaterialsSection()?.getAttribute('data-material-assignment-target-count')).toBe('2')
+
+    await act(async () => {
+      secondIncludeButton?.click()
+    })
+
+    expect(secondIncludeButton?.getAttribute('aria-pressed')).toBe('false')
+    expect(secondFocusButton?.getAttribute('data-properties-focused-object-included')).toBe('false')
+    expect(getMaterialsSection()?.getAttribute('data-material-assignment-target-count')).toBe('1')
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([
+      firstTarget,
+      secondTarget,
+    ])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection?.partKeys).toEqual([
+      leftPartKey,
+      rightPartKey,
+    ])
+
+    await act(async () => {
+      brushedMetalProjectRow?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
+      [leftPartKey]: 'brushed_metal',
+    })
+  })
+
+  it('removes inactive focused material objects through global selection when x is clicked', async () => {
+    const { firstTarget, leftPartKey } = await setTwoFocusedMaterialObjects()
+    await renderSurface()
+
+    const getMaterialsSection = () =>
+      container?.querySelector('[aria-label="Properties materials section"]') as HTMLElement | null
+    const secondRemoveButton = container?.querySelector(
+      '[data-properties-focused-object-remove="properties-include-object-2"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      secondRemoveButton?.click()
+    })
+
+    expect(container?.querySelectorAll('[data-properties-focused-object-row]').length).toBe(1)
+    expect(
+      container?.querySelector('[data-properties-focused-object-row="properties-include-object-2"]'),
+    ).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([firstTarget])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection?.partKeys).toEqual([
+      leftPartKey,
+    ])
+    expect(getMaterialsSection()?.getAttribute('data-material-assignment-target-count')).toBe('1')
+  })
+
+  it('removes active focused material objects through global selection when x is clicked', async () => {
+    const { firstTarget, secondTarget, leftPartKey } = await setTwoFocusedMaterialObjects()
+    await renderSurface()
+
+    const getMaterialsSection = () =>
+      container?.querySelector('[aria-label="Properties materials section"]') as HTMLElement | null
+    const secondFocusButton = container?.querySelector(
+      '[data-properties-focused-object-row="properties-include-object-2"]',
+    ) as HTMLButtonElement | null
+    const secondRemoveButton = container?.querySelector(
+      '[data-properties-focused-object-remove="properties-include-object-2"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      secondFocusButton?.click()
+    })
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(secondTarget)
+
+    await act(async () => {
+      secondRemoveButton?.click()
+    })
+
+    expect(container?.querySelectorAll('[data-properties-focused-object-row]').length).toBe(1)
+    expect(
+      container?.querySelector('[data-properties-focused-object-row="properties-include-object-2"]'),
+    ).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([firstTarget])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection?.partKeys).toEqual([
+      leftPartKey,
+    ])
+    expect(getMaterialsSection()?.getAttribute('data-material-assignment-target-count')).toBe('1')
+  })
+
+  it('clears mirrored selection state when x removes a single focused material object', async () => {
+    const { firstTarget, leftPartKey } = await setTwoFocusedMaterialObjects()
+
+    await act(async () => {
+      useAppStore.getState().setWorkspaceSelectedTarget(firstTarget)
+      useAppStore.getState().selectPart(leftPartKey)
+    })
+
+    await renderSurface()
+
+    const removeButton = container?.querySelector(
+      '[data-properties-focused-object-remove="properties-include-object-1"]',
+    ) as HTMLButtonElement | null
+
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual(firstTarget)
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([firstTarget])
+    expect(useAppStore.getState().selectedPartKey).toBe(leftPartKey)
+
+    await act(async () => {
+      removeButton?.click()
+    })
+
+    expect(container?.querySelector('[data-properties-focused-object-row]')).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(useAppStore.getState().workspaceSelection.selectionAnchorTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.resolvedContentSelection).toBeNull()
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
   })
 
   it('updates the selected material read from lane-local target selection without mutating material truth', async () => {
@@ -773,21 +1097,69 @@ describe('PropertiesSurface', () => {
     const projectMaterialActions = materialsPanel?.querySelector(
       '[aria-label="Project material actions"]',
     )
+    const projectMaterialSearch = materialsPanel?.querySelector(
+      'input[aria-label="Search project materials"]',
+    ) as HTMLInputElement | null
     const newMaterialButton = projectMaterialActions?.querySelector(
       '[data-material-action="New Material"]',
     ) as HTMLButtonElement | null
     const duplicateMaterialButton = projectMaterialActions?.querySelector(
       '[data-material-action="Duplicate Material"]',
     ) as HTMLButtonElement | null
+    const projectMaterialList = materialsPanel?.querySelector(
+      '[data-project-material-list="compact"]',
+    ) as HTMLDivElement | null
+    const projectMaterialListResizeHandle = materialsPanel?.querySelector(
+      '[data-project-material-list-resize-handle="bottom"]',
+    ) as HTMLDivElement | null
     const brushedMetalProjectRow = materialsPanel?.querySelector(
       '[data-project-material-row="brushed_metal"]',
     ) as HTMLButtonElement | null
+
+    expect(projectMaterialSearch).not.toBeNull()
+
+    await act(async () => {
+      if (projectMaterialSearch !== null) {
+        projectMaterialSearch.value = 'brushed'
+        projectMaterialSearch.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    expect(materialsPanel?.querySelector('[data-project-material-row="default_matte"]')).toBeNull()
+    expect(materialsPanel?.querySelector('[data-project-material-row="brushed_metal"]')).not.toBeNull()
+
+    await act(async () => {
+      if (projectMaterialSearch !== null) {
+        projectMaterialSearch.value = ''
+        projectMaterialSearch.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      projectMaterialListResizeHandle?.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientY: 100 }),
+      )
+    })
+
+    await act(async () => {
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientY: 136 }))
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+    })
+
+    expect(projectMaterialListResizeHandle?.getAttribute('aria-valuenow')).toBe('150')
+    expect(projectMaterialList?.style.getPropertyValue('--properties-project-material-list-height')).toBe(
+      '150px',
+    )
 
     vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
     await act(async () => {
       newMaterialButton?.click()
     })
 
+    expect(projectMaterialListResizeHandle?.getAttribute('aria-valuenow')).toBe('150')
+    expect(projectMaterialList?.style.getPropertyValue('--properties-project-material-list-height')).toBe(
+      '150px',
+    )
     expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('mat_1700000000000')
     expect(useUiPrefsStore.getState().view.materials.usePerPart).toBe(true)
     expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
@@ -814,6 +1186,10 @@ describe('PropertiesSurface', () => {
       duplicateMaterialButton?.click()
     })
 
+    expect(projectMaterialListResizeHandle?.getAttribute('aria-valuenow')).toBe('150')
+    expect(projectMaterialList?.style.getPropertyValue('--properties-project-material-list-height')).toBe(
+      '150px',
+    )
     expect(useUiPrefsStore.getState().view.materials.selectedPresetId).toBe('mat_1800000000000')
     expect(useUiPrefsStore.getState().view.materials.perPart).toEqual({
       'graph-document-actions:output-entry-actions': 'mat_1800000000000',

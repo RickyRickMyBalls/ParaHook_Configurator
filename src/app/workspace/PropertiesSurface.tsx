@@ -14,6 +14,8 @@ import {
   useAppStore,
   type WorkspaceSelectedTarget,
 } from '../store/useAppStore'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { clearWorkspaceTargetSelection } from '../store/workspaceSelectionCommands'
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 import { propertiesMaterialsSectionDefinition } from './PropertiesMaterialsSection'
 import {
@@ -97,6 +99,9 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
   const setWorkspaceExplicitSelection = useAppStore((state) => state.setWorkspaceExplicitSelection)
+  const selectPart = useAppStore((state) => state.selectPart)
+  const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
+  const selectLight = useUiPrefsStore((state) => state.selectLight)
   const focusSummary = buildPropertiesFocusSummary(selectedTarget)
   const focusedObjectRows = useMemo<PropertiesFocusedObjectRow[]>(() => {
     const candidateTargets =
@@ -139,6 +144,11 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
         }
       })
   }, [explicitSelectedTargets, projectContent.objectsById, referenceWorkspace, selectedTarget])
+  const focusedObjectRowIds = useMemo(
+    () => focusedObjectRows.map((row) => row.id),
+    [focusedObjectRows],
+  )
+  const focusedObjectRowIdKey = focusedObjectRowIds.join('\u001f')
   const selectedTargetKey = selectedTarget === null ? null : workspaceTargetKey(selectedTarget)
   const sections = useMemo<PropertiesSectionDefinition[]>(
     () => [propertiesMaterialsSectionDefinition],
@@ -149,6 +159,9 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   )
   const [focusedObjectListHeight, setFocusedObjectListHeight] = useState(
     FOCUSED_OBJECT_LIST_DEFAULT_HEIGHT,
+  )
+  const [includedFocusedObjectIds, setIncludedFocusedObjectIds] = useState<Set<string>>(
+    () => new Set(),
   )
   const [isResizingFocusedObjectList, setIsResizingFocusedObjectList] = useState(false)
   const focusedObjectListResizeStartClientYRef = useRef(0)
@@ -165,7 +178,24 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
     setFocusedObjectListHeight(resolveFocusedObjectListDefaultHeight(focusedObjectRows.length))
   }, [focusedObjectRows.length])
 
-  const shellState = resolvePropertiesShellState(sections, focusSummary, selectedTarget, activeSectionId)
+  useEffect(() => {
+    setIncludedFocusedObjectIds(new Set(focusedObjectRowIds))
+  }, [focusedObjectRowIdKey, focusedObjectRowIds])
+
+  const selectedObjectTargets = useMemo(
+    () =>
+      focusedObjectRows
+        .filter((row) => includedFocusedObjectIds.has(row.id))
+        .map((row) => row.target),
+    [focusedObjectRows, includedFocusedObjectIds],
+  )
+  const shellState = resolvePropertiesShellState(
+    sections,
+    focusSummary,
+    selectedTarget,
+    activeSectionId,
+    selectedObjectTargets,
+  )
 
   const activeSection =
     shellState.kind === 'ready'
@@ -250,6 +280,63 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
     }
 
     setWorkspaceSelectedTarget(target)
+  }
+
+  const handleFocusedObjectIncludedToggle = (objectId: string) => {
+    setIncludedFocusedObjectIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+      if (nextIds.has(objectId)) {
+        nextIds.delete(objectId)
+      } else {
+        nextIds.add(objectId)
+      }
+      return nextIds
+    })
+  }
+
+  const handleFocusedObjectRemove = (
+    target: Extract<WorkspaceSelectedTarget, { kind: 'object' }>,
+  ) => {
+    const currentTargets =
+      explicitSelectedTargets.length > 0
+        ? explicitSelectedTargets
+        : selectedTarget === null
+          ? []
+          : [selectedTarget]
+    const nextExplicitSelectedTargets = currentTargets.filter(
+      (candidateTarget) =>
+        candidateTarget.kind !== 'object' || candidateTarget.objectId !== target.objectId,
+    )
+    const removedSelectedTarget =
+      selectedTarget?.kind === 'object' && selectedTarget.objectId === target.objectId
+    const nextSelectedTarget = removedSelectedTarget
+      ? (nextExplicitSelectedTargets[0] ?? null)
+      : selectedTarget
+    const nextSelectionAnchorTarget =
+      selectionAnchorTarget?.kind === 'object' && selectionAnchorTarget.objectId === target.objectId
+        ? (nextExplicitSelectedTargets[0] ?? null)
+        : selectionAnchorTarget
+
+    if (nextSelectedTarget === null && nextExplicitSelectedTargets.length === 0) {
+      clearWorkspaceTargetSelection(
+        {
+          setWorkspaceSelectedTarget,
+          selectLight,
+          selectPart,
+          requestConsoleContextSync,
+        },
+        {
+          syncReason: 'target-selection',
+        },
+      )
+      return
+    }
+
+    setWorkspaceExplicitSelection({
+      selectedTarget: nextSelectedTarget,
+      explicitSelectedTargets: nextExplicitSelectedTargets,
+      selectionAnchorTarget: nextSelectionAnchorTarget,
+    })
   }
 
   const renderShellState = (): ReactNode => {
@@ -387,24 +474,52 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
                 >
                   {focusedObjectRows.map((row, rowIndex) => {
                     const isActive = selectedTargetKey === workspaceTargetKey(row.target)
+                    const isIncluded = includedFocusedObjectIds.has(row.id)
                     return (
-                      <button
-                        type="button"
-                        className={`PropertiesFocusedItemButton ${isActive ? 'isActive' : ''}`}
+                      <div
+                        className={`PropertiesFocusedItemRow ${isActive ? 'isActive' : ''} ${
+                          isIncluded ? 'isIncluded' : ''
+                        }`}
                         role="listitem"
                         key={row.id}
-                        title={row.id}
-                        aria-pressed={isActive}
-                        data-properties-focused-object-row={row.id}
-                        data-properties-focused-object-active={isActive}
-                        onClick={() => handleFocusedObjectRowClick(row.target)}
+                        data-properties-focused-object-included={isIncluded}
                       >
-                        <span className="PropertiesFocusedItemIndex">{rowIndex + 1}</span>
-                        <span className="PropertiesFocusedItemCopy">
-                          <strong>{row.label}</strong>
-                          <span>{row.detail}</span>
-                        </span>
-                      </button>
+                        <button
+                          type="button"
+                          className="PropertiesFocusedItemIncludeButton"
+                          aria-label={`${isIncluded ? 'Exclude' : 'Include'} ${row.label} from material assignment`}
+                          aria-pressed={isIncluded}
+                          data-properties-focused-object-include={row.id}
+                          onClick={() => handleFocusedObjectIncludedToggle(row.id)}
+                        >
+                          <span aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className="PropertiesFocusedItemButton"
+                          title={row.id}
+                          aria-pressed={isActive}
+                          data-properties-focused-object-row={row.id}
+                          data-properties-focused-object-active={isActive}
+                          data-properties-focused-object-included={isIncluded}
+                          onClick={() => handleFocusedObjectRowClick(row.target)}
+                        >
+                          <span className="PropertiesFocusedItemIndex">{rowIndex + 1}</span>
+                          <span className="PropertiesFocusedItemCopy">
+                            <strong>{row.label}</strong>
+                            <span>{row.detail}</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="PropertiesFocusedItemRemoveButton"
+                          aria-label={`Remove ${row.label} from focused items`}
+                          data-properties-focused-object-remove={row.id}
+                          onClick={() => handleFocusedObjectRemove(row.target)}
+                        >
+                          x
+                        </button>
+                      </div>
                     )
                   })}
                 </div>
