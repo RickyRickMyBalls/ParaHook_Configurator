@@ -96,6 +96,16 @@ const workspacePaneFilletRadiusConfig: UiPreferenceHistoryConfig<number> = {
   setValue: (value) => useUiPrefsStore.getState().setWorkspacePaneFilletRadiusPx(value),
 }
 
+const workspacePanelShellPaddingConfig: UiPreferenceHistoryConfig<number> = {
+  label: 'Change workspace panel shell padding',
+  sourceId: 'workspace-settings',
+  sourceLabel: 'Workspace Settings',
+  targetId: 'ui-pref:workspacePanelShellPaddingPx',
+  targetLabel: 'Workspace panel shell padding',
+  getValue: () => useUiPrefsStore.getState().workspacePanelShellPaddingPx,
+  setValue: (value) => useUiPrefsStore.getState().setWorkspacePanelShellPaddingPx(value),
+}
+
 const workspaceNestedResizeKeepsFarPaneConfig: UiPreferenceHistoryConfig<boolean> = {
   label: 'Change workspace resize behavior',
   sourceId: 'workspace-settings',
@@ -166,6 +176,11 @@ export const setWorkspacePaneFilletRadiusWithHistory = (
   nextValue: number,
   options?: UiPreferenceHistoryOptions,
 ): boolean => commitUiPreferenceWithHistory(workspacePaneFilletRadiusConfig, nextValue, options)
+
+export const setWorkspacePanelShellPaddingWithHistory = (
+  nextValue: number,
+  options?: UiPreferenceHistoryOptions,
+): boolean => commitUiPreferenceWithHistory(workspacePanelShellPaddingConfig, nextValue, options)
 
 export const setWorkspaceNestedResizeKeepsFarPaneWithHistory = (
   nextValue: boolean,

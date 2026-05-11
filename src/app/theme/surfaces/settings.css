@@ -11,16 +11,14 @@
   color: #edf4ff;
 }
 
-.SettingsSurfaceShell {
-  display: grid;
-  grid-template-columns: minmax(100px, 15vw) minmax(0, 1fr);
-  gap: 12px;
+.SettingsSurfacePanelShell {
+  padding: var(--settings-surface-panel-shell-padding, 0);
+}
+
+.SettingsSurfacePanelShell .SettingsSurfaceRail,
+.SettingsSurfacePanelShell .SettingsSurfaceContent {
   height: 100%;
-  min-height: 100%;
-  min-width: 0;
-  padding: 12px;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .SettingsSurfaceRail,
@@ -1229,11 +1227,6 @@
 }
 
 @media (max-width: 860px) {
-  .SettingsSurfaceShell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
   .SettingsSurfaceRail {
     max-height: 34vh;
   }

@@ -40,6 +40,8 @@ describe('PropertiesSurface', () => {
       }))
       useUiPrefsStore.setState({
         view: initialView,
+        workspacePanelShellPaddingPx:
+          useUiPrefsStore.getInitialState().workspacePanelShellPaddingPx,
       })
       vi.restoreAllMocks()
     })
@@ -142,6 +144,9 @@ describe('PropertiesSurface', () => {
 
   it('frames materials as the first active hosted section', async () => {
     await act(async () => {
+      useUiPrefsStore.getState().setWorkspacePanelShellPaddingPx(10)
+    })
+    await act(async () => {
       useAppStore.setState((state) => ({
         projectContent: {
           ...state.projectContent,
@@ -171,6 +176,12 @@ describe('PropertiesSurface', () => {
     await renderSurface()
 
     const surface = container?.querySelector('.PropertiesSurface') as HTMLDivElement | null
+    const sharedShell = container?.querySelector(
+      '[data-workspace-panel-shell="properties"]',
+    ) as HTMLDivElement | null
+    const shellResizeHandle = container?.querySelector(
+      '[aria-label="Resize Properties sections panel"]',
+    ) as HTMLDivElement | null
     const tablist = container?.querySelector('[role="tablist"]') as HTMLDivElement | null
     const materialsTab = container?.querySelector(
       '#properties-section-tab-materials',
@@ -180,6 +191,11 @@ describe('PropertiesSurface', () => {
     ) as HTMLDivElement | null
 
     expect(surface?.getAttribute('data-properties-active-section')).toBe('materials')
+    expect(surface?.style.getPropertyValue('--settings-surface-panel-shell-padding')).toBe('10px')
+    expect(sharedShell).not.toBeNull()
+    expect(sharedShell?.classList.contains('WorkspacePanelSplitShell')).toBe(true)
+    expect(shellResizeHandle?.getAttribute('role')).toBe('separator')
+    expect(shellResizeHandle?.getAttribute('aria-orientation')).toBe('vertical')
     expect(tablist?.getAttribute('aria-label')).toBe('Properties sections')
     expect(materialsTab?.getAttribute('aria-selected')).toBe('true')
     expect(materialsPanel).not.toBeNull()
@@ -201,6 +217,7 @@ describe('PropertiesSurface', () => {
       focusedObjectList?.style.getPropertyValue('--properties-focused-item-list-height'),
     ).toBe('34px')
     expect(focusedObjectListResizeHandle?.getAttribute('aria-valuenow')).toBe('34')
+    expect(focusedObjectListResizeHandle?.getAttribute('aria-orientation')).toBe('horizontal')
     expect(materialsPanel?.textContent).toContain('Material target')
     expect(
       materialsPanel

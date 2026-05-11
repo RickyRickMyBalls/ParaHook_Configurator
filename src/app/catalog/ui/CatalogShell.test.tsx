@@ -576,15 +576,20 @@ describe('CatalogShell', () => {
   it('lets the browse rail resize from the divider by drag and keyboard input', async () => {
     ;({ container, root } = renderCatalogShell('catalog-shell-browse-rail-resize'))
     const currentContainer = container as HTMLDivElement
-    const shell = currentContainer.querySelector('.CatalogShell') as HTMLDivElement | null
+    const shell = currentContainer.querySelector(
+      '[data-workspace-panel-shell="catalog"]',
+    ) as HTMLDivElement | null
     const resizeHandle = currentContainer.querySelector(
-      '[data-catalog-region="browse-rail-resize-handle"]',
+      '[data-workspace-panel-shell-region="resize-handle"]',
     ) as HTMLDivElement | null
 
     expect(shell).not.toBeNull()
+    expect(shell?.classList.contains('WorkspacePanelSplitShell')).toBe(true)
     expect(resizeHandle).not.toBeNull()
+    expect(resizeHandle?.getAttribute('aria-label')).toBe('Resize Catalog browse rail')
+    expect(resizeHandle?.getAttribute('aria-orientation')).toBe('vertical')
     expect(resizeHandle?.getAttribute('aria-valuenow')).toBe('240')
-    expect(shell?.style.getPropertyValue('--catalog-browse-rail-width')).toBe('240px')
+    expect(shell?.style.getPropertyValue('--workspace-panel-shell-left-width')).toBe('240px')
 
     await act(async () => {
       resizeHandle?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 240 }))
@@ -596,21 +601,21 @@ describe('CatalogShell', () => {
     })
 
     expect(resizeHandle?.getAttribute('aria-valuenow')).toBe('312')
-    expect(shell?.style.getPropertyValue('--catalog-browse-rail-width')).toBe('312px')
+    expect(shell?.style.getPropertyValue('--workspace-panel-shell-left-width')).toBe('312px')
 
     await act(async () => {
       resizeHandle?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }))
     })
 
     expect(resizeHandle?.getAttribute('aria-valuenow')).toBe('296')
-    expect(shell?.style.getPropertyValue('--catalog-browse-rail-width')).toBe('296px')
+    expect(shell?.style.getPropertyValue('--workspace-panel-shell-left-width')).toBe('296px')
 
     await act(async () => {
       resizeHandle?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }))
     })
 
     expect(resizeHandle?.getAttribute('aria-valuenow')).toBe('184')
-    expect(shell?.style.getPropertyValue('--catalog-browse-rail-width')).toBe('184px')
+    expect(shell?.style.getPropertyValue('--workspace-panel-shell-left-width')).toBe('184px')
   })
 
   it('navigates Catalog-local item pages and Catalog Info with Back and Forward controls', async () => {

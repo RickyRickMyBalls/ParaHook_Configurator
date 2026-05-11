@@ -17,6 +17,7 @@ import {
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { clearWorkspaceTargetSelection } from '../store/workspaceSelectionCommands'
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
+import { WorkspacePanelSplitShell } from './WorkspacePanelSplitShell'
 import { propertiesMaterialsSectionDefinition } from './PropertiesMaterialsSection'
 import {
   buildPropertiesFocusSummary,
@@ -108,6 +109,9 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const selectPart = useAppStore((state) => state.selectPart)
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const selectLight = useUiPrefsStore((state) => state.selectLight)
+  const workspacePanelShellPaddingPx = useUiPrefsStore(
+    (state) => state.workspacePanelShellPaddingPx,
+  )
   const selectedFocusedObjectRows = useMemo<PropertiesFocusedObjectRow[]>(() => {
     const candidateTargets =
       explicitSelectedTargets.length > 0
@@ -513,6 +517,10 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
     )
   }
 
+  const propertiesSurfaceStyle = {
+    '--settings-surface-panel-shell-padding': `${workspacePanelShellPaddingPx}px`,
+  } as CSSProperties
+
   return (
     <div
       className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--properties PropertiesSurface"
@@ -522,9 +530,16 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
       data-properties-focus-kind={focusSummary.state === 'selected' ? focusSummary.targetKind : 'none'}
       data-properties-active-section={shellState.kind === 'ready' ? activeSection?.id ?? 'none' : 'none'}
       data-properties-shell-state={shellState.kind}
+      style={propertiesSurfaceStyle}
     >
-      <div className="SettingsSurfaceShell">
-        <aside className="SettingsSurfaceRail" aria-label="Properties shell rail">
+      <WorkspacePanelSplitShell
+        className="SettingsSurfacePanelShell"
+        dataShellKind="properties"
+        leftLabel="Properties shell rail"
+        rightLabel="Properties content"
+        resizeLabel="Resize Properties sections panel"
+        left={
+          <aside className="SettingsSurfaceRail" aria-label="Properties shell rail">
           <header className="SettingsSurfaceRailHeader">
             <span className="SettingsSurfaceRailEyebrow">Workspace</span>
             <strong>Properties</strong>
@@ -560,8 +575,10 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
               )
             })}
           </div>
-        </aside>
-        <main className="SettingsSurfaceContent" aria-label="Properties content">
+          </aside>
+        }
+        right={
+          <main className="SettingsSurfaceContent" aria-label="Properties content">
           <header className="SettingsSurfaceContentHeader">
             {focusedObjectRows.length > 0 ? (
               <div className="PropertiesFocusedItemHeader">
@@ -662,8 +679,9 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
               ? activeSection?.renderContent(shellState.sectionContext)
               : renderShellState()}
           </div>
-        </main>
-      </div>
+          </main>
+        }
+      />
     </div>
   )
 }

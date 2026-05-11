@@ -28,6 +28,7 @@ export function useUiPrefsPersistenceBridge() {
         spaghettiWindowAppearanceDefaults:
           persistedUiPrefs.spaghettiWindowAppearanceDefaults,
         workspacePaneFilletRadiusPx: persistedUiPrefs.workspacePaneFilletRadiusPx,
+        workspacePanelShellPaddingPx: persistedUiPrefs.workspacePanelShellPaddingPx,
         workspaceNestedResizeKeepsFarPane: persistedUiPrefs.workspaceNestedResizeKeepsFarPane,
         workspaceRestorePersistence: persistedUiPrefs.workspaceRestorePersistence,
         viewSettingsPersistence: persistedUiPrefs.viewSettingsPersistence,
@@ -58,6 +59,7 @@ export function useUiPrefsPersistenceBridge() {
       currentUiPrefs.spaghettiWindowAppearanceDefaults,
       currentPolicy,
       currentUiPrefs.workspacePaneFilletRadiusPx,
+      currentUiPrefs.workspacePanelShellPaddingPx,
       currentUiPrefs.workspaceNestedResizeKeepsFarPane,
     )
     writePersistedUiPrefs(nextSnapshot)
@@ -89,6 +91,7 @@ export function useUiPrefsPersistenceBridge() {
           notepadPersistence: state.notepadPersistence,
         },
         state.workspacePaneFilletRadiusPx,
+        state.workspacePanelShellPaddingPx,
         state.workspaceNestedResizeKeepsFarPane,
       )
       lastPersistedUiPrefsRef.current = nextSnapshot

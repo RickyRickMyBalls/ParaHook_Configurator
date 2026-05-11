@@ -35,6 +35,9 @@ const DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 320
 export const MIN_WORKSPACE_PANE_FILLET_RADIUS_PX = 0
 export const MAX_WORKSPACE_PANE_FILLET_RADIUS_PX = 100
 export const DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX = 12
+export const MIN_WORKSPACE_PANEL_SHELL_PADDING_PX = 0
+export const MAX_WORKSPACE_PANEL_SHELL_PADDING_PX = 24
+export const DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX = 0
 
 const normalizeWorkspacePaneFilletRadiusPx = (value: number | undefined): number =>
   Number.isFinite(value)
@@ -44,6 +47,15 @@ const normalizeWorkspacePaneFilletRadiusPx = (value: number | undefined): number
         MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
       )
     : DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX
+
+const normalizeWorkspacePanelShellPaddingPx = (value: number | undefined): number =>
+  Number.isFinite(value)
+    ? clamp(
+        Math.round(value as number),
+        MIN_WORKSPACE_PANEL_SHELL_PADDING_PX,
+        MAX_WORKSPACE_PANEL_SHELL_PADDING_PX,
+      )
+    : DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX
 
 const normalizeEnvironmentIntensity = (value: number | undefined, fallback = 1): number =>
   Number.isFinite(value) ? clamp(value as number, 0, 5) : fallback
@@ -189,6 +201,7 @@ type UiPrefsState = {
   workspaceStartupSurface: WorkspaceStartupSurface
   spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
   workspacePaneFilletRadiusPx: number
+  workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
   workspaceRestorePersistence: boolean
   viewSettingsPersistence: boolean
@@ -224,6 +237,7 @@ type UiPrefsState = {
   setWorkspaceNestedResizeKeepsFarPane: (workspaceNestedResizeKeepsFarPane: boolean) => void
   setWorkspaceRestorePersistence: (workspaceRestorePersistence: boolean) => void
   setWorkspacePaneFilletRadiusPx: (workspacePaneFilletRadiusPx: number) => void
+  setWorkspacePanelShellPaddingPx: (workspacePanelShellPaddingPx: number) => void
   setViewSettingsPersistence: (viewSettingsPersistence: boolean) => void
   setEnvironmentPersistence: (environmentPersistence: boolean) => void
   setDashboardPersistence: (dashboardPersistence: boolean) => void
@@ -273,6 +287,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   workspaceStartupSurface: 'homePage',
   spaghettiWindowAppearanceDefaults: defaultSpaghettiWindowAppearance,
   workspacePaneFilletRadiusPx: DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  workspacePanelShellPaddingPx: DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   workspaceNestedResizeKeepsFarPane: true,
   workspaceRestorePersistence: true,
   viewSettingsPersistence: true,
@@ -348,6 +363,17 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
       }
       return {
         workspacePaneFilletRadiusPx: nextRadius,
+      }
+    })
+  },
+  setWorkspacePanelShellPaddingPx: (workspacePanelShellPaddingPx) => {
+    set((state) => {
+      const nextPadding = normalizeWorkspacePanelShellPaddingPx(workspacePanelShellPaddingPx)
+      if (state.workspacePanelShellPaddingPx === nextPadding) {
+        return state
+      }
+      return {
+        workspacePanelShellPaddingPx: nextPadding,
       }
     })
   },

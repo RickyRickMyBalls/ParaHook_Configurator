@@ -72,6 +72,254 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1881 -->
+
+### [1881] - 2026-05-11 14:56 - `Gen 4 - Cleanup 1 Follow-Up - Workspace Panel Shell Padding Slider`
+
+HUMAN SUMMARY: `Settings now has a Workspace-section ParaSlider for the Settings/Properties shared shell gutter. The preference defaults to 0 px so the surfaces match Catalog, but it can be adjusted and persisted when a little breathing room is wanted.`
+
+#### Scope / Constraints Honored
+
+- Added the padding control as a Workspace setting instead of hard-coding a new visual rule.
+- Applied the setting only to the Settings/Properties shared-shell bridge.
+- Preserved Catalog's no-padding shell behavior.
+- Kept the shared `WorkspacePanelSplitShell` resize behavior unchanged.
+
+#### Summary of Implementation
+
+- Added `workspacePanelShellPaddingPx` to `useUiPrefsStore` with 0-24 px clamping and a 0 px default.
+- Added edit-history support for the new workspace panel shell padding preference.
+- Persisted and hydrated the new setting through the UI preferences bridge.
+- Added a Workspace-section `ParaSlider` labeled `Workspace panel shell padding`.
+- Routed the stored padding into Settings and Properties through a CSS variable consumed by `SettingsSurfacePanelShell`.
+- Added focused tests for the slider, Properties style consumption, and persistence normalization.
+
+#### Files Changed
+
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPreferenceEditHistory.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Settings and Properties expose an adjustable shared-shell outer padding preference in Settings > Workspace.
+- The default remains 0 px, matching Catalog's shell edge.
+
+#### Verification Steps
+
+- `npm.cmd test -- SettingsSurface.test.tsx PropertiesSurface.test.tsx useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd test -- workspaceLayoutPreferenceEditHistoryReadiness.test.ts scenePresentationEditHistoryReadiness.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1880 -->
+
+### [1880] - 2026-05-11 14:49 - `Gen 4 - Cleanup 1 Follow-Up - Settings And Properties Shell Padding Match`
+
+HUMAN SUMMARY: `Settings and Properties now match Catalog's no-padding shared panel shell edge. Their inner rail and content cards remain intact, but the extra outer gutter around the shared split shell is gone.`
+
+#### Scope / Constraints Honored
+
+- Changed only the Settings/Properties shared-shell bridge padding.
+- Preserved Settings and Properties rail/content styling.
+- Did not alter shared shell resize behavior, Catalog layout, or workspace routing.
+
+#### Summary of Implementation
+
+- Changed `.SettingsSurfacePanelShell` from `padding: 12px` to `padding: 0`.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- Settings and Properties no longer add an outer shell gutter around the shared panel split, matching Catalog's shell edge.
+
+#### Verification Steps
+
+- `npm.cmd test -- SettingsSurface.test.tsx PropertiesSurface.test.tsx`
+
+<!-- ENTRY 1879 -->
+
+### [1879] - 2026-05-11 14:44 - `Gen 4 - Cleanup 1 / Phase 5 - Shell CSS Cleanup And Future Split Handoff`
+
+HUMAN SUMMARY: `This closes the Gen 4 shared panel-shell cleanup. The old Settings fixed-grid shell CSS is gone, Catalog's remaining CSS is kept to workspace-specific content behavior, and advanced nested panel splitting is recorded as future work on top of the shared shell instead of being started here.`
+
+#### Scope / Constraints Honored
+
+- Removed stale post-migration shell CSS after Settings, Properties, and Catalog adopted `WorkspacePanelSplitShell`.
+- Preserved workspace-specific rail, content, card, browse-section, source, preview, and focused-list styling.
+- Kept `SettingsSurfacePanelShell` as the current Settings/Properties padding and fill bridge on top of the shared shell.
+- Kept Catalog's internal browse-section resize styling because it belongs to Catalog rail behavior, not the retired outer divider.
+- Did not redesign shell visuals, add persisted panel widths, rename `WorkspacePanelSplitShell`, or implement nested/multi-panel splitting.
+
+#### Summary of Implementation
+
+- Removed the unused `.SettingsSurfaceShell` fixed-grid rules from `settings.css`.
+- Removed the unused `.SettingsSurfaceShell` mobile media rule from `settings.css`.
+- Narrowed Catalog mobile CSS by deleting shared-shell-owned `CatalogShell` and old grid-position bridge rules.
+- Left `workspace-panel-shell.css` as the sole reusable outer split-shell CSS owner.
+- Closed the Gen 4 cleanup docs and recorded advanced panel splitting as a later architecture lane.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen4 - Cleanup 1 - Shared Workspace Panel Shell.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen4-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No intended user-facing behavior change beyond removing stale CSS ownership after the shared shell migration.
+
+#### Verification Steps
+
+- `npm.cmd test -- WorkspacePanelSplitShell.test.tsx SettingsSurface.test.tsx PropertiesSurface.test.tsx CatalogShell.test.tsx`
+- `npm.cmd test -- CatalogSurface.test.tsx -t "uses an explicit content scroll owner inside the shared Catalog shell"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1878 -->
+
+### [1878] - 2026-05-11 14:19 - `Gen 4 - Cleanup 1 / Phase 4 - Catalog Outer Shell Adoption`
+
+HUMAN SUMMARY: `Catalog now uses the same shared adjustable two-panel shell as Settings and Properties. The Catalog browse rail and content behavior stay Catalog-owned, while the outer divider, width state, mouse drag, and keyboard resizing come from \`WorkspacePanelSplitShell\`.`
+
+#### Scope / Constraints Honored
+
+- Migrated only the Catalog outer panel foundation.
+- Preserved `CatalogShellBrowseRail`, Catalog content routing, navigation history, preview sessions, item pages, info page, and source/import behavior.
+- Removed the Catalog-local outer resize state, refs, document listeners, keyboard handler, and divider markup.
+- Kept broad stale CSS cleanup deferred to Phase 5.
+- Did not add persisted panel-width preferences or move Catalog into the Settings/Properties section template.
+
+#### Summary of Implementation
+
+- Replaced the `CatalogShell` outer grid and resize handle with `WorkspacePanelSplitShell`.
+- Passed the existing Catalog browse rail through the shared shell's left slot and the existing Catalog content section through the right slot.
+- Removed obsolete Catalog outer-divider CSS while retaining Catalog-specific rail, content, card, source, preview, and browse-section resize styling.
+- Updated Catalog shell tests to assert the shared Catalog shell and accessible resize handle while preserving mouse and keyboard resize proof.
+- Updated the Catalog surface owned-scroll assertion to recognize the shared shell as the Catalog layout owner.
+- Advanced the Gen 4 cleanup docs so Phase 5 becomes the next CSS cleanup and future split handoff target.
+
+#### Files Changed
+
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen4 - Cleanup 1 - Shared Workspace Panel Shell.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen4-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Catalog now shares the reusable workspace panel split foundation with Settings and Properties.
+- Catalog width adjustment remains available through the shared shell divider.
+
+#### Verification Steps
+
+- `npm.cmd test -- WorkspacePanelSplitShell.test.tsx CatalogShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1877 -->
+
+### [1877] - 2026-05-11 12:43 - `Gen 4 - Cleanup 1 / Phase 3 - Settings And Properties Section Shell Migration`
+
+HUMAN SUMMARY: `This puts the new shared two-panel shell to work in Settings and Properties. Both surfaces now get the adjustable left/right panel foundation while keeping their existing section rails, content panes, and Properties focused-item list resize behavior.`
+
+#### Scope / Constraints Honored
+
+- Migrated only `SettingsSurface` and `PropertiesSurface`.
+- Preserved Settings section routing, Settings content, Properties hosted sections, and Materials behavior.
+- Preserved the existing horizontal Properties focused-item list resize handle inside the right panel.
+- Did not migrate Catalog, add new Settings or Properties features, or add persisted panel-width preferences.
+
+#### Summary of Implementation
+
+- Replaced the old outer `SettingsSurfaceShell` wrapper in Settings with `WorkspacePanelSplitShell`.
+- Replaced the old outer `SettingsSurfaceShell` wrapper in Properties with `WorkspacePanelSplitShell`.
+- Added a small `SettingsSurfacePanelShell` CSS bridge so the shared shell owns the outer split while the existing rail/content styling continues to fill each panel.
+- Updated Settings tests to prove the shared shell and accessible divider render while section routing still works.
+- Updated Properties tests to prove the shared shell and accessible divider render while the existing focused-item list resize handle remains horizontal.
+- Advanced the Gen 4 cleanup docs so Phase 4 is the next Catalog outer-shell adoption target.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen4 - Cleanup 1 - Shared Workspace Panel Shell.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen4-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Settings and Properties now expose the shared adjustable left/right panel divider.
+- Existing Settings and Properties content behavior remains unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- WorkspacePanelSplitShell.test.tsx SettingsSurface.test.tsx PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1876 -->
+
+### [1876] - 2026-05-11 11:35 - `Gen 4 - Cleanup 1 / Phase 2 - Shared Panel Split Shell Extraction`
+
+HUMAN SUMMARY: `This adds the first shared two-panel workspace shell foundation. The new \`WorkspacePanelSplitShell\` keeps width state local, supports mouse and keyboard divider resizing, and ships with focused tests before Settings, Properties, or Catalog migrate onto it.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 2 limited to standalone shell infrastructure and focused tests.
+- Did not migrate `SettingsSurface`, `PropertiesSurface`, `CatalogSurface`, or `CatalogShell`.
+- Kept panel width state local to the shared shell instead of adding persisted UI or workspace preferences.
+- Kept Catalog-specific and Settings/Properties-specific content CSS in their existing owners.
+
+#### Summary of Implementation
+
+- Added `WorkspacePanelSplitShell` with left/right slots, accessible vertical separator semantics, local width state, mouse drag resizing, keyboard resize shortcuts, and min/max clamping.
+- Added the shared `workspace-panel-shell.css` owner for outer shell layout, divider visuals, resizing state, and mobile stacking behavior.
+- Imported the new shared shell CSS from `v15Theme.css`.
+- Added focused jsdom tests covering slot rendering, separator attributes, keyboard clamping, mouse drag resizing, and resizing cleanup.
+- Advanced the Gen 4 cleanup docs so Phase 3 is the next Settings/Properties migration target.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspacePanelSplitShell.tsx`
+- `src/app/workspace/WorkspacePanelSplitShell.test.tsx`
+- `src/app/theme/surfaces/workspace-panel-shell.css`
+- `src/app/theme/v15Theme.css`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Gen4 - Cleanup 1 - Shared Workspace Panel Shell.md`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen4-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- A reusable workspace panel split shell now exists for later Settings, Properties, and Catalog migration.
+- No current workspace surface uses the new shell yet, so visible app behavior should remain unchanged until Phase 3.
+
+#### Verification Steps
+
+- `npm.cmd test -- WorkspacePanelSplitShell.test.tsx`
+- `npm.cmd run build` attempted; TypeScript completed and Vite reached output rendering, then the build was blocked by `ENOSPC: no space left on device`.
+
 <!-- ENTRY 1875 -->
 
 ### [1875] - 2026-05-11 11:19 - `Materials-5 / Phase 2.1 Follow-Up - Focused List Selection Pinning`

@@ -3750,7 +3750,8 @@ describe('CatalogSurface', () => {
     ) as HTMLDivElement | null
 
     expect(surface?.getAttribute('data-workspace-host-mode')).toBe('slotted')
-    expect(shell?.getAttribute('data-catalog-layout')).toBe('owned-scroll')
+    expect(shell?.getAttribute('data-workspace-panel-shell')).toBe('catalog')
+    expect(shell?.classList.contains('WorkspacePanelSplitShell')).toBe(true)
     expect(contentRegion).not.toBeNull()
     expect(contentBody).not.toBeNull()
     expect(contentBody?.querySelector('[data-catalog-region="grid"]')).not.toBeNull()

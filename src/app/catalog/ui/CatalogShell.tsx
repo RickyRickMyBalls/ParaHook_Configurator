@@ -1,12 +1,6 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type KeyboardEvent,
-  type MouseEvent,
-} from 'react'
+import { useEffect, useState } from 'react'
 import type { EnvironmentSourceSettings } from '../../../shared/viewSettingsTypes'
+import { WorkspacePanelSplitShell } from '../../workspace/WorkspacePanelSplitShell'
 import type { CatalogItemRecord } from '../catalogItemContract'
 import type { CatalogSourceSnapshot } from '../catalogSource'
 import type {
@@ -86,20 +80,9 @@ type CatalogShellProps = {
   onClearAllPubPartsStagedSources: () => void
 }
 
-const CATALOG_BROWSE_RAIL_MIN_WIDTH = 184
-const CATALOG_BROWSE_RAIL_DEFAULT_WIDTH = 240
-const CATALOG_BROWSE_RAIL_MAX_WIDTH = 420
-const CATALOG_BROWSE_RAIL_KEYBOARD_STEP = 16
 const CATALOG_DEFAULT_FACET_SELECTIONS: CatalogFacetSelections = {
   platform: ['all'],
   part: ['all'],
-}
-
-function clampCatalogBrowseRailWidth(width: number): number {
-  return Math.min(
-    CATALOG_BROWSE_RAIL_MAX_WIDTH,
-    Math.max(CATALOG_BROWSE_RAIL_MIN_WIDTH, width),
-  )
 }
 
 function resolveCatalogShellActiveSection(
@@ -167,10 +150,6 @@ export function CatalogShell(props: CatalogShellProps) {
       selectedFilters: {},
     }),
   )
-  const [browseRailWidth, setBrowseRailWidth] = useState(CATALOG_BROWSE_RAIL_DEFAULT_WIDTH)
-  const [isBrowseRailResizing, setIsBrowseRailResizing] = useState(false)
-  const browseRailResizeStartClientXRef = useRef(0)
-  const browseRailResizeStartWidthRef = useRef(CATALOG_BROWSE_RAIL_DEFAULT_WIDTH)
   const catalogFilterContext: CatalogFilterContext = {
     previewLoadedItemIds,
     pubPartsStagedSourcesByCatalogItemId,
@@ -363,33 +342,6 @@ export function CatalogShell(props: CatalogShellProps) {
     })
   }, [availableFilterGroups])
 
-  useEffect(() => {
-    if (!isBrowseRailResizing) {
-      return undefined
-    }
-
-    const handleMouseMove = (event: globalThis.MouseEvent) => {
-      const dragOffset = event.clientX - browseRailResizeStartClientXRef.current
-      setBrowseRailWidth(
-        clampCatalogBrowseRailWidth(browseRailResizeStartWidthRef.current + dragOffset),
-      )
-    }
-
-    const handleMouseUp = () => {
-      setIsBrowseRailResizing(false)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-    document.body.classList.add('CatalogShellIsResizing')
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.classList.remove('CatalogShellIsResizing')
-    }
-  }, [isBrowseRailResizing])
-
   const handleFacetSelectionChange = (nextBrowseMode: CatalogBrowseMode, sectionKey: string) => {
     commitCatalogNavigation(
       createCurrentCatalogNavigationSnapshot({
@@ -539,43 +491,6 @@ export function CatalogShell(props: CatalogShellProps) {
     applyCatalogNavigationSnapshot(navigationStep.snapshot)
   }
 
-  const handleBrowseRailResizeStart = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    browseRailResizeStartClientXRef.current = event.clientX
-    browseRailResizeStartWidthRef.current = browseRailWidth
-    setIsBrowseRailResizing(true)
-  }
-
-  const handleBrowseRailResizeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (
-      event.key !== 'ArrowLeft' &&
-      event.key !== 'ArrowRight' &&
-      event.key !== 'Home' &&
-      event.key !== 'End'
-    ) {
-      return
-    }
-
-    event.preventDefault()
-    setBrowseRailWidth((currentWidth) => {
-      if (event.key === 'Home') {
-        return CATALOG_BROWSE_RAIL_MIN_WIDTH
-      }
-
-      if (event.key === 'End') {
-        return CATALOG_BROWSE_RAIL_MAX_WIDTH
-      }
-
-      const direction = event.key === 'ArrowLeft' ? -1 : 1
-      return clampCatalogBrowseRailWidth(
-        currentWidth + direction * CATALOG_BROWSE_RAIL_KEYBOARD_STEP,
-      )
-    })
-  }
-
-  const catalogShellStyle = {
-    '--catalog-browse-rail-width': `${browseRailWidth}px`,
-  } as CSSProperties
   const contentEyebrow = isCatalogInfoVisible
     ? 'Catalog Info'
     : isItemPageVisible
@@ -590,55 +505,37 @@ export function CatalogShell(props: CatalogShellProps) {
   const canNavigateCatalogForward =
     catalogNavigationHistory.activeIndex < catalogNavigationHistory.entries.length - 1
 
-  return (
-    <div
-      className={`CatalogShell ${isBrowseRailResizing ? 'isResizingBrowseRail' : ''}`}
-      data-catalog-layout="owned-scroll"
-      style={catalogShellStyle}
-    >
-      <CatalogShellBrowseRail
-        facetSelections={facetSelections}
-        facetSelectionMode={facetSelectionMode}
-        previewLoadedItems={previewLoadedItems}
-        totalItemCount={snapshot.allItems.length}
-        searchText={searchText}
-        searchPlaceholder={resolveCatalogSearchPlaceholder(activeSection, browseMode)}
-        resultsSummary={resolveCatalogResultsSummary(
-          visibleItems.length,
-          activeSection,
-          resolveCatalogSelectedFilterCount(selectedFilters),
-          searchText,
-          browseMode,
-        )}
-        partSectionOptions={partSectionOptions}
-        platformSectionOptions={platformSectionOptions}
-        filterGroups={availableFilterGroups}
-        selectedFilters={selectedFilters}
-        onSearchTextChange={handleSearchTextChange}
-        onFacetSelectionChange={handleFacetSelectionChange}
-        onFacetSelectionModeChange={handleFacetSelectionModeChange}
-        onFilterToggle={handleFilterToggle}
-        onFilterReset={handleFilterReset}
-        onClearFacetedFilters={handleClearFacetedFilters}
-        onUnloadAllPreviewItems={onUnloadAllPreviewItems}
-        onUnloadPreviewItem={onUnloadPreviewItem}
-      />
-
-      <div
-        className="CatalogShellColumnResizeHandle"
-        role="separator"
-        aria-label="Resize Catalog browse rail"
-        aria-orientation="vertical"
-        aria-valuemin={CATALOG_BROWSE_RAIL_MIN_WIDTH}
-        aria-valuemax={CATALOG_BROWSE_RAIL_MAX_WIDTH}
-        aria-valuenow={browseRailWidth}
-        tabIndex={0}
-        data-catalog-region="browse-rail-resize-handle"
-        onMouseDown={handleBrowseRailResizeStart}
-        onKeyDown={handleBrowseRailResizeKeyDown}
-      />
-
-      <section className="CatalogShellRegion CatalogShellContent" data-catalog-region="content">
+  const leftPanel = (
+    <CatalogShellBrowseRail
+      facetSelections={facetSelections}
+      facetSelectionMode={facetSelectionMode}
+      previewLoadedItems={previewLoadedItems}
+      totalItemCount={snapshot.allItems.length}
+      searchText={searchText}
+      searchPlaceholder={resolveCatalogSearchPlaceholder(activeSection, browseMode)}
+      resultsSummary={resolveCatalogResultsSummary(
+        visibleItems.length,
+        activeSection,
+        resolveCatalogSelectedFilterCount(selectedFilters),
+        searchText,
+        browseMode,
+      )}
+      partSectionOptions={partSectionOptions}
+      platformSectionOptions={platformSectionOptions}
+      filterGroups={availableFilterGroups}
+      selectedFilters={selectedFilters}
+      onSearchTextChange={handleSearchTextChange}
+      onFacetSelectionChange={handleFacetSelectionChange}
+      onFacetSelectionModeChange={handleFacetSelectionModeChange}
+      onFilterToggle={handleFilterToggle}
+      onFilterReset={handleFilterReset}
+      onClearFacetedFilters={handleClearFacetedFilters}
+      onUnloadAllPreviewItems={onUnloadAllPreviewItems}
+      onUnloadPreviewItem={onUnloadPreviewItem}
+    />
+  )
+  const rightPanel = (
+    <section className="CatalogShellRegion CatalogShellContent" data-catalog-region="content">
         <div className="CatalogShellRegionHeader CatalogShellContentHeader">
           <div className="CatalogShellContentHeaderTitle">
             <p className="CatalogShellRegionEyebrow">{contentEyebrow}</p>
@@ -743,6 +640,17 @@ export function CatalogShell(props: CatalogShellProps) {
           )}
         </div>
       </section>
-    </div>
+  )
+
+  return (
+    <WorkspacePanelSplitShell
+      className="CatalogShell"
+      dataShellKind="catalog"
+      leftLabel="Catalog browse rail"
+      rightLabel="Catalog content"
+      resizeLabel="Resize Catalog browse rail"
+      left={leftPanel}
+      right={rightPanel}
+    />
   )
 }

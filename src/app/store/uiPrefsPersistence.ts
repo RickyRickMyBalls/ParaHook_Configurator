@@ -10,8 +10,11 @@ import {
 } from '../panels/spaghettiWindowAppearance'
 import {
   DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MAX_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MIN_WORKSPACE_PANEL_SHELL_PADDING_PX,
   type WorkspaceStartupSurface,
 } from './uiPrefsStore'
 
@@ -39,6 +42,7 @@ type PersistedUiPrefsState = UiPrefsPersistencePolicy & {
   workspaceStartupSurface: WorkspaceStartupSurface
   spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance
   workspacePaneFilletRadiusPx: number
+  workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
 }
 
@@ -68,6 +72,14 @@ const normalizeWorkspacePaneFilletRadiusPx = (value: unknown): number =>
       )
     : DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX
 
+const normalizeWorkspacePanelShellPaddingPx = (value: unknown): number =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(
+        MAX_WORKSPACE_PANEL_SHELL_PADDING_PX,
+        Math.max(MIN_WORKSPACE_PANEL_SHELL_PADDING_PX, Math.round(value)),
+      )
+    : DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX
+
 const normalizeUiPrefsPersistencePolicy = (value: unknown): UiPrefsPersistencePolicy => ({
   workspaceRestorePersistence:
     isRecord(value) && typeof value.workspaceRestorePersistence === 'boolean'
@@ -92,7 +104,7 @@ const normalizeUiPrefsPersistencePolicy = (value: unknown): UiPrefsPersistencePo
 })
 
 const normalizeWorkspaceNestedResizeKeepsFarPane = (value: unknown): boolean =>
-  typeof value === 'boolean' ? value : false
+  typeof value === 'boolean' ? value : true
 
 const applyPersistedViewPolicy = (
   baseView: ViewSettings,
@@ -132,7 +144,8 @@ export const serializePersistedUiPrefs = (
   spaghettiWindowAppearanceDefaults: SpaghettiWindowAppearance = defaultSpaghettiWindowAppearance,
   policy: UiPrefsPersistencePolicy = defaultUiPrefsPersistencePolicy,
   workspacePaneFilletRadiusPx = DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
-  workspaceNestedResizeKeepsFarPane = false,
+  workspacePanelShellPaddingPx = DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
+  workspaceNestedResizeKeepsFarPane = true,
 ): PersistedUiPrefsState => ({
   version: 3,
   view: normalizeViewSettings(view),
@@ -141,6 +154,9 @@ export const serializePersistedUiPrefs = (
     spaghettiWindowAppearanceDefaults,
   ),
   workspacePaneFilletRadiusPx: normalizeWorkspacePaneFilletRadiusPx(workspacePaneFilletRadiusPx),
+  workspacePanelShellPaddingPx: normalizeWorkspacePanelShellPaddingPx(
+    workspacePanelShellPaddingPx,
+  ),
   workspaceNestedResizeKeepsFarPane: normalizeWorkspaceNestedResizeKeepsFarPane(
     workspaceNestedResizeKeepsFarPane,
   ),
@@ -172,6 +188,9 @@ export const normalizePersistedUiPrefs = (value: unknown): PersistedUiPrefsState
     ),
     workspacePaneFilletRadiusPx: normalizeWorkspacePaneFilletRadiusPx(
       isRecord(value) ? value.workspacePaneFilletRadiusPx : null,
+    ),
+    workspacePanelShellPaddingPx: normalizeWorkspacePanelShellPaddingPx(
+      isRecord(value) ? value.workspacePanelShellPaddingPx : null,
     ),
     workspaceNestedResizeKeepsFarPane: normalizeWorkspaceNestedResizeKeepsFarPane(
       isRecord(value) ? value.workspaceNestedResizeKeepsFarPane : null,

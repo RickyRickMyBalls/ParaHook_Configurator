@@ -86,6 +86,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(12)
+    expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(0)
     expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(true)
 
     const persistedAfterHydration = readPersistedUiPrefs()
@@ -93,6 +94,7 @@ describe('useUiPrefsPersistenceBridge', () => {
       version: 3,
       workspaceStartupSurface: 'homePage',
       workspacePaneFilletRadiusPx: 12,
+      workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
       spaghettiWindowAppearanceDefaults: expect.any(Object),
       workspaceRestorePersistence: true,
@@ -151,6 +153,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         version: 3,
         workspaceStartupSurface: 'homePage',
         workspacePaneFilletRadiusPx: 12,
+        workspacePanelShellPaddingPx: 0,
         workspaceNestedResizeKeepsFarPane: true,
         workspaceRestorePersistence: true,
         viewSettingsPersistence: true,
@@ -202,6 +205,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         view: persistedView,
         workspaceStartupSurface: 'modelViewer',
         workspacePaneFilletRadiusPx: 18,
+        workspacePanelShellPaddingPx: 8,
         workspaceNestedResizeKeepsFarPane: true,
         workspaceRestorePersistence: false,
         viewSettingsPersistence: true,
@@ -222,6 +226,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     const state = useUiPrefsStore.getState()
     expect(state.workspaceStartupSurface).toBe('modelViewer')
     expect(state.workspacePaneFilletRadiusPx).toBe(18)
+    expect(state.workspacePanelShellPaddingPx).toBe(8)
     expect(state.workspaceNestedResizeKeepsFarPane).toBe(true)
     expect(state.workspaceRestorePersistence).toBe(false)
     expect(state.viewSettingsPersistence).toBe(true)
@@ -253,6 +258,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         },
         workspaceStartupSurface: 'not-a-real-surface',
         workspacePaneFilletRadiusPx: 99,
+        workspacePanelShellPaddingPx: 99,
         workspaceNestedResizeKeepsFarPane: true,
       }),
     )
@@ -273,10 +279,12 @@ describe('useUiPrefsPersistenceBridge', () => {
 
     expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(99)
+    expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(24)
     expect(readPersistedUiPrefs()).toEqual({
       version: 3,
       workspaceStartupSurface: 'homePage',
       workspacePaneFilletRadiusPx: 99,
+      workspacePanelShellPaddingPx: 24,
       workspaceNestedResizeKeepsFarPane: true,
       spaghettiWindowAppearanceDefaults: expect.any(Object),
       workspaceRestorePersistence: true,
@@ -340,6 +348,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         version: 3,
         view: expect.any(Object),
         workspacePaneFilletRadiusPx: 12,
+        workspacePanelShellPaddingPx: 0,
         workspaceNestedResizeKeepsFarPane: true,
         workspaceRestorePersistence: true,
         viewSettingsPersistence: true,

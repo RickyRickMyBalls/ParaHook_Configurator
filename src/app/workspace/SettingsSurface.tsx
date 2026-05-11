@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { readGraphBrowserStoragePolicy } from '../spaghetti/store/graphBrowserStoragePersistence'
 import { readRecentItemsPolicy } from '../recentItems/recentItemsPersistence'
 import { readPubPartsDownloadsStorage } from '../catalog/pubPartsDownloadsStorage'
@@ -11,15 +11,20 @@ import {
 } from '../panels/spaghettiWindowAppearance'
 import {
   setSpaghettiWindowAppearanceDefaultsWithHistory,
+  setWorkspacePanelShellPaddingWithHistory,
   setWorkspacePaneFilletRadiusWithHistory,
   setWorkspaceNestedResizeKeepsFarPaneWithHistory,
 } from '../store/uiPreferenceEditHistory'
 import {
+  DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MAX_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MAX_WORKSPACE_PANE_FILLET_RADIUS_PX,
+  MIN_WORKSPACE_PANEL_SHELL_PADDING_PX,
   MIN_WORKSPACE_PANE_FILLET_RADIUS_PX,
   useUiPrefsStore,
 } from '../store/uiPrefsStore'
+import { WorkspacePanelSplitShell } from './WorkspacePanelSplitShell'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 
@@ -175,6 +180,7 @@ const buildSettingsRows = (options: {
   browserIsFloating: boolean
   browserIsViewportSplit: boolean
   workspacePaneFilletRadiusPx: number
+  workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
 }): readonly SettingsRow[] => [
   {
@@ -217,6 +223,13 @@ const buildSettingsRows = (options: {
     label: 'Workspace corner radius',
     value: `${Math.round(options.workspacePaneFilletRadiusPx)} px`,
     description: 'Shared fillet radius used by the split-corner pane shell.',
+    sectionIds: ['workspace'],
+  },
+  {
+    id: 'workspace-panel-shell-padding',
+    label: 'Workspace panel shell padding',
+    value: `${Math.round(options.workspacePanelShellPaddingPx)} px`,
+    description: 'Outer gutter around shared Settings and Properties panel shells.',
     sectionIds: ['workspace'],
   },
   {
@@ -316,6 +329,9 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
     (state) => state.workspaceRestorePersistence,
   )
   const workspacePaneFilletRadiusPx = useUiPrefsStore((state) => state.workspacePaneFilletRadiusPx)
+  const workspacePanelShellPaddingPx = useUiPrefsStore(
+    (state) => state.workspacePanelShellPaddingPx,
+  )
   const workspaceNestedResizeKeepsFarPane = useUiPrefsStore(
     (state) => state.workspaceNestedResizeKeepsFarPane,
   )
@@ -360,6 +376,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
         notepadPersistence,
         leftDockWidth,
         workspacePaneFilletRadiusPx,
+        workspacePanelShellPaddingPx,
         workspaceNestedResizeKeepsFarPane,
         projectionMode,
         axisOverlayEnabled,
@@ -379,6 +396,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
       projectionMode,
       viewSettingsPersistence,
       workspacePaneFilletRadiusPx,
+      workspacePanelShellPaddingPx,
       workspaceNestedResizeKeepsFarPane,
       workspaceRestorePersistence,
       workspaceStartupSurface,
@@ -418,14 +436,25 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
     ]
   }, [activeSectionId, settingsRows])
 
+  const settingsSurfaceStyle = {
+    '--settings-surface-panel-shell-padding': `${workspacePanelShellPaddingPx}px`,
+  } as CSSProperties
+
   return (
     <div
       className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--settings SettingsSurface"
       data-workspace-slot-id={slotId}
       data-workspace-surface-instance-id={surfaceInstanceId}
+      style={settingsSurfaceStyle}
     >
-      <div className="SettingsSurfaceShell">
-        <aside className="SettingsSurfaceRail" aria-label="Settings sections">
+      <WorkspacePanelSplitShell
+        className="SettingsSurfacePanelShell"
+        dataShellKind="settings"
+        leftLabel="Settings sections"
+        rightLabel="Settings content"
+        resizeLabel="Resize Settings sections panel"
+        left={
+          <aside className="SettingsSurfaceRail" aria-label="Settings sections">
           <header className="SettingsSurfaceRailHeader">
             <span className="SettingsSurfaceRailEyebrow">Workspace</span>
             <strong>Settings</strong>
@@ -447,8 +476,10 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
               </button>
             ))}
           </div>
-        </aside>
-        <main className="SettingsSurfaceContent" aria-label="Settings content">
+          </aside>
+        }
+        right={
+          <main className="SettingsSurfaceContent" aria-label="Settings content">
           <header className="SettingsSurfaceContentHeader">
             <div>
               <span className="SettingsSurfaceContentEyebrow">
@@ -655,6 +686,27 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           />
                         </div>
                         <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Workspace panel shell padding"
+                            value={workspacePanelShellPaddingPx}
+                            min={MIN_WORKSPACE_PANEL_SHELL_PADDING_PX}
+                            max={MAX_WORKSPACE_PANEL_SHELL_PADDING_PX}
+                            step={1}
+                            clampMin={MIN_WORKSPACE_PANEL_SHELL_PADDING_PX}
+                            clampMax={MAX_WORKSPACE_PANEL_SHELL_PADDING_PX}
+                            formatValue={(nextValue) => `${Math.round(nextValue)} px`}
+                            displayValue={
+                              workspacePanelShellPaddingPx ===
+                              DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX
+                                ? `${workspacePanelShellPaddingPx} px (default)`
+                                : `${workspacePanelShellPaddingPx} px`
+                            }
+                            onChange={(nextValue) =>
+                              setWorkspacePanelShellPaddingWithHistory(nextValue)
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
                           <label className="HomePageSurfaceStoragePolicyToggle">
                             <span>Keep far pane fixed on nested resize</span>
                             <input
@@ -715,8 +767,9 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
               </section>
             ))}
           </div>
-        </main>
-      </div>
+          </main>
+        }
+      />
     </div>
   )
 }

@@ -11,18 +11,10 @@
 }
 
 .CatalogShell {
-  display: grid;
-  grid-template-columns:
-    minmax(184px, var(--catalog-browse-rail-width, 240px))
-    8px
-    minmax(0, 1fr);
-  gap: 0;
   height: 100%;
   min-height: 100%;
   min-width: 0;
   padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
 .CatalogSurface * {
@@ -80,82 +72,6 @@
   grid-template-rows: auto minmax(0, 1fr);
   padding: 16px;
   overflow: hidden;
-}
-
-.CatalogShellColumnResizeHandle {
-  grid-column: 2;
-  position: relative;
-  z-index: 2;
-  min-width: 8px;
-  height: 100%;
-  border: 0;
-  padding: 0;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(135, 185, 255, 0),
-      rgba(135, 185, 255, 0.12),
-      rgba(135, 185, 255, 0)
-    );
-  cursor: col-resize;
-  touch-action: none;
-}
-
-.CatalogShellColumnResizeHandle::before {
-  content: '';
-  position: absolute;
-  top: 18px;
-  bottom: 18px;
-  left: 50%;
-  width: 1px;
-  border-radius: 999px;
-  background: rgba(135, 185, 255, 0.28);
-  transform: translateX(-50%);
-}
-
-.CatalogShellColumnResizeHandle::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 3px;
-  height: 34px;
-  border-radius: 999px;
-  background: rgba(232, 241, 255, 0.28);
-  box-shadow:
-    -4px 0 0 rgba(232, 241, 255, 0.12),
-    4px 0 0 rgba(232, 241, 255, 0.12);
-  opacity: 0.78;
-  transform: translate(-50%, -50%);
-}
-
-.CatalogShellColumnResizeHandle:hover,
-.CatalogShellColumnResizeHandle:focus-visible,
-.CatalogShell.isResizingBrowseRail .CatalogShellColumnResizeHandle {
-  background:
-    linear-gradient(
-      90deg,
-      rgba(135, 185, 255, 0.06),
-      rgba(135, 185, 255, 0.22),
-      rgba(135, 185, 255, 0.06)
-    );
-  outline: none;
-}
-
-.CatalogShellColumnResizeHandle:focus-visible::before,
-.CatalogShell.isResizingBrowseRail .CatalogShellColumnResizeHandle::before {
-  background: rgba(135, 185, 255, 0.58);
-}
-
-.CatalogShellColumnResizeHandle:focus-visible::after,
-.CatalogShell.isResizingBrowseRail .CatalogShellColumnResizeHandle::after {
-  opacity: 1;
-}
-
-.CatalogShellIsResizing,
-.CatalogShellIsResizing * {
-  cursor: col-resize !important;
-  user-select: none;
 }
 
 .CatalogShellContentBody {
@@ -1493,42 +1409,14 @@
 }
 
 @media (max-width: 1180px) {
-  .CatalogShell {
-    grid-template-columns:
-      minmax(184px, var(--catalog-browse-rail-width, 220px))
-      8px
-      minmax(0, 1fr);
-  }
-
   .CatalogShellCardGrid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
 @media (max-width: 860px) {
-  .CatalogShell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    height: auto;
-    overflow-y: auto;
-  }
-
-  .CatalogShellColumnResizeHandle {
-    display: none;
-  }
-
-  .CatalogShellFilters,
-  .CatalogShellContent {
-    grid-column: 1;
-  }
-
   .CatalogShellFilters {
-    grid-row: 1;
     max-height: 44vh;
-  }
-
-  .CatalogShellContent {
-    grid-row: 2;
   }
 
   .CatalogShellCardGrid {

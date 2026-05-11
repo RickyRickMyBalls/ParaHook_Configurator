@@ -21,6 +21,7 @@ describe('SettingsSurface', () => {
     useUiPrefsStore.setState({
       view: structuredClone(DEFAULT_VIEW_SETTINGS),
       workspaceStartupSurface: 'homePage',
+      workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
@@ -59,7 +60,17 @@ describe('SettingsSurface', () => {
     const sectionButtons = Array.from(
       container?.querySelectorAll('.SettingsSurfaceSectionButton') ?? [],
     ) as HTMLButtonElement[]
+    const sharedShell = container?.querySelector(
+      '[data-workspace-panel-shell="settings"]',
+    ) as HTMLDivElement | null
+    const resizeHandle = container?.querySelector(
+      '[aria-label="Resize Settings sections panel"]',
+    ) as HTMLDivElement | null
 
+    expect(sharedShell).not.toBeNull()
+    expect(sharedShell?.classList.contains('WorkspacePanelSplitShell')).toBe(true)
+    expect(resizeHandle?.getAttribute('role')).toBe('separator')
+    expect(resizeHandle?.getAttribute('aria-orientation')).toBe('vertical')
     expect(sectionButtons.map((button) => button.textContent)).toEqual([
       'All Overview',
       'General Startup',
@@ -75,6 +86,7 @@ describe('SettingsSurface', () => {
     expect(content?.textContent).toContain('Startup surface')
     expect(content?.textContent).toContain('Left dock width')
     expect(content?.textContent).toContain('Workspace corner radius')
+    expect(content?.textContent).toContain('Workspace panel shell padding')
     expect(content?.textContent).toContain('Keep far pane fixed on nested resize')
     expect(content?.textContent).toContain('Title bar opacity')
     expect(content?.textContent).toContain('Browser presentation')
@@ -106,6 +118,7 @@ describe('SettingsSurface', () => {
     const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
     expect(content?.textContent).toContain('Workspace')
     expect(content?.textContent).toContain('Left dock width')
+    expect(content?.textContent).toContain('Workspace panel shell padding')
     expect(content?.textContent).toContain('Keep far pane fixed on nested resize')
     expect(content?.textContent).toContain('Dashboard persistence')
     expect(content?.textContent).not.toContain('Browser presentation')
@@ -209,6 +222,57 @@ describe('SettingsSurface', () => {
 
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(18)
     expect(container?.textContent).toContain('Workspace corner radius')
+  })
+
+  it('edits the shared workspace panel shell padding through the workspace section slider', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="workspace"
+        />,
+      )
+    })
+
+    const settingsSurface = container?.querySelector('.SettingsSurface') as HTMLDivElement | null
+    const valueButton = container?.querySelector(
+      'button[aria-label="Edit Workspace panel shell padding value"]',
+    ) as HTMLButtonElement | null
+    expect(settingsSurface?.style.getPropertyValue('--settings-surface-panel-shell-padding')).toBe(
+      '0px',
+    )
+    expect(valueButton).not.toBeNull()
+
+    await act(async () => {
+      valueButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const valueInput = container?.querySelector(
+      'input[aria-label="Edit Workspace panel shell padding value"]',
+    ) as HTMLInputElement | null
+    expect(valueInput).not.toBeNull()
+
+    await act(async () => {
+      if (valueInput !== null) {
+        valueInput.value = '10'
+        valueInput.dispatchEvent(new Event('input', { bubbles: true }))
+        valueInput.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      valueInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(10)
+    expect(settingsSurface?.style.getPropertyValue('--settings-surface-panel-shell-padding')).toBe(
+      '10px',
+    )
   })
 
   it('toggles the nested divider resize behavior through the workspace section switch', async () => {
