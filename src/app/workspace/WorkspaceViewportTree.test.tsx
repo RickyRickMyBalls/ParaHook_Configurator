@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorkspaceViewportTree } from './WorkspaceViewportTree'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
+import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 
 vi.mock('./PrimaryViewportLeftDock', () => ({
   PrimaryViewportLeftDock: () => <div className="PrimaryViewportLeftDockMock" />,
@@ -58,6 +59,350 @@ describe('WorkspaceViewportTree', () => {
     container = null
     root = null
     document.body.innerHTML = ''
+  })
+
+  const renderWorkspaceTree = async (options: {
+    onCloseViewportSlot?: (slotId: WorkspaceViewportSlotId) => void
+  } = {}) => {
+    const workspaceState = useWorkspaceStore.getState()
+    const onCloseViewportSlot = options.onCloseViewportSlot ?? vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          leftDockStackHeight={workspaceState.leftDockStackHeight}
+          leftDockStackSplitRatio={workspaceState.leftDockStackSplitRatio}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={onCloseViewportSlot}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={() => {}}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    return {
+      onCloseViewportSlot,
+      workspaceState,
+    }
+  }
+
+  it('renders an inline close button for close-eligible secondary split panes', async () => {
+    let consoleSlotId: string | null = null
+
+    await act(async () => {
+      consoleSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    if (consoleSlotId === null) {
+      throw new Error('Expected a console slot id for WorkspaceViewportTree close-button test.')
+    }
+
+    const workspaceState = useWorkspaceStore.getState()
+    const onCloseViewportSlot = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          leftDockStackHeight={workspaceState.leftDockStackHeight}
+          leftDockStackSplitRatio={workspaceState.leftDockStackSplitRatio}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={onCloseViewportSlot}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={() => {}}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    const primaryFrame = container.querySelector(
+      '.ViewportFrame[data-workspace-slot-id="workspace-slot-primary"]',
+    ) as HTMLDivElement | null
+    const consoleSlotFrame = container.querySelector(
+      `.ViewportFrame[data-workspace-slot-id="${consoleSlotId}"][data-workspace-surface-kind="console"]`,
+    ) as HTMLDivElement | null
+    const closeButton = consoleSlotFrame?.querySelector(
+      '.ViewportFrameInlineCloseButton',
+    ) as HTMLButtonElement | null
+
+    expect(primaryFrame?.querySelector('.ViewportFrameInlineCloseButton')).toBeNull()
+    expect(closeButton).not.toBeNull()
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onCloseViewportSlot).toHaveBeenCalledTimes(1)
+    expect(onCloseViewportSlot).toHaveBeenCalledWith(consoleSlotId)
+  })
+
+  it('does not render the split-only inline close button for the unsplit primary viewport', async () => {
+    const workspaceState = useWorkspaceStore.getState()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          leftDockStackHeight={workspaceState.leftDockStackHeight}
+          leftDockStackSplitRatio={workspaceState.leftDockStackSplitRatio}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={() => {}}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={() => {}}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    expect(container.querySelector('.ViewportFrameInlineCloseButton')).toBeNull()
+  })
+
+  it('keeps primary model viewer close routes blocked by shared eligibility', async () => {
+    const { onCloseViewportSlot } = await renderWorkspaceTree()
+
+    const modelFrame = container?.querySelector(
+      '.ViewportFrame[data-workspace-slot-id="workspace-slot-primary"][data-workspace-surface-kind="modelViewer"]',
+    ) as HTMLDivElement | null
+    const header = modelFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    expect(modelFrame?.querySelector('.ViewportFrameInlineCloseButton')).toBeNull()
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const closeMenuButton = Array.from(
+      modelFrame?.querySelectorAll('.ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+
+    expect(closeMenuButton).toBeDefined()
+    expect(closeMenuButton?.disabled).toBe(true)
+    expect(onCloseViewportSlot).not.toHaveBeenCalled()
+  })
+
+  it('keeps secondary model viewer direct and menu close routes on the clicked slot', async () => {
+    let modelSlotId: string | null = null
+
+    await act(async () => {
+      modelSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-secondary',
+      })
+    })
+
+    if (modelSlotId === null) {
+      throw new Error('Expected a model slot id for WorkspaceViewportTree close-continuity test.')
+    }
+
+    const onCloseViewportSlot = vi.fn()
+    await renderWorkspaceTree({ onCloseViewportSlot })
+
+    const modelSlotFrame = container?.querySelector(
+      `.ViewportFrame[data-workspace-slot-id="${modelSlotId}"][data-workspace-surface-kind="modelViewer"]`,
+    ) as HTMLDivElement | null
+    const closeButton = modelSlotFrame?.querySelector(
+      '.ViewportFrameInlineCloseButton',
+    ) as HTMLButtonElement | null
+    const header = modelSlotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    expect(closeButton).not.toBeNull()
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onCloseViewportSlot).toHaveBeenCalledTimes(1)
+    expect(onCloseViewportSlot).toHaveBeenLastCalledWith(modelSlotId)
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const closeMenuButton = Array.from(
+      modelSlotFrame?.querySelectorAll('.ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+
+    expect(closeMenuButton).toBeDefined()
+    expect(closeMenuButton?.disabled).toBe(false)
+
+    await act(async () => {
+      closeMenuButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onCloseViewportSlot).toHaveBeenCalledTimes(2)
+    expect(onCloseViewportSlot).toHaveBeenLastCalledWith(modelSlotId)
+  })
+
+  it('keeps the shared viewport type button before the model result-mode control', async () => {
+    const workspaceState = useWorkspaceStore.getState()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <WorkspaceViewportTree
+          viewportSlotRootNodeId={workspaceState.viewportSlotRootNodeId}
+          viewportSlotsById={workspaceState.viewportSlotsById}
+          viewportLayoutNodesById={workspaceState.viewportLayoutNodesById}
+          leftDockWidth={workspaceState.leftDockWidth}
+          leftDockStackHeight={workspaceState.leftDockStackHeight}
+          leftDockStackSplitRatio={workspaceState.leftDockStackSplitRatio}
+          primaryViewportSlotIsConstrained={false}
+          isLeftDockViewportSplit={workspaceState.isLeftDockViewportSplit}
+          isBrowserDockPreviewActive={false}
+          isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
+          browserPresentationMode="expanded"
+          isBrowserCollapsed={false}
+          windowSettingsOpenByViewportId={{}}
+          dockedBrowserHostRef={createRef<HTMLDivElement>()}
+          dockedMeatballHostRef={createRef<HTMLDivElement>()}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateViewerSurface={() => {}}
+          onOpenViewportSpawnMenu={() => {}}
+          onCycleBrowserPresentationMode={() => {}}
+          onRequestViewportSlotSurfaceKind={() => {}}
+          onOpenDashboardNoteInNotepad={() => {}}
+          onSplitViewportSlot={() => {}}
+          onFloatViewportSlot={() => {}}
+          onPopOutViewportSlot={() => {}}
+          onCloseViewportSlot={() => {}}
+          onViewportSlotHeaderDragOut={() => {}}
+          onViewportLayoutDividerPointerDown={() => {}}
+          onViewportSplitCornerPointerDown={() => {}}
+          onViewportSplitCornerPointerMove={() => {}}
+          onViewportSplitCornerPointerUp={() => {}}
+          onViewportSplitCornerPointerCancel={() => {}}
+          onLeftDockResizeStart={() => {}}
+          onLeftDockResizeContextMenu={() => {}}
+          resolvePrimaryLeftDockBottomInset={() => '0px'}
+        />,
+      )
+    })
+
+    const modelFrame = container.querySelector(
+      '.ViewportFrame[data-workspace-surface-kind="modelViewer"]',
+    ) as HTMLDivElement | null
+    const modeButton = modelFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+    const resultModeButton = modelFrame?.querySelector(
+      '.ViewportFrameHeaderControlButton',
+    ) as HTMLButtonElement | null
+
+    expect(modeButton?.textContent).toBe('-')
+    expect(modeButton?.getAttribute('aria-label')).toBe('Viewport controls for Model Viewport')
+    expect(resultModeButton?.textContent).toBe('A')
+    expect(resultModeButton?.getAttribute('aria-label')).toBe(
+      'Model Viewport result mode: Auto. Click to switch to Draft.',
+    )
+    expect(
+      modeButton?.compareDocumentPosition(resultModeButton ?? document.body) ??
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+
+    await act(async () => {
+      resultModeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewportResultMode,
+    ).toBe('draft')
   })
 
   it('does not expose a popout button for a slotted catalog surface while catalog popout is deferred', async () => {

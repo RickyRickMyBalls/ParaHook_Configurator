@@ -33,6 +33,7 @@ type ViewportFrameProps = {
   isPrimary?: boolean
   headerSupplement?: ReactNode
   headerSupplementAlignment?: 'start' | 'end'
+  headerStartSupplement?: ReactNode
   onActivateSurface?: () => void
   onPrimaryButtonClick?: () => void
   primaryButtonLabel?: string
@@ -48,6 +49,7 @@ type ViewportFrameProps = {
   onPopOut?: () => void
   popOutButtonAriaLabel?: string
   popOutButtonTitle?: string
+  showInlineCloseButton?: boolean
   onClose?: () => void
   onHeaderDragOut?: (payload: ViewportFrameHeaderDragOutPayload) => void
   children: ReactNode
@@ -73,6 +75,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
     isPrimary = false,
     headerSupplement,
     headerSupplementAlignment = 'end',
+    headerStartSupplement,
     onActivateSurface,
     onPrimaryButtonClick,
     onRequestSurfaceKind,
@@ -82,6 +85,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
     onSplitLeft,
     onFloat,
     onPopOut,
+    showInlineCloseButton = false,
     onClose,
     onHeaderDragOut,
     children,
@@ -330,6 +334,14 @@ export function ViewportFrame(props: ViewportFrameProps) {
     onPopOut?.()
   }
 
+  const handleInlineCloseButtonClick = () => {
+    setIsTypePickerOpen(false)
+    setIsActionMenuOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
+    onClose?.()
+  }
+
   const handleHoverActionSubmenu = (submenu: 'split' | 'viewportType') => {
     if (lockedActionSubmenu !== null) {
       return
@@ -390,6 +402,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
           >
             {props.primaryButtonLabel ?? '-'}
           </button>
+          {headerStartSupplement}
           <span className="ViewportFrameTitle">{getWorkspaceViewportTypeLabel(surfaceKind)}</span>
         </div>
         {headerSupplement !== undefined ? (
@@ -415,6 +428,17 @@ export function ViewportFrame(props: ViewportFrameProps) {
             title={props.popOutButtonTitle ?? 'Pop out viewport'}
           >
             ↗
+          </button>
+        ) : null}
+        {showInlineCloseButton && onClose !== undefined ? (
+          <button
+            type="button"
+            className="ViewportFrameInlineCloseButton"
+            onClick={handleInlineCloseButtonClick}
+            aria-label={`Close ${getWorkspaceViewportTypeLabel(surfaceKind)} split pane`}
+            title="Close split pane"
+          >
+            x
           </button>
         ) : null}
         {isTypePickerOpen ? (

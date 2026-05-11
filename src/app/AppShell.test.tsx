@@ -7791,7 +7791,7 @@ describe('AppShell', () => {
     expect(container?.textContent).toContain('Browser Panel docked expanded')
   })
 
-  it('uses the viewport header as the only title bar for a slotted browser and cycles - e + browser presentation modes', async () => {
+  it('keeps the shared viewport type button before the browser presentation control', async () => {
     ;({ container, root } = await renderAppShell())
 
     await act(async () => {
@@ -7810,40 +7810,50 @@ describe('AppShell', () => {
         element.getAttribute('data-workspace-surface-kind') === 'browser',
     ) as HTMLDivElement | undefined
     const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+    const browserPresentationButton = slotFrame?.querySelector(
+      '.ViewportFrameHeaderControlButton',
+    ) as HTMLButtonElement | null
 
     expect(modeButton?.textContent).toBe('-')
-    expect(modeButton?.getAttribute('aria-label')).toBe('Browser essentials')
+    expect(modeButton?.getAttribute('aria-label')).toBe('Viewport controls for Browser')
+    expect(browserPresentationButton?.textContent).toBe('-')
+    expect(browserPresentationButton?.getAttribute('aria-label')).toBe('Browser essentials')
+    expect(
+      modeButton?.compareDocumentPosition(browserPresentationButton ?? document.body) ??
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
 
     await act(async () => {
-      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      browserPresentationButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('essentials')
     expect(useWorkspaceStore.getState().browserShell.isCollapsed).toBe(false)
     expect(container?.textContent).toContain('Browser Panel docked essentials')
-    expect(modeButton?.textContent).toBe('e')
+    expect(browserPresentationButton?.textContent).toBe('e')
 
     await act(async () => {
-      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      browserPresentationButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('collapsed')
     expect(useWorkspaceStore.getState().browserShell.isCollapsed).toBe(true)
     expect(container?.textContent).not.toContain('Browser Panel docked expanded')
     expect(container?.textContent).toContain('Browser Panel docked collapsed')
-    expect(modeButton?.textContent).toBe('+')
+    expect(browserPresentationButton?.textContent).toBe('+')
 
     await act(async () => {
-      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      browserPresentationButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('expanded')
     expect(useWorkspaceStore.getState().browserShell.isCollapsed).toBe(false)
     expect(container?.textContent).toContain('Browser Panel docked expanded')
     expect(modeButton?.textContent).toBe('-')
+    expect(browserPresentationButton?.textContent).toBe('-')
   })
 
-  it('uses the model viewport header button as an A D F result-mode control', async () => {
+  it('keeps the shared viewport type button before the model A D F result-mode control', async () => {
     ;({ container, root } = await renderAppShell())
 
     const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
@@ -7852,22 +7862,31 @@ describe('AppShell', () => {
         element.getAttribute('data-workspace-surface-kind') === 'modelViewer',
     ) as HTMLDivElement | undefined
     const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+    const resultModeButton = slotFrame?.querySelector(
+      '.ViewportFrameHeaderControlButton',
+    ) as HTMLButtonElement | null
 
-    expect(modeButton?.textContent).toBe('A')
-    expect(modeButton?.getAttribute('aria-label')).toBe(
+    expect(modeButton?.textContent).toBe('-')
+    expect(modeButton?.getAttribute('aria-label')).toBe('Viewport controls for Model Viewport')
+    expect(resultModeButton?.textContent).toBe('A')
+    expect(resultModeButton?.getAttribute('aria-label')).toBe(
       'Model Viewport result mode: Auto. Click to switch to Draft.',
     )
+    expect(
+      modeButton?.compareDocumentPosition(resultModeButton ?? document.body) ??
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     expect(
       useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
         .viewportResultMode,
     ).toBe('auto')
 
     await act(async () => {
-      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      resultModeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(modeButton?.textContent).toBe('D')
-    expect(modeButton?.getAttribute('aria-label')).toBe(
+    expect(resultModeButton?.textContent).toBe('D')
+    expect(resultModeButton?.getAttribute('aria-label')).toBe(
       'Model Viewport result mode: Draft. Click to switch to Final.',
     )
     expect(
@@ -7876,11 +7895,11 @@ describe('AppShell', () => {
     ).toBe('draft')
 
     await act(async () => {
-      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      resultModeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(modeButton?.textContent).toBe('F')
-    expect(modeButton?.getAttribute('aria-label')).toBe(
+    expect(resultModeButton?.textContent).toBe('F')
+    expect(resultModeButton?.getAttribute('aria-label')).toBe(
       'Model Viewport result mode: Final. Click to switch to Auto.',
     )
     expect(
@@ -7889,10 +7908,10 @@ describe('AppShell', () => {
     ).toBe('final')
 
     await act(async () => {
-      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      resultModeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(modeButton?.textContent).toBe('A')
+    expect(resultModeButton?.textContent).toBe('A')
     expect(
       useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
         .viewportResultMode,

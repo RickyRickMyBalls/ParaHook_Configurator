@@ -506,6 +506,32 @@ describe('ViewportFrame', () => {
     expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
   })
 
+  it('calls the close action from the inline split-pane close button', async () => {
+    const onClose = vi.fn()
+    await renderFrame({ onClose, showInlineCloseButton: true })
+
+    const closeButton = container?.querySelector(
+      '.ViewportFrameInlineCloseButton',
+    ) as HTMLButtonElement | null
+
+    expect(closeButton).not.toBeNull()
+    expect(closeButton?.textContent).toBe('x')
+    expect(closeButton?.getAttribute('aria-label')).toBe('Close Browser split pane')
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it('hides the inline split-pane close button without the explicit show prop and close action', async () => {
+    await renderFrame({ onClose: undefined, showInlineCloseButton: true })
+
+    expect(container?.querySelector('.ViewportFrameInlineCloseButton')).toBeNull()
+  })
+
   it('anchors the viewport action menu near the right-click position', async () => {
     await renderFrame()
 
@@ -632,5 +658,28 @@ describe('ViewportFrame', () => {
     expect(supplement?.classList.contains('ViewportFrameHeaderSupplement--start')).toBe(true)
     expect(supplement?.classList.contains('ViewportFrameHeaderSupplement--end')).toBe(false)
     expect(supplement?.textContent).toContain('Overlay Controls')
+  })
+
+  it('keeps start-side presentation controls after the shared viewport type button', async () => {
+    await renderFrame({
+      surfaceKind: 'modelViewer',
+      headerStartSupplement: (
+        <button type="button" className="ViewportFrameHeaderControlButton">
+          A
+        </button>
+      ),
+    })
+
+    const modeButton = container?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+    const resultModeButton = container?.querySelector(
+      '.ViewportFrameHeaderControlButton',
+    ) as HTMLButtonElement | null
+
+    expect(modeButton?.textContent).toBe('-')
+    expect(resultModeButton?.textContent).toBe('A')
+    expect(
+      modeButton?.compareDocumentPosition(resultModeButton ?? document.body) ??
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 })

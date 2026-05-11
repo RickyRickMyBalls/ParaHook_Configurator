@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+151. 2026-05-11 15:55:21: Added the new `Workspace-11 - Future Workspace Shell Adoption Contract` future doc and index entry so future workspace surfaces have an explicit shared `ViewportFrame` adoption path for viewport-type, presentation, pop-out, close, and later shell controls instead of copying local titlebar chrome.
 150. 2026-05-10 13:15:16: Expanded the nested `Materials` ladder under `Properties` by adding explicit phase-2 and phase-3 planning to `Materials-1` plus the new `Materials-2 - First Material Editing And Action Flows` future doc, so the workspace family now records a full foundation ladder followed by a separate editing ladder.
 149. 2026-05-10 13:05:32: Added the new standalone nested `Materials-1` future doc under `Workspaces/Properties/Materials/Future/`, tightened the `Properties` family handoff so the active nested implementation owner now points at that doc instead of the generation index, and locked the next cut to `Phase 1 - Focused Object Intake And Current Material Truth Read`.
 148. 2026-05-10 12:58:35: Recorded the landed `Properties-2 / Phase 3 - Child Section Contract And Shell States` shared-shell closeout after the `Properties` workspace gained an explicit section-facing contract plus shell-owned empty/unsupported/no-section behavior, and advanced the active handoff from the shared-shell ladder to `Materials-1` as the first nested runtime owner-mapping pass.
@@ -1580,6 +1581,12 @@ Current source doc:
 - the `Workspace 9` pane shell should also leave room for a user-controlled fillet radius instead of baking one permanent corner size into the workspace visuals
 - `Workspace 10` should then add one always-legible top-right `x` close control to every split workspace pane so pane removal no longer depends only on titlebar menus or indirect commands
 - the first `Workspace 10` cleanup slice should anchor that close control directly into the shared split-pane shell whenever the workspace is actually in split mode, while keeping unsplit root behavior and protected-pane rules honest instead of hiding them inside one-off button branching
+- `Workspace 11` should then lock the future workspace shell-adoption contract so new slotted surfaces inherit the shared `ViewportFrame` controls through catalog metadata, shared action eligibility, and registry routing instead of copying viewport-type, pop-out, close, or later shell buttons into each surface
+- future workspace registration should declare capabilities once, then let the shared shell decide which controls appear:
+  - `supports.slotted` means the surface can render inside the shared pane frame
+  - `supports.popout` plus shared action eligibility means the top-right pop-out arrow appears
+  - split state plus shared close eligibility means the split-only `x` appears
+  - surface presentation controls such as Browser `- / e / +` or Model Viewer A/D/F stay adjacent and secondary to the shared viewport-type `-`
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
@@ -1594,6 +1601,7 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-9 - Spaghetti Presentation Mode Truth.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-9 - Filleted Corner Split Drag Authoring.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-11 - Future Workspace Shell Adoption Contract.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/workspace7-featurestocarry.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace-Cleanup-Task-Stack.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-1 - Unreal-Style Settings Shell And Section Router.md`
@@ -1738,3 +1746,28 @@ Current source doc:
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+
+### [ ] Workspace 11 - Future Workspace Shell Adoption Contract
+#### Header
+- make future workspace surfaces inherit the shared pane shell by default
+- standardize the path for viewport-type, presentation, pop-out, close, and later shared controls
+- prevent future surfaces from hand-coding local copies of shared titlebar buttons
+
+#### Forward read
+- `Workspace 11` should treat `ViewportFrame` as the shared slotted pane-shell owner for future workspace surfaces
+- future surfaces should use the same adoption path as existing surfaces:
+  - register surface metadata and host support in `workspaceSurfaceCatalog.ts`
+  - let `workspaceSurfaceActionEligibility.ts` decide action availability
+  - route body rendering through `ViewportSurfaceRegistry`
+  - pass only truly surface-specific presentation controls into the shared shell
+- pop-out should become a capability and eligibility result, not a surface-local button decision
+- the shared shell should carry future buttons and features forward automatically:
+  - viewport-type `-`
+  - optional presentation controls after `-`
+  - top-right pop-out arrow when eligible
+  - split-only close `x` when eligible
+  - later shared shell actions
+- popup and detached host chrome should be covered by the same contract only if it is actually the same shell; otherwise that parity belongs in an explicit later phase
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-11 - Future Workspace Shell Adoption Contract.md`

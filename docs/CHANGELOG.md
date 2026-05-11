@@ -72,6 +72,164 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1885 -->
+
+### [1885] - 2026-05-11 16:28 - `Workspace-10 - Phase 5 - Popup Parity Decision And Final Shell Closeout`
+
+HUMAN SUMMARY: `Popup-local split panes now receive the same shared ViewportFrame inline x close affordance as main workspace split panes. The popup root pane remains protected, secondary popup panes close through PopupWorkspaceShell's existing local close owner, and broader detached floating/popout host titlebar convergence is explicitly deferred.`
+
+#### Scope / Constraints Honored
+
+- Kept popup parity inside the existing `PopupWorkspaceShell` to `ViewportFrame` seam.
+- Preserved popup root close protection and popup-local slot-removal ownership.
+- Left detached floating/popout host titlebars, quick-dock behavior, and detached restore lifecycle unchanged.
+- Closed Workspace-10 by recording future detached-host standardization as Workspace-11 or later host-shell work.
+
+#### Summary of Implementation
+
+- Passed `showInlineCloseButton` from `PopupWorkspaceShell` to `ViewportFrame` for closeable popup-local split panes.
+- Kept popup root panes without an inline `x` or enabled menu close route.
+- Added focused popup-shell tests for root protection, secondary split-pane inline close visibility, and collapse-to-root close behavior.
+
+#### Files Changed
+
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/workspace/PopupWorkspaceShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Popup-local secondary split panes now show the shared inline `x` close button.
+- Closing a popup-local secondary split pane through the inline `x` collapses the popup shell back to its protected root pane through the existing popup close owner.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PopupWorkspaceShell.test.tsx src/app/workspace/ViewportFrame.test.tsx src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1884 -->
+
+### [1884] - 2026-05-11 16:21 - `Workspace-10 - Phase 3 - Protected-Pane Eligibility And Close Continuity`
+
+HUMAN SUMMARY: `Workspace pane close callbacks now follow shared close eligibility instead of a local primary/surface exception. Protected primary panes, including the primary Model Viewer, no longer get a hidden enabled menu Close route, while eligible secondary split panes keep direct x and menu Close continuity on the clicked slot.`
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the main slotted `WorkspaceViewportTree` to `ViewportFrame` close-prop seam.
+- Preserved Phase 2 shell-control ordering and Phase 4 viewport-type choice behavior.
+- Left popup parity, detached host chrome, pop-out semantics, and split-tree removal semantics unchanged.
+
+#### Summary of Implementation
+
+- Derived `closeViewportSlot` from `getWorkspaceSurfaceActionEligibility(...).canClose`.
+- Removed the local primary Model Viewer close exception from slotted frame callback assembly.
+- Added focused tree tests for primary Model Viewer menu-close blocking and secondary Model Viewer direct/menu close continuity.
+
+#### Files Changed
+
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Protected primary panes no longer receive an enabled hidden titlebar menu `Close` route when shared close eligibility blocks close.
+- Eligible secondary split panes still close through the existing clicked-slot close owner from both the inline `x` and menu `Close` route.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/workspaceSurfaceActionEligibility.test.ts src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1883 -->
+
+### [1883] - 2026-05-11 15:55 - `Workspace-10 - Phase 2 - Shared Shell Control Strip Ordering`
+
+HUMAN SUMMARY: `The main workspace pane header now keeps the shared viewport-type - button first, with Browser -/e/+ presentation and Model Viewer A/D/F result-mode controls adjacent as secondary frame controls. Pop-out visibility now reads shared action eligibility, while the Phase 1 split-only x close control remains owned by ViewportFrame.`
+
+#### Scope / Constraints Honored
+
+- Kept the ordering repair inside the main slotted `ViewportFrame` shell.
+- Preserved the Phase 4 viewport-type choice helper path.
+- Preserved the Phase 1 split-only inline close path.
+- Left popup parity, detached host chrome, protected-pane policy, and new pop-out behavior out of this phase.
+
+#### Summary of Implementation
+
+- Added a shared start-supplement placement for surface presentation controls after the viewport-type button.
+- Moved Browser presentation cycling and Model Viewer A/D/F result-mode cycling out of the shared viewport-type button.
+- Routed pop-out visibility through `getWorkspaceSurfaceActionEligibility(...).canPopout`.
+- Updated focused frame/tree/AppShell tests for shared `-` ordering, secondary presentation controls, split close behavior, and pop-out eligibility.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Browser and Model Viewer panes keep the shared viewport-type `-` button first in the titlebar.
+- Browser `- / e / +` and Model Viewer A/D/F presentation controls now render as adjacent secondary header controls.
+- Main-pane pop-out button visibility now follows shared pop-out eligibility.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "keeps the shared viewport type button before"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1882 -->
+
+### [1882] - 2026-05-11 15:31 - `Workspace-10 - Phase 1 - Anchored Split-Pane Close Button`
+
+HUMAN SUMMARY: `Split workspace panes now get a shared inline x close button from the ViewportFrame shell when the pane is close-eligible. The button stays gated to real split state, keeps root unsplit panes free of the affordance, and reuses the existing close callback path while the right-click Close menu remains intact.`
+
+#### Scope / Constraints Honored
+
+- Kept the visible close affordance in the shared `ViewportFrame` shell instead of adding surface-specific Browser, Console, or viewer chrome.
+- Gated the inline button from `WorkspaceViewportTree` using structural split state plus shared close eligibility.
+- Preserved the existing menu-based `Close` route and did not widen into root unsplit close behavior, popup parity, viewport-type helper work, or new pop-out behavior.
+
+#### Summary of Implementation
+
+- Added an explicit `showInlineCloseButton` frame prop that renders one compact `x` button only when an `onClose` action exists.
+- Wired `WorkspaceViewportTree` to compute split-pane close visibility from the root layout node and `getWorkspaceSurfaceActionEligibility(...).canClose`.
+- Styled the inline close button alongside the existing compact frame controls.
+- Added focused frame and tree tests for direct close rendering/clicking, hidden root behavior, and menu-close preservation.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-10 - Split Workspace Top-Right Close Controls.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Close-eligible secondary split panes now show an inline `x` close affordance in the shared viewport frame.
+- Unsplit primary/root viewports do not show the new split-only inline close button.
+- The existing right-click titlebar `Close` action still calls the same close path.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
 <!-- ENTRY 1881 -->
 
 ### [1881] - 2026-05-11 14:56 - `Gen 4 - Cleanup 1 Follow-Up - Workspace Panel Shell Padding Slider`

@@ -376,6 +376,7 @@ export function PopupWorkspaceShell(props: PopupWorkspaceShellProps) {
     popupWorkspaceStore,
     (state) => state.viewportLayoutNodesById,
   )
+  const isViewportSplit = viewportLayoutNodesById[viewportSlotRootNodeId]?.kind === 'split'
   const [ownedEditorViewportIds, setOwnedEditorViewportIds] = useState<string[]>([])
   const hasAppliedInitialSplitRef = useRef(false)
   const hasRenderedMultiViewportRef = useRef(false)
@@ -702,6 +703,12 @@ export function PopupWorkspaceShell(props: PopupWorkspaceShellProps) {
       if (slot === null) {
         return null
       }
+      const isRootSlot =
+        slot.slotId === `${popupWorkspaceId}-slot-1` &&
+        slot.surfaceKind === rootSurfaceKind &&
+        slot.surfaceInstanceId === rootSurfaceInstanceId
+      const closeViewportSlot = isRootSlot ? undefined : () => handleCloseSlot(slot.slotId)
+      const showInlineCloseButton = isViewportSplit && closeViewportSlot !== undefined
       return (
         <ViewportFrame
           key={slot.slotId}
@@ -721,13 +728,8 @@ export function PopupWorkspaceShell(props: PopupWorkspaceShellProps) {
           onSplitRight={() => handleSplitSlot(slot.slotId, 'right')}
           onSplitBottom={() => handleSplitSlot(slot.slotId, 'bottom')}
           onSplitLeft={() => handleSplitSlot(slot.slotId, 'left')}
-          onClose={
-            slot.slotId === `${popupWorkspaceId}-slot-1` &&
-            slot.surfaceKind === rootSurfaceKind &&
-            slot.surfaceInstanceId === rootSurfaceInstanceId
-              ? undefined
-              : () => handleCloseSlot(slot.slotId)
-          }
+          showInlineCloseButton={showInlineCloseButton}
+          onClose={closeViewportSlot}
         >
           {slot.surfaceKind === 'modelViewer' ? (
             <div className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--viewer">
@@ -761,6 +763,7 @@ export function PopupWorkspaceShell(props: PopupWorkspaceShellProps) {
       onActivateSpaghettiSurface,
       onActivateViewerSurface,
       viewportSlotsById,
+      isViewportSplit,
       popupWorkspaceStore,
     ],
   )

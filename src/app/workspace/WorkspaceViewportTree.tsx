@@ -12,7 +12,7 @@ import { ViewportFrame, type ViewportFrameHeaderDragOutPayload } from './Viewpor
 import { ViewportOverlayModeTitlebarControls } from './ViewportOverlayModeTitlebarControls'
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './ViewportWorkspaceHost'
-import { workspaceSurfaceSupportsHostMode } from './workspaceSurfaceCatalog'
+import { getWorkspaceSurfaceActionEligibility } from './workspaceSurfaceActionEligibility'
 import {
   defaultPrimaryViewportSlotId,
   type BrowserPresentationMode,
@@ -173,6 +173,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
   const setViewportResultMode = useWorkspaceStore((state) => state.setViewportResultMode)
   const workspacePaneFilletRadiusPx = useUiPrefsStore((state) => state.workspacePaneFilletRadiusPx)
   const splitCornerHitAreaPx = Math.max(18, workspacePaneFilletRadiusPx)
+  const isViewportSplit = viewportLayoutNodesById[viewportSlotRootNodeId]?.kind === 'split'
 
   const renderViewportSlot = (slotId: WorkspaceViewportSlotId): ReactNode => {
     const slot = viewportSlotsById[slotId] ?? null
@@ -190,7 +191,16 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         : 'auto'
     const viewportResultModeLabel = getWorkspaceViewportResultModeLabel(viewportResultMode)
     const nextViewportResultModeLabel = getWorkspaceViewportResultModeLabel(nextViewportResultMode)
-    const slotSupportsPopout = workspaceSurfaceSupportsHostMode(slot.surfaceKind, 'popout')
+    const slotActionEligibility = getWorkspaceSurfaceActionEligibility({
+      surfaceKind: slot.surfaceKind,
+      hostMode: 'slotted',
+      isPrimary: isPrimarySlot,
+    })
+    const closeViewportSlot = slotActionEligibility.canClose
+      ? () => onCloseViewportSlot(slot.slotId)
+      : undefined
+    const showInlineCloseButton =
+      isViewportSplit && closeViewportSlot !== undefined && slotActionEligibility.canClose
 
     return (
       <ViewportFrame
@@ -203,46 +213,10 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             ? () => onActivateSpaghettiSurface(slot.surfaceInstanceId)
             : undefined
         }
-        onPrimaryButtonClick={
-          slot.surfaceKind === 'browser'
-            ? onCycleBrowserPresentationMode
-            : slot.surfaceKind === 'modelViewer'
-              ? () => setViewportResultMode(slot.surfaceInstanceId, nextViewportResultMode)
-              : undefined
-        }
-        primaryButtonLabel={
-          slot.surfaceKind === 'browser'
-            ? browserPresentationMode === 'expanded'
-              ? '-'
-              : browserPresentationMode === 'essentials'
-                ? 'e'
-                : '+'
-            : slot.surfaceKind === 'modelViewer'
-              ? getWorkspaceViewportResultModeShortLabel(viewportResultMode)
-              : undefined
-        }
-        primaryButtonAriaLabel={
-          slot.surfaceKind === 'browser'
-            ? browserPresentationMode === 'expanded'
-              ? 'Browser essentials'
-              : browserPresentationMode === 'essentials'
-                ? 'Collapse browser'
-                : 'Expand browser'
-            : slot.surfaceKind === 'modelViewer'
-              ? `Model Viewport result mode: ${viewportResultModeLabel}. Click to switch to ${nextViewportResultModeLabel}.`
-              : undefined
-        }
-        primaryButtonTitle={
-          slot.surfaceKind === 'browser'
-            ? browserPresentationMode === 'expanded'
-              ? 'Browser essentials'
-              : browserPresentationMode === 'essentials'
-                ? 'Collapse browser'
-                : 'Expand browser'
-            : slot.surfaceKind === 'modelViewer'
-              ? `Model Viewport result mode: ${viewportResultModeLabel}. Click to switch to ${nextViewportResultModeLabel}.`
-              : undefined
-        }
+        onPrimaryButtonClick={undefined}
+        primaryButtonLabel={undefined}
+        primaryButtonAriaLabel={undefined}
+        primaryButtonTitle={undefined}
         primaryButtonExpanded={slot.surfaceKind === 'browser' ? !isBrowserCollapsed : undefined}
         onRequestSurfaceKind={(nextSurfaceKind) =>
           onRequestViewportSlotSurfaceKind(slot.slotId, nextSurfaceKind)
@@ -253,7 +227,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         onSplitLeft={() => onSplitViewportSlot(slot.slotId, 'left')}
         onFloat={isPrimarySlot ? undefined : () => onFloatViewportSlot(slot.slotId)}
         onPopOut={
-          slotSupportsPopout && (slot.surfaceKind === 'modelViewer' || !isPrimarySlot)
+          slotActionEligibility.canPopout
             ? () => onPopOutViewportSlot(slot.slotId)
             : undefined
         }
@@ -265,10 +239,47 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         popOutButtonTitle={
           isPrimarySlot && slot.surfaceKind === 'modelViewer' ? 'Open in new browser' : undefined
         }
-        onClose={
-          isPrimarySlot && slot.surfaceKind !== 'modelViewer'
-            ? undefined
-            : () => onCloseViewportSlot(slot.slotId)
+        showInlineCloseButton={showInlineCloseButton}
+        onClose={closeViewportSlot}
+        headerStartSupplement={
+          slot.surfaceKind === 'browser' ? (
+            <button
+              type="button"
+              className="ViewportFrameHeaderControlButton"
+              onClick={onCycleBrowserPresentationMode}
+              aria-label={
+                browserPresentationMode === 'expanded'
+                  ? 'Browser essentials'
+                  : browserPresentationMode === 'essentials'
+                    ? 'Collapse browser'
+                    : 'Expand browser'
+              }
+              aria-expanded={!isBrowserCollapsed}
+              title={
+                browserPresentationMode === 'expanded'
+                  ? 'Browser essentials'
+                  : browserPresentationMode === 'essentials'
+                    ? 'Collapse browser'
+                    : 'Expand browser'
+              }
+            >
+              {browserPresentationMode === 'expanded'
+                ? '-'
+                : browserPresentationMode === 'essentials'
+                  ? 'e'
+                  : '+'}
+            </button>
+          ) : slot.surfaceKind === 'modelViewer' ? (
+            <button
+              type="button"
+              className="ViewportFrameHeaderControlButton"
+              onClick={() => setViewportResultMode(slot.surfaceInstanceId, nextViewportResultMode)}
+              aria-label={`Model Viewport result mode: ${viewportResultModeLabel}. Click to switch to ${nextViewportResultModeLabel}.`}
+              title={`Model Viewport result mode: ${viewportResultModeLabel}. Click to switch to ${nextViewportResultModeLabel}.`}
+            >
+              {getWorkspaceViewportResultModeShortLabel(viewportResultMode)}
+            </button>
+          ) : undefined
         }
         headerSupplement={
           slot.surfaceKind === 'modelViewer' ? (
