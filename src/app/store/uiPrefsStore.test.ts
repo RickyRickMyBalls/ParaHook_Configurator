@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_ENVIRONMENT_GRADE,
+  DEFAULT_RENDER_PREVIEW_SETTINGS,
+  DEFAULT_VIEW_DISPLAY_MODE,
   DEFAULT_VIEW_SETTINGS,
   areEnvironmentLookSnapshotsEqual,
   createEnvironmentLookSnapshot,
@@ -229,6 +231,120 @@ describe('uiPrefsStore environment source state', () => {
     } as unknown as Parameters<typeof normalizeViewSettings>[0])
 
     expect(normalized.materials.presets[0]?.doubleSided).toBe(true)
+  })
+
+  it('normalizes display mode as view presentation state with legacy wireframe migration', () => {
+    expect(useUiPrefsStore.getState().view.displayMode).toBe(DEFAULT_VIEW_DISPLAY_MODE)
+    expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+
+    const legacyWireframeView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      displayMode: undefined,
+      wireframe: true,
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(legacyWireframeView.displayMode).toBe('wireframe')
+    expect(legacyWireframeView.wireframe).toBe(true)
+
+    const invalidDisplayModeView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      displayMode: 'xray',
+      wireframe: false,
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(invalidDisplayModeView.displayMode).toBe('rendered')
+    expect(invalidDisplayModeView.wireframe).toBe(false)
+  })
+
+  it('keeps the display mode contract synchronized with the legacy wireframe key', () => {
+    useUiPrefsStore.getState().setViewKey('displayMode', 'solid')
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('solid')
+    expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+
+    useUiPrefsStore.getState().setViewKey('wireframe', true)
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
+    expect(useUiPrefsStore.getState().view.wireframe).toBe(true)
+
+    useUiPrefsStore.getState().setViewKey('wireframe', false)
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
+    expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+  })
+
+  it('normalizes render-preview quality settings as presentation state', () => {
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual(DEFAULT_RENDER_PREVIEW_SETTINGS)
+
+    const normalized = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      renderPreview: {
+        targetSamples: 999,
+        bounces: -3,
+        renderScale: 0.12,
+        noiseCleanup: 'sparkly',
+        gpuLoad: 'maximum',
+      },
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(normalized.renderPreview).toEqual({
+      targetSamples: 256,
+      bounces: 1,
+      renderScale: 0.5,
+      noiseCleanup: 'off',
+      gpuLoad: 'balanced',
+    })
+
+    const sourceSettings = {
+      targetSamples: 128,
+      bounces: 8,
+      renderScale: 0.75,
+      noiseCleanup: 'medium',
+      gpuLoad: 'fast',
+    } as const
+    const cloned = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      renderPreview: sourceSettings,
+    })
+
+    expect(cloned.renderPreview).toEqual(sourceSettings)
+    expect(cloned.renderPreview).not.toBe(sourceSettings)
+  })
+
+  it('updates render-preview settings through the generic view-setting path', () => {
+    useUiPrefsStore.getState().setViewKey('renderPreview', {
+      targetSamples: 96,
+      bounces: 9,
+      renderScale: 0.8,
+      noiseCleanup: 'high',
+      gpuLoad: 'smooth',
+    })
+
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual({
+      targetSamples: 96,
+      bounces: 9,
+      renderScale: 0.8,
+      noiseCleanup: 'high',
+      gpuLoad: 'smooth',
+    })
+
+    useUiPrefsStore.getState().setView({
+      renderPreview: {
+        targetSamples: 3,
+        bounces: 99,
+        renderScale: 5,
+        noiseCleanup: 'low',
+        gpuLoad: 'balanced',
+      },
+    })
+
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual({
+      targetSamples: 16,
+      bounces: 12,
+      renderScale: 1,
+      noiseCleanup: 'low',
+      gpuLoad: 'balanced',
+    })
   })
 
   it('applies HDRI environment files and updates first-pass HDRI controls', () => {

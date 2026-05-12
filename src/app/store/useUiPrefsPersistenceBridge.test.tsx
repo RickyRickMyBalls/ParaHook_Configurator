@@ -172,6 +172,15 @@ describe('useUiPrefsPersistenceBridge', () => {
     persistedView.projectionMode = 'orthographic'
     persistedView.gridVisible = false
     persistedView.axesVisible = true
+    persistedView.displayMode = 'material'
+    persistedView.wireframe = false
+    persistedView.renderPreview = {
+      targetSamples: 128,
+      bounces: 9,
+      renderScale: 0.75,
+      noiseCleanup: 'high',
+      gpuLoad: 'fast',
+    }
     persistedView.envPreset = 'studio'
     persistedView.environmentGrade = {
       ...persistedView.environmentGrade,
@@ -241,6 +250,15 @@ describe('useUiPrefsPersistenceBridge', () => {
     expect(state.view.projectionMode).toBe('orthographic')
     expect(state.view.gridVisible).toBe(false)
     expect(state.view.axesVisible).toBe(true)
+    expect(state.view.displayMode).toBe('material')
+    expect(state.view.wireframe).toBe(false)
+    expect(state.view.renderPreview).toEqual({
+      targetSamples: 128,
+      bounces: 9,
+      renderScale: 0.75,
+      noiseCleanup: 'high',
+      gpuLoad: 'fast',
+    })
     expect(state.view.envPreset).toBe(
       useUiPrefsStore.getInitialState().view.envPreset,
     )

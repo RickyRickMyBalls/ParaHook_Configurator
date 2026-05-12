@@ -10,6 +10,6 @@ export const propertiesMaterialsSectionDefinition: PropertiesSectionDefinition =
   id: 'materials',
   label: 'Materials',
   summary: 'First hosted section',
-  supports: (selectedTarget) => selectedTarget.kind === 'object',
+  supports: (selectedTarget) => selectedTarget?.kind === 'object',
   renderContent: renderMaterialsSectionContent,
 }

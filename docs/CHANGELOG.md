@@ -72,6 +72,416 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1899 -->
+
+### [1899] - 2026-05-11 20:29 - `Model-Viewport-3 - Phase 8 Cleanup - Render Properties Control Styling`
+
+HUMAN SUMMARY: `The Properties Render section now visually matches the Materials control treatment. Render ParaSliders and ParaSelects use the same compact dark control style, and the Properties content scrollbar now uses the app dark-mode scrollbar instead of the bright browser default.`
+
+#### Scope / Constraints Honored
+
+- Kept this cleanup limited to Properties Render section presentation.
+- Preserved the Phase 8 runtime settings wiring and did not change render-preview behavior.
+- Reused the existing Materials control styling pattern instead of creating a separate Render-only visual language.
+
+#### Summary of Implementation
+
+- Added the `PropertiesRenderControl` wrapper class to Render section ParaSlider and ParaSelect fields.
+- Extended the existing Materials ParaSlider and ParaSelect style selectors so Render controls share the same compact control dimensions, caps, fill, marker, label, and value styling.
+- Added explicit dark scrollbar styling to `SettingsSurfaceContentBody`, including WebKit scrollbar buttons, so the Properties content scroll area matches the app dark theme.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Render Properties controls now match the Materials section’s compact dark ParaSlider and ParaSelect style.
+- The Properties content scrollbar no longer falls back to a bright native scrollbar in WebKit-based rendering.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- src\app\workspace\propertiesSectionContract.test.ts`
+- Ran `npm.cmd test -- src\app\workspace\PropertiesSurface.test.tsx -t render`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1898 -->
+
+### [1898] - 2026-05-11 20:13 - `Model-Viewport-3 - Phase 8 - Render Settings Runtime Wiring`
+
+HUMAN SUMMARY: `Render Preview now uses the quality settings from the Properties Render section when it creates the progressive viewport runtime. Samples, bounces, render scale, noise cleanup, and GPU load reach the path-tracer adapter, active quality changes restart accumulation honestly, and normal raster modes stay idle.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 8 limited to runtime wiring for the Phase 6 render-preview settings contract.
+- Preserved the Phase 7 Properties UI shape without adding presets, render export, render queues, output files, or save behavior.
+- Kept concrete `three-gpu-pathtracer` field names inside the viewer runtime adapter.
+- Left normal `Solid`, `Wireframe`, `Material`, and `Rendered` display modes unaffected by render-preview quality edits.
+
+#### Summary of Implementation
+
+- Updated the render-preview runtime factory options to accept selected `RenderPreviewSettings`.
+- Added adapter mapping for samples, light bounces, render scale, noise cleanup, and GPU load.
+- Applied mapped settings to the concrete path-tracer instance, including `bounces`, `renderScale`, `filterGlossyFactor`, and tile profile.
+- Updated `Viewer` to key active render-preview runtime instances by normalized render settings, recreate the runtime when quality changes while active, and keep settings-only changes inert outside Render Preview.
+- Added focused tests for adapter mapping, selected settings propagation, HUD target samples, active accumulation restarts, and no runtime creation in raster display modes.
+
+#### Files Changed
+
+- `src/viewer/renderPreviewRuntime.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Render Preview HUD target samples now follow the selected `Samples` value instead of the old fixed runtime default.
+- Changing render-preview quality settings while Render Preview is active restarts accumulation from 0 with the selected target.
+- Changing render-preview quality settings while another display mode is active does not create or start the path-tracing runtime.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- src\viewer\Viewer.test.ts -t "render-preview|render preview|quality"`
+- Ran `npm.cmd test -- src\app\store\renderPreviewStatusStore.test.ts`
+- Ran `npm.cmd test -- src\app\components\ViewerHost.test.tsx -t "render-preview"`
+- Ran `npm.cmd run build`
+- Attempted `npm.cmd test -- src\viewer\Viewer.test.ts src\app\components\ViewerHost.test.tsx src\app\store\renderPreviewStatusStore.test.ts`, but the combined command timed out before producing a result; the Phase 8-focused slices above completed.
+
+<!-- ENTRY 1897 -->
+
+### [1897] - 2026-05-11 20:03 - `Model-Viewport-3 - Phase 7 - Properties Render Section`
+
+HUMAN SUMMARY: `Properties now has a Render section for viewport render-preview quality settings. The section is available even when nothing is focused, uses ParaSlider and ParaSelect controls for the Phase 6 render-preview settings, and leaves actual runtime path-tracer setting application to Phase 8.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 7 limited to Properties UI, section routing, and render-preview settings writes.
+- Preserved `Materials` as an object-scoped Properties section.
+- Added no render export, render queue, output-file controls, quality presets, or runtime setting application.
+- Kept render settings presentation-only and separate from geometry result policy.
+
+#### Summary of Implementation
+
+- Added a global `Render` Properties section.
+- Added render-preview controls for samples, light bounces, render scale, noise cleanup, and GPU load.
+- Used existing `ParaSlider` controls for numeric render settings.
+- Used existing `ParaSelect` controls for noise cleanup and GPU load choices.
+- Widened the Properties section contract so global sections can be ready without a focused target.
+- Kept `Materials` enabled only for object targets.
+- Added focused proof for no-focused-item Render availability, unsupported-target Render fallback, and settings writes through `ViewSettings.renderPreview`.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/workspace/PropertiesMaterialsSection.tsx`
+- `src/app/workspace/propertiesSectionContract.tsx`
+- `src/app/workspace/materialsSectionViewModel.ts`
+- `src/app/workspace/propertiesSectionContract.test.ts`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Properties workspace now opens a `Render` section when no item is focused.
+- Object-focused Properties still opens `Materials` first, with `Render` available as a sibling section.
+- Non-material targets can still edit global render-preview quality settings through `Render`.
+- Render-preview quality settings can be edited in Properties before Phase 8 applies them to the runtime renderer.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/propertiesSectionContract.test.ts src/app/workspace/PropertiesSurface.test.tsx src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1896 -->
+
+### [1896] - 2026-05-11 19:44 - `Model-Viewport-3 - Phase 6 - Render Preview Settings Contract`
+
+HUMAN SUMMARY: `Render Preview now has a typed presentation-settings contract before the Properties UI starts editing it. The app normalizes sample count, light bounces, render scale, noise cleanup, and GPU-load settings through view settings persistence while keeping runtime application and Properties controls deferred to later phases.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 6 limited to the shared settings contract, normalization, persistence-policy carry-through, and focused proof.
+- Added no Properties `Render` section, ParaSlider controls, ParaSelect controls, runtime settings application, export rendering, render queue, or output-file behavior.
+- Kept render-preview quality settings presentation-only and separate from geometry/build/export truth.
+
+#### Summary of Implementation
+
+- Added `RenderPreviewSettings` under `ViewSettings.renderPreview`.
+- Added default render-preview quality values for `targetSamples`, `bounces`, `renderScale`, `noiseCleanup`, and `gpuLoad`.
+- Added render-preview option unions and option arrays for future ParaSelect use.
+- Added numeric min/max/default constants for future ParaSlider use.
+- Added `normalizeRenderPreviewSettings(...)` and wired it into `normalizeViewSettings(...)`.
+- Carried render-preview settings through view-settings persistence policy reads and merges.
+- Aligned the Phase 5 runtime default sample constant to the new shared default without applying user-selected settings yet.
+- Added focused store and persistence tests for defaults, invalid-value normalization, generic setter updates, policy separation, and hydration.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/viewer/renderPreviewRuntime.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Saved view settings can now include render-preview quality settings and will normalize unsafe or stale values.
+- View-settings persistence now treats render-preview quality as presentation state.
+- Runtime render preview still uses the existing effective default behavior until Phase 8 applies these settings.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1895 -->
+
+### [1895] - 2026-05-11 19:21 - `Model-Viewport-3 - Phase 5 - Progressive Render Preview Backend`
+
+HUMAN SUMMARY: `Render Preview now has a first real progressive backend path behind the viewer contract. The viewport can hand render-preview mode to a three-gpu-pathtracer adapter, stream sample progress into the Phase 4 HUD store, complete at the first target sample count, reset honestly on camera/scene/view changes, and fall back visibly when the backend is unsupported.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5 viewport-only with no image export, render queue, save dialog, output resolution picker, or WebGPU migration.
+- Preserved normal raster rendering for `Solid`, `Wireframe`, `Material`, and `Rendered` display modes.
+- Kept render preview presentation-only and separate from `Auto / Draft / Final` result policy, graph execution freshness, and export validity.
+- Isolated the concrete `three-gpu-pathtracer` dependency behind a viewer-local runtime adapter.
+
+#### Summary of Implementation
+
+- Added the `three-gpu-pathtracer` backend dependency and its required supporting packages through `package.json` and `package-lock.json`.
+- Added `src/viewer/renderPreviewRuntime.ts` with a small `RenderPreviewRuntime` adapter, a 64-sample default target, WebGL2 support detection, unsupported fallback runtime, and a test factory seam.
+- Added a viewer-owned render-preview status callback contract so `Viewer` can report inactive, unsupported, fallback, queued, rendering, complete, and error states.
+- Wired `Viewer` render-preview mode to start the adapter, render one progressive sample per animation frame, report sample progress, mark completion, reset on camera/scene/view/resize changes, and dispose preview resources when leaving the mode.
+- Updated `ViewerHost` to forward viewer-owned render-preview backend status into the viewport-local Phase 4 render-preview status store instead of forcing immediate fallback on entry.
+- Added focused mocked-backend tests for sample progress, completion, reset behavior, cleanup on exit, unsupported fallback, and ViewerHost status forwarding.
+
+#### Files Changed
+
+- `package.json`
+- `package-lock.json`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `src/viewer/renderPreviewRuntime.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Render Preview` mode now attempts progressive path-traced sampling when the runtime is supported.
+- The render-preview HUD receives real sample progress and completion from the viewer backend path.
+- Camera movement, displayed geometry changes, view-setting changes, and canvas resize reset render-preview progress instead of leaving stale completed output.
+- Unsupported render-preview setup falls back to the normal interactive rendered path while reporting an honest unsupported HUD status.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "forwards viewer-owned render-preview progress"`
+- `npm.cmd test -- src/app/store/renderPreviewStatusStore.test.ts`
+- `npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `npm.cmd run build`
+- Full-file `npm.cmd test -- src/app/components/ViewerHost.test.tsx` was attempted but timed out before completion in this workspace.
+
+<!-- ENTRY 1894 -->
+
+### [1894] - 2026-05-11 18:38 - `Model-Viewport-3 - Phase 4 - Render Preview Status And HUD Contract`
+
+HUMAN SUMMARY: `Render Preview now has a viewport-local status contract and compact HUD readout before the expensive progressive renderer exists. The HUD can show fallback, progress text, a progress track, complete, canceled, unsupported, stale, and error states only while Render Preview mode is active, and ViewerHost marks active preview status stale when the camera, geometry, material, or lighting setup changes.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 4 limited to the status/HUD contract and lifecycle reset hooks.
+- Preserved `Auto / Draft / Final` geometry result policy and export/build truth.
+- Kept `Render Preview` on the existing interactive rendered fallback until Phase 5 provides a real progressive backend.
+- Avoided path-tracer dependency selection, worker rendering, accumulation buffers, image export, and queue management.
+
+#### Summary of Implementation
+
+- Added a viewport-local render-preview status store with inactive, fallback, unsupported, queued, rendering, complete, stale, canceled, and error states.
+- Added progress fields for iterations and samples plus deterministic HUD label formatting.
+- Wired `ViewportOverlay` to show render-preview status and a compact progress track only when `view.displayMode === 'renderPreview'`.
+- Added HUD styling for render-preview progress, complete, stale, canceled, unsupported, and error states.
+- Wired `ViewerHost` to enter the honest fallback when Render Preview is selected, deactivate status when leaving, clear status on dispose, and mark active previews stale on camera, geometry, material, and lighting/environment changes.
+- Added focused tests for store transitions, labels, display-mode gating, and viewport-local HUD isolation.
+
+#### Files Changed
+
+- `src/app/store/renderPreviewStatusStore.ts`
+- `src/app/store/renderPreviewStatusStore.test.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Render Preview` mode now exposes a compact viewport HUD status row and progress track for fallback and progress state.
+- Render-preview status stays viewport-local and hidden outside `Render Preview` display mode.
+- Camera, geometry, material, and lighting/environment changes can mark an active render preview stale without changing geometry truth.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/renderPreviewStatusStore.test.ts`
+- `npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1893 -->
+
+### [1893] - 2026-05-11 18:20 - `Model-Viewport-3 - Phase 3 - Fast Display Mode Viewer Application`
+
+HUMAN SUMMARY: `Display modes now affect the live Three.js viewer without rebuilding geometry. Solid uses a neutral clay presentation, Wireframe uses the existing material wireframe path, Material keeps assigned material reads, Rendered keeps scene polish, and Render Preview honestly falls back to the rendered interactive presentation until the later progress HUD and backend phases exist.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3 inside the viewer presentation layer.
+- Preserved `Auto / Draft / Final` result policy and build scheduling behavior.
+- Avoided render-layer geometry rebuilds during display-mode changes.
+- Left render-preview status, sample progress, and progressive rendering backend behavior to later phases.
+
+#### Summary of Implementation
+
+- Added a viewer-local display-mode resolver behind `Viewer.applyViewSettings(...)`.
+- Added a neutral Solid display material for base meshes.
+- Routed Wireframe through the existing `MeshStandardMaterial.wireframe` path.
+- Kept Material and Rendered on the existing material preset/cache assignment path.
+- Gated rendered ground and shadow polish to Rendered and the temporary Render Preview fallback.
+- Updated reference mesh wireframe and shadow flags through the same presentation refresh path.
+- Added focused viewer tests for no-rebuild mode switching, Solid/Wireframe/Material material differences, Rendered scene polish, and Render Preview fallback honesty.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Solid`, `Wireframe`, `Material`, and `Rendered` now map to distinct live viewer presentation behavior.
+- Display-mode changes update existing viewer materials and scene polish in place.
+- `Render Preview` currently uses the rendered interactive presentation and does not claim progress or start a path-tracing backend.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts`
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts src/app/inputRouting.test.ts src/app/useViewerDisplayModeMenu.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1892 -->
+
+### [1892] - 2026-05-11 18:10 - `Model-Viewport-3 - Phase 2 - Shift+D Radial Menu`
+
+HUMAN SUMMARY: `The model viewport now opens a viewport-local display-mode radial menu with Shift+D. The menu offers Solid, Wireframe, Material, Rendered, and Render Preview, writes back through the Phase 1 display-mode preference contract, and stays out of editable fields and fly-mode movement.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 2 limited to shortcut routing, menu interaction, display-mode state selection, styling, and focused proof.
+- Preserved the existing `Auto / Draft / Final` result policy and did not make display mode own geometry/build truth.
+- Deferred live Three.js visual display-mode application to Phase 3.
+- Deferred render-preview HUD progress and progressive rendering backend behavior to later phases.
+
+#### Summary of Implementation
+
+- Added a `viewer-display-mode` keyboard-routing owner for active-viewer `Shift+D`.
+- Added `useViewerDisplayModeMenu(...)` to open, close, and select display modes through the active model viewport shortcut context.
+- Rendered a radial display-mode menu overlay in `ViewerHost` with the five planned presentation choices.
+- Styled the radial picker in the viewport overlay surface CSS.
+- Added focused routing and hook tests for active-viewer ownership, editable-field protection, fly-mode priority, selection, and Escape cancel behavior.
+
+#### Files Changed
+
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Pressing `Shift+D` in the active model viewport now opens a radial display-mode menu.
+- Selecting a menu item updates `view.displayMode` through the shared UI preferences store.
+- `Shift+D` does not open the menu while editable fields own input or while viewer fly mode owns movement.
+- Choosing `Render Preview` currently selects the display-mode state only; progress HUD and rendering backend behavior remain deferred.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/inputRouting.test.ts src/app/useViewerDisplayModeMenu.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1891 -->
+
+### [1891] - 2026-05-11 18:01 - `Model-Viewport-3 - Phase 1 - Display Mode Contract`
+
+HUMAN SUMMARY: `The model viewport now has a shared display-mode contract for the future Shift+D radial menu. The new state supports Solid, Wireframe, Material, Rendered, and Render Preview while preserving legacy wireframe settings and keeping live rendering behavior unchanged for now.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 1 limited to shared settings, normalization, persistence, and focused proof.
+- Preserved the existing `wireframe` boolean for the current toolbar and viewer runtime.
+- Kept display mode separate from `Auto / Draft / Final` result policy.
+- Did not implement the radial menu or visual Three.js mode switching yet.
+
+#### Summary of Implementation
+
+- Added the shared `ViewDisplayMode` contract with `solid`, `wireframe`, `material`, `rendered`, and `renderPreview`.
+- Added deterministic defaulting to `rendered` and legacy migration from saved `wireframe: true` to `displayMode: 'wireframe'`.
+- Synchronized `setView(...)` and `setViewKey(...)` so the old wireframe key and new display-mode key stay compatible during migration.
+- Carried display mode through view-settings persistence policy reads and merges.
+- Added focused store and persistence tests for defaults, invalid values, legacy wireframe migration, setter synchronization, hydration, and persistence-policy behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Existing saved wireframe view settings now normalize to the new `wireframe` display mode.
+- The live viewer should behave the same as before because it still consumes the synchronized `wireframe` boolean.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+
 <!-- ENTRY 1890 -->
 
 ### [1890] - 2026-05-11 17:53 - `Settings-3 - Phase 5 Follow-Up - Viewer-Local Zoom Object Priority`

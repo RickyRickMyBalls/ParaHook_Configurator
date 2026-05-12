@@ -27,9 +27,42 @@ export type EnvironmentLookSnapshot = Pick<
   'envPreset' | 'environmentGrade' | 'environmentSource' | 'lighting'
 >
 export type ProjectionMode = 'perspective' | 'orthographic'
+export type ViewDisplayMode = 'solid' | 'wireframe' | 'material' | 'rendered' | 'renderPreview'
+export type RenderPreviewNoiseCleanup = 'off' | 'low' | 'medium' | 'high'
+export type RenderPreviewGpuLoad = 'smooth' | 'balanced' | 'fast'
 export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
 export type AxisOverlayBackgroundMode = 'none' | 'blur'
 export type GroundMaterialPresetId = 'matte_dark' | 'matte_mid' | 'glossy_studio'
+export const DEFAULT_VIEW_DISPLAY_MODE: ViewDisplayMode = 'rendered'
+export const VIEW_DISPLAY_MODES: readonly ViewDisplayMode[] = [
+  'solid',
+  'wireframe',
+  'material',
+  'rendered',
+  'renderPreview',
+]
+export const RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS: readonly RenderPreviewNoiseCleanup[] = [
+  'off',
+  'low',
+  'medium',
+  'high',
+]
+export const RENDER_PREVIEW_GPU_LOAD_OPTIONS: readonly RenderPreviewGpuLoad[] = [
+  'smooth',
+  'balanced',
+  'fast',
+]
+export const MIN_RENDER_PREVIEW_TARGET_SAMPLES = 16
+export const MAX_RENDER_PREVIEW_TARGET_SAMPLES = 256
+export const DEFAULT_RENDER_PREVIEW_TARGET_SAMPLES = 64
+export const MIN_RENDER_PREVIEW_BOUNCES = 1
+export const MAX_RENDER_PREVIEW_BOUNCES = 12
+export const DEFAULT_RENDER_PREVIEW_BOUNCES = 6
+export const MIN_RENDER_PREVIEW_RENDER_SCALE = 0.5
+export const MAX_RENDER_PREVIEW_RENDER_SCALE = 1
+export const DEFAULT_RENDER_PREVIEW_RENDER_SCALE = 1
+export const DEFAULT_RENDER_PREVIEW_NOISE_CLEANUP: RenderPreviewNoiseCleanup = 'off'
+export const DEFAULT_RENDER_PREVIEW_GPU_LOAD: RenderPreviewGpuLoad = 'balanced'
 export const DEFAULT_ENVIRONMENT_BACKGROUND = '#0b0b0f'
 export const STUDIO_ENVIRONMENT_BACKGROUND = '#151922'
 export const DARK_STUDIO_ENVIRONMENT_BACKGROUND = '#06080d'
@@ -106,6 +139,14 @@ export type GroundSettings = {
   materialPresetId: GroundMaterialPresetId
 }
 
+export type RenderPreviewSettings = {
+  targetSamples: number
+  bounces: number
+  renderScale: number
+  noiseCleanup: RenderPreviewNoiseCleanup
+  gpuLoad: RenderPreviewGpuLoad
+}
+
 export type ViewSettings = {
   projectionMode: ProjectionMode
   orbitEnabled: boolean
@@ -113,10 +154,12 @@ export type ViewSettings = {
   axesVisible: boolean
   shadowsEnabled: boolean
   wireframe: boolean
+  displayMode: ViewDisplayMode
   envPreset: EnvPreset
   environmentGrade: EnvironmentGradeSettings
   environmentSource: EnvironmentSourceSettings
   ground: GroundSettings
+  renderPreview: RenderPreviewSettings
   axisOverlayEnabled: boolean
   axisOverlayStyle: AxisOverlayStyleSettings
   lighting: {
@@ -182,6 +225,86 @@ const normalizeEnvironmentGradeValue = (
   const normalizedValue =
     typeof value === 'number' && Number.isFinite(value) ? value : fallback
   return Math.min(max, Math.max(min, normalizedValue))
+}
+
+const normalizeNumber = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number => {
+  const normalizedValue =
+    typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  return Math.min(max, Math.max(min, normalizedValue))
+}
+
+const normalizeInteger = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number =>
+  Math.round(normalizeNumber(value, fallback, min, max))
+
+export const isViewDisplayMode = (value: unknown): value is ViewDisplayMode =>
+  typeof value === 'string' &&
+  VIEW_DISPLAY_MODES.includes(value as ViewDisplayMode)
+
+export const isRenderPreviewNoiseCleanup = (
+  value: unknown,
+): value is RenderPreviewNoiseCleanup =>
+  typeof value === 'string' &&
+  RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS.includes(value as RenderPreviewNoiseCleanup)
+
+export const isRenderPreviewGpuLoad = (value: unknown): value is RenderPreviewGpuLoad =>
+  typeof value === 'string' &&
+  RENDER_PREVIEW_GPU_LOAD_OPTIONS.includes(value as RenderPreviewGpuLoad)
+
+export const DEFAULT_RENDER_PREVIEW_SETTINGS: RenderPreviewSettings = {
+  targetSamples: DEFAULT_RENDER_PREVIEW_TARGET_SAMPLES,
+  bounces: DEFAULT_RENDER_PREVIEW_BOUNCES,
+  renderScale: DEFAULT_RENDER_PREVIEW_RENDER_SCALE,
+  noiseCleanup: DEFAULT_RENDER_PREVIEW_NOISE_CLEANUP,
+  gpuLoad: DEFAULT_RENDER_PREVIEW_GPU_LOAD,
+}
+
+export const normalizeRenderPreviewSettings = (
+  settings: Partial<RenderPreviewSettings> | undefined,
+  fallback: RenderPreviewSettings = DEFAULT_RENDER_PREVIEW_SETTINGS,
+): RenderPreviewSettings => ({
+  targetSamples: normalizeInteger(
+    settings?.targetSamples,
+    fallback.targetSamples,
+    MIN_RENDER_PREVIEW_TARGET_SAMPLES,
+    MAX_RENDER_PREVIEW_TARGET_SAMPLES,
+  ),
+  bounces: normalizeInteger(
+    settings?.bounces,
+    fallback.bounces,
+    MIN_RENDER_PREVIEW_BOUNCES,
+    MAX_RENDER_PREVIEW_BOUNCES,
+  ),
+  renderScale: normalizeNumber(
+    settings?.renderScale,
+    fallback.renderScale,
+    MIN_RENDER_PREVIEW_RENDER_SCALE,
+    MAX_RENDER_PREVIEW_RENDER_SCALE,
+  ),
+  noiseCleanup: isRenderPreviewNoiseCleanup(settings?.noiseCleanup)
+    ? settings.noiseCleanup
+    : fallback.noiseCleanup,
+  gpuLoad: isRenderPreviewGpuLoad(settings?.gpuLoad) ? settings.gpuLoad : fallback.gpuLoad,
+})
+
+const normalizeViewDisplayMode = (
+  displayMode: unknown,
+  legacyWireframe: boolean | undefined,
+): ViewDisplayMode => {
+  if (isViewDisplayMode(displayMode)) {
+    return displayMode
+  }
+
+  return legacyWireframe === true ? 'wireframe' : DEFAULT_VIEW_DISPLAY_MODE
 }
 
 const BASELINE_ENVIRONMENT_PRESET_LIGHTING: ViewSettings['lighting'] = {
@@ -604,9 +727,12 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
     },
     definition.environmentGrade,
   )
+  const displayMode = normalizeViewDisplayMode(settings.displayMode, settings.wireframe)
   const normalizedView: ViewSettings = {
     ...DEFAULT_VIEW_SETTINGS,
     ...settings,
+    displayMode,
+    wireframe: displayMode === 'wireframe',
     envPreset: settings.envPreset ?? DEFAULT_VIEW_SETTINGS.envPreset,
     environmentGrade: normalizedGrade,
     environmentSource:
@@ -617,6 +743,7 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
       settings.ground === undefined
         ? { ...DEFAULT_VIEW_SETTINGS.ground }
         : { ...settings.ground },
+    renderPreview: normalizeRenderPreviewSettings(settings.renderPreview),
     axisOverlayStyle:
       settings.axisOverlayStyle === undefined
         ? { ...DEFAULT_VIEW_SETTINGS.axisOverlayStyle }
@@ -713,6 +840,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
   axesVisible: false,
   shadowsEnabled: true,
   wireframe: false,
+  displayMode: DEFAULT_VIEW_DISPLAY_MODE,
   envPreset: 'baseline',
   environmentGrade: cloneEnvironmentGrade(DEFAULT_ENVIRONMENT_GRADE),
   environmentSource: cloneEnvironmentSource(
@@ -723,6 +851,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
     height: 0,
     materialPresetId: 'matte_mid',
   },
+  renderPreview: DEFAULT_RENDER_PREVIEW_SETTINGS,
   axisOverlayEnabled: true,
   axisOverlayStyle: DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS,
   lighting: cloneLightingSettings(BASELINE_ENVIRONMENT_PRESET_LIGHTING),

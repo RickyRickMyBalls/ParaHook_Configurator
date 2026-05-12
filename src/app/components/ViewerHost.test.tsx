@@ -87,6 +87,7 @@ let viewerApplyCameraPose: ReturnType<typeof vi.fn>
 let viewerSetOnCameraPoseChange: ReturnType<typeof vi.fn>
 let viewerSetOnRuntimeStatsChange: ReturnType<typeof vi.fn>
 let viewerGetRuntimeStats: ReturnType<typeof vi.fn>
+let viewerSetOnRenderPreviewStatusChange: ReturnType<typeof vi.fn>
 
 const createArtifact = (partKeyStr: string): PartArtifact => ({
   id: `artifact:${partKeyStr}`,
@@ -147,6 +148,8 @@ vi.mock('../../viewer/Viewer', () => ({
     public setOnCameraPoseChange = (...args: unknown[]) => viewerSetOnCameraPoseChange(...args)
     public getRuntimeStats = (...args: unknown[]) => viewerGetRuntimeStats(...args)
     public setOnRuntimeStatsChange = (...args: unknown[]) => viewerSetOnRuntimeStatsChange(...args)
+    public setOnRenderPreviewStatusChange = (...args: unknown[]) =>
+      viewerSetOnRenderPreviewStatusChange(...args)
     public ensureReferenceLoaded = (...args: unknown[]) => viewerEnsureReferenceLoaded(...args)
     public hasReference = (...args: unknown[]) => viewerHasReference(...args)
     public setReferenceVisible = (...args: unknown[]) => viewerSetReferenceVisible(...args)
@@ -590,6 +593,7 @@ describe('ViewerHost reference loading', () => {
       points: null,
       fps: null,
     }))
+    viewerSetOnRenderPreviewStatusChange = vi.fn()
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
@@ -1041,6 +1045,64 @@ describe('ViewerHost reference loading', () => {
       lines: 96,
       points: 0,
       fps: 60,
+    })
+  })
+
+  it('forwards viewer-owned render-preview progress into the viewport status store', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const {
+      selectRenderPreviewStatus,
+      useRenderPreviewStatusStore,
+    } = await import('../store/renderPreviewStatusStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerSetOnRenderPreviewStatusChange).toHaveBeenCalledWith(expect.any(Function))
+
+    const renderPreviewStatusHandler = viewerSetOnRenderPreviewStatusChange.mock.calls.at(-1)?.[0] as
+      | ((status: {
+          status: 'rendering' | 'complete'
+          completedSamples: number
+          targetSamples: number
+        }) => void)
+      | null
+
+    act(() => {
+      renderPreviewStatusHandler?.({
+        status: 'rendering',
+        completedSamples: 12,
+        targetSamples: 64,
+      })
+    })
+
+    expect(
+      selectRenderPreviewStatus(useRenderPreviewStatusStore.getState(), 'model-viewer-primary'),
+    ).toMatchObject({
+      status: 'rendering',
+      completedSamples: 12,
+      targetSamples: 64,
+    })
+
+    act(() => {
+      renderPreviewStatusHandler?.({
+        status: 'complete',
+        completedSamples: 64,
+        targetSamples: 64,
+      })
+    })
+
+    expect(
+      selectRenderPreviewStatus(useRenderPreviewStatusStore.getState(), 'model-viewer-primary'),
+    ).toMatchObject({
+      status: 'complete',
+      completedSamples: 64,
+      targetSamples: 64,
     })
   })
 

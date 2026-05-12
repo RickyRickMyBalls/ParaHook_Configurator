@@ -74,6 +74,11 @@ import { buildViewportResultSelectorOptions } from './buildViewportResultSelecto
 import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
 import { selectViewportResultStatus } from '../spaghetti/selectors/selectViewportResultStatus'
 import {
+  formatRenderPreviewStatusLabel,
+  selectRenderPreviewStatus,
+  useRenderPreviewStatusStore,
+} from '../store/renderPreviewStatusStore'
+import {
   AXIS_WIDGET_TOP,
   COMPACT_AXIS_WIDGET_SIZE,
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
@@ -618,6 +623,12 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const compactAxisWidgetSize = localViewState?.viewToolbarCompactAxisWidgetSize ?? null
   const expandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
   const viewportResultMode = localViewState?.viewportResultMode ?? 'auto'
+  const displayMode = useUiPrefsStore((state) => state.view.displayMode)
+  const renderPreviewStatus = useRenderPreviewStatusStore((state) =>
+    viewportId === undefined
+      ? null
+      : selectRenderPreviewStatus(state, viewportId),
+  )
   const axisOverlayStyleSettings = useUiPrefsStore((state) => state.view.axisOverlayStyle)
   const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarGhostPlaneScale,
@@ -874,6 +885,33 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     () => selectViewportResultStatus(viewportResultState),
     [viewportResultState],
   )
+  const renderPreviewStatusLabel =
+    displayMode === 'renderPreview' && renderPreviewStatus !== null
+      ? formatRenderPreviewStatusLabel(renderPreviewStatus)
+      : ''
+  const renderPreviewProgressRatio = useMemo(() => {
+    if (displayMode !== 'renderPreview' || renderPreviewStatus === null) {
+      return null
+    }
+
+    if (
+      renderPreviewStatus.completedIterations !== null &&
+      renderPreviewStatus.targetIterations !== null &&
+      renderPreviewStatus.targetIterations > 0
+    ) {
+      return Math.min(1, renderPreviewStatus.completedIterations / renderPreviewStatus.targetIterations)
+    }
+
+    if (
+      renderPreviewStatus.completedSamples !== null &&
+      renderPreviewStatus.targetSamples !== null &&
+      renderPreviewStatus.targetSamples > 0
+    ) {
+      return Math.min(1, renderPreviewStatus.completedSamples / renderPreviewStatus.targetSamples)
+    }
+
+    return null
+  }, [displayMode, renderPreviewStatus])
   const resizeStateRef = useRef({
     active: false,
     pointerId: -1,
@@ -4731,6 +4769,23 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
           Geometry: {viewportResultStatus.label}
         </span>
         <span className="HudLine">Mode: {overlayModeLabel}</span>
+        {renderPreviewStatusLabel.length > 0 ? (
+          <span
+            className="HudLine ViewportHudRenderPreviewStatus"
+            data-render-preview-status-kind={renderPreviewStatus?.status ?? 'inactive'}
+          >
+            {renderPreviewStatusLabel}
+            {renderPreviewProgressRatio !== null ? (
+              <span
+                className="ViewportHudRenderPreviewProgress"
+                aria-hidden="true"
+                style={{
+                  '--render-preview-progress': `${Math.round(renderPreviewProgressRatio * 100)}%`,
+                } as React.CSSProperties}
+              />
+            ) : null}
+          </span>
+        ) : null}
         <span className="HudLine">
           Selected: {selectedPartKey === null ? 'none' : selectedPartKey}
         </span>

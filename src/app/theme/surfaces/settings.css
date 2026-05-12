@@ -386,6 +386,36 @@
   overflow-x: hidden;
   padding-right: 4px;
   overscroll-behavior: contain;
+  scrollbar-color: rgba(126, 145, 172, 0.72) rgba(6, 10, 16, 0.78);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.SettingsSurfaceContentBody::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.SettingsSurfaceContentBody::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.SettingsSurfaceContentBody::-webkit-scrollbar-track {
+  background: rgba(6, 10, 16, 0.78);
+  border-radius: 999px;
+}
+
+.SettingsSurfaceContentBody::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  border: 2px solid rgba(6, 10, 16, 0.78);
+  border-radius: 999px;
+  background: rgba(126, 145, 172, 0.72);
+}
+
+.SettingsSurfaceContentBody::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 178, 210, 0.86);
 }
 
 .SettingsSurfaceGroup {
@@ -1030,17 +1060,22 @@
   padding-top: 2px;
 }
 
-.PropertiesSelectedMaterialControl {
+.PropertiesSelectedMaterialControl,
+.PropertiesRenderControl {
   min-width: 0;
 }
 
 .PropertiesSelectedMaterialControl .ParaSlider,
-.PropertiesSelectedMaterialControl .ParaSelect {
+.PropertiesSelectedMaterialControl .ParaSelect,
+.PropertiesRenderControl .ParaSlider,
+.PropertiesRenderControl .ParaSelect {
   width: 100%;
 }
 
 .PropertiesSelectedMaterialControl button.ParaSliderCap,
-.PropertiesSelectedMaterialControl button.ParaSelectCap {
+.PropertiesSelectedMaterialControl button.ParaSelectCap,
+.PropertiesRenderControl button.ParaSliderCap,
+.PropertiesRenderControl button.ParaSelectCap {
   flex: 0 0 28px;
   width: 28px;
   min-width: 28px;
@@ -1055,38 +1090,49 @@
   line-height: 1;
 }
 
-.PropertiesSelectedMaterialControl button.ParaSelectCap {
+.PropertiesSelectedMaterialControl button.ParaSelectCap,
+.PropertiesRenderControl button.ParaSelectCap {
   height: 30px;
 }
 
 .PropertiesSelectedMaterialControl button.ParaSliderCap--left,
-.PropertiesSelectedMaterialControl button.ParaSelectCap--left {
+.PropertiesSelectedMaterialControl button.ParaSelectCap--left,
+.PropertiesRenderControl button.ParaSliderCap--left,
+.PropertiesRenderControl button.ParaSelectCap--left {
   border-radius: 8px 0 0 8px;
 }
 
 .PropertiesSelectedMaterialControl button.ParaSliderCap--right,
-.PropertiesSelectedMaterialControl button.ParaSelectCap--right {
+.PropertiesSelectedMaterialControl button.ParaSelectCap--right,
+.PropertiesRenderControl button.ParaSliderCap--right,
+.PropertiesRenderControl button.ParaSelectCap--right {
   border-left: none;
   border-radius: 0 8px 8px 0;
 }
 
 .PropertiesSelectedMaterialControl .ParaSliderTrack,
-.PropertiesSelectedMaterialControl .ParaSelectTrack {
+.PropertiesSelectedMaterialControl .ParaSelectTrack,
+.PropertiesRenderControl .ParaSliderTrack,
+.PropertiesRenderControl .ParaSelectTrack {
   border-color: var(--v15-panel-border-soft);
   border-left: none;
   background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
 }
 
-.PropertiesSelectedMaterialControl .ParaSliderTrack {
+.PropertiesSelectedMaterialControl .ParaSliderTrack,
+.PropertiesRenderControl .ParaSliderTrack {
   height: 26px;
 }
 
-.PropertiesSelectedMaterialControl .ParaSelectTrack {
+.PropertiesSelectedMaterialControl .ParaSelectTrack,
+.PropertiesRenderControl .ParaSelectTrack {
   height: 30px;
 }
 
 .PropertiesSelectedMaterialControl .ParaSliderFill,
-.PropertiesSelectedMaterialControl .ParaSelectFill {
+.PropertiesSelectedMaterialControl .ParaSelectFill,
+.PropertiesRenderControl .ParaSliderFill,
+.PropertiesRenderControl .ParaSelectFill {
   background: linear-gradient(
     90deg,
     rgba(124, 160, 255, 0.38) 0%,
@@ -1116,13 +1162,18 @@
 
 .PropertiesSelectedMaterialControl .ParaSliderValueMarker,
 .PropertiesSelectedMaterialControl .ParaSelectValueMarker,
-.PropertiesSelectedMaterialControl .ParaSelectValueHandle::before {
+.PropertiesSelectedMaterialControl .ParaSelectValueHandle::before,
+.PropertiesRenderControl .ParaSliderValueMarker,
+.PropertiesRenderControl .ParaSelectValueMarker,
+.PropertiesRenderControl .ParaSelectValueHandle::before {
   background: rgba(244, 247, 255, 0.92);
   box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
 }
 
 .PropertiesSelectedMaterialControl .ParaSliderContent,
-.PropertiesSelectedMaterialControl .ParaSelectContent {
+.PropertiesSelectedMaterialControl .ParaSelectContent,
+.PropertiesRenderControl .ParaSliderContent,
+.PropertiesRenderControl .ParaSelectContent {
   gap: 8px;
   padding: 0 8px;
 }
@@ -1132,33 +1183,46 @@
 .PropertiesSelectedMaterialControl .ParaSliderValueInput,
 .PropertiesSelectedMaterialControl button.ParaSliderValueButton,
 .PropertiesSelectedMaterialControl .ParaSelectLabel,
-.PropertiesSelectedMaterialControl .ParaSelectValue {
+.PropertiesSelectedMaterialControl .ParaSelectValue,
+.PropertiesRenderControl .ParaSliderLabel,
+.PropertiesRenderControl .ParaSliderValue,
+.PropertiesRenderControl .ParaSliderValueInput,
+.PropertiesRenderControl button.ParaSliderValueButton,
+.PropertiesRenderControl .ParaSelectLabel,
+.PropertiesRenderControl .ParaSelectValue {
   font-family: var(--sp-window-font-family);
   font-size: 10px;
   line-height: 1;
 }
 
 .PropertiesSelectedMaterialControl .ParaSliderLabel,
-.PropertiesSelectedMaterialControl .ParaSelectLabel {
+.PropertiesSelectedMaterialControl .ParaSelectLabel,
+.PropertiesRenderControl .ParaSliderLabel,
+.PropertiesRenderControl .ParaSelectLabel {
   overflow: hidden;
   min-width: 0;
   text-overflow: ellipsis;
 }
 
 .PropertiesSelectedMaterialControl button.ParaSliderValueButton,
-.PropertiesSelectedMaterialControl .ParaSliderValueInput {
+.PropertiesSelectedMaterialControl .ParaSliderValueInput,
+.PropertiesRenderControl button.ParaSliderValueButton,
+.PropertiesRenderControl .ParaSliderValueInput {
   border: none;
   background: transparent;
   color: rgba(238, 242, 255, 0.9);
 }
 
 .PropertiesSelectedMaterialControl button.ParaSliderValueButton:hover,
-.PropertiesSelectedMaterialControl button.ParaSliderValueButton:focus-visible {
+.PropertiesSelectedMaterialControl button.ParaSliderValueButton:focus-visible,
+.PropertiesRenderControl button.ParaSliderValueButton:hover,
+.PropertiesRenderControl button.ParaSliderValueButton:focus-visible {
   background: rgba(255, 255, 255, 0.08);
   color: rgba(245, 247, 255, 0.98);
 }
 
-.PropertiesSelectedMaterialControl .ParaSelectValue > span:first-child {
+.PropertiesSelectedMaterialControl .ParaSelectValue > span:first-child,
+.PropertiesRenderControl .ParaSelectValue > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1208,6 +1272,12 @@
 .SettingsSurface *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
+}
+
+.SettingsSurface *::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .SettingsSurface *::-webkit-scrollbar-track {

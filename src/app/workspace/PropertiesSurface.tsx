@@ -19,6 +19,7 @@ import { clearWorkspaceTargetSelection } from '../store/workspaceSelectionComman
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 import { WorkspacePanelSplitShell } from './WorkspacePanelSplitShell'
 import { propertiesMaterialsSectionDefinition } from './PropertiesMaterialsSection'
+import { propertiesRenderSectionDefinition } from './PropertiesRenderSection'
 import {
   buildPropertiesFocusSummary,
   resolvePropertiesShellState,
@@ -173,7 +174,7 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
   const selectedTargetKey =
     activeFocusedObjectRow === null ? null : workspaceTargetKey(activeFocusedObjectRow.target)
   const sections = useMemo<PropertiesSectionDefinition[]>(
-    () => [propertiesMaterialsSectionDefinition],
+    () => [propertiesMaterialsSectionDefinition, propertiesRenderSectionDefinition],
     [],
   )
   const [activeSectionId, setActiveSectionId] = useState<PropertiesSectionId | null>(
@@ -461,8 +462,8 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
             <span className="SettingsSurfaceGroupEyebrow">Shell State</span>
             <strong>No focused item</strong>
             <p>
-              The shared shell owns the no-target state before any section body renders. Select an
-              object to feed the first hosted `Materials` lane.
+              The shared shell owns the no-target state before any focused-item section body
+              renders. Select an object to feed the hosted `Materials` lane.
             </p>
           </header>
         </section>

@@ -54,8 +54,8 @@ describe('propertiesSectionContract', () => {
       throw new Error('Expected ready shell state')
     }
     expect(shellState.activeSection.id).toBe('materials')
-    expect(shellState.sectionContext.selectedTarget.kind).toBe('object')
-    if (shellState.sectionContext.selectedTarget.kind !== 'object') {
+    expect(shellState.sectionContext.selectedTarget?.kind).toBe('object')
+    if (shellState.sectionContext.selectedTarget?.kind !== 'object') {
       throw new Error('Expected object target in ready materials shell state')
     }
     expect(shellState.sectionContext.selectedTarget.objectId).toBe('object-1')
@@ -75,5 +75,31 @@ describe('propertiesSectionContract', () => {
     )
 
     expect(shellState.kind).toBe('no-sections')
+  })
+
+  it('returns a ready shell state for a global section when nothing is focused', () => {
+    const shellState = resolvePropertiesShellState(
+      [
+        ...sections,
+        {
+          id: 'render',
+          label: 'Render',
+          summary: 'Preview quality',
+          supports: () => true,
+          renderContent: () => null,
+        },
+      ],
+      buildPropertiesFocusSummary(null),
+      null,
+      'materials',
+    )
+
+    expect(shellState.kind).toBe('ready')
+    if (shellState.kind !== 'ready') {
+      throw new Error('Expected ready shell state')
+    }
+    expect(shellState.activeSection.id).toBe('render')
+    expect(shellState.sectionContext.selectedTarget).toBeNull()
+    expect(shellState.sectionContext.focusSummary.state).toBe('empty')
   })
 })

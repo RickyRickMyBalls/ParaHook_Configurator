@@ -404,7 +404,7 @@ export const buildMaterialsTargetRows = (
   context: PropertiesSectionContext,
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
 ): MaterialsTargetRow[] => {
-  if (context.selectedTarget.kind !== 'object') {
+  if (context.selectedTarget?.kind !== 'object') {
     return []
   }
 
@@ -418,7 +418,7 @@ export const buildMaterialsAssignmentScope = (
   const selectedObjectTargets =
     context.selectedObjectTargets.length > 0
       ? context.selectedObjectTargets
-      : context.selectedTarget.kind === 'object'
+      : context.selectedTarget?.kind === 'object'
         ? [context.selectedTarget]
         : []
   const seenObjectIds = new Set<string>()
@@ -491,7 +491,9 @@ export const buildMaterialsPhase1ViewModel = (
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
 ): MaterialsPhase1ViewModel => {
   const focusedObjectId =
-    context.selectedTarget.kind === 'object' ? context.selectedTarget.objectId : context.focusSummary.detail
+    context.selectedTarget?.kind === 'object'
+      ? context.selectedTarget.objectId
+      : context.focusSummary.detail
   const presetCount = materials.presets.length
   const assignedPartCount = Object.keys(materials.perPart).length
   const targetRows = buildMaterialsTargetRows(context, state)

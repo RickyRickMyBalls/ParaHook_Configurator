@@ -16,19 +16,19 @@ export type PropertiesFocusSummary =
       targetKind: WorkspaceSelectedTarget['kind']
     }
 
-export type PropertiesSectionId = 'materials'
+export type PropertiesSectionId = 'materials' | 'render'
 
 export type PropertiesSectionContext = {
-  selectedTarget: WorkspaceSelectedTarget
+  selectedTarget: WorkspaceSelectedTarget | null
   selectedObjectTargets: WorkspaceObjectSelectedTarget[]
-  focusSummary: Extract<PropertiesFocusSummary, { state: 'selected' }>
+  focusSummary: PropertiesFocusSummary
 }
 
 export type PropertiesSectionDefinition = {
   id: PropertiesSectionId
   label: string
   summary: string
-  supports: (selectedTarget: WorkspaceSelectedTarget) => boolean
+  supports: (selectedTarget: WorkspaceSelectedTarget | null) => boolean
   renderContent: (context: PropertiesSectionContext) => ReactNode
 }
 
@@ -142,7 +142,9 @@ export const resolvePropertiesShellState = (
     }
   }
 
-  if (selectedTarget === null) {
+  const availableSections = registeredSections.filter((section) => section.supports(selectedTarget))
+
+  if (selectedTarget === null && availableSections.length === 0) {
     return {
       kind: 'empty',
       registeredSections: [...registeredSections],
@@ -150,7 +152,7 @@ export const resolvePropertiesShellState = (
     }
   }
 
-  if (focusSummary.state === 'empty') {
+  if (selectedTarget !== null && focusSummary.state === 'empty') {
     return {
       kind: 'empty',
       registeredSections: [...registeredSections],
@@ -158,12 +160,29 @@ export const resolvePropertiesShellState = (
     }
   }
 
-  const availableSections = registeredSections.filter((section) => section.supports(selectedTarget))
   if (availableSections.length === 0) {
+    if (selectedTarget === null) {
+      return {
+        kind: 'empty',
+        registeredSections: [...registeredSections],
+        focusSummary: buildEmptyPropertiesFocusSummary(),
+      }
+    }
+
+    const unsupportedFocusSummary =
+      focusSummary.state === 'selected'
+        ? focusSummary
+        : ({
+            state: 'selected',
+            title: formatTargetKindLabel(selectedTarget.kind),
+            detail: formatTargetIdentifier(selectedTarget),
+            targetKind: selectedTarget.kind,
+          } satisfies Extract<PropertiesFocusSummary, { state: 'selected' }>)
+
     return {
       kind: 'unsupported',
       registeredSections: [...registeredSections],
-      focusSummary,
+      focusSummary: unsupportedFocusSummary,
     }
   }
 
@@ -179,7 +198,7 @@ export const resolvePropertiesShellState = (
       selectedObjectTargets:
         selectedObjectTargets !== undefined
           ? [...selectedObjectTargets]
-          : selectedTarget.kind === 'object'
+          : selectedTarget?.kind === 'object'
             ? [selectedTarget]
             : [],
       focusSummary,

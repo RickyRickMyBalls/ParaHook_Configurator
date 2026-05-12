@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
   consumeQueuedViewerCameraPose,
@@ -6,6 +6,7 @@ import {
   setLatestViewerCameraPose,
   setViewer,
   type GeometrySketchOverlayVm,
+  type ViewerRenderPreviewStatus,
   type ViewerRuntimeStats,
   type ViewerTransformHistoryOverlayVm,
   type ViewerTransformTarget,
@@ -13,7 +14,10 @@ import {
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
+import type { ViewDisplayMode } from '../../shared/viewSettingsTypes'
+import { useViewerDisplayModeMenu } from '../useViewerDisplayModeMenu'
 import { useViewerCameraShortcuts } from '../useViewerCameraShortcuts'
+import { useRenderPreviewStatusStore } from '../store/renderPreviewStatusStore'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { Viewer, type ViewerViewportRenderLayers } from '../../viewer/Viewer'
 import { buildReferenceObjectMaterialTargetKey } from '../../shared/materialTargetKeys'
@@ -301,9 +305,65 @@ type ViewerHostProps = {
   viewportId: WorkspaceViewportId
 }
 
+const displayModeMenuOptions: Array<{
+  mode: ViewDisplayMode
+  label: string
+  shortLabel: string
+}> = [
+  { mode: 'solid', label: 'Solid', shortLabel: 'SOL' },
+  { mode: 'wireframe', label: 'Wireframe', shortLabel: 'WRF' },
+  { mode: 'material', label: 'Material', shortLabel: 'MAT' },
+  { mode: 'rendered', label: 'Rendered', shortLabel: 'RND' },
+  { mode: 'renderPreview', label: 'Render Preview', shortLabel: 'PRV' },
+]
+
+const applyViewerRenderPreviewStatus = (
+  viewportId: WorkspaceViewportId,
+  status: ViewerRenderPreviewStatus,
+): void => {
+  const store = useRenderPreviewStatusStore.getState()
+  if (status.status === 'inactive') {
+    store.leavePreview(viewportId)
+    return
+  }
+  if (status.status === 'fallback') {
+    store.enterFallback(viewportId, status.message)
+    return
+  }
+  if (status.status === 'unsupported') {
+    store.markUnsupported(viewportId, status.message)
+    return
+  }
+  if (status.status === 'queued') {
+    store.markQueued(viewportId, status.message)
+    return
+  }
+  if (status.status === 'error') {
+    store.markError(viewportId, status.message ?? 'Render preview failed')
+    return
+  }
+  if (status.status === 'complete') {
+    store.markComplete(viewportId, {
+      completedSamples: status.completedSamples,
+      targetSamples: status.targetSamples,
+      message: status.message,
+    })
+    return
+  }
+  if (status.status === 'rendering') {
+    store.updateProgress(viewportId, {
+      completedSamples: status.completedSamples,
+      targetSamples: status.targetSamples,
+      message: status.message,
+    })
+  }
+}
+
 export function ViewerHost(props: ViewerHostProps) {
   const { viewportId } = props
   useViewerCameraShortcuts(viewportId)
+  const displayModeMenu = useViewerDisplayModeMenu(viewportId)
+  const displayMode = useUiPrefsStore((state) => state.view.displayMode)
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
@@ -1161,6 +1221,9 @@ export function ViewerHost(props: ViewerHostProps) {
     viewer.setOnRuntimeStatsChange?.((stats: ViewerRuntimeStats) => {
       useViewportRuntimeStatsStore.getState().setViewportRuntimeStats(viewportId, stats)
     })
+    viewer.setOnRenderPreviewStatusChange?.((status) => {
+      applyViewerRenderPreviewStatus(viewportId, status)
+    })
     const queuedCameraPose = consumeQueuedViewerCameraPose(viewportId) ?? getLatestViewerCameraPose(viewportId)
     if (queuedCameraPose !== null) {
       viewer.applyCameraPose?.(queuedCameraPose)
@@ -1174,10 +1237,12 @@ export function ViewerHost(props: ViewerHostProps) {
       isMountedRef.current = false
       viewer.setOnCameraPoseChange?.(null)
       viewer.setOnRuntimeStatsChange?.(null)
+      viewer.setOnRenderPreviewStatusChange?.(null)
       viewer.dispose()
       viewerRef.current = null
       setViewer(viewportId, null)
       useViewportRuntimeStatsStore.getState().clearViewportRuntimeStats(viewportId)
+      useRenderPreviewStatusStore.getState().clearViewportStatus(viewportId)
     }
   }, [viewportId])
 
@@ -1227,6 +1292,13 @@ export function ViewerHost(props: ViewerHostProps) {
   useEffect(() => {
     viewerRef.current?.applyViewSettings(view)
   }, [view])
+
+  useEffect(() => {
+    const renderPreviewStore = useRenderPreviewStatusStore.getState()
+    if (view.displayMode !== 'renderPreview') {
+      renderPreviewStore.leavePreview(viewportId)
+    }
+  }, [view.displayMode, viewportId])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -2006,6 +2078,41 @@ export function ViewerHost(props: ViewerHostProps) {
   return (
     <div className="ViewportRoot">
       <div className="ViewportCanvasLayer" ref={mountRef} />
+      {displayModeMenu.isOpen ? (
+        <div
+          className="ViewportDisplayModeMenuBackdrop"
+          data-testid="viewport-display-mode-menu"
+          onPointerDown={displayModeMenu.close}
+        >
+          <div
+            className="ViewportDisplayModeMenu"
+            role="menu"
+            aria-label="Display mode"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="ViewportDisplayModeMenuCenter">Display</div>
+            {displayModeMenuOptions.map((option, index) => (
+              <button
+                key={option.mode}
+                type="button"
+                role="menuitemradio"
+                aria-checked={displayMode === option.mode}
+                className={`ViewportDisplayModeMenuItem ${
+                  displayMode === option.mode ? 'isActive' : ''
+                }`}
+                style={{
+                  '--display-mode-item-index': `${index}`,
+                  '--display-mode-item-count': `${displayModeMenuOptions.length}`,
+                } as CSSProperties}
+                onClick={() => displayModeMenu.selectDisplayMode(option.mode)}
+              >
+                <span className="ViewportDisplayModeMenuItemShort">{option.shortLabel}</span>
+                <span className="ViewportDisplayModeMenuItemLabel">{option.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

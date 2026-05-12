@@ -3,6 +3,21 @@
 ## Doc Header
 
 ### Doc History
+54. 2026-05-11 20:13: Marked `Model-Viewport-3 / Phase 8 - Render Settings Runtime Wiring` shipped inside the dedicated future doc after the repo passed Phase 6 render-preview settings into the path-tracer runtime adapter, mapped samples/bounces/render-scale/noise-cleanup/GPU-load to backend settings, restarted active accumulation on quality changes, kept settings inert outside Render Preview, and added focused runtime/HUD proof.
+53. 2026-05-11 20:05: Tightened `Model-Viewport-3 / Phase 8 - Render Settings Runtime Wiring` inside the dedicated future doc into an implementation-ready runtime slice around passing Phase 6 `ViewSettings.renderPreview` settings into the render-preview runtime, mapping the values to `three-gpu-pathtracer`, resetting active accumulation on quality changes, keeping settings changes inert outside Render Preview, and preserving export/render-queue deferrals.
+52. 2026-05-11 20:03: Marked `Model-Viewport-3 / Phase 7 - Properties Render Section` shipped inside the dedicated future doc after the repo added a global no-focused-item Properties `Render` section, preserved object-scoped `Materials`, wired Phase 6 render-preview settings into ParaSlider and ParaSelect controls, and left runtime settings application to Phase 8.
+51. 2026-05-11 19:48: Tightened `Model-Viewport-3 / Phase 7 - Properties Render Section` inside the dedicated future doc into an implementation-ready Properties UI slice around adding a global no-focused-item `Render` section beside object-scoped `Materials`, reusing Phase 6 render-preview settings through ParaSliders and ParaSelects, and deferring runtime settings application to Phase 8.
+50. 2026-05-11 19:44: Marked `Model-Viewport-3 / Phase 6 - Render Preview Settings Contract` shipped inside the dedicated future doc after the repo added a nested `ViewSettings.renderPreview` contract, normalized render-preview quality defaults/options, view-settings persistence carry-through, focused store/persistence proof, and aligned the runtime default sample constant while leaving Properties UI and runtime settings application to later phases.
+49. 2026-05-11 19:34: Tightened `Model-Viewport-3 / Phase 6 - Render Preview Settings Contract` inside the dedicated future doc into an implementation-ready contract slice around a nested `ViewSettings.renderPreview` owner, deterministic defaults and normalization, persistence-policy carry-through, focused store/persistence proof, and explicit deferral of Properties UI plus runtime settings application to later phases.
+48. 2026-05-11 19:30: Extended the dedicated `Model-Viewport-3` future doc with `Phase 6` through `Phase 9` for render-preview cleanup, covering a render settings contract, a Properties workspace `Render` section using ParaSliders and ParaSelects where practical, runtime settings wiring, quality presets, and explicit deferral of export/render-queue/output-file work.
+47. 2026-05-11 19:21: Marked `Model-Viewport-3 / Phase 5 - Progressive Render Preview Backend` shipped inside the dedicated future doc after the repo added a `three-gpu-pathtracer` adapter boundary, viewer-owned render-preview sample progress and completion callbacks, Phase 4 HUD-store forwarding, reset-on-camera/scene/view/resize behavior, unsupported fallback reporting, focused mocked-backend tests, and build verification.
+46. 2026-05-11 19:02: Tightened `Model-Viewport-3 / Phase 5 - Progressive Render Preview Backend` inside the dedicated future doc into an implementation-ready first backend pass around a `three-gpu-pathtracer` adapter, real sample progress reporting through the Phase 4 HUD contract, reset-on-camera/scene-change semantics, mocked viewer proof, and no render export, queue, or WebGPU migration work in this slice.
+45. 2026-05-11 18:38: Marked `Model-Viewport-3 / Phase 4 - Render Preview Status And HUD Contract` shipped inside the dedicated future doc after the repo added the viewport-local render-preview status contract, compact HUD state readout and progress track, ViewerHost stale/reset hooks, focused store/HUD tests, and left `Phase 5 - Progressive Render Preview Backend` as the next open implementation step.
+44. 2026-05-11 18:23:47: Tightened `Model-Viewport-3 / Phase 4 - Render Preview Status And HUD Contract` inside the dedicated future doc into an implementation-ready viewport-local status pass around the existing `renderPreview` display mode, compact `ViewportOverlay` HUD, viewport overlay styling, a likely render-preview status store, explicit stale/reset semantics, focused HUD/store tests, and no progressive backend work before Phase 5.
+43. 2026-05-11 18:20:36: Marked `Model-Viewport-3 / Phase 3 - Fast Display Mode Viewer Application` shipped inside the dedicated future doc after the viewer added in-place Solid, Wireframe, Material, Rendered, and Render Preview fallback presentation behavior through `Viewer.applyViewSettings(...)`, preserved render-layer geometry identity, and added focused `Viewer.test.ts` proof while leaving render-preview HUD/progress/backend work for later phases.
+42. 2026-05-11 18:14:40: Tightened `Model-Viewport-3 / Phase 3 - Fast Display Mode Viewer Application` inside the dedicated future doc into an implementation-ready viewer presentation pass around `Viewer.applyViewSettings(...)`, existing material cache assignment, in-place wireframe/material/solid/rendered mode application, no render-layer rebuilds, focused `Viewer.test.ts` proof, and explicit deferral of render-preview HUD/progress/backend behavior.
+41. 2026-05-11 18:10:16: Marked `Model-Viewport-3 / Phase 2 - Shift+D Radial Menu` shipped inside the dedicated future doc after the repo added active-viewer-gated display-mode shortcut routing, a viewport-local radial menu overlay, owner-backed display-mode selection through UI preferences, focused interaction proof, and build verification while leaving live Three.js visual mode application as the next open phase.
+40. 2026-05-11 18:01:28: Marked `Model-Viewport-3 / Phase 1 - Display Mode Contract` shipped inside the dedicated future doc after the shared view settings contract gained normalized display modes, legacy wireframe migration, UI preferences setter synchronization, persistence-policy carry-through, and focused store/persistence proof while keeping radial menu and viewer visual application deferred
 39. 2026-05-11 16:39:36: Added the dedicated future doc `Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`, reserving the presentation-mode follow-on for a `Shift+D` radial display-mode menu, Solid/Wireframe/Material/Rendered modes, and a fifth render-preview mode with iteration progress in the viewport HUD while keeping display mode separate from `Auto / Draft / Final` result policy
 38. 2026-04-18 10:45:51: Marked `Model-Viewport-2 / Phase 5 - Full Primary Workspace Reassignment Coverage` shipped inside the dedicated `Model-Viewport-2` child doc after the repo retired the remaining primary-slot target limits, widened the shared primary-slot workspace coverage to the remaining slotted surfaces through the existing titlebar type submenu path, and completed the current `Model-Viewport-2` ladder while still leaving `Home Page` ownership and startup semantics with the `Home Page` family
 37. 2026-04-18 10:38:12: Marked `Model-Viewport-2 / Phase 4 - Restore And Zero-Viewer Honesty` shipped inside the dedicated `Model-Viewport-2` child doc after the repo added one shared active-surface resolver, taught both live store transitions and persisted-layout normalization to re-resolve active workspace ownership to real surviving model viewers or the honest current primary-slot surface, and advanced the later lane so `Phase 5 - Full Primary Workspace Reassignment Coverage` is now the next open step
@@ -378,7 +393,15 @@ Reason:
 Dedicated future doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
 Current status:
-- planned
+- `Phase 1 - Display Mode Contract` shipped there
+- `Phase 2 - Shift+D Radial Menu` shipped there
+- `Phase 3 - Fast Display Mode Viewer Application` shipped there
+- `Phase 4 - Render Preview Status And HUD Contract` shipped there
+- `Phase 5 - Progressive Render Preview Backend` shipped there
+- `Phase 6 - Render Preview Settings Contract` shipped there
+- `Phase 7 - Properties Render Section` shipped there
+- `Phase 8 - Render Settings Runtime Wiring` shipped there
+- `Phase 9 - Render Quality Presets And Cleanup` is now planned there
 - reserved here so `Shift+D` display-mode selection, Solid/Wireframe/Material/Rendered modes, and a fifth progressive render-preview mode with HUD iteration progress have one honest planning home
 
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
@@ -509,6 +532,15 @@ Definition of done:
 - current view settings already include presentation concepts such as wireframe, shadows, environment, ground, and materials
 - Three.js can support fast interactive presentation modes now, while true path-traced or progressive render preview should be treated as a later special mode
 - this lane is intentionally presentation-only and should not replace the still-open `Model-Viewport 1.3` authoritative geometry/export handoff
+- `Phase 1 - Display Mode Contract` is now shipped in the dedicated future doc
+- `Phase 2 - Shift+D Radial Menu` is now shipped in the dedicated future doc
+- `Phase 3 - Fast Display Mode Viewer Application` is now shipped in the dedicated future doc
+- `Phase 4 - Render Preview Status And HUD Contract` is now shipped in the dedicated future doc
+- `Phase 5 - Progressive Render Preview Backend` is now shipped in the dedicated future doc
+- `Phase 6 - Render Preview Settings Contract` is now shipped in the dedicated future doc
+- `Phase 7 - Properties Render Section` is now shipped in the dedicated future doc
+- `Phase 8 - Render Settings Runtime Wiring` is now shipped in the dedicated future doc
+- `Phase 9 - Render Quality Presets And Cleanup` is now planned in the dedicated future doc
 
 ### Questions
 
@@ -537,6 +569,7 @@ Definition of done:
 - the family has one explicit later phase reserved for model-viewport display modes
 - that phase includes the `Shift+D` radial menu, the first four fast presentation modes, and the fifth progressive render-preview mode
 - render-preview progress is planned as a HUD/status read with iteration or sample progress
+- the cleanup ladder adds Properties `Render` settings through ParaSliders and ParaSelects where practical
 - the phase stays separate from geometry result policy, build scheduling, authoritative geometry truth, and export ownership
 
 ## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment

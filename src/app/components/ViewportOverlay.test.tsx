@@ -132,11 +132,13 @@ describe('ViewportOverlay sketch session window', () => {
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useRenderPreviewStatusStore } = await import('../store/renderPreviewStatusStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { getViewer, subscribeViewer } = await import('../viewerBridge')
     useAppStore.setState(useAppStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    useRenderPreviewStatusStore.setState(useRenderPreviewStatusStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     vi.mocked(getViewer).mockReturnValue(null)
@@ -452,6 +454,79 @@ describe('ViewportOverlay sketch session window', () => {
     ) as HTMLSpanElement | null
     expect(statusLine?.textContent).toBe('Geometry: Final Unavailable')
     expect(statusLine?.getAttribute('data-viewport-result-status-kind')).toBe('final-unavailable')
+  })
+
+  it('shows render preview status in the HUD only while render preview display mode is active', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useRenderPreviewStatusStore } = await import('../store/renderPreviewStatusStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useRenderPreviewStatusStore.getState().updateProgress('model-viewer-primary', {
+        completedIterations: 8,
+        targetIterations: 32,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    expect(container.querySelector('.ViewportHudRenderPreviewStatus')).toBeNull()
+
+    await act(async () => {
+      useUiPrefsStore.getState().setViewKey('displayMode', 'renderPreview')
+    })
+
+    const statusLine = container.querySelector(
+      '.ViewportHudRenderPreviewStatus',
+    ) as HTMLSpanElement | null
+    expect(statusLine?.textContent).toBe('Render Preview: 8 / 32 iterations')
+    expect(statusLine?.getAttribute('data-render-preview-status-kind')).toBe('rendering')
+    const progressBar = statusLine?.querySelector(
+      '.ViewportHudRenderPreviewProgress',
+    ) as HTMLSpanElement | null
+    expect(progressBar?.style.getPropertyValue('--render-preview-progress')).toBe('25%')
+  })
+
+  it('keeps render preview HUD status scoped to the reporting viewport', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useRenderPreviewStatusStore } = await import('../store/renderPreviewStatusStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useUiPrefsStore.getState().setViewKey('displayMode', 'renderPreview')
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+      useRenderPreviewStatusStore.getState().enterFallback('model-viewer-primary')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewportOverlay viewportId="model-viewer-primary" />
+          <ViewportOverlay viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const statusLines = Array.from(
+      container.querySelectorAll('.ViewportHudRenderPreviewStatus'),
+    ) as HTMLSpanElement[]
+    expect(statusLines).toHaveLength(1)
+    expect(statusLines[0]?.textContent).toBe('Render Preview: interactive fallback')
+    expect(statusLines[0]?.getAttribute('data-render-preview-status-kind')).toBe('fallback')
   })
 
   it('renders a fly speed slider in the HUD when the attached viewer exposes fly speed controls', async () => {

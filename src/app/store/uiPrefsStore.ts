@@ -16,6 +16,7 @@ import {
   createHdriEnvironmentSource,
   createEnvironmentPresetViewPatch,
   DEFAULT_VIEW_SETTINGS,
+  isViewDisplayMode,
   normalizeViewSettings,
   normalizeEnvironmentGrade,
 } from '../../shared/viewSettingsTypes'
@@ -319,10 +320,28 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   sketchDrawPlinePointSymbolSize: 0.05,
   sketchDrawPlinePointSymbolType: 'circle',
   setView: (patch) => {
-    set({ view: normalizeViewSettings({ ...get().view, ...patch }) })
+    const normalizedPatch = { ...patch }
+    if ('wireframe' in patch && !('displayMode' in patch)) {
+      normalizedPatch.displayMode = patch.wireframe ? 'wireframe' : 'rendered'
+    }
+    if (
+      'displayMode' in patch &&
+      isViewDisplayMode(patch.displayMode) &&
+      !('wireframe' in patch)
+    ) {
+      normalizedPatch.wireframe = patch.displayMode === 'wireframe'
+    }
+    set({ view: normalizeViewSettings({ ...get().view, ...normalizedPatch }) })
   },
   setViewKey: (key, value) => {
-    set({ view: normalizeViewSettings({ ...get().view, [key]: value }) })
+    const patch: Partial<ViewSettings> = { [key]: value }
+    if (key === 'wireframe') {
+      patch.displayMode = value ? 'wireframe' : 'rendered'
+    }
+    if (key === 'displayMode' && isViewDisplayMode(value)) {
+      patch.wireframe = value === 'wireframe'
+    }
+    set({ view: normalizeViewSettings({ ...get().view, ...patch }) })
   },
   setWorkspaceStartupSurface: (workspaceStartupSurface) => {
     set({ workspaceStartupSurface })

@@ -34,11 +34,19 @@ describe('scene presentation edit-history readiness', () => {
       ...DEFAULT_VIEW_SETTINGS,
       projectionMode: 'perspective',
       gridVisible: true,
+      displayMode: 'rendered',
       wireframe: false,
       ground: {
         enabled: false,
         height: 0,
         materialPresetId: 'matte_mid',
+      },
+      renderPreview: {
+        targetSamples: 32,
+        bounces: 4,
+        renderScale: 0.75,
+        noiseCleanup: 'off',
+        gpuLoad: 'smooth',
       },
       materials: {
         ...DEFAULT_VIEW_SETTINGS.materials,
@@ -49,6 +57,7 @@ describe('scene presentation edit-history readiness', () => {
       ...DEFAULT_VIEW_SETTINGS,
       projectionMode: 'orthographic',
       gridVisible: false,
+      displayMode: 'wireframe',
       wireframe: true,
       envPreset: 'studio',
       environmentGrade: {
@@ -74,6 +83,13 @@ describe('scene presentation edit-history readiness', () => {
         height: 1.25,
         materialPresetId: 'glossy_studio',
       },
+      renderPreview: {
+        targetSamples: 128,
+        bounces: 9,
+        renderScale: 1,
+        noiseCleanup: 'medium',
+        gpuLoad: 'fast',
+      },
       materials: {
         ...DEFAULT_VIEW_SETTINGS.materials,
         selectedPresetId: 'brushed_metal',
@@ -92,8 +108,10 @@ describe('scene presentation edit-history readiness', () => {
     expect(environmentOnlyView.lighting).toEqual(persistedView.lighting)
     expect(environmentOnlyView.projectionMode).toBe(baseView.projectionMode)
     expect(environmentOnlyView.gridVisible).toBe(baseView.gridVisible)
+    expect(environmentOnlyView.displayMode).toBe(baseView.displayMode)
     expect(environmentOnlyView.wireframe).toBe(baseView.wireframe)
     expect(environmentOnlyView.ground).toEqual(baseView.ground)
+    expect(environmentOnlyView.renderPreview).toEqual(baseView.renderPreview)
     expect(environmentOnlyView.materials).toEqual(baseView.materials)
 
     const viewSettingsOnlyView = applyPersistedUiPrefsView(baseView, {
@@ -108,8 +126,10 @@ describe('scene presentation edit-history readiness', () => {
     expect(viewSettingsOnlyView.lighting).toEqual(baseView.lighting)
     expect(viewSettingsOnlyView.projectionMode).toBe('orthographic')
     expect(viewSettingsOnlyView.gridVisible).toBe(false)
+    expect(viewSettingsOnlyView.displayMode).toBe('wireframe')
     expect(viewSettingsOnlyView.wireframe).toBe(true)
     expect(viewSettingsOnlyView.ground).toEqual(persistedView.ground)
+    expect(viewSettingsOnlyView.renderPreview).toEqual(persistedView.renderPreview)
     expect(viewSettingsOnlyView.materials).toEqual(persistedView.materials)
   })
 
@@ -166,6 +186,7 @@ describe('scene presentation edit-history readiness', () => {
     expect(merged.projectionMode).toBe(DEFAULT_VIEW_SETTINGS.projectionMode)
     expect(merged.gridVisible).toBe(DEFAULT_VIEW_SETTINGS.gridVisible)
     expect(merged.ground).toEqual(DEFAULT_VIEW_SETTINGS.ground)
+    expect(merged.renderPreview).toEqual(DEFAULT_VIEW_SETTINGS.renderPreview)
     expect(merged.materials).toEqual(DEFAULT_VIEW_SETTINGS.materials)
   })
 

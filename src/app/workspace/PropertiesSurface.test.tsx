@@ -3,7 +3,10 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_VIEW_SETTINGS } from '../../shared/viewSettingsTypes'
+import {
+  DEFAULT_RENDER_PREVIEW_SETTINGS,
+  DEFAULT_VIEW_SETTINGS,
+} from '../../shared/viewSettingsTypes'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
@@ -1691,26 +1694,31 @@ describe('PropertiesSurface', () => {
     ])
   })
 
-  it('keeps the hosted materials section active even when no focused item exists yet', async () => {
+  it('keeps render settings available even when no focused item exists yet', async () => {
     await renderSurface()
 
     const surface = container?.querySelector('.PropertiesSurface') as HTMLDivElement | null
     const materialsTab = container?.querySelector(
       '#properties-section-tab-materials',
     ) as HTMLButtonElement | null
-    const materialsPanel = container?.querySelector(
-      '#properties-section-panel-materials',
+    const renderTab = container?.querySelector(
+      '#properties-section-tab-render',
+    ) as HTMLButtonElement | null
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
     ) as HTMLDivElement | null
 
     expect(surface?.getAttribute('data-properties-focus-state')).toBe('empty')
-    expect(surface?.getAttribute('data-properties-shell-state')).toBe('empty')
-    expect(surface?.getAttribute('data-properties-active-section')).toBe('none')
+    expect(surface?.getAttribute('data-properties-shell-state')).toBe('ready')
+    expect(surface?.getAttribute('data-properties-active-section')).toBe('render')
     expect(materialsTab?.disabled).toBe(true)
-    expect(materialsPanel?.textContent).toContain('No focused item')
-    expect(materialsPanel?.textContent).toContain('Select an object')
+    expect(renderTab?.disabled).toBe(false)
+    expect(renderTab?.getAttribute('aria-selected')).toBe('true')
+    expect(renderPanel?.textContent).toContain('Render Preview quality')
+    expect(renderPanel?.textContent).toContain('Samples')
   })
 
-  it('renders a shell-owned unsupported state when the focused target cannot open materials yet', async () => {
+  it('keeps render active when the focused target cannot open materials yet', async () => {
     await setSelectedTarget({
       kind: 'graph-node',
       graphDocumentId: 'graph-document-1',
@@ -1723,15 +1731,61 @@ describe('PropertiesSurface', () => {
     const materialsTab = container?.querySelector(
       '#properties-section-tab-materials',
     ) as HTMLButtonElement | null
-    const materialsPanel = container?.querySelector(
-      '#properties-section-panel-materials',
+    const renderTab = container?.querySelector(
+      '#properties-section-tab-render',
+    ) as HTMLButtonElement | null
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
     ) as HTMLDivElement | null
 
-    expect(surface?.getAttribute('data-properties-shell-state')).toBe('unsupported')
-    expect(surface?.getAttribute('data-properties-active-section')).toBe('none')
+    expect(surface?.getAttribute('data-properties-shell-state')).toBe('ready')
+    expect(surface?.getAttribute('data-properties-active-section')).toBe('render')
     expect(materialsTab?.disabled).toBe(true)
-    expect(materialsPanel?.textContent).toContain('Focused item not supported yet')
-    expect(materialsPanel?.textContent).toContain('Graph node')
-    expect(materialsPanel?.textContent).toContain('graph-document-1 / graph-node-1')
+    expect(renderTab?.disabled).toBe(false)
+    expect(renderPanel?.textContent).toContain('Render Preview quality')
+    expect(renderPanel?.textContent).not.toContain('Focused item not supported yet')
+  })
+
+  it('writes render preview settings from the Properties Render section', async () => {
+    await renderSurface()
+
+    const sampleIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Samples"]',
+    ) as HTMLButtonElement | null
+    const noiseCleanupSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Noise cleanup"]',
+    ) as HTMLSelectElement | null
+    const gpuLoadSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="GPU load"]',
+    ) as HTMLSelectElement | null
+
+    await act(async () => {
+      sampleIncreaseButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.renderPreview.targetSamples).toBe(
+      DEFAULT_RENDER_PREVIEW_SETTINGS.targetSamples + 8,
+    )
+
+    await act(async () => {
+      if (noiseCleanupSelect !== null) {
+        noiseCleanupSelect.value = 'medium'
+        noiseCleanupSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      if (gpuLoadSelect !== null) {
+        gpuLoadSelect.value = 'fast'
+        gpuLoadSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual({
+      ...DEFAULT_RENDER_PREVIEW_SETTINGS,
+      targetSamples: DEFAULT_RENDER_PREVIEW_SETTINGS.targetSamples + 8,
+      noiseCleanup: 'medium',
+      gpuLoad: 'fast',
+    })
   })
 })

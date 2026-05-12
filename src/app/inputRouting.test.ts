@@ -632,6 +632,44 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes active viewer display mode shortcut before flat console capture', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'D',
+        code: 'KeyD',
+        shiftKey: true,
+        target: null,
+      },
+      viewerDisplayModeShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-display-mode',
+      decision: 'handle',
+    })
+  })
+
+  it('keeps Shift+D display mode dormant while fly mode is active', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'D',
+        code: 'KeyD',
+        shiftKey: true,
+        target: null,
+      },
+      viewerFlyActive: true,
+      viewerDisplayModeShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-fly',
+      decision: 'handle',
+    })
+  })
+
   it('routes Shortcuts-first plain Z to active viewer camera shortcuts before console capture', () => {
     const result = routeKeyboardInput({
       event: {

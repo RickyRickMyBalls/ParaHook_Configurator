@@ -56,7 +56,10 @@ import {
   type LightType,
   type MaterialPreset,
   type ProjectionMode,
+  type RenderPreviewSettings,
+  type ViewDisplayMode,
   type ViewSettings,
+  normalizeRenderPreviewSettings,
 } from '../shared/viewSettingsTypes'
 import type {
   DirectPartBackedReferenceLoadKind,
@@ -78,6 +81,7 @@ import type {
   GeometrySketchSnapTarget,
   SketchPlanePickOverlayVm,
   ViewerRuntimeStats,
+  ViewerRenderPreviewStatus,
   CameraPresetOptions,
   FrameTargetOptions,
   ViewerTransformSession,
@@ -136,6 +140,11 @@ import {
   type WorkspaceSelectionPickEvent,
   type WorkspaceSelectionWindowMode,
 } from './workspaceSelectionWindow'
+import {
+  createRenderPreviewRuntimeSettingsKey,
+  createRenderPreviewRuntime,
+  type RenderPreviewRuntime,
+} from './renderPreviewRuntime'
 
 type GizmoSpace = 'local' | 'world'
 type MaterialPresetId = string
@@ -184,6 +193,18 @@ const FLY_CAMERA_WHEEL_SPEED_SCALE = 1.1
 const MIN_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 0.1
 const MIN_FLY_CAMERA_ROLL_RADIANS_PER_SEC = 0
 const MAX_FLY_CAMERA_ROLL_RADIANS_PER_SEC = Math.PI * 2
+const SOLID_DISPLAY_MODE_MATERIAL: MaterialPreset = {
+  id: 'display_mode_solid_clay',
+  name: 'Display Mode Solid Clay',
+  color: '#aeb6c2',
+  metalness: 0,
+  roughness: 0.72,
+  emissive: '#000000',
+  emissiveIntensity: 0,
+  opacity: 1,
+  transparent: false,
+  doubleSided: true,
+}
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
@@ -679,12 +700,18 @@ export class Viewer {
   private readonly lightTargetsById = new Map<string, Object3D>()
   private readonly environmentLightHelpersById = new Map<string, Group>()
   private readonly materialCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
+  private readonly displayModeSolidMaterial: MeshStandardMaterial
   private readonly assignedPresetByPartKey = new Map<string, MaterialPresetId>()
   private readonly materialFallbackPartKeyByViewerPartKey = new Map<string, string>()
   private environmentTexture: Texture | null = null
   private environmentTextureSourcePath: string | null = null
   private environmentLoadRequestId = 0
   private currentViewSettings: ViewSettings = cloneViewSettings(DEFAULT_VIEW_SETTINGS)
+  private renderPreviewRuntime: RenderPreviewRuntime | null = null
+  private renderPreviewRuntimeSettingsKey: string | null = null
+  private renderPreviewRuntimeStarted = false
+  private renderPreviewCompletedSamples = -1
+  private onRenderPreviewStatusChange: ((status: ViewerRenderPreviewStatus) => void) | null = null
   private readonly resizeObserver: ResizeObserver
 
   public constructor(container: HTMLElement) {
@@ -746,6 +773,8 @@ export class Viewer {
       name: 'Ground Runtime',
       ...groundMaterialPreset(DEFAULT_VIEW_SETTINGS.ground.materialPresetId),
     })
+    this.displayModeSolidMaterial = new MeshStandardMaterial()
+    this.applyPresetToMaterial(this.displayModeSolidMaterial, SOLID_DISPLAY_MODE_MATERIAL)
     this.groundPlane = new Mesh(
       new PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
       this.groundPlaneMaterial,
@@ -986,8 +1015,8 @@ export class Viewer {
       const placement = resolveViewerPartPlacement(artifact, geometry, xCursor)
       mesh.position.set(placement.position.x, placement.position.y, placement.position.z)
       mesh.visible = visibility[partKeyStr] ?? true
-      mesh.castShadow = this.currentViewSettings.shadowsEnabled
-      mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
+      mesh.castShadow = this.resolveDisplayModeShadowsEnabled()
+      mesh.receiveShadow = this.resolveDisplayModeShadowsEnabled()
       mesh.userData.partKey = partKeyStr
       mesh.userData.disposeMaterial = material !== baseMaterial
       const selectionOutline = new LineSegments(
@@ -1142,6 +1171,7 @@ export class Viewer {
 
     this.refreshSelectionStyling()
     this.refreshGizmoAttachment()
+    this.resetRenderPreviewRuntime()
   }
 
   public applyViewSettings(settings: ViewSettings): void {
@@ -1153,7 +1183,7 @@ export class Viewer {
       this.geometrySketchOverlay?.mode === 'draw' ? false : settings.gridVisible
     this.axesHelper.visible = settings.axesVisible
 
-    this.renderer.shadowMap.enabled = settings.shadowsEnabled
+    this.renderer.shadowMap.enabled = this.resolveDisplayModeShadowsEnabled()
     this.renderer.toneMapping =
       settings.environmentGrade.toneMapping === 'aces' ? ACESFilmicToneMapping : NoToneMapping
     this.renderer.toneMappingExposure = settings.environmentGrade.exposure
@@ -1163,17 +1193,19 @@ export class Viewer {
 
     this.applyEnvironmentSource(settings)
 
-    this.applyGroundSettings(settings.ground)
+    this.applyGroundSettings(this.resolveDisplayModeGroundSettings())
     this.setAxisOverlayEnabled(settings.axisOverlayEnabled)
     this.axisGizmo?.setStyle(settings.axisOverlayStyle)
     this.applyLights(settings.lighting.lights)
     this.applyMaterialSettings(settings.materials)
+    this.applyReferenceDisplayModeToScene()
     this.applyShadowFlags()
     this.refreshSelectionStyling()
     this.refreshGizmoAttachment()
     this.syncReferenceTransformHistoryOverlay()
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     this.syncReferenceTransformRotateSnapPreviewOverlay()
+    this.syncRenderPreviewRuntime()
   }
 
   private applyEnvironmentSource(settings: ViewSettings): void {
@@ -2192,6 +2224,20 @@ export class Viewer {
     handler?.(this.getRuntimeStats())
   }
 
+  public setOnRenderPreviewStatusChange(
+    handler: ((status: ViewerRenderPreviewStatus) => void) | null,
+  ): void {
+    this.onRenderPreviewStatusChange = handler
+    if (handler === null) {
+      return
+    }
+    if (this.currentViewSettings.displayMode !== 'renderPreview') {
+      handler({ status: 'inactive' })
+      return
+    }
+    this.syncRenderPreviewRuntime()
+  }
+
   public frameSelected(partId: string | null, options?: FrameTargetOptions): void {
     if (partId === null) {
       this.frameAll()
@@ -3085,6 +3131,7 @@ export class Viewer {
     this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
     this.groundPlane.geometry.dispose()
     this.groundPlaneMaterial.dispose()
+    this.displayModeSolidMaterial.dispose()
     this.scene.remove(this.groundPlane)
 
     for (const material of this.materialCacheByPresetId.values()) {
@@ -3110,6 +3157,8 @@ export class Viewer {
     this.geometrySketchSelectionWindowMaterial.dispose()
     this.geometrySketchSelectionCrossingMaterial.dispose()
     this.onRuntimeStatsChange = null
+    this.onRenderPreviewStatusChange = null
+    this.disposeRenderPreviewRuntime()
 
     this.renderer.dispose()
     this.zoomWindowOverlayRoot.remove()
@@ -3251,7 +3300,7 @@ export class Viewer {
       light instanceof SpotLight ||
       light instanceof PointLight
     ) {
-      const castShadow = this.currentViewSettings.shadowsEnabled && (spec.castShadow ?? false)
+      const castShadow = this.resolveDisplayModeShadowsEnabled() && (spec.castShadow ?? false)
       light.castShadow = castShadow
 
       if (spec.shadowBias !== undefined) {
@@ -3431,6 +3480,181 @@ export class Viewer {
     this.applyMaterialAssignmentsToScene()
   }
 
+  private resolveDisplayMode(): ViewDisplayMode {
+    return this.currentViewSettings.displayMode === 'renderPreview'
+      ? 'rendered'
+      : this.currentViewSettings.displayMode
+  }
+
+  private isRenderPreviewModeActive(): boolean {
+    return this.currentViewSettings.displayMode === 'renderPreview'
+  }
+
+  private emitRenderPreviewStatus(status: ViewerRenderPreviewStatus): void {
+    this.onRenderPreviewStatusChange?.(status)
+  }
+
+  private resolveRenderPreviewRuntimeSettings(): RenderPreviewSettings {
+    return normalizeRenderPreviewSettings(this.currentViewSettings.renderPreview)
+  }
+
+  private ensureRenderPreviewRuntime(): RenderPreviewRuntime {
+    const settings = this.resolveRenderPreviewRuntimeSettings()
+    const settingsKey = createRenderPreviewRuntimeSettingsKey(settings)
+    if (this.renderPreviewRuntime !== null && this.renderPreviewRuntimeSettingsKey === settingsKey) {
+      return this.renderPreviewRuntime
+    }
+    if (this.renderPreviewRuntime !== null) {
+      this.disposeRenderPreviewRuntime()
+    }
+    this.renderPreviewRuntime = createRenderPreviewRuntime({
+      renderer: this.renderer,
+      settings,
+    })
+    this.renderPreviewRuntimeSettingsKey = settingsKey
+    return this.renderPreviewRuntime
+  }
+
+  private disposeRenderPreviewRuntime(): void {
+    this.renderPreviewRuntime?.dispose()
+    this.renderPreviewRuntime = null
+    this.renderPreviewRuntimeSettingsKey = null
+    this.renderPreviewRuntimeStarted = false
+    this.renderPreviewCompletedSamples = -1
+  }
+
+  private syncRenderPreviewRuntime(): void {
+    if (!this.isRenderPreviewModeActive()) {
+      this.disposeRenderPreviewRuntime()
+      this.emitRenderPreviewStatus({ status: 'inactive' })
+      return
+    }
+
+    const runtime = this.ensureRenderPreviewRuntime()
+    if (!runtime.isSupported) {
+      this.renderPreviewRuntimeStarted = false
+      this.renderPreviewCompletedSamples = -1
+      this.emitRenderPreviewStatus({
+        status: 'unsupported',
+        message: runtime.unsupportedReason ?? 'backend not connected',
+      })
+      return
+    }
+
+    try {
+      runtime.start(this.scene, this.cameraController.getActiveCamera())
+      this.renderPreviewRuntimeStarted = true
+      this.renderPreviewCompletedSamples = 0
+      this.emitRenderPreviewStatus({
+        status: 'rendering',
+        completedSamples: 0,
+        targetSamples: runtime.targetSamples,
+      })
+    } catch (error) {
+      this.renderPreviewRuntimeStarted = false
+      this.emitRenderPreviewStatus({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Render preview failed to start',
+      })
+    }
+  }
+
+  private resetRenderPreviewRuntime(): void {
+    if (!this.isRenderPreviewModeActive()) {
+      return
+    }
+
+    const runtime = this.ensureRenderPreviewRuntime()
+    if (!runtime.isSupported) {
+      this.emitRenderPreviewStatus({
+        status: 'unsupported',
+        message: runtime.unsupportedReason ?? 'backend not connected',
+      })
+      return
+    }
+
+    try {
+      runtime.reset(this.scene, this.cameraController.getActiveCamera())
+      this.renderPreviewRuntimeStarted = true
+      this.renderPreviewCompletedSamples = 0
+      this.emitRenderPreviewStatus({
+        status: 'rendering',
+        completedSamples: 0,
+        targetSamples: runtime.targetSamples,
+      })
+    } catch (error) {
+      this.renderPreviewRuntimeStarted = false
+      this.emitRenderPreviewStatus({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Render preview reset failed',
+      })
+    }
+  }
+
+  private renderPreviewSampleFrame(): boolean {
+    if (!this.isRenderPreviewModeActive()) {
+      return false
+    }
+
+    const runtime = this.ensureRenderPreviewRuntime()
+    if (!runtime.isSupported) {
+      this.emitRenderPreviewStatus({
+        status: 'unsupported',
+        message: runtime.unsupportedReason ?? 'backend not connected',
+      })
+      return false
+    }
+
+    if (!this.renderPreviewRuntimeStarted) {
+      this.syncRenderPreviewRuntime()
+      return true
+    }
+
+    try {
+      const progress = runtime.renderSample()
+      if (
+        progress.completedSamples !== this.renderPreviewCompletedSamples ||
+        (progress.complete && this.renderPreviewCompletedSamples < progress.targetSamples)
+      ) {
+        this.renderPreviewCompletedSamples = progress.completedSamples
+        this.emitRenderPreviewStatus({
+          status: progress.complete ? 'complete' : 'rendering',
+          completedSamples: progress.completedSamples,
+          targetSamples: progress.targetSamples,
+        })
+      }
+    } catch (error) {
+      this.renderPreviewRuntimeStarted = false
+      this.emitRenderPreviewStatus({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Render preview sample failed',
+      })
+    }
+
+    return true
+  }
+
+  private resolveDisplayModeWireframe(): boolean {
+    const mode = this.resolveDisplayMode()
+    return mode === 'wireframe' || (mode === 'rendered' && this.currentViewSettings.wireframe)
+  }
+
+  private resolveDisplayModeShadowsEnabled(): boolean {
+    const mode = this.resolveDisplayMode()
+    return mode === 'rendered' && this.currentViewSettings.shadowsEnabled
+  }
+
+  private resolveDisplayModeGroundSettings(): ViewSettings['ground'] {
+    const mode = this.resolveDisplayMode()
+    if (mode === 'rendered') {
+      return this.currentViewSettings.ground
+    }
+    return {
+      ...this.currentViewSettings.ground,
+      enabled: false,
+    }
+  }
+
   private applyPresetToMaterial(material: MeshStandardMaterial, preset: MaterialPreset): void {
     material.color.set(preset.color)
     material.metalness = clamp(preset.metalness, 0, 1)
@@ -3440,7 +3664,7 @@ export class Viewer {
     material.opacity = clamp(preset.opacity, 0, 1)
     material.transparent = preset.transparent || material.opacity < 1
     material.side = preset.doubleSided ? DoubleSide : FrontSide
-    material.wireframe = this.currentViewSettings.wireframe
+    material.wireframe = this.resolveDisplayModeWireframe()
     material.needsUpdate = true
   }
 
@@ -3495,6 +3719,10 @@ export class Viewer {
   }
 
   private resolveMaterialForPart(partKey: string): MeshStandardMaterial {
+    if (this.resolveDisplayMode() === 'solid') {
+      return this.displayModeSolidMaterial
+    }
+
     const materials = this.currentViewSettings.materials
 
     if (materials.usePerPart) {
@@ -3531,15 +3759,35 @@ export class Viewer {
     }
 
     const material = new MeshStandardMaterial({ color: '#5f83d6' })
-    material.wireframe = this.currentViewSettings.wireframe
+    material.wireframe = this.resolveDisplayModeWireframe()
     this.materialCacheByPresetId.set('fallback_runtime', material)
     return material
   }
 
+  private applyReferenceDisplayModeToScene(): void {
+    const wireframe = this.resolveDisplayModeWireframe()
+    for (const referenceObject of this.referenceObjects.values()) {
+      referenceObject.traverse((child) => {
+        if (!(child instanceof Mesh)) {
+          return
+        }
+        const materials = Array.isArray(child.material) ? child.material : [child.material]
+        for (const material of materials) {
+          if (!(material instanceof MeshStandardMaterial)) {
+            continue
+          }
+          material.wireframe = wireframe
+          material.needsUpdate = true
+        }
+      })
+    }
+  }
+
   private applyShadowFlags(): void {
+    const shadowsEnabled = this.resolveDisplayModeShadowsEnabled()
     for (const mesh of this.partMeshes.values()) {
-      mesh.castShadow = this.currentViewSettings.shadowsEnabled
-      mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
+      mesh.castShadow = shadowsEnabled
+      mesh.receiveShadow = shadowsEnabled
     }
 
     for (const mesh of this.baselinePartMeshes.values()) {
@@ -3557,8 +3805,8 @@ export class Viewer {
         if (!(child instanceof Mesh)) {
           return
         }
-        child.castShadow = this.currentViewSettings.shadowsEnabled
-        child.receiveShadow = this.currentViewSettings.shadowsEnabled
+        child.castShadow = shadowsEnabled
+        child.receiveShadow = shadowsEnabled
       })
     }
   }
@@ -3682,8 +3930,16 @@ export class Viewer {
       } else {
         child.material = new MeshStandardMaterial({ color: '#7f8fae' })
       }
-      child.castShadow = this.currentViewSettings.shadowsEnabled
-      child.receiveShadow = this.currentViewSettings.shadowsEnabled
+      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      for (const material of materials) {
+        if (!(material instanceof MeshStandardMaterial)) {
+          continue
+        }
+        material.wireframe = this.resolveDisplayModeWireframe()
+        material.needsUpdate = true
+      }
+      child.castShadow = this.resolveDisplayModeShadowsEnabled()
+      child.receiveShadow = this.resolveDisplayModeShadowsEnabled()
       const selectionOutline = new LineSegments(
         new EdgesGeometry(child.geometry),
         new LineBasicMaterial({
@@ -5120,6 +5376,7 @@ export class Viewer {
     const height = Math.max(this.container.clientHeight, 1)
     this.cameraController.setViewportSize(width, height)
     this.renderer.setSize(width, height, false)
+    this.resetRenderPreviewRuntime()
   }
 
   private readonly handleSketchPlanePickPointerDown = (event: PointerEvent): void => {
@@ -5946,6 +6203,7 @@ export class Viewer {
         Math.abs(this.lastEmittedCameraPose.clipEnd - pose.clipEnd) > 1e-8
       ) {
         this.lastEmittedCameraPose = pose
+        this.resetRenderPreviewRuntime()
         this.onCameraPoseChange({
           position: pose.position.clone(),
           target: pose.target.clone(),
@@ -5962,7 +6220,9 @@ export class Viewer {
     this.referenceTransformMoveSnapHelper.tick(dt)
     this.referenceTransformRotateSnapHelper.tick(dt)
     const activeCamera = this.cameraController.getActiveCamera()
-    this.renderer.render(this.scene, activeCamera)
+    if (!this.renderPreviewSampleFrame()) {
+      this.renderer.render(this.scene, activeCamera)
+    }
     this.refreshRuntimeStats(dt)
     this.axisGizmo?.renderFromCameraQuaternion(activeCamera.quaternion)
   }

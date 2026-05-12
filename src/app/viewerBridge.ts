@@ -155,6 +155,22 @@ export type ViewerRuntimeStats = {
   fps: number | null
 }
 
+export type ViewerRenderPreviewStatus =
+  | {
+      status: 'inactive'
+      message?: string | null
+    }
+  | {
+      status: 'unsupported' | 'fallback' | 'queued' | 'error'
+      message?: string | null
+    }
+  | {
+      status: 'rendering' | 'complete'
+      completedSamples: number
+      targetSamples: number
+      message?: string | null
+    }
+
 export interface ViewerApi {
   isFlyModeActive?: () => boolean
   getFlyActivationMode?: () => FlyActivationMode
@@ -181,6 +197,9 @@ export interface ViewerApi {
   setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void
   getRuntimeStats?: () => ViewerRuntimeStats
   setOnRuntimeStatsChange?: (handler: ((stats: ViewerRuntimeStats) => void) | null) => void
+  setOnRenderPreviewStatusChange?: (
+    handler: ((status: ViewerRenderPreviewStatus) => void) | null
+  ) => void
   setCameraPreset: (preset: CameraPreset, options?: CameraPresetOptions) => void
   setProjectionMode: (mode: ProjectionMode) => void
   alignCameraToGeometrySketchPlane: () => void

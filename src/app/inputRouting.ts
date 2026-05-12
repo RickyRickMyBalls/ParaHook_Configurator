@@ -4,6 +4,7 @@ export type InputRoutingOwner =
   | 'edit-history'
   | 'text-field'
   | 'viewer-fly'
+  | 'viewer-display-mode'
   | 'viewer-camera-shortcuts'
   | 'console-entry'
   | 'sketch-plane'
@@ -37,6 +38,7 @@ export type InputRoutingRequest = {
   consoleCommandSessionUndoOwner?: 'sketch-draw' | null
   consoleInputAllowsCommandSessionUndo?: boolean
   viewerFlyActive?: boolean
+  viewerDisplayModeShortcutsEnabled?: boolean
   viewerCameraShortcutsEnabled?: boolean
   sketchPlanePickStage?: 'pick' | 'adjust' | null
   geometrySketchMode?: 'draw' | 'review' | null
@@ -120,6 +122,13 @@ const isViewerFlyMovementKey = (event: KeyboardLikeEvent): boolean => {
   )
 }
 
+const isViewerDisplayModeShortcut = (event: KeyboardLikeEvent): boolean =>
+  event.code === 'KeyD' &&
+  event.shiftKey === true &&
+  !event.ctrlKey &&
+  !event.altKey &&
+  !event.metaKey
+
 const isUndoShortcut = (event: KeyboardLikeEvent): boolean => {
   const key = event.key.toLowerCase()
   const modifierPressed = event.ctrlKey === true || event.metaKey === true
@@ -168,6 +177,7 @@ export const routeKeyboardInput = ({
   consoleCommandSessionUndoOwner = null,
   consoleInputAllowsCommandSessionUndo = false,
   viewerFlyActive = false,
+  viewerDisplayModeShortcutsEnabled = false,
   viewerCameraShortcutsEnabled = false,
   sketchPlanePickStage = null,
   geometrySketchMode = null,
@@ -307,6 +317,17 @@ export const routeKeyboardInput = ({
 
   if (referenceTransformActive && (key === 'm' || key === 'r' || key === 's')) {
     return { owner: 'reference-transform', decision: 'handle' }
+  }
+
+  if (
+    !viewerFlyActive &&
+    viewerDisplayModeShortcutsEnabled &&
+    isViewerDisplayModeShortcut(event)
+  ) {
+    return {
+      owner: 'viewer-display-mode',
+      decision: 'handle',
+    }
   }
 
   if (

@@ -89,6 +89,38 @@ vi.mock('three', async () => {
   }
 })
 
+vi.mock('three-gpu-pathtracer', () => {
+  class MockWebGLPathTracer {
+    public readonly tiles = {
+      set: vi.fn(),
+    }
+    public samples = 0
+    public rasterizeScene = true
+    public renderToCanvas = true
+    public minSamples = 1
+    public constructor(_renderer: unknown) {}
+    public setScene(): void {
+      this.samples = 0
+    }
+    public setCamera(): void {}
+    public updateCamera(): void {}
+    public updateMaterials(): void {}
+    public updateEnvironment(): void {}
+    public updateLights(): void {}
+    public renderSample(): void {
+      this.samples += 1
+    }
+    public reset(): void {
+      this.samples = 0
+    }
+    public dispose(): void {}
+  }
+
+  return {
+    WebGLPathTracer: MockWebGLPathTracer,
+  }
+})
+
 vi.mock('./overlay/AxisGizmo', () => {
   class MockAxisGizmo {
     public onTargetSelected:
@@ -489,6 +521,8 @@ describe('Viewer baseline replacement', () => {
   })
 
   afterEach(async () => {
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+    setRenderPreviewRuntimeFactoryForTests(null)
     viewer?.dispose()
     container?.remove()
     viewer = null
@@ -2690,6 +2724,704 @@ describe('Viewer baseline replacement', () => {
     runtime.applyViewSettings(DEFAULT_VIEW_SETTINGS)
 
     expect(runtime.partMeshes.get('part:side-proof')?.material.side).toBe(DoubleSide)
+  })
+
+  it('applies display modes through existing mesh presentation without rebuilding geometry', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      partMeshes: Map<
+        string,
+        {
+          geometry: object
+          material: {
+            color: { getHexString: () => string }
+            wireframe: boolean
+          }
+        }
+      >
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:display-mode-proof', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    const materialSettings = {
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'material' as const,
+      materials: {
+        ...DEFAULT_VIEW_SETTINGS.materials,
+        presets: DEFAULT_VIEW_SETTINGS.materials.presets.map((preset) =>
+          preset.id === 'default_matte' ? { ...preset, color: '#ff0000' } : preset,
+        ),
+      },
+    }
+
+    runtime.applyViewSettings(materialSettings)
+
+    const firstMesh = runtime.partMeshes.get('part:display-mode-proof')
+    const firstGeometry = firstMesh?.geometry
+    expect(firstMesh?.material.color.getHexString()).toBe('ff0000')
+    expect(firstMesh?.material.wireframe).toBe(false)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'solid',
+    })
+
+    const solidMesh = runtime.partMeshes.get('part:display-mode-proof')
+    expect(solidMesh).toBe(firstMesh)
+    expect(solidMesh?.geometry).toBe(firstGeometry)
+    expect(solidMesh?.material.color.getHexString()).toBe('aeb6c2')
+    expect(solidMesh?.material.wireframe).toBe(false)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'wireframe',
+    })
+
+    const wireframeMesh = runtime.partMeshes.get('part:display-mode-proof')
+    expect(wireframeMesh).toBe(firstMesh)
+    expect(wireframeMesh?.geometry).toBe(firstGeometry)
+    expect(wireframeMesh?.material.color.getHexString()).toBe('ff0000')
+    expect(wireframeMesh?.material.wireframe).toBe(true)
+
+    runtime.applyViewSettings(materialSettings)
+
+    const restoredMesh = runtime.partMeshes.get('part:display-mode-proof')
+    expect(restoredMesh).toBe(firstMesh)
+    expect(restoredMesh?.geometry).toBe(firstGeometry)
+    expect(restoredMesh?.material.color.getHexString()).toBe('ff0000')
+    expect(restoredMesh?.material.wireframe).toBe(false)
+  })
+
+  it('keeps rendered scene polish behind rendered and render-preview display modes', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      renderer: { shadowMap: { enabled: boolean } }
+      groundPlane: { visible: boolean }
+      partMeshes: Map<string, { castShadow: boolean; receiveShadow: boolean }>
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:scene-polish-proof', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    const scenePolishSettings = {
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered' as const,
+      shadowsEnabled: true,
+      ground: {
+        enabled: true,
+        height: 0,
+        materialPresetId: 'matte_mid' as const,
+      },
+    }
+
+    runtime.applyViewSettings(scenePolishSettings)
+
+    expect(runtime.renderer.shadowMap.enabled).toBe(true)
+    expect(runtime.groundPlane.visible).toBe(true)
+    expect(runtime.partMeshes.get('part:scene-polish-proof')?.castShadow).toBe(true)
+    expect(runtime.partMeshes.get('part:scene-polish-proof')?.receiveShadow).toBe(true)
+
+    runtime.applyViewSettings({
+      ...scenePolishSettings,
+      displayMode: 'material',
+    })
+
+    expect(runtime.renderer.shadowMap.enabled).toBe(false)
+    expect(runtime.groundPlane.visible).toBe(false)
+    expect(runtime.partMeshes.get('part:scene-polish-proof')?.castShadow).toBe(false)
+    expect(runtime.partMeshes.get('part:scene-polish-proof')?.receiveShadow).toBe(false)
+
+    runtime.applyViewSettings({
+      ...scenePolishSettings,
+      displayMode: 'renderPreview',
+    })
+
+    expect(runtime.renderer.shadowMap.enabled).toBe(true)
+    expect(runtime.groundPlane.visible).toBe(true)
+    expect(runtime.partMeshes.get('part:scene-polish-proof')?.castShadow).toBe(true)
+    expect(runtime.partMeshes.get('part:scene-polish-proof')?.receiveShadow).toBe(true)
+  })
+
+  it('reports render-preview sample progress and completion from the backend adapter', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const statuses: unknown[] = []
+    const runtimeCalls = {
+      start: vi.fn(),
+      renderSample: vi.fn(),
+      reset: vi.fn(),
+      dispose: vi.fn(),
+    }
+    let samples = 0
+    setRenderPreviewRuntimeFactoryForTests(() => ({
+      targetSamples: 3,
+      isSupported: true,
+      unsupportedReason: null,
+      start: runtimeCalls.start,
+      renderSample: runtimeCalls.renderSample.mockImplementation(() => {
+        samples = Math.min(3, samples + 1)
+        return {
+          completedSamples: samples,
+          targetSamples: 3,
+          complete: samples >= 3,
+        }
+      }),
+      reset: runtimeCalls.reset.mockImplementation(() => {
+        samples = 0
+      }),
+      updateCamera: vi.fn(),
+      updateMaterials: vi.fn(),
+      updateEnvironment: vi.fn(),
+      updateLights: vi.fn(),
+      dispose: runtimeCalls.dispose,
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      setOnRenderPreviewStatusChange: (handler: (status: unknown) => void) => void
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+    }
+    runtime.setOnRenderPreviewStatusChange((status) => statuses.push(status))
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+    })
+
+    runtime.renderLoop()
+    runtime.renderLoop()
+    runtime.renderLoop()
+
+    expect(runtimeCalls.start).toHaveBeenCalled()
+    expect(runtimeCalls.renderSample).toHaveBeenCalledTimes(3)
+    expect(statuses).toContainEqual({
+      status: 'rendering',
+      completedSamples: 0,
+      targetSamples: 3,
+    })
+    expect(statuses).toContainEqual({
+      status: 'rendering',
+      completedSamples: 1,
+      targetSamples: 3,
+    })
+    expect(statuses).toContainEqual({
+      status: 'complete',
+      completedSamples: 3,
+      targetSamples: 3,
+    })
+  })
+
+  it('maps render-preview quality settings into runtime adapter settings', async () => {
+    const {
+      resolveRenderPreviewRuntimeAdapterSettings,
+    } = await import('./renderPreviewRuntime')
+
+    expect(
+      resolveRenderPreviewRuntimeAdapterSettings({
+        targetSamples: 128,
+        bounces: 9,
+        renderScale: 0.75,
+        noiseCleanup: 'medium',
+        gpuLoad: 'smooth',
+      }),
+    ).toEqual({
+      targetSamples: 128,
+      bounces: 9,
+      renderScale: 0.75,
+      filterGlossyFactor: 0.5,
+      tiles: { x: 4, y: 4 },
+    })
+    expect(
+      resolveRenderPreviewRuntimeAdapterSettings({
+        targetSamples: 32,
+        bounces: 2,
+        renderScale: 0.5,
+        noiseCleanup: 'high',
+        gpuLoad: 'fast',
+      }),
+    ).toEqual({
+      targetSamples: 32,
+      bounces: 2,
+      renderScale: 0.5,
+      filterGlossyFactor: 1,
+      tiles: { x: 1, y: 1 },
+    })
+  })
+
+  it('passes selected render-preview settings into the runtime and HUD target', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const statuses: unknown[] = []
+    const factoryCalls: unknown[] = []
+    setRenderPreviewRuntimeFactoryForTests((options) => {
+      factoryCalls.push(options)
+      const targetSamples = options.settings?.targetSamples ?? options.targetSamples ?? 64
+      return {
+        targetSamples,
+        isSupported: true,
+        unsupportedReason: null,
+        start: vi.fn(),
+        renderSample: vi.fn(() => ({
+          completedSamples: targetSamples,
+          targetSamples,
+          complete: true,
+        })),
+        reset: vi.fn(),
+        updateCamera: vi.fn(),
+        updateMaterials: vi.fn(),
+        updateEnvironment: vi.fn(),
+        updateLights: vi.fn(),
+        dispose: vi.fn(),
+      }
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      setOnRenderPreviewStatusChange: (handler: (status: unknown) => void) => void
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }
+    runtime.setOnRenderPreviewStatusChange((status) => statuses.push(status))
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+      renderPreview: {
+        targetSamples: 128,
+        bounces: 9,
+        renderScale: 0.75,
+        noiseCleanup: 'medium',
+        gpuLoad: 'smooth',
+      },
+    })
+
+    expect(factoryCalls).toHaveLength(1)
+    expect(factoryCalls[0]).toMatchObject({
+      settings: {
+        targetSamples: 128,
+        bounces: 9,
+        renderScale: 0.75,
+        noiseCleanup: 'medium',
+        gpuLoad: 'smooth',
+      },
+    })
+    expect(statuses).toContainEqual({
+      status: 'rendering',
+      completedSamples: 0,
+      targetSamples: 128,
+    })
+  })
+
+  it('recreates render-preview runtime and restarts accumulation when quality changes', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const statuses: unknown[] = []
+    const runtimeDisposes: ReturnType<typeof vi.fn>[] = []
+    setRenderPreviewRuntimeFactoryForTests((options) => {
+      const targetSamples = options.settings?.targetSamples ?? options.targetSamples ?? 64
+      const dispose = vi.fn()
+      runtimeDisposes.push(dispose)
+      return {
+        targetSamples,
+        isSupported: true,
+        unsupportedReason: null,
+        start: vi.fn(),
+        renderSample: vi.fn(() => ({
+          completedSamples: 1,
+          targetSamples,
+          complete: false,
+        })),
+        reset: vi.fn(),
+        updateCamera: vi.fn(),
+        updateMaterials: vi.fn(),
+        updateEnvironment: vi.fn(),
+        updateLights: vi.fn(),
+        dispose,
+      }
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      setOnRenderPreviewStatusChange: (handler: (status: unknown) => void) => void
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+    }
+    runtime.setOnRenderPreviewStatusChange((status) => statuses.push(status))
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+      renderPreview: {
+        ...DEFAULT_VIEW_SETTINGS.renderPreview,
+        targetSamples: 64,
+      },
+    })
+    runtime.renderLoop()
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+      renderPreview: {
+        ...DEFAULT_VIEW_SETTINGS.renderPreview,
+        targetSamples: 128,
+      },
+    })
+
+    expect(runtimeDisposes).toHaveLength(2)
+    expect(runtimeDisposes[0]).toHaveBeenCalled()
+    expect(statuses).toContainEqual({
+      status: 'rendering',
+      completedSamples: 0,
+      targetSamples: 128,
+    })
+  })
+
+  it('does not create render-preview runtime when quality changes outside render-preview mode', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const runtimeFactory = vi.fn((options) => ({
+      targetSamples: options.settings?.targetSamples ?? options.targetSamples ?? 64,
+      isSupported: true,
+      unsupportedReason: null,
+      start: vi.fn(),
+      renderSample: vi.fn(),
+      reset: vi.fn(),
+      updateCamera: vi.fn(),
+      updateMaterials: vi.fn(),
+      updateEnvironment: vi.fn(),
+      updateLights: vi.fn(),
+      dispose: vi.fn(),
+    }))
+    setRenderPreviewRuntimeFactoryForTests(runtimeFactory)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered',
+      renderPreview: {
+        ...DEFAULT_VIEW_SETTINGS.renderPreview,
+        targetSamples: 64,
+      },
+    })
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered',
+      renderPreview: {
+        ...DEFAULT_VIEW_SETTINGS.renderPreview,
+        targetSamples: 128,
+      },
+    })
+
+    expect(runtimeFactory).not.toHaveBeenCalled()
+  })
+
+  it('resets render-preview progress for scene and camera changes, then disposes on exit', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const runtimeCalls = {
+      start: vi.fn(),
+      renderSample: vi.fn(),
+      reset: vi.fn(),
+      dispose: vi.fn(),
+    }
+    let samples = 0
+    setRenderPreviewRuntimeFactoryForTests(({ targetSamples = 64 }) => ({
+      targetSamples,
+      isSupported: true,
+      unsupportedReason: null,
+      start: runtimeCalls.start.mockImplementation(() => {
+        samples = 0
+      }),
+      renderSample: runtimeCalls.renderSample.mockImplementation(() => {
+        samples = Math.min(targetSamples, samples + 1)
+        return {
+          completedSamples: samples,
+          targetSamples,
+          complete: samples >= targetSamples,
+        }
+      }),
+      reset: runtimeCalls.reset.mockImplementation(() => {
+        samples = 0
+      }),
+      updateCamera: vi.fn(),
+      updateMaterials: vi.fn(),
+      updateEnvironment: vi.fn(),
+      updateLights: vi.fn(),
+      dispose: runtimeCalls.dispose,
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      setOnCameraPoseChange: (handler: (pose: unknown) => void) => void
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      renderLoop: () => void
+    }
+    runtime.setOnCameraPoseChange(() => {})
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+    })
+    runtime.renderLoop()
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:render-preview-reset', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    const controller = cameraControllerMocks.instances[0]!
+    controller.perspectiveFovDeg = 55
+    runtime.renderLoop()
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered',
+    })
+
+    expect(runtimeCalls.reset).toHaveBeenCalled()
+    expect(runtimeCalls.dispose).toHaveBeenCalled()
+  })
+
+  it('reports unsupported render preview without blocking raster rendering fallback', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const statuses: unknown[] = []
+    setRenderPreviewRuntimeFactoryForTests(({ targetSamples = 64 }) => ({
+      targetSamples,
+      isSupported: false,
+      unsupportedReason: 'WebGL2 is unavailable',
+      start: vi.fn(),
+      renderSample: vi.fn(() => ({
+        completedSamples: 0,
+        targetSamples,
+        complete: false,
+      })),
+      reset: vi.fn(),
+      updateCamera: vi.fn(),
+      updateMaterials: vi.fn(),
+      updateEnvironment: vi.fn(),
+      updateLights: vi.fn(),
+      dispose: vi.fn(),
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      setOnRenderPreviewStatusChange: (handler: (status: unknown) => void) => void
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      renderer: { render: () => void }
+    }
+    const rasterRenderSpy = vi.spyOn(runtime.renderer, 'render')
+    runtime.setOnRenderPreviewStatusChange((status) => statuses.push(status))
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+    })
+    runtime.renderLoop()
+
+    expect(statuses).toContainEqual({
+      status: 'unsupported',
+      message: 'WebGL2 is unavailable',
+    })
+    expect(rasterRenderSpy).toHaveBeenCalled()
   })
 
   it('uses an explicit base fly speed value and keeps boost multiplicative on top of it', async () => {

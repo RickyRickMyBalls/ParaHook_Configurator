@@ -2890,3 +2890,131 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.ViewportHudRenderPreviewStatus {
+  color: rgba(176, 223, 255, calc(var(--overlay-tool-text-alpha, 1) * 0.92));
+  font-variant-numeric: tabular-nums;
+}
+
+.ViewportHudRenderPreviewProgress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      currentColor 0 var(--render-preview-progress, 0%),
+      rgba(255, 255, 255, 0.14) var(--render-preview-progress, 0%) 100%
+    );
+  opacity: 0.9;
+}
+
+.ViewportHudRenderPreviewStatus[data-render-preview-status-kind='complete'] {
+  color: rgba(166, 244, 197, calc(var(--overlay-tool-text-alpha, 1) * 0.94));
+}
+
+.ViewportHudRenderPreviewStatus[data-render-preview-status-kind='stale'],
+.ViewportHudRenderPreviewStatus[data-render-preview-status-kind='canceled'],
+.ViewportHudRenderPreviewStatus[data-render-preview-status-kind='unsupported'] {
+  color: rgba(252, 211, 142, calc(var(--overlay-tool-text-alpha, 1) * 0.94));
+}
+
+.ViewportHudRenderPreviewStatus[data-render-preview-status-kind='error'] {
+  color: rgba(255, 158, 158, calc(var(--overlay-tool-text-alpha, 1) * 0.96));
+}
+
+.ViewportDisplayModeMenuBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 52;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  background: radial-gradient(circle at center, rgba(5, 7, 11, 0.12), rgba(5, 7, 11, 0.34));
+}
+
+.ViewportDisplayModeMenu {
+  position: relative;
+  width: min(310px, calc(100% - 48px));
+  aspect-ratio: 1;
+  border-radius: 999px;
+}
+
+.ViewportDisplayModeMenuCenter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 82px;
+  height: 82px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(130, 158, 222, 0.42);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(20, 24, 34, 0.96), rgba(9, 11, 17, 0.97));
+  color: rgba(240, 244, 255, 0.9);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ViewportDisplayModeMenuItem {
+  --display-mode-angle: calc(
+    -90deg + (360deg / var(--display-mode-item-count)) * var(--display-mode-item-index)
+  );
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 58px;
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--display-mode-angle))
+    translate(0, -112px)
+    rotate(calc(-1 * var(--display-mode-angle)));
+  display: grid;
+  grid-template-rows: 18px 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 7px 8px;
+  border: 1px solid rgba(135, 159, 220, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(25, 30, 43, 0.95), rgba(13, 16, 24, 0.97));
+  color: rgba(221, 229, 247, 0.86);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ViewportDisplayModeMenuItem:hover,
+.ViewportDisplayModeMenuItem:focus-visible {
+  border-color: rgba(151, 181, 255, 0.7);
+  color: #f8fbff;
+  outline: none;
+}
+
+.ViewportDisplayModeMenuItem.isActive {
+  border-color: rgba(255, 188, 124, 0.92);
+  background: linear-gradient(180deg, rgba(78, 64, 45, 0.98), rgba(38, 31, 24, 0.98));
+  color: #fff7ef;
+}
+
+.ViewportDisplayModeMenuItemShort {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ViewportDisplayModeMenuItemLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.1;
+}
