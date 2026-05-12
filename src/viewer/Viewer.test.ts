@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { DoubleSide, FrontSide, Texture, Vector3 } from 'three'
+import {
+  DoubleSide,
+  FrontSide,
+  MeshStandardMaterial,
+  Texture,
+  Vector3,
+} from 'three'
 import type { Camera, Vector3 as ThreeVector3 } from 'three'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CameraClipRangeMode } from './scene/CameraController'
@@ -72,11 +78,11 @@ vi.mock('three', async () => {
     public toneMapping = actual.NoToneMapping
     public toneMappingExposure = 1
 
-    public constructor(_options?: unknown) {}
+    public constructor() {}
 
-    public setPixelRatio(_ratio: number): void {}
+    public setPixelRatio(): void {}
 
-    public setSize(_width: number, _height: number, _updateStyle?: boolean): void {}
+    public setSize(): void {}
 
     public render(): void {}
 
@@ -98,7 +104,7 @@ vi.mock('three-gpu-pathtracer', () => {
     public rasterizeScene = true
     public renderToCanvas = true
     public minSamples = 1
-    public constructor(_renderer: unknown) {}
+    public constructor() {}
     public setScene(): void {
       this.samples = 0
     }
@@ -157,7 +163,7 @@ vi.mock('./overlay/AxisGizmo', () => {
     public readonly renderFromCameraQuaternion = vi.fn()
     public readonly dispose = vi.fn()
 
-    public constructor(_canvas: HTMLCanvasElement) {
+    public constructor() {
       axisGizmoMocks.instances.push(this as unknown as (typeof axisGizmoMocks.instances)[number])
     }
   }
@@ -220,8 +226,6 @@ vi.mock('./scene/CameraController', async () => {
 
     public constructor(
       perspectiveCamera: { position: ThreeVector3; up: ThreeVector3 },
-      _orthographicCamera: unknown,
-      _domElement: unknown,
     ) {
       this.activeCamera = perspectiveCamera
       cameraControllerMocks.instances.push(this as unknown as (typeof cameraControllerMocks.instances)[number])
@@ -301,7 +305,7 @@ vi.mock('./gizmo/TransformGizmo', async () => {
   class MockTransformGizmo {
     private readonly helper = new Group()
 
-    public constructor(_camera: unknown, _domElement: unknown, _controls: unknown) {}
+    public constructor() {}
 
     public setOnObjectChange(): void {}
     public setOnDragComplete(): void {}
@@ -2801,8 +2805,21 @@ describe('Viewer baseline replacement', () => {
 
     const firstMesh = runtime.partMeshes.get('part:display-mode-proof')
     const firstGeometry = firstMesh?.geometry
+    expect(firstMesh?.material).toBeInstanceOf(MeshStandardMaterial)
     expect(firstMesh?.material.color.getHexString()).toBe('ff0000')
     expect(firstMesh?.material.wireframe).toBe(false)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'rendered',
+    })
+
+    const renderedMesh = runtime.partMeshes.get('part:display-mode-proof')
+    expect(renderedMesh).toBe(firstMesh)
+    expect(renderedMesh?.geometry).toBe(firstGeometry)
+    expect(renderedMesh?.material).toBeInstanceOf(MeshStandardMaterial)
+    expect(renderedMesh?.material.color.getHexString()).toBe('ff0000')
+    expect(renderedMesh?.material.wireframe).toBe(false)
 
     runtime.applyViewSettings({
       ...materialSettings,
@@ -2823,6 +2840,7 @@ describe('Viewer baseline replacement', () => {
     const wireframeMesh = runtime.partMeshes.get('part:display-mode-proof')
     expect(wireframeMesh).toBe(firstMesh)
     expect(wireframeMesh?.geometry).toBe(firstGeometry)
+    expect(wireframeMesh?.material).toBeInstanceOf(MeshStandardMaterial)
     expect(wireframeMesh?.material.color.getHexString()).toBe('ff0000')
     expect(wireframeMesh?.material.wireframe).toBe(true)
 
@@ -2831,8 +2849,172 @@ describe('Viewer baseline replacement', () => {
     const restoredMesh = runtime.partMeshes.get('part:display-mode-proof')
     expect(restoredMesh).toBe(firstMesh)
     expect(restoredMesh?.geometry).toBe(firstGeometry)
+    expect(restoredMesh?.material).toBeInstanceOf(MeshStandardMaterial)
     expect(restoredMesh?.material.color.getHexString()).toBe('ff0000')
     expect(restoredMesh?.material.wireframe).toBe(false)
+  })
+
+  it('keeps material mode on neutral inspection lighting when environment lighting changes', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      renderer: {
+        domElement: { style: { filter: string } }
+        toneMappingExposure: number
+      }
+      lightsById: Map<string, unknown>
+      materialModeInspectionLight: { visible: boolean; intensity: number; castShadow: boolean }
+      partMeshes: Map<
+        string,
+        {
+          geometry: object
+          material: {
+            color: { getHexString: () => string }
+            toneMapped: boolean
+            metalness: number
+            roughness: number
+            emissive: { getHexString: () => string }
+            emissiveIntensity: number
+          }
+        }
+      >
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:material-light-proof', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    const materialModeSettings = {
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'material' as const,
+      materials: {
+        ...DEFAULT_VIEW_SETTINGS.materials,
+        presets: DEFAULT_VIEW_SETTINGS.materials.presets.map((preset) =>
+          preset.id === 'default_matte'
+            ? {
+                ...preset,
+                color: '#25a1ff',
+                metalness: 1,
+                roughness: 0,
+                emissive: '#ff8800',
+                emissiveIntensity: 2,
+              }
+            : preset,
+        ),
+      },
+    }
+
+    runtime.applyViewSettings(materialModeSettings)
+
+    const materialModeMesh = runtime.partMeshes.get('part:material-light-proof')
+    const firstGeometry = materialModeMesh?.geometry
+    const firstMaterial = materialModeMesh?.material
+    expect(firstMaterial).toBeInstanceOf(MeshStandardMaterial)
+    expect(firstMaterial?.color.getHexString()).toBe('25a1ff')
+    expect(firstMaterial?.metalness).toBe(1)
+    expect(firstMaterial?.roughness).toBe(0)
+    expect(firstMaterial?.emissive.getHexString()).toBe('ff8800')
+    expect(firstMaterial?.emissiveIntensity).toBe(2)
+    expect(firstMaterial?.toneMapped).toBe(false)
+    expect(runtime.renderer.toneMappingExposure).toBe(1)
+    expect(runtime.renderer.domElement.style.filter).toBe('')
+    expect(runtime.materialModeInspectionLight.visible).toBe(true)
+    expect(runtime.materialModeInspectionLight.intensity).toBeGreaterThan(0)
+    expect(runtime.materialModeInspectionLight.castShadow).toBe(false)
+    expect([...runtime.lightsById.keys()]).toEqual([])
+
+    runtime.applyViewSettings({
+      ...materialModeSettings,
+      environmentGrade: {
+        ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+        exposure: 1.8,
+        contrast: 1.35,
+        highlights: 25,
+        shadows: -25,
+        temperature: 45,
+        tint: -30,
+        saturation: 1.75,
+      },
+      lighting: {
+        ...DEFAULT_VIEW_SETTINGS.lighting,
+        lights: DEFAULT_VIEW_SETTINGS.lighting.lights.map((light) => ({
+          ...light,
+          intensity: light.intensity * 4,
+        })),
+      },
+    })
+
+    const changedEnvironmentMesh = runtime.partMeshes.get('part:material-light-proof')
+    expect(changedEnvironmentMesh).toBe(materialModeMesh)
+    expect(changedEnvironmentMesh?.geometry).toBe(firstGeometry)
+    expect(changedEnvironmentMesh?.material).toBe(firstMaterial)
+    expect(changedEnvironmentMesh?.material).toBeInstanceOf(MeshStandardMaterial)
+    expect(changedEnvironmentMesh?.material.color.getHexString()).toBe('25a1ff')
+    expect(changedEnvironmentMesh?.material.metalness).toBe(1)
+    expect(changedEnvironmentMesh?.material.roughness).toBe(0)
+    expect(runtime.renderer.toneMappingExposure).toBe(1)
+    expect(runtime.renderer.domElement.style.filter).toBe('')
+    expect(runtime.materialModeInspectionLight.visible).toBe(true)
+    expect([...runtime.lightsById.keys()]).toEqual([])
+
+    runtime.applyViewSettings({
+      ...materialModeSettings,
+      displayMode: 'rendered',
+    })
+
+    const renderedMesh = runtime.partMeshes.get('part:material-light-proof')
+    expect(renderedMesh).toBe(materialModeMesh)
+    expect(renderedMesh?.geometry).toBe(firstGeometry)
+    expect(renderedMesh?.material).toBeInstanceOf(MeshStandardMaterial)
+    expect(renderedMesh?.material.color.getHexString()).toBe('25a1ff')
+    expect(renderedMesh?.material.metalness).toBe(1)
+    expect(renderedMesh?.material.roughness).toBe(0)
+    expect(runtime.materialModeInspectionLight.visible).toBe(false)
+    expect([...runtime.lightsById.keys()]).toEqual(['key', 'fill', 'rim'])
+    expect(runtime.renderer.toneMappingExposure).toBe(
+      DEFAULT_VIEW_SETTINGS.environmentGrade.exposure,
+    )
+    expect(runtime.renderer.domElement.style.filter).toContain('brightness(')
   })
 
   it('keeps rendered scene polish behind rendered and render-preview display modes', async () => {
@@ -3194,6 +3376,83 @@ describe('Viewer baseline replacement', () => {
       },
     })
 
+    expect(runtimeDisposes).toHaveLength(2)
+    expect(runtimeDisposes[0]).toHaveBeenCalled()
+    expect(statuses).toContainEqual({
+      status: 'rendering',
+      completedSamples: 0,
+      targetSamples: 128,
+    })
+  })
+
+  it('restarts active render preview when a quality preset changes settings', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS, createRenderPreviewQualityPresetSettings } = await import(
+      '../shared/viewSettingsTypes'
+    )
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+
+    const statuses: unknown[] = []
+    const runtimeDisposes: ReturnType<typeof vi.fn>[] = []
+    const factorySettings: unknown[] = []
+    setRenderPreviewRuntimeFactoryForTests((options) => {
+      factorySettings.push(options.settings)
+      const targetSamples = options.settings?.targetSamples ?? options.targetSamples ?? 64
+      const dispose = vi.fn()
+      runtimeDisposes.push(dispose)
+      return {
+        targetSamples,
+        isSupported: true,
+        unsupportedReason: null,
+        start: vi.fn(),
+        renderSample: vi.fn(() => ({
+          completedSamples: 1,
+          targetSamples,
+          complete: false,
+        })),
+        reset: vi.fn(),
+        updateCamera: vi.fn(),
+        updateMaterials: vi.fn(),
+        updateEnvironment: vi.fn(),
+        updateLights: vi.fn(),
+        dispose,
+      }
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      setOnRenderPreviewStatusChange: (handler: (status: unknown) => void) => void
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }
+    runtime.setOnRenderPreviewStatusChange((status) => statuses.push(status))
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+      renderPreview: createRenderPreviewQualityPresetSettings('fast'),
+    })
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+      renderPreview: createRenderPreviewQualityPresetSettings('clean'),
+    })
+
+    expect(factorySettings).toEqual([
+      createRenderPreviewQualityPresetSettings('fast'),
+      createRenderPreviewQualityPresetSettings('clean'),
+    ])
     expect(runtimeDisposes).toHaveLength(2)
     expect(runtimeDisposes[0]).toHaveBeenCalled()
     expect(statuses).toContainEqual({

@@ -72,6 +72,246 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1905 -->
+
+### [1905] - 2026-05-12 09:05 - `Settings-2 - Phase 3 - Key Bindings Section Entry And Routing`
+
+HUMAN SUMMARY: `Settings now has a real Key Bindings section route. The existing Console first input priority control moved out of General into Key Bindings while keeping the same owner-backed store and edit-history behavior, and grouped shortcut rendering remains deferred to the next Settings 2 phase.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3 limited to Settings section entry, routing, and the Console input-priority relocation.
+- Did not render shortcut inventory groups, shortcut preset selection, rebinding UI, or keyboard-routing behavior changes.
+- Preserved the existing Settings shell layout and owner-backed Console input-priority history path.
+
+#### Summary of Implementation
+
+- Added `keyBindings` to the Settings section id contract and rail descriptor list.
+- Moved the `console-input-priority` read row projection from `General` to `Key Bindings`.
+- Moved the `Console first input priority` switch into the dedicated `Key Bindings` pane.
+- Added narrow placeholder copy for the future grouped shortcut rows and preset selector.
+- Reworked the Settings active-section sync to avoid a synchronous state update inside an effect.
+- Updated Settings tests for rail order, General removal, Key Bindings routing, Console input-priority editing, and direct `initialSectionId="keyBindings"` launch.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Settings rail now includes `Key Bindings` after `General`.
+- `Console first input priority` no longer appears in `General`.
+- `Console first input priority` appears and remains editable in `Key Bindings`.
+- `initialSectionId="keyBindings"` routes directly to the new dedicated pane.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/SettingsSurface.test.tsx`
+- `npx.cmd eslint src/app/workspace/SettingsSurface.tsx src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1904 -->
+
+### [1904] - 2026-05-12 08:52 - `Settings-2 - Phase 2 - Shared Shortcut Read Model And Mode Normalization`
+
+HUMAN SUMMARY: `Settings 2 now has the first normalized shortcut read model. It converts the Phase 1 source map into stable groups and rows, keeps routing-only or fragmented shortcut areas deferred, and exposes Default plus Blender (working) preset reads with Blender currently copied from Default.`
+
+#### Scope / Constraints Honored
+
+- Kept the pass limited to the Phase 2 read-model contract.
+- Added no Settings UI, Key Bindings section entry, visible preset selector, rebinding UI, Console input-priority relocation, or keyboard-routing behavior changes.
+- Reused the Phase 1 source map and existing viewer camera shortcut bindings instead of creating a second shortcut registry.
+
+#### Summary of Implementation
+
+- Added `shortcutInventoryReadModel.ts` as the shared read-model helper over `getShortcutInventorySourceMap()`.
+- Defined normalized shortcut row, group, preset, and read-model contracts.
+- Converted cataloged viewer camera bindings into displayable shortcut rows with command labels, key chords, mode labels, and source ids.
+- Preserved routing-owner-only, behavior-setting, and fragmented source-map entries as deferred groups with their Phase 1 reasons.
+- Added `Default` and `Blender (working)` preset reads, with `Blender (working)` currently copied from `Default`.
+- Added focused tests for row normalization, deferred groups, group ordering, preset parity, and full source-map coverage.
+
+#### Files Changed
+
+- `src/app/shortcutInventoryReadModel.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime keyboard behavior changed.
+- No Settings UI changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.test.ts`
+- `npx.cmd eslint src/app/shortcutInventorySourceMap.ts src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.ts src/app/shortcutInventoryReadModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1903 -->
+
+### [1903] - 2026-05-12 08:41 - `Settings-2 - Phase 1 - Shortcut Inventory Source Map`
+
+HUMAN SUMMARY: `Settings 2 now has a read-only shortcut inventory source map. The first map names the existing viewer camera binding owner, separates routing-only shortcut seams from displayable binding registries, and records Console input priority plus fragmented inline handlers as deferred follow-up work.`
+
+#### Scope / Constraints Honored
+
+- Kept the pass limited to the Phase 1 source map.
+- Added no Settings UI, Key Bindings section entry, shortcut preset selector, rebinding UI, or Console input-priority relocation.
+- Preserved keyboard routing behavior and reused the existing viewer camera shortcut binding owner instead of duplicating those bindings.
+
+#### Summary of Implementation
+
+- Added `shortcutInventorySourceMap.ts` as the first read-only shortcut inventory source-map helper.
+- Cataloged viewer camera shortcuts from the existing `viewerCameraShortcutBindings` owner.
+- Recorded shared input-routing owners and active-viewer display mode as routing-owner-only seams.
+- Recorded `Console first input priority` as an owner-backed shortcut-behavior setting for later relocation.
+- Recorded fragmented inline shortcut handlers as deferred rather than pretending they already have one clean binding owner.
+- Added focused tests for cataloged, routing-only, behavior-setting, and fragmented source-map entries.
+
+#### Files Changed
+
+- `src/app/shortcutInventorySourceMap.ts`
+- `src/app/shortcutInventorySourceMap.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime keyboard behavior changed.
+- No Settings UI changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts`
+- `npx.cmd eslint src/app/shortcutInventorySourceMap.ts src/app/shortcutInventorySourceMap.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1902 -->
+
+### [1902] - 2026-05-11 21:55 - `Model-Viewport-3 - Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up`
+
+HUMAN SUMMARY: `Material mode now uses a neutral inspection light with PBR-capable materials, so roughness and metallicness changes are visible again without bringing back harsh authored scene-light shadows.`
+
+#### Scope / Constraints Honored
+
+- Kept Material mode presentation-only.
+- Kept authored scene lights, shadows, ground, HDRI mood, and render polish out of Material mode.
+- Preserved Rendered and Render Preview as the modes that use authored lighting.
+- Left graph execution, export, render queue, and render-preview quality settings untouched.
+
+#### Summary of Implementation
+
+- Changed the Material-mode material cache back to `MeshStandardMaterial`.
+- Restored roughness, metalness, emissive, opacity, sidedness, and wireframe mapping for Material mode.
+- Added a viewer-owned neutral `HemisphereLight` for Material-mode inspection.
+- Gated authored lights out of Material mode while restoring them for Rendered and Render Preview.
+- Cleared Material-mode HDRI/environment lighting contribution while keeping neutral grade/filter behavior.
+- Updated focused Viewer tests for PBR readability, neutral fill gating, authored-light restoration, and rebuild-free mode switching.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts`
+- `npx.cmd eslint src/viewer/Viewer.ts src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1901 -->
+
+### [1901] - 2026-05-11 21:39 - `Model-Viewport-3 - Phase 10 - Material Mode Lighting Separation`
+
+HUMAN SUMMARY: `Material mode now reads as an unlit assigned-material color mode. Rendered and Render Preview keep the lit MeshStandardMaterial path, while Material mode uses MeshBasicMaterial and ignores environment-grade lighting polish for viewer-owned part meshes.`
+
+#### Scope / Constraints Honored
+
+- Kept material mode presentation-only.
+- Preserved Rendered and Render Preview environment-lit behavior.
+- Kept environment source and light ownership intact instead of removing lights globally.
+- Left reference/import mesh material-mode widening deferred unless a later slice needs it.
+
+#### Summary of Implementation
+
+- Added a viewer-owned `MeshBasicMaterial` cache for Material display mode.
+- Kept the existing `MeshStandardMaterial` cache for Rendered, Render Preview, and Wireframe modes.
+- Synchronized both caches from the same material preset owner.
+- Routed only `material` display mode through the unlit cache.
+- Neutralized Material mode environment grade/filter presentation so assigned colors stay readable.
+- Added focused Viewer tests for unlit Material mode, environment-change stability, rendered restoration, and rebuild-free mode switching.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1900 -->
+
+### [1900] - 2026-05-11 20:56 - `Model-Viewport-3 - Phase 9 - Render Quality Presets And Cleanup`
+
+HUMAN SUMMARY: `Render Preview now has friendly quality presets in Properties. Fast, Balanced, Clean, and High write the same render-preview settings as the manual controls, while manual divergence shows Custom without adding a second settings owner.`
+
+#### Scope / Constraints Honored
+
+- Kept render quality presets as shortcuts into `ViewSettings.renderPreview`.
+- Kept `Custom` as a derived readout instead of a saved preset state.
+- Preserved the Phase 8 runtime reset path for active Render Preview quality changes.
+- Left image export, render queue, output resolution, final render file saving, and dedicated render-preview exposure override deferred.
+
+#### Summary of Implementation
+
+- Added shared render-preview quality preset definitions and helper reads in `src/shared/viewSettingsTypes.ts`.
+- Added a Properties `Quality preset` ParaSelect to `PropertiesRenderSection.tsx`.
+- Made named preset selection write the existing render-preview settings owner.
+- Made manual setting divergence resolve the selector to `Custom`, with exact named matches resolving back to their preset.
+- Added focused Properties and Viewer tests for preset writes, manual Custom behavior, and active render-preview reset behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Properties Render now offers `Fast`, `Balanced`, `Clean`, and `High` render quality presets.
+- Changing any manual render quality control shows `Custom` when the settings no longer match a named preset.
+- Returning manual settings to an exact preset mapping shows that preset again.
+- Changing presets while Render Preview is active restarts accumulation and updates HUD target progress through the existing quality-change path.
+
+#### Verification Steps
+
+- Ran `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- Ran `npm.cmd test -- --run src/viewer/Viewer.test.ts`
+- Ran `npm.cmd run build`
+
 <!-- ENTRY 1899 -->
 
 ### [1899] - 2026-05-11 20:29 - `Model-Viewport-3 - Phase 8 Cleanup - Render Properties Control Styling`

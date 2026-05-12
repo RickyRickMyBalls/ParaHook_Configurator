@@ -148,6 +148,7 @@ import {
 
 type GizmoSpace = 'local' | 'world'
 type MaterialPresetId = string
+type ViewerPartMaterial = MeshStandardMaterial
 type ReferenceTransformBase = ReferenceTransformOverride
 type ReferenceTransformSession = {
   referenceId: string
@@ -205,6 +206,22 @@ const SOLID_DISPLAY_MODE_MATERIAL: MaterialPreset = {
   transparent: false,
   doubleSided: true,
 }
+const MATERIAL_DISPLAY_MODE_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
+  toneMapping: 'none',
+  exposure: 1,
+  contrast: 1,
+  highlights: 0,
+  shadows: 0,
+  whites: 0,
+  blacks: 0,
+  temperature: 0,
+  tint: 0,
+  saturation: 1,
+}
+const MATERIAL_MODE_INSPECTION_LIGHT_NAME = 'Material Mode Neutral Fill'
+const MATERIAL_MODE_INSPECTION_SKY_COLOR = '#ffffff'
+const MATERIAL_MODE_INSPECTION_GROUND_COLOR = '#d7dce5'
+const MATERIAL_MODE_INSPECTION_LIGHT_INTENSITY = 1.6
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
@@ -700,6 +717,8 @@ export class Viewer {
   private readonly lightTargetsById = new Map<string, Object3D>()
   private readonly environmentLightHelpersById = new Map<string, Group>()
   private readonly materialCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
+  private readonly materialModeCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
+  private readonly materialModeInspectionLight: HemisphereLight
   private readonly displayModeSolidMaterial: MeshStandardMaterial
   private readonly assignedPresetByPartKey = new Map<string, MaterialPresetId>()
   private readonly materialFallbackPartKeyByViewerPartKey = new Map<string, string>()
@@ -722,6 +741,15 @@ export class Viewer {
     this.scene = new Scene()
     this.scene.background = new Color(DEFAULT_ENVIRONMENT_BACKGROUND)
     this.clock = new Clock()
+    this.materialModeInspectionLight = new HemisphereLight(
+      MATERIAL_MODE_INSPECTION_SKY_COLOR,
+      MATERIAL_MODE_INSPECTION_GROUND_COLOR,
+      MATERIAL_MODE_INSPECTION_LIGHT_INTENSITY,
+    )
+    this.materialModeInspectionLight.name = MATERIAL_MODE_INSPECTION_LIGHT_NAME
+    this.materialModeInspectionLight.visible = false
+    this.materialModeInspectionLight.castShadow = false
+    this.scene.add(this.materialModeInspectionLight)
 
     this.perspectiveCamera = new PerspectiveCamera(60, 1, 0.1, 1000)
     this.perspectiveCamera.position.set(3, 2.4, 3)
@@ -1183,20 +1211,22 @@ export class Viewer {
       this.geometrySketchOverlay?.mode === 'draw' ? false : settings.gridVisible
     this.axesHelper.visible = settings.axesVisible
 
+    const environmentGrade = this.resolveDisplayModeEnvironmentGrade()
     this.renderer.shadowMap.enabled = this.resolveDisplayModeShadowsEnabled()
     this.renderer.toneMapping =
-      settings.environmentGrade.toneMapping === 'aces' ? ACESFilmicToneMapping : NoToneMapping
-    this.renderer.toneMappingExposure = settings.environmentGrade.exposure
-    this.renderer.domElement.style.filter = resolveEnvironmentGradeCanvasFilter(
-      settings.environmentGrade,
-    )
+      environmentGrade.toneMapping === 'aces' ? ACESFilmicToneMapping : NoToneMapping
+    this.renderer.toneMappingExposure = environmentGrade.exposure
+    this.renderer.domElement.style.filter =
+      this.resolveDisplayMode() === 'material'
+        ? ''
+        : resolveEnvironmentGradeCanvasFilter(environmentGrade)
 
     this.applyEnvironmentSource(settings)
 
     this.applyGroundSettings(this.resolveDisplayModeGroundSettings())
     this.setAxisOverlayEnabled(settings.axisOverlayEnabled)
     this.axisGizmo?.setStyle(settings.axisOverlayStyle)
-    this.applyLights(settings.lighting.lights)
+    this.applyDisplayModeLights(settings.lighting.lights)
     this.applyMaterialSettings(settings.materials)
     this.applyReferenceDisplayModeToScene()
     this.applyShadowFlags()
@@ -1209,6 +1239,21 @@ export class Viewer {
   }
 
   private applyEnvironmentSource(settings: ViewSettings): void {
+    if (this.resolveDisplayMode() === 'material') {
+      this.environmentLoadRequestId += 1
+      this.environmentTextureSourcePath = null
+      this.disposeEnvironmentTexture()
+      this.applyEnvironmentLightingContribution(null)
+      this.applyEnvironmentBackgroundTreatment(
+        {
+          kind: 'preset-color',
+          color: getEnvironmentPresetDefinition(settings.envPreset).background,
+        },
+        null,
+      )
+      return
+    }
+
     const lightingRuntime = this.resolveEnvironmentLightingRuntime(settings)
     const backgroundRuntime = this.resolveEnvironmentBackgroundRuntime(settings)
     const environmentScene = this.scene as Scene & {
@@ -3133,11 +3178,16 @@ export class Viewer {
     this.groundPlaneMaterial.dispose()
     this.displayModeSolidMaterial.dispose()
     this.scene.remove(this.groundPlane)
+    this.scene.remove(this.materialModeInspectionLight)
 
     for (const material of this.materialCacheByPresetId.values()) {
       material.dispose()
     }
     this.materialCacheByPresetId.clear()
+    for (const material of this.materialModeCacheByPresetId.values()) {
+      material.dispose()
+    }
+    this.materialModeCacheByPresetId.clear()
     this.assignedPresetByPartKey.clear()
     this.materialFallbackPartKeyByViewerPartKey.clear()
 
@@ -3219,6 +3269,17 @@ export class Viewer {
       this.applySpecToLight(light, targetObject, spec)
       this.applySpecToEnvironmentLightHelper(helper, spec)
     }
+  }
+
+  private applyDisplayModeLights(lightSpecs: LightSpec[]): void {
+    const materialMode = this.resolveDisplayMode() === 'material'
+    this.materialModeInspectionLight.visible = materialMode
+    if (materialMode) {
+      this.clearAllLights()
+      return
+    }
+
+    this.applyLights(lightSpecs)
   }
 
   private createThreeLightFromSpec(spec: LightSpec): {
@@ -3454,12 +3515,20 @@ export class Viewer {
       const cached = this.materialCacheByPresetId.get(preset.id)
       if (cached !== undefined) {
         this.applyPresetToMaterial(cached, preset)
-        continue
+      } else {
+        const material = new MeshStandardMaterial()
+        this.applyPresetToMaterial(material, preset)
+        this.materialCacheByPresetId.set(preset.id, material)
       }
 
-      const material = new MeshStandardMaterial()
-      this.applyPresetToMaterial(material, preset)
-      this.materialCacheByPresetId.set(preset.id, material)
+      const materialModeCached = this.materialModeCacheByPresetId.get(preset.id)
+      if (materialModeCached !== undefined) {
+        this.applyPresetToMaterialModeMaterial(materialModeCached, preset)
+      } else {
+        const material = new MeshStandardMaterial()
+        this.applyPresetToMaterialModeMaterial(material, preset)
+        this.materialModeCacheByPresetId.set(preset.id, material)
+      }
     }
 
     for (const [presetId, material] of this.materialCacheByPresetId.entries()) {
@@ -3468,6 +3537,13 @@ export class Viewer {
       }
       material.dispose()
       this.materialCacheByPresetId.delete(presetId)
+    }
+    for (const [presetId, material] of this.materialModeCacheByPresetId.entries()) {
+      if (nextPresetIds.has(presetId)) {
+        continue
+      }
+      material.dispose()
+      this.materialModeCacheByPresetId.delete(presetId)
     }
 
     this.assignedPresetByPartKey.clear()
@@ -3655,6 +3731,12 @@ export class Viewer {
     }
   }
 
+  private resolveDisplayModeEnvironmentGrade(): EnvironmentGradeSettings {
+    return this.resolveDisplayMode() === 'material'
+      ? MATERIAL_DISPLAY_MODE_ENVIRONMENT_GRADE
+      : this.currentViewSettings.environmentGrade
+  }
+
   private applyPresetToMaterial(material: MeshStandardMaterial, preset: MaterialPreset): void {
     material.color.set(preset.color)
     material.metalness = clamp(preset.metalness, 0, 1)
@@ -3665,6 +3747,23 @@ export class Viewer {
     material.transparent = preset.transparent || material.opacity < 1
     material.side = preset.doubleSided ? DoubleSide : FrontSide
     material.wireframe = this.resolveDisplayModeWireframe()
+    material.needsUpdate = true
+  }
+
+  private applyPresetToMaterialModeMaterial(
+    material: MeshStandardMaterial,
+    preset: MaterialPreset,
+  ): void {
+    material.color.set(preset.color)
+    material.metalness = clamp(preset.metalness, 0, 1)
+    material.roughness = clamp(preset.roughness, 0, 1)
+    material.emissive.set(preset.emissive)
+    material.emissiveIntensity = clamp(preset.emissiveIntensity, 0, 2)
+    material.opacity = clamp(preset.opacity, 0, 1)
+    material.transparent = preset.transparent || material.opacity < 1
+    material.side = preset.doubleSided ? DoubleSide : FrontSide
+    material.wireframe = this.resolveDisplayModeWireframe()
+    material.toneMapped = false
     material.needsUpdate = true
   }
 
@@ -3681,7 +3780,7 @@ export class Viewer {
   }
 
   private createLayerMaterial(
-    baseMaterial: MeshStandardMaterial,
+    baseMaterial: ViewerPartMaterial,
     style:
       | {
           opacity: number
@@ -3690,7 +3789,7 @@ export class Viewer {
       | undefined,
     fallbackOpacity = 1,
     overlay = false,
-  ): MeshStandardMaterial {
+  ): ViewerPartMaterial {
     if (style === undefined) {
       if (!overlay && fallbackOpacity === 1) {
         return baseMaterial
@@ -3718,17 +3817,22 @@ export class Viewer {
     }
   }
 
-  private resolveMaterialForPart(partKey: string): MeshStandardMaterial {
+  private resolveMaterialForPart(partKey: string): ViewerPartMaterial {
     if (this.resolveDisplayMode() === 'solid') {
       return this.displayModeSolidMaterial
     }
 
     const materials = this.currentViewSettings.materials
+    const materialMode = this.resolveDisplayMode() === 'material'
+    const resolveCachedMaterial = (presetId: MaterialPresetId): ViewerPartMaterial | undefined =>
+      materialMode
+        ? this.materialModeCacheByPresetId.get(presetId)
+        : this.materialCacheByPresetId.get(presetId)
 
     if (materials.usePerPart) {
       const mapped = this.assignedPresetByPartKey.get(partKey)
       if (mapped !== undefined) {
-        const mappedMaterial = this.materialCacheByPresetId.get(mapped)
+        const mappedMaterial = resolveCachedMaterial(mapped)
         if (mappedMaterial !== undefined) {
           return mappedMaterial
         }
@@ -3738,7 +3842,7 @@ export class Viewer {
       if (fallbackPartKey !== undefined) {
         const fallbackMapped = this.assignedPresetByPartKey.get(fallbackPartKey)
         if (fallbackMapped !== undefined) {
-          const fallbackMaterial = this.materialCacheByPresetId.get(fallbackMapped)
+          const fallbackMaterial = resolveCachedMaterial(fallbackMapped)
           if (fallbackMaterial !== undefined) {
             return fallbackMaterial
           }
@@ -3746,21 +3850,28 @@ export class Viewer {
       }
     }
 
-    const selected = this.materialCacheByPresetId.get(materials.selectedPresetId)
+    const selected = resolveCachedMaterial(materials.selectedPresetId)
     if (selected !== undefined) {
       return selected
     }
 
-    const first = this.materialCacheByPresetId.values().next().value as
-      | MeshStandardMaterial
-      | undefined
+    const first = (
+      materialMode ? this.materialModeCacheByPresetId : this.materialCacheByPresetId
+    ).values().next().value as ViewerPartMaterial | undefined
     if (first !== undefined) {
       return first
     }
 
     const material = new MeshStandardMaterial({ color: '#5f83d6' })
+    if (materialMode) {
+      material.toneMapped = false
+    }
     material.wireframe = this.resolveDisplayModeWireframe()
-    this.materialCacheByPresetId.set('fallback_runtime', material)
+    if (materialMode) {
+      this.materialModeCacheByPresetId.set('fallback_runtime', material)
+    } else {
+      this.materialCacheByPresetId.set('fallback_runtime', material)
+    }
     return material
   }
 

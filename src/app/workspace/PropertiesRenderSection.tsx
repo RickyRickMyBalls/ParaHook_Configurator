@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from 'react'
 import {
   DEFAULT_RENDER_PREVIEW_SETTINGS,
@@ -7,19 +8,23 @@ import {
   MIN_RENDER_PREVIEW_BOUNCES,
   MIN_RENDER_PREVIEW_RENDER_SCALE,
   MIN_RENDER_PREVIEW_TARGET_SAMPLES,
+  RENDER_PREVIEW_QUALITY_PRESET_OPTIONS,
   RENDER_PREVIEW_GPU_LOAD_OPTIONS,
   RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS,
+  createRenderPreviewQualityPresetSettings,
   isRenderPreviewGpuLoad,
   isRenderPreviewNoiseCleanup,
   normalizeRenderPreviewSettings,
+  resolveRenderPreviewQualityPresetRead,
   type RenderPreviewGpuLoad,
   type RenderPreviewNoiseCleanup,
+  type RenderPreviewQualityPreset,
   type RenderPreviewSettings,
 } from '../../shared/viewSettingsTypes'
 import { ParaSelect } from '../components/ParaSelect'
 import { ParaSlider } from '../components/ParaSlider'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
-import type { PropertiesSectionContext, PropertiesSectionDefinition } from './propertiesSectionContract'
+import type { PropertiesSectionDefinition } from './propertiesSectionContract'
 
 const SAMPLE_STEP = 8
 const BOUNCE_STEP = 1
@@ -48,6 +53,9 @@ const gpuLoadOptions = RENDER_PREVIEW_GPU_LOAD_OPTIONS.map((value) => ({
   label: GPU_LOAD_LABELS[value],
 }))
 
+const isRenderPreviewQualityPreset = (value: string): value is RenderPreviewQualityPreset =>
+  value === 'fast' || value === 'balanced' || value === 'clean' || value === 'high'
+
 const formatSamples = (value: number): string => `${Math.round(value)}`
 const formatBounces = (value: number): string => `${Math.round(value)}`
 const formatRenderScale = (value: number): string => `${Math.round(value * 100)}%`
@@ -57,9 +65,7 @@ const buildRenderPreviewPatch = (
   patch: Partial<RenderPreviewSettings>,
 ): RenderPreviewSettings => normalizeRenderPreviewSettings({ ...current, ...patch }, current)
 
-const renderRenderSectionContent = (_context: PropertiesSectionContext): ReactNode => (
-  <PropertiesRenderSectionContent />
-)
+const renderRenderSectionContent = (): ReactNode => <PropertiesRenderSectionContent />
 
 export const propertiesRenderSectionDefinition: PropertiesSectionDefinition = {
   id: 'render',
@@ -91,9 +97,18 @@ function PropertiesRenderSectionContent() {
     updateRenderPreview({ gpuLoad: value })
   }
 
+  const handlePresetChange = (value: string) => {
+    if (!isRenderPreviewQualityPreset(value)) {
+      return
+    }
+    setViewKey('renderPreview', createRenderPreviewQualityPresetSettings(value))
+  }
+
   const handleReset = () => {
     setViewKey('renderPreview', DEFAULT_RENDER_PREVIEW_SETTINGS)
   }
+
+  const qualityPresetRead = resolveRenderPreviewQualityPresetRead(renderPreview)
 
   return (
     <section className="SettingsSurfaceGroup PropertiesRenderSection" aria-label="Render settings">
@@ -104,6 +119,16 @@ function PropertiesRenderSectionContent() {
       </header>
       <div className="SettingsSurfaceEditorPanel">
         <div className="SettingsSurfaceEditorGrid">
+          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+            <ParaSelect
+              label="Quality preset"
+              value={qualityPresetRead}
+              options={RENDER_PREVIEW_QUALITY_PRESET_OPTIONS}
+              onChange={handlePresetChange}
+              menuMode="custom"
+              capGlyph="chevron"
+            />
+          </div>
           <div className="SettingsSurfaceEditorField PropertiesRenderControl">
             <ParaSlider
               label="Samples"

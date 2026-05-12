@@ -30,6 +30,8 @@ export type ProjectionMode = 'perspective' | 'orthographic'
 export type ViewDisplayMode = 'solid' | 'wireframe' | 'material' | 'rendered' | 'renderPreview'
 export type RenderPreviewNoiseCleanup = 'off' | 'low' | 'medium' | 'high'
 export type RenderPreviewGpuLoad = 'smooth' | 'balanced' | 'fast'
+export type RenderPreviewQualityPreset = 'fast' | 'balanced' | 'clean' | 'high'
+export type RenderPreviewQualityPresetRead = RenderPreviewQualityPreset | 'custom'
 export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
 export type AxisOverlayBackgroundMode = 'none' | 'blur'
 export type GroundMaterialPresetId = 'matte_dark' | 'matte_mid' | 'glossy_studio'
@@ -268,6 +270,67 @@ export const DEFAULT_RENDER_PREVIEW_SETTINGS: RenderPreviewSettings = {
   gpuLoad: DEFAULT_RENDER_PREVIEW_GPU_LOAD,
 }
 
+export type RenderPreviewQualityPresetDefinition = {
+  id: RenderPreviewQualityPreset
+  label: string
+  settings: RenderPreviewSettings
+}
+
+export const RENDER_PREVIEW_QUALITY_PRESET_DEFINITIONS: readonly RenderPreviewQualityPresetDefinition[] =
+  [
+    {
+      id: 'fast',
+      label: 'Fast',
+      settings: {
+        targetSamples: 32,
+        bounces: 3,
+        renderScale: 0.5,
+        noiseCleanup: 'off',
+        gpuLoad: 'smooth',
+      },
+    },
+    {
+      id: 'balanced',
+      label: 'Balanced',
+      settings: DEFAULT_RENDER_PREVIEW_SETTINGS,
+    },
+    {
+      id: 'clean',
+      label: 'Clean',
+      settings: {
+        targetSamples: 128,
+        bounces: 8,
+        renderScale: 1,
+        noiseCleanup: 'medium',
+        gpuLoad: 'balanced',
+      },
+    },
+    {
+      id: 'high',
+      label: 'High',
+      settings: {
+        targetSamples: 256,
+        bounces: 12,
+        renderScale: 1,
+        noiseCleanup: 'high',
+        gpuLoad: 'fast',
+      },
+    },
+  ]
+
+export const CUSTOM_RENDER_PREVIEW_QUALITY_PRESET_OPTION = {
+  value: 'custom' as const,
+  label: 'Custom',
+}
+
+export const RENDER_PREVIEW_QUALITY_PRESET_OPTIONS = [
+  ...RENDER_PREVIEW_QUALITY_PRESET_DEFINITIONS.map((preset) => ({
+    value: preset.id,
+    label: preset.label,
+  })),
+  CUSTOM_RENDER_PREVIEW_QUALITY_PRESET_OPTION,
+]
+
 export const normalizeRenderPreviewSettings = (
   settings: Partial<RenderPreviewSettings> | undefined,
   fallback: RenderPreviewSettings = DEFAULT_RENDER_PREVIEW_SETTINGS,
@@ -295,6 +358,38 @@ export const normalizeRenderPreviewSettings = (
     : fallback.noiseCleanup,
   gpuLoad: isRenderPreviewGpuLoad(settings?.gpuLoad) ? settings.gpuLoad : fallback.gpuLoad,
 })
+
+export const areRenderPreviewSettingsEqual = (
+  left: RenderPreviewSettings,
+  right: RenderPreviewSettings,
+): boolean =>
+  left.targetSamples === right.targetSamples &&
+  left.bounces === right.bounces &&
+  left.renderScale === right.renderScale &&
+  left.noiseCleanup === right.noiseCleanup &&
+  left.gpuLoad === right.gpuLoad
+
+export const getRenderPreviewQualityPresetDefinition = (
+  preset: RenderPreviewQualityPreset,
+): RenderPreviewQualityPresetDefinition =>
+  RENDER_PREVIEW_QUALITY_PRESET_DEFINITIONS.find((definition) => definition.id === preset) ??
+  RENDER_PREVIEW_QUALITY_PRESET_DEFINITIONS[1]
+
+export const createRenderPreviewQualityPresetSettings = (
+  preset: RenderPreviewQualityPreset,
+): RenderPreviewSettings =>
+  normalizeRenderPreviewSettings(getRenderPreviewQualityPresetDefinition(preset).settings)
+
+export const resolveRenderPreviewQualityPresetRead = (
+  settings: RenderPreviewSettings,
+): RenderPreviewQualityPresetRead => {
+  const normalizedSettings = normalizeRenderPreviewSettings(settings)
+  const matchingPreset = RENDER_PREVIEW_QUALITY_PRESET_DEFINITIONS.find((preset) =>
+    areRenderPreviewSettingsEqual(normalizedSettings, preset.settings),
+  )
+
+  return matchingPreset?.id ?? 'custom'
+}
 
 const normalizeViewDisplayMode = (
   displayMode: unknown,

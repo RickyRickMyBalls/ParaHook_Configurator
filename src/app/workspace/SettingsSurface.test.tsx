@@ -77,6 +77,7 @@ describe('SettingsSurface', () => {
     expect(sectionButtons.map((button) => button.textContent)).toEqual([
       'All Overview',
       'General Startup',
+      'Key Bindings Shortcuts',
       'Workspace Layout',
       'Viewport View',
       'Spaghetti Editor Defaults',
@@ -163,7 +164,7 @@ describe('SettingsSurface', () => {
     expect(container?.textContent).toContain('Text size')
   })
 
-  it('edits Console input priority through the General section control', async () => {
+  it('keeps Console input priority out of the General section', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -183,10 +184,39 @@ describe('SettingsSurface', () => {
       'input[aria-label="Console first input priority"]',
     ) as HTMLInputElement | null
 
+    expect(content?.textContent).toContain('General')
+    expect(content?.textContent).toContain('Startup surface')
+    expect(content?.textContent).not.toContain('Console input priority')
+    expect(content?.textContent).not.toContain('Console first input priority')
+    expect(priorityToggle).toBeNull()
+  })
+
+  it('edits Console input priority through the Key Bindings section control', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="keyBindings"
+        />,
+      )
+    })
+
+    const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
+    const priorityToggle = container?.querySelector(
+      'input[aria-label="Console first input priority"]',
+    ) as HTMLInputElement | null
+
+    expect(content?.textContent).toContain('Key Bindings')
     expect(content?.textContent).toContain('Console input priority')
     expect(content?.textContent).toContain('Console first')
     expect(content?.textContent).toContain('Console first input priority')
     expect(content?.textContent).toContain('Shift+letter')
+    expect(content?.textContent).toContain('Grouped shortcut rows and preset selection')
     expect(priorityToggle).not.toBeNull()
     expect(priorityToggle?.checked).toBe(true)
 
@@ -208,6 +238,27 @@ describe('SettingsSurface', () => {
 
     expect(undoneTargetId).toBe('ui-pref:consoleInputPriorityMode')
     expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
+  })
+
+  it('routes directly into the Key Bindings section from initialSectionId', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="keyBindings"
+        />,
+      )
+    })
+
+    const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
+    expect(content?.textContent).toContain('Key Bindings')
+    expect(content?.textContent).toContain('Console input priority')
+    expect(content?.textContent).not.toContain('Startup surface')
   })
 
   it('opens on a requested section when the surface is launched from a contextual float-window shortcut', async () => {

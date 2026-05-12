@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+289. 2026-05-12 08:37:00: Added a `Summary 3` source-code-size line after a read-only scan of `/20/parahook/src`, recording source-style file and raw-line totals beside the docs snapshot.
+288. 2026-05-12 08:22:22: Added `Summary 3` to the `### Doc Stats` section using a fresh read-only Markdown scan under `/20/parahook/docs`, updating the non-`/archive/` versus `/archive/` file and raw-line totals to today's counts while preserving the older summaries for comparison.
 287. 2026-05-01 18:43:47: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md` to the docs map and refreshed the node-family index/list so the planned `Geometry/Loft` node now has a dedicated feature-addition checklist covering node UI, Console commands, toolbar workflow, edit history, parameter/object types, compile/runtime, preview/output publication, and verification.
 286. 2026-05-01 01:16:58: Updated the Edit History workspace docs map entry after the unified timeline future doc was renamed back to `Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, while preserving the separate broad architecture `Edit-History-4` entry.
 285. 2026-04-30 22:11:53: Updated the Edit History workspace docs map entry after the unified timeline future doc was named `Edit-History-Workspace-4 - Unified Timeline And History Marker.md`, and recorded Phase 1 as prepped for the timeline read-model implementation slice.
@@ -655,6 +657,19 @@ Rule notes:
 
 
 ### Doc Stats
+
+#### Summary 3 (`2026-05-12`)
+
+- Total docs/files scanned: `779`
+- Root scanned: `/20/parahook/docs`
+- Count method: `raw line count per Markdown file (.md)`
+- Non-/archive/ files: `602`
+- Non-/archive/ total lines: `340,999`
+- /archive files: `177`
+- /archive total lines: `220,516`
+- Grand total lines: `561,515`
+- Source code size (`/20/parahook/src`, `.ts/.tsx/.js/.jsx/.css/.scss/.json`): `632` files, `387,852` raw lines
+
 
 #### Summary 2 (`2026-04-18`)
 

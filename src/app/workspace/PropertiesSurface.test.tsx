@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_RENDER_PREVIEW_SETTINGS,
   DEFAULT_VIEW_SETTINGS,
+  createRenderPreviewQualityPresetSettings,
 } from '../../shared/viewSettingsTypes'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
@@ -1749,6 +1750,9 @@ describe('PropertiesSurface', () => {
   it('writes render preview settings from the Properties Render section', async () => {
     await renderSurface()
 
+    const qualityPresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Quality preset"]',
+    ) as HTMLSelectElement | null
     const sampleIncreaseButton = container?.querySelector(
       '.PropertiesRenderSection button[aria-label="Increase Samples"]',
     ) as HTMLButtonElement | null
@@ -1759,6 +1763,8 @@ describe('PropertiesSurface', () => {
       '.PropertiesRenderSection .ParaSelectNative[aria-label="GPU load"]',
     ) as HTMLSelectElement | null
 
+    expect(qualityPresetSelect?.value).toBe('balanced')
+
     await act(async () => {
       sampleIncreaseButton?.click()
     })
@@ -1766,6 +1772,7 @@ describe('PropertiesSurface', () => {
     expect(useUiPrefsStore.getState().view.renderPreview.targetSamples).toBe(
       DEFAULT_RENDER_PREVIEW_SETTINGS.targetSamples + 8,
     )
+    expect(qualityPresetSelect?.value).toBe('custom')
 
     await act(async () => {
       if (noiseCleanupSelect !== null) {
@@ -1787,5 +1794,61 @@ describe('PropertiesSurface', () => {
       noiseCleanup: 'medium',
       gpuLoad: 'fast',
     })
+  })
+
+  it('applies render quality presets and derives Custom from manual divergence', async () => {
+    useUiPrefsStore.getState().setViewKey(
+      'renderPreview',
+      createRenderPreviewQualityPresetSettings('fast'),
+    )
+
+    await renderSurface()
+
+    const qualityPresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Quality preset"]',
+    ) as HTMLSelectElement | null
+    const sampleIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Samples"]',
+    ) as HTMLButtonElement | null
+    const sampleDecreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Decrease Samples"]',
+    ) as HTMLButtonElement | null
+
+    expect(qualityPresetSelect?.value).toBe('fast')
+
+    await act(async () => {
+      sampleIncreaseButton?.click()
+    })
+
+    expect(qualityPresetSelect?.value).toBe('custom')
+
+    await act(async () => {
+      sampleDecreaseButton?.click()
+    })
+
+    expect(qualityPresetSelect?.value).toBe('fast')
+
+    await act(async () => {
+      if (qualityPresetSelect !== null) {
+        qualityPresetSelect.value = 'high'
+        qualityPresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
+      createRenderPreviewQualityPresetSettings('high'),
+    )
+    expect(qualityPresetSelect?.value).toBe('high')
+
+    await act(async () => {
+      if (qualityPresetSelect !== null) {
+        qualityPresetSelect.value = 'custom'
+        qualityPresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
+      createRenderPreviewQualityPresetSettings('high'),
+    )
   })
 })

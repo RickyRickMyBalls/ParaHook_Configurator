@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { readGraphBrowserStoragePolicy } from '../spaghetti/store/graphBrowserStoragePersistence'
 import { readRecentItemsPolicy } from '../recentItems/recentItemsPersistence'
 import { readPubPartsDownloadsStorage } from '../catalog/pubPartsDownloadsStorage'
@@ -33,6 +33,7 @@ import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 export type SettingsSectionId =
   | 'all'
   | 'general'
+  | 'keyBindings'
   | 'workspace'
   | 'viewport'
   | 'spaghettiEditor'
@@ -66,6 +67,12 @@ const settingsSections: readonly SettingsSection[] = [
     label: 'General',
     eyebrow: 'Startup',
     description: 'Entry preference and persistence defaults.',
+  },
+  {
+    id: 'keyBindings',
+    label: 'Key Bindings',
+    eyebrow: 'Shortcuts',
+    description: 'Shortcut behavior and the future mode-aware shortcut reference.',
   },
   {
     id: 'workspace',
@@ -202,7 +209,7 @@ const buildSettingsRows = (options: {
     value: formatConsoleInputPriorityMode(options.consoleInputPriorityMode),
     description:
       'Console first types plain letters into Console and uses Shift+letter shortcuts; Shortcuts first lets letters trigger shortcuts and uses C to enter Console.',
-    sectionIds: ['general'],
+    sectionIds: ['keyBindings'],
   },
   {
     id: 'workspace-restore',
@@ -334,7 +341,15 @@ type SettingsSurfaceProps = {
 
 export function SettingsSurface(props: SettingsSurfaceProps) {
   const { slotId, surfaceInstanceId, initialSectionId = 'all' } = props
-  const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId>(initialSectionId)
+  const [activeSectionState, setActiveSectionState] = useState<{
+    surfaceInstanceId: string
+    initialSectionId: SettingsSectionId
+    activeSectionId: SettingsSectionId
+  }>(() => ({
+    surfaceInstanceId,
+    initialSectionId,
+    activeSectionId: initialSectionId,
+  }))
   const spaghettiWindowAppearanceDefaults = useUiPrefsStore(
     (state) => state.spaghettiWindowAppearanceDefaults,
   )
@@ -363,9 +378,19 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
   const browserIsFloating = useWorkspaceStore((state) => state.browserShell.isFloating)
   const browserIsViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
 
-  useEffect(() => {
-    setActiveSectionId(initialSectionId)
-  }, [initialSectionId, surfaceInstanceId])
+  const activeSectionId =
+    activeSectionState.surfaceInstanceId === surfaceInstanceId &&
+    activeSectionState.initialSectionId === initialSectionId
+      ? activeSectionState.activeSectionId
+      : initialSectionId
+
+  const setActiveSectionId = (nextSectionId: SettingsSectionId) => {
+    setActiveSectionState({
+      surfaceInstanceId,
+      initialSectionId,
+      activeSectionId: nextSectionId,
+    })
+  }
 
   const updateSpaghettiWindowAppearanceDefaults = (
     patch: Partial<SpaghettiWindowAppearance>,
@@ -678,7 +703,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                       </div>
                     </div>
                   </div>
-                ) : section.id === 'general' ? (
+                ) : section.id === 'keyBindings' ? (
                   <>
                     <div className="SettingsSurfaceEditorPanel">
                       <div className="SettingsSurfaceEditorGrid">
@@ -702,6 +727,10 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           </label>
                         </div>
                       </div>
+                      <p className="SettingsSurfaceEditorNote">
+                        Grouped shortcut rows and preset selection are prepared for the next
+                        Settings 2 phase.
+                      </p>
                     </div>
                     <div className="SettingsSurfaceRowList" role="list">
                       {rows.map((row) => (

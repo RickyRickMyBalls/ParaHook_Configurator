@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+26. 2026-05-11 21:55: Marked `Model-Viewport-3 / Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` shipped after the viewer restored Material mode to PBR-capable `MeshStandardMaterial` inspection materials, added one neutral viewer-owned `HemisphereLight`, gated authored lights out of Material mode, kept shadows/ground/final polish disabled there, and proved roughness/metalness readability plus rendered-mode light restoration in focused `Viewer.test.ts` coverage.
+25. 2026-05-11 21:50: Tightened `Model-Viewport-3 / Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` into an implementation-ready viewer slice around replacing the Phase 10 `MeshBasicMaterial` material-mode cache with a PBR-capable `MeshStandardMaterial` inspection cache, adding one viewer-owned neutral `HemisphereLight`, gating authored lights to rendered/render-preview modes, preserving material-mode neutral grade/filter, and proving roughness/metalness readability plus no harsh shadows in focused `Viewer.test.ts` coverage.
+24. 2026-05-11 21:49: Added `Model-Viewport-3 / Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` as a follow-up to bring roughness and metallicness readability back into `Material` mode with controlled neutral fill lighting, no harsh authored point/spot light shadows, no final scene polish, and preserved rendered/render-preview lighting behavior.
+23. 2026-05-11 21:39: Marked `Model-Viewport-3 / Phase 10 - Material Mode Lighting Separation` shipped after the viewer added a material-mode `MeshBasicMaterial` cache beside the rendered `MeshStandardMaterial` cache, routed only `Material` display mode through the unlit cache, neutralized material-mode environment grade/filter presentation, preserved rendered/render-preview lighting behavior, and added focused `Viewer.test.ts` proof for unlit material mode plus rebuild-free mode switching.
+22. 2026-05-11 21:29: Tightened `Model-Viewport-3 / Phase 10 - Material Mode Lighting Separation` into an implementation-ready viewer slice around adding a material-mode unlit material cache beside the existing `MeshStandardMaterial` cache, routing only `material` display mode through that cache, preserving `rendered`/`renderPreview` environment-lit behavior, keeping mode switches rebuild-free, and proving the split in focused `Viewer.test.ts` coverage.
+21. 2026-05-11 21:27: Added `Model-Viewport-3 / Phase 10 - Material Mode Lighting Separation` as a follow-up for making `Material` mode lighting-neutral/unlit while keeping environment lights, HDRI contribution, shadows, ground, and tone-mapped scene polish owned by `Rendered` and `Render Preview`.
+20. 2026-05-11 20:56: Marked `Model-Viewport-3 / Phase 9 - Render Quality Presets And Cleanup` shipped after the repo added shared render-preview quality preset definitions, exposed a Properties `Quality preset` ParaSelect with derived `Custom` behavior, kept preset writes on the existing `ViewSettings.renderPreview` owner, proved manual divergence and active Render Preview reset behavior, and closed the lane with export/render-queue/output/exposure deferrals.
+19. 2026-05-11 20:48: Tightened `Model-Viewport-3 / Phase 9 - Render Quality Presets And Cleanup` into an implementation-ready closeout slice around shared render-preview preset definitions, a Properties `Quality preset` ParaSelect with derived `Custom` readout, preset writes through the existing `ViewSettings.renderPreview` owner, active Render Preview reset proof through the Phase 8 runtime path, and explicit deferral of export, render queue, output resolution, image saving, and dedicated render-preview exposure.
 18. 2026-05-11 20:13: Marked `Model-Viewport-3 / Phase 8 - Render Settings Runtime Wiring` shipped after the repo wired `ViewSettings.renderPreview` settings into the render-preview runtime factory, mapped samples, bounces, render scale, noise cleanup, and GPU load into the `three-gpu-pathtracer` adapter, recreated active accumulation when quality settings change, kept settings inert outside Render Preview, and added focused runtime/HUD proof.
 17. 2026-05-11 20:05: Tightened `Model-Viewport-3 / Phase 8 - Render Settings Runtime Wiring` into an implementation-ready runtime slice around passing the Phase 6 `ViewSettings.renderPreview` settings from `Viewer.applyViewSettings(...)` into `renderPreviewRuntime.ts`, recreating or resetting accumulation when render quality changes, mapping samples, bounces, render scale, noise cleanup, and GPU load into the `three-gpu-pathtracer` adapter, proving HUD sample targets follow Properties settings, and preserving normal raster display modes plus export/render-queue deferrals.
 16. 2026-05-11 20:03: Marked `Model-Viewport-3 / Phase 7 - Properties Render Section` shipped after the repo added a global Properties `Render` section, widened the Properties section contract for nullable/global sections, preserved object-scoped `Materials`, exposed render-preview samples, light bounces, render scale, noise cleanup, and GPU load through ParaSlider/ParaSelect controls, and proved no-focused-item availability plus settings writes while leaving runtime setting application to Phase 8.
@@ -171,7 +179,9 @@ Important rule:
 - [x] `HLG 2. The display modes include Solid, Wireframe, Material, Rendered, and a fifth high-quality render-preview mode.`
 - [x] `HLG 3. Render Preview shows iteration/sample progress in the viewport HUD while it is active.`
 - [x] `HLG 4. Display modes stay presentation-only and do not become geometry/build/export truth.`
-- [ ] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
+- [x] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
+- [x] `HLG 6. Material mode shows assigned material colors without environment lighting or rendered scene polish changing the read.`
+- [x] `HLG 7. Material mode still shows roughness and metallicness through a neutral inspection light model without harsh authored scene shadows.`
 
 ### `Model-Viewport-3 Phase 1`
 
@@ -226,28 +236,46 @@ Important rule:
 
 ### `Model-Viewport-3 Phase 7`
 
-- [ ] Add a `Render` section to the Properties workspace.
-- [ ] Use ParaSliders for numeric quality controls where practical.
-- [ ] Use ParaSelects for preset or mode choices where practical.
-- [ ] Keep Render section controls scoped to render-preview presentation settings.
-- [ ] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
+- [x] Add a `Render` section to the Properties workspace.
+- [x] Use ParaSliders for numeric quality controls where practical.
+- [x] Use ParaSelects for preset or mode choices where practical.
+- [x] Keep Render section controls scoped to render-preview presentation settings.
+- [x] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
 
 ### `Model-Viewport-3 Phase 8`
 
-- [ ] Wire render-preview settings into the viewer runtime adapter.
-- [ ] Reset accumulation when render-preview quality settings change.
-- [ ] Keep unsupported/fallback behavior honest when a setting cannot apply to the backend.
-- [ ] Add focused runtime tests for settings propagation and reset behavior.
-- [ ] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
-- [ ] `HLG 3. Render Preview shows iteration/sample progress in the viewport HUD while it is active.`
+- [x] Wire render-preview settings into the viewer runtime adapter.
+- [x] Reset accumulation when render-preview quality settings change.
+- [x] Keep unsupported/fallback behavior honest when a setting cannot apply to the backend.
+- [x] Add focused runtime tests for settings propagation and reset behavior.
+- [x] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
+- [x] `HLG 3. Render Preview shows iteration/sample progress in the viewport HUD while it is active.`
 
 ### `Model-Viewport-3 Phase 9`
 
-- [ ] Add friendly render quality presets that update multiple render-preview settings together.
-- [ ] Keep advanced settings readable after a preset is applied.
-- [ ] Add final cleanup tests and handoff notes for later export/render-queue work.
-- [ ] Decide whether exposure stays linked to existing viewport/environment settings or becomes an explicit render-preview override in a later lane.
-- [ ] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
+- [x] Add friendly render quality presets that update multiple render-preview settings together.
+- [x] Show `Custom` when manual render settings do not exactly match a named preset.
+- [x] Keep advanced settings readable after a preset is applied.
+- [x] Add final cleanup tests and handoff notes for later export/render-queue work.
+- [x] Decide whether exposure stays linked to existing viewport/environment settings or becomes an explicit render-preview override in a later lane.
+- [x] `HLG 5. The Properties workspace exposes a Render section for tuning render-preview quality with ParaSliders and ParaSelects.`
+
+### `Model-Viewport-3 Phase 10`
+
+- [x] Make `Material` mode lighting-neutral/unlit so assigned material colors are readable without environment lights.
+- [x] Keep `Rendered` and `Render Preview` as the modes that use environment lighting, HDRI contribution, tone mapping, shadows, and ground polish.
+- [x] Preserve material assignment truth, per-part materials, and wireframe behavior without turning `Material` mode into geometry/build/export truth.
+- [x] Add focused viewer tests proving material mode ignores environment lighting while rendered modes still use it.
+- [x] `HLG 6. Material mode shows assigned material colors without environment lighting or rendered scene polish changing the read.`
+
+### `Model-Viewport-3 Phase 10.1`
+
+- [x] Restore PBR material-field readability in `Material` mode so roughness and metallicness changes are visible.
+- [x] Replace the fully unlit material-mode read with a simple neutral fill-light inspection model.
+- [x] Keep authored point/spot/directional scene lights, harsh shadows, ground, HDRI mood, and final render polish out of `Material` mode.
+- [x] Preserve `Rendered` and `Render Preview` as the modes that use the user-authored lighting/environment setup.
+- [x] Add focused viewer tests proving Material mode uses neutral fill lighting and lit materials without reintroducing authored light shadows.
+- [x] `HLG 7. Material mode still shows roughness and metallicness through a neutral inspection light model without harsh authored scene shadows.`
 
 ## [x] `Model-Viewport-3 / Phase 1` - `Display Mode Contract`
 
@@ -951,55 +979,294 @@ Definition of done:
 - [x] focused tests prove settings propagation, sample-target HUD updates, reset behavior, unsupported behavior, and no raster-mode regression
 - [x] `npm.cmd run build` passes after runtime wiring
 
-## [ ] `Model-Viewport-3 / Phase 9` - `Render Quality Presets And Cleanup`
+## [x] `Model-Viewport-3 / Phase 9` - `Render Quality Presets And Cleanup`
 
 ### Phase 9 Summary
 
 Add friendly quality presets and close the render-preview tuning lane with cleanup, final proof, and explicit later handoffs.
 
 Current status:
-- planned
+- shipped
 
 ### Phase 9 Implementation Spec
+
+Current live read:
+- Phase 6 added `RenderPreviewSettings`, `DEFAULT_RENDER_PREVIEW_SETTINGS`, constraints, options, and `normalizeRenderPreviewSettings(...)` in `src/shared/viewSettingsTypes.ts`.
+- Phase 7 added `src/app/workspace/PropertiesRenderSection.tsx` with a global Properties `Render` section, ParaSliders for `Samples`, `Light bounces`, and `Render scale`, ParaSelects for `Noise cleanup` and `GPU load`, and a `Reset` action that writes the existing `ViewSettings.renderPreview` owner.
+- Phase 8 wired `ViewSettings.renderPreview` through `Viewer.applyViewSettings(...)` into `src/viewer/renderPreviewRuntime.ts`, including runtime recreation/reset while `displayMode === 'renderPreview'` and inert behavior outside Render Preview.
+- `src/app/workspace/PropertiesSurface.test.tsx` already proves Render section availability and manual render-preview setting writes.
+- `src/viewer/Viewer.test.ts` already proves selected settings flow into the runtime, HUD sample targets follow settings, active quality changes recreate/reset accumulation, and raster modes stay unaffected.
+- Existing environment preset helpers in `viewSettingsTypes.ts` show a nearby pattern for shared preset definitions plus derived custom reads, but render quality presets must stay scoped to `renderPreview`, not environment, lighting, material, export, or geometry truth.
+
+Implementation result:
+- `src/shared/viewSettingsTypes.ts` now defines render-preview quality presets for `Fast`, `Balanced`, `Clean`, and `High`, plus helper reads for matching settings back to a named preset or `Custom`.
+- `Balanced` maps to `DEFAULT_RENDER_PREVIEW_SETTINGS`, so defaults continue to have one source of truth.
+- `PropertiesRenderSection.tsx` now shows a `Quality preset` ParaSelect above the manual controls.
+- Selecting a named preset writes the same `ViewSettings.renderPreview` settings used by the manual controls; selecting `Custom` is a no-op because `Custom` is only a derived readout.
+- Manual render-setting changes show `Custom` when the current values diverge from all named presets and return to a named preset when the values match exactly.
+- Active Render Preview preset changes use the Phase 8 quality-change path, so accumulation restarts and HUD target progress updates without adding a second runtime reset seam.
+- Dedicated render-preview exposure override, image export, render queue, output resolution, and final render file saving remain deferred.
 
 Must lock:
 - quality presets are user-facing shortcuts, not a second settings owner
 - presets update the same Phase 6 render-preview settings contract used by manual controls
 - manual controls remain readable after a preset is selected
+- preset selection is derived from current settings:
+  - exact match to a named preset shows that preset
+  - any manual setting change that diverges from all named preset values shows `Custom`
+  - manually changing values back to an exact named mapping should show that named preset again
+  - `Custom` is a readout/selector option, not its own saved settings object
 - preset labels should be simple:
   - `Fast`
   - `Balanced`
   - `Clean`
   - `High`
+  - `Custom`
 - later export/render-queue work stays deferred
 - exposure decision is recorded:
-  - either link to existing environment exposure
-  - or defer a dedicated render-preview exposure override into a later phase/doc
+  - Phase 9 should link Render Preview exposure to the existing environment/exposure presentation lane for now
+  - dedicated render-preview exposure override remains deferred to a later explicit phase/doc if the product needs it
 
 Suggested preset mapping:
 - `Fast`:
-  - lower samples
-  - fewer bounces
-  - lower render scale
-  - smoother GPU load
+  - `targetSamples: 32`
+  - `bounces: 3`
+  - `renderScale: 0.5`
+  - `noiseCleanup: 'off'`
+  - `gpuLoad: 'smooth'`
 - `Balanced`:
-  - current defaults
+  - `DEFAULT_RENDER_PREVIEW_SETTINGS`
 - `Clean`:
-  - higher samples
-  - moderate/high bounces
-  - full render scale
+  - `targetSamples: 128`
+  - `bounces: 8`
+  - `renderScale: 1`
+  - `noiseCleanup: 'medium'`
+  - `gpuLoad: 'balanced'`
 - `High`:
-  - highest first-pass values still reasonable for an interactive browser viewport
+  - `targetSamples: 256`
+  - `bounces: 12`
+  - `renderScale: 1`
+  - `noiseCleanup: 'high'`
+  - `gpuLoad: 'fast'`
+
+Recommended implementation direction:
+1. Add a shared render-preview preset contract in `src/shared/viewSettingsTypes.ts`:
+   - `RenderPreviewQualityPreset = 'fast' | 'balanced' | 'clean' | 'high'`
+   - `RenderPreviewQualityPresetRead = RenderPreviewQualityPreset | 'custom'`
+   - `RENDER_PREVIEW_QUALITY_PRESET_DEFINITIONS`
+   - `RENDER_PREVIEW_QUALITY_PRESET_OPTIONS`
+   - `CUSTOM_RENDER_PREVIEW_QUALITY_PRESET_OPTION` only if the UI needs a native select option
+2. Add small helpers beside the render-preview settings normalization:
+   - `getRenderPreviewQualityPresetDefinition(...)`
+   - `createRenderPreviewQualityPresetSettings(...)`
+   - `resolveRenderPreviewQualityPresetRead(settings)`
+   - `areRenderPreviewSettingsEqual(...)` if equality should be named and tested directly
+3. Keep `balanced` mapped to `DEFAULT_RENDER_PREVIEW_SETTINGS` so the default read is `Balanced` without a second source of truth.
+4. In `PropertiesRenderSection.tsx`, add one `Quality preset` ParaSelect above the manual controls.
+5. The ParaSelect value should be derived from `resolveRenderPreviewQualityPresetRead(renderPreview)`, so manual edits naturally move the displayed value to `Custom`.
+6. When the user selects `Fast`, `Balanced`, `Clean`, or `High`, write `setViewKey('renderPreview', createRenderPreviewQualityPresetSettings(value))`.
+7. If the select emits `custom`, treat it as a no-op because `Custom` is only the read state for diverged manual values.
+8. Keep the existing manual sliders/selects writing partial patches through `normalizeRenderPreviewSettings(...)`; do not add any `selectedRenderPreset` field to `ViewSettings`.
+9. Keep the existing `Reset` action as a reset to defaults; with the derived read it should show `Balanced` afterward.
+10. Use existing Phase 8 runtime behavior for active reset proof instead of adding a second render-preview restart path.
 
 Likely files:
-- `src/app/workspace/PropertiesSurface.tsx`
-- Phase 6 settings owner/tests
-- Properties surface tests
-- docs for later render export/queue handoff if a new future lane is needed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts` for shared helper/default/custom-read proof if the helper is not fully covered through Properties tests
+- `src/viewer/Viewer.test.ts` for one focused proof that applying a preset while Render Preview is active resets accumulation and updates HUD target progress through the existing settings path
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
 
 Definition of done:
-- Properties `Render` section exposes render quality presets, likely through ParaSelect
+- Properties `Render` section exposes a `Quality preset` ParaSelect
 - applying a preset updates the same underlying render-preview settings as manual controls
+- `Custom` appears when manual controls diverge from every named preset
+- manually matching a named preset again makes the selector show that preset
+- no saved `selectedRenderPreset` or second settings owner is added
 - changing presets while Render Preview is active resets accumulation and updates HUD target progress
 - final tests cover presets, manual override behavior, and runtime reset behavior
-- doc handoff clearly defers image export, render queue, output resolution, and final render file saving
+- doc handoff clearly defers image export, render queue, output resolution, final render file saving, and dedicated render-preview exposure override
+- `npm.cmd run build` passes after the preset contract/UI changes
+
+## [x] `Model-Viewport-3 / Phase 10` - `Material Mode Lighting Separation`
+
+### Phase 10 Summary
+
+Make `Material` mode behave like an assigned-material color/readability mode instead of continuing to inherit the full environment-lighting look.
+
+Current status:
+- shipped
+
+### Phase 10 Implementation Spec
+
+Current live read:
+- `Viewer.applyViewSettings(...)` currently applies environment grade, environment source, and environment lights before applying material assignments for every display mode.
+- `resolveDisplayModeShadowsEnabled()` already limits shadows to `rendered`.
+- `resolveDisplayModeGroundSettings()` already limits ground visibility to `rendered`.
+- `Material` mode currently differs from `Rendered` mainly by disabling shadows/ground and using assigned materials without wireframe; it still uses `MeshStandardMaterial`, scene lights, tone mapping, and environment contribution.
+- `Viewer.test.ts` already proves material assignment and rendered polish boundaries, but does not yet prove lighting-neutral material mode.
+- `resolveMaterialForPart(...)` is the main narrow seam for choosing which runtime material object a part mesh receives.
+- `applyMaterialSettings(...)` owns the current `materialCacheByPresetId` for assigned `MeshStandardMaterial` runtime materials.
+- `applyMaterialAssignmentsToScene()` already reassigns mesh materials after settings/mode changes.
+- `createLayerMaterial(...)` clones the resolved base material for baseline/overlay layers, so any material-mode unlit treatment must either route through the same resolver or explicitly preserve overlay opacity behavior.
+- `applyReferenceDisplayModeToScene()` only toggles wireframe/shadow flags on loaded reference mesh materials today; reference/import material-mode lighting neutrality may need a smaller follow-up if those meshes are not controlled by the part material cache.
+
+Implementation result:
+- `Viewer.ts` now imports `MeshBasicMaterial` and owns `materialModeCacheByPresetId` beside the existing `materialCacheByPresetId`.
+- `applyMaterialSettings(...)` keeps both caches synchronized from the same `materials.presets` owner and disposes removed presets from both caches.
+- `applyPresetToMaterialModeMaterial(...)` copies only unlit presentation fields for Material mode: color, opacity, transparency, sidedness, wireframe, and `toneMapped = false`.
+- `resolveMaterialForPart(...)` routes `material` display mode through the unlit cache, while `rendered`, `renderPreview`, and `wireframe` continue to use the existing lit material cache and `solid` keeps its clay material.
+- `applyViewSettings(...)` now neutralizes material-mode environment grade/filter presentation while preserving environment source and light ownership for rendered modes.
+- Focused `Viewer.test.ts` coverage proves Material mode uses unlit material instances, environment grade/light changes do not change the Material color read, Rendered restores `MeshStandardMaterial`, and display-mode switching keeps the same mesh/geometry.
+
+Must lock:
+- `Material` mode should show assigned material colors without environment lights, HDRI lighting contribution, tone mapping/exposure shifts, shadows, or ground polish changing the read.
+- `Rendered` and `Render Preview` should continue to use environment lights, HDRI lighting contribution, tone mapping/exposure, shadows, and ground behavior.
+- `Solid` should keep its clay/CAD-style presentation.
+- `Wireframe` should keep its line/topology read.
+- material assignment truth stays unchanged:
+  - selected preset material
+  - per-part material assignment
+  - imported/reference material fallback behavior
+  - material editing data
+- this phase should not add new user-facing settings unless implementation uncovers a tiny label/test-selector need.
+- this phase should not change graph execution, geometry result choice, export readiness, render-preview quality settings, or render queue behavior.
+
+Recommended implementation direction:
+1. Import `MeshBasicMaterial` in `Viewer.ts`.
+2. Add a viewer-owned unlit material cache, likely `materialModeCacheByPresetId`, beside `materialCacheByPresetId`.
+3. Add a small helper such as `applyPresetToUnlitMaterial(...)` that copies only presentation-safe fields from `MaterialPreset`:
+   - `color`
+   - `opacity`
+   - `transparent`
+   - `side`
+   - `wireframe`
+   - avoid metalness, roughness, emissive, and emissive intensity because those are lighting/material-model inputs rather than unlit color-read inputs
+4. Update `applyMaterialSettings(...)` so both caches are created, updated, and disposed from the same `materials.presets` owner.
+5. Update `resolveMaterialForPart(...)` to route `material` display mode through the unlit cache, while `rendered` and `renderPreview` continue to use the existing `MeshStandardMaterial` cache.
+6. Keep `solid` routed to the existing clay material and `wireframe` routed through the current wireframe behavior.
+7. Keep `applyEnvironmentSource(...)` and `applyLights(...)` intact for rendered modes; do not remove environment lights globally just to fix material mode.
+8. Keep switching between `material` and `rendered` rebuild-free by reusing existing meshes and only swapping material instances via `applyMaterialAssignmentsToScene()`.
+9. Limit first-pass proof to part meshes that already use the viewer-owned material assignment cache. Do not widen into imported/reference mesh material rewriting unless the implementation turns out to share the same narrow helper safely.
+10. Add focused tests:
+   - `material` mode assigns an unlit material type while preserving assigned preset color
+   - changing environment grade/light/HDRI settings while in `material` mode does not swap away from the unlit material read or change its assigned color
+   - switching back to `rendered` restores `MeshStandardMaterial` behavior
+   - switching between `material` and `rendered` keeps the same mesh and geometry object
+   - `wireframe`, `solid`, and `renderPreview` existing expectations remain stable
+
+Likely files:
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Definition of done:
+- [x] `Material` mode no longer visibly depends on environment lights or HDRI lighting contribution
+- [x] assigned material color/read stays stable in `Material` mode when environment settings change
+- [x] `Material` mode uses a clearly unlit material runtime for viewer-owned part meshes
+- [x] `Rendered` and `Render Preview` retain environment-lit behavior
+- [x] switching display modes stays rebuild-free
+- [x] focused viewer tests prove the material/rendered lighting split
+- [x] `npm.cmd run build` passes after the viewer changes
+
+## [x] `Model-Viewport-3 / Phase 10.1` - `Material Mode Neutral Fill Lighting Fix-Up`
+
+### Phase 10.1 Summary
+
+Bring enough lighting/reflection model back into `Material` mode for roughness and metallicness editing to be visible, while keeping the mode free from harsh authored point-light shadows and final scene mood.
+
+Current status:
+- shipped
+
+### Phase 10.1 Implementation Spec
+
+Current live read:
+- Phase 10 changed `Material` mode to a `MeshBasicMaterial` cache so assigned material colors no longer inherit environment/HDRI/scene-light mood.
+- That solved the harsh lighting problem, but it also removed the PBR lighting model that makes `metalness` and `roughness` visually meaningful.
+- `applyPresetToMaterial(...)` still maps `metalness`, `roughness`, emissive fields, opacity, sidedness, and wireframe onto the existing `MeshStandardMaterial` cache.
+- `applyPresetToMaterialModeMaterial(...)` intentionally skips metalness, roughness, emissive, and emissive intensity because its current target is `MeshBasicMaterial`.
+- `applyLights(settings.lighting.lights)` is still the global authored-light application path and should remain the rendered/render-preview scene-light owner.
+- `applyViewSettings(...)` always calls `applyLights(settings.lighting.lights)` today, so 10.1 needs a narrow mode gate there rather than changing the material settings owner.
+- `lightsById`, `lightTargetsById`, and `environmentLightHelpersById` are the current authored-light runtime maps; the neutral Material-mode fill light should not be stored in those maps as if it were a user-authored light.
+- `clearAllLights()` and `removeLight(...)` already own authored-light disposal and helper cleanup; any new inspection light needs a separate add/remove or visible-toggle path.
+- `resolveDisplayModeEnvironmentGrade()` already neutralizes Material-mode tone mapping/exposure/filter and should remain the material inspection baseline unless visual proof says otherwise.
+- `resolveDisplayModeShadowsEnabled()` and `resolveDisplayModeGroundSettings()` already keep shadows and ground out of `Material` mode.
+- `applyShadowFlags()` already re-applies mesh shadow flags after view settings changes, so material-mode no-shadow behavior should stay there.
+- Existing tests around `applies display modes through existing mesh presentation without rebuilding geometry`, `keeps material mode on unlit material instances when environment lighting changes`, and `keeps rendered scene polish behind rendered and render-preview display modes` are the main update points.
+
+Implementation result:
+- `materialModeCacheByPresetId` now uses `MeshStandardMaterial`, so Material mode remains PBR-capable.
+- `applyPresetToMaterialModeMaterial(...)` now carries color, metalness, roughness, emissive, emissive intensity, opacity, transparency, sidedness, wireframe, and a neutral `toneMapped = false` inspection read.
+- The viewer owns one neutral `HemisphereLight` for Material mode inspection, kept outside the authored-light maps.
+- `applyViewSettings(...)` now routes Material mode through the neutral inspection light path and clears authored lights there, while rendered/render-preview modes still call the authored `applyLights(...)` path.
+- Material mode clears HDRI/environment lighting contribution while keeping the neutral environment grade/filter baseline from Phase 10.
+- Focused `Viewer.test.ts` coverage now proves Material mode uses `MeshStandardMaterial`, preserves roughness/metalness/emissive values, enables only the neutral inspection light, clears authored lights, keeps shadows/ground disabled, restores authored lights in Rendered mode, and switches display modes without rebuilding meshes.
+
+Must lock:
+- `Material` mode should not be fully unlit if that hides roughness/metallicness.
+- `Material` mode should not use the user-authored scene lights directly.
+- `Material` mode should not cast harsh point/spot/directional shadows.
+- `Material` mode should use a simple neutral fill-light inspection model:
+  - likely one `HemisphereLight` first
+  - optional very low-intensity neutral directional fill only if tests/visual read need it
+  - no shadow casting
+  - neutral white/gray light colors
+- `Material` mode should use lit PBR-capable material instances again, likely `MeshStandardMaterial`, so roughness and metallicness values are visible.
+- `Rendered` and `Render Preview` must keep the existing authored lights, HDRI/environment contribution, tone mapping, shadows, ground, and render polish.
+- This phase should not add user-facing lighting controls unless a later product pass wants a dedicated material-inspection-light setting.
+
+Recommended implementation direction:
+1. Change `materialModeCacheByPresetId` from `Map<MaterialPresetId, MeshBasicMaterial>` to `Map<MaterialPresetId, MeshStandardMaterial>`.
+2. Remove the `MeshBasicMaterial` import from `Viewer.ts` unless another local use remains.
+3. Make `applyPresetToMaterialModeMaterial(...)` accept `MeshStandardMaterial` and apply the same preset fields as `applyPresetToMaterial(...)`, including:
+   - `color`
+   - `metalness`
+   - `roughness`
+   - `emissive`
+   - `emissiveIntensity`
+   - `opacity`
+   - `transparent`
+   - `side`
+   - `wireframe`
+4. Keep `material.toneMapped = false` for the material-mode inspection cache if that helps preserve Phase 10's stable color read; otherwise explicitly document and test any tiny neutral baseline change.
+5. Add a viewer-owned neutral inspection fill light:
+   - prefer one `HemisphereLight`
+   - suggested colors: sky `#ffffff`, ground `#d7dce5`
+   - suggested intensity: start around `1.6`
+   - never cast shadows
+   - keep it outside `lightsById`/`lightTargetsById`/`environmentLightHelpersById`
+6. Add a small helper such as `syncMaterialModeInspectionLight()` or `setMaterialModeInspectionLightEnabled(...)` that attaches/removes or toggles the inspection light based on `resolveDisplayMode() === 'material'`.
+7. Gate authored scene lights in `applyViewSettings(...)`:
+   - if effective display mode is `material`, call `clearAllLights()` or otherwise disable authored lights and enable the inspection light
+   - otherwise disable/remove the inspection light and call `applyLights(settings.lighting.lights)` as today
+8. Keep `applyEnvironmentSource(settings)` behavior only if the current environment contribution is neutralized enough by Material-mode material `toneMapped = false`; if HDRI environment still affects metallic reflections too strongly, Material mode should explicitly clear scene environment while preserving rendered/render-preview environment state on mode switch.
+9. Keep shadow maps, mesh `castShadow`/`receiveShadow`, and ground disabled in Material mode through the existing display-mode helpers.
+10. Do not touch graph execution, geometry result choice, material editing state, export readiness, render-preview quality settings, or render queue behavior.
+11. Update focused `Viewer.test.ts` coverage:
+   - Material mode assigns `MeshStandardMaterial` or another PBR-capable material type, not `MeshBasicMaterial`.
+   - Material mode material instances preserve changed roughness and metalness values.
+   - Material mode enables only the neutral fill/inspection light path and does not keep authored scene lights active.
+   - authored lights return when switching back to rendered.
+   - Material mode keeps shadows/ground disabled.
+   - Rendered and Render Preview continue to use authored lights and rendered scene polish.
+   - Switching modes remains rebuild-free.
+
+Likely files:
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Definition of done:
+- [x] `Material` mode visibly reflects roughness and metallicness changes again
+- [x] `Material` mode uses neutral fill/inspection lighting instead of authored scene lights
+- [x] no harsh material-mode point/spot shadows return
+- [x] `Rendered` and `Render Preview` retain authored lighting and render polish
+- [x] focused viewer tests prove material-mode PBR readability, neutral fill gating, and rebuild-free switching
+- [x] `npm.cmd run build` passes after the fix-up
