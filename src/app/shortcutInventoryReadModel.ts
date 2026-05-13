@@ -5,12 +5,36 @@ import {
 } from './shortcutInventorySourceMap'
 import type { ViewerCameraShortcutBinding } from './cameraShortcuts'
 
-export type ShortcutPresetId = 'default' | 'blender-working'
+export type ShortcutBasePresetId = 'default' | 'blender-working'
+export type ShortcutCustomPresetId = `${ShortcutBasePresetId}:custom`
+export type ShortcutPresetId = ShortcutBasePresetId | ShortcutCustomPresetId
+
+export type ShortcutBindingValue =
+  | {
+      kind: 'keyboard'
+      code: string
+      shiftKey?: boolean
+      ctrlKey?: boolean
+      altKey?: boolean
+      metaKey?: boolean
+    }
+  | {
+      kind: 'gesture'
+      gesture: string
+    }
+  | {
+      kind: 'pointer-motion'
+      gesture: string
+    }
+
+export type ShortcutRowEditability = 'editable' | 'read-only'
 
 export type ShortcutPresetRead = {
   id: ShortcutPresetId
   label: string
-  sourcePresetId?: ShortcutPresetId
+  sourcePresetId?: ShortcutBasePresetId
+  basePresetId?: ShortcutBasePresetId
+  isCustom?: boolean
 }
 
 export type ShortcutInventoryRow = {
@@ -19,6 +43,9 @@ export type ShortcutInventoryRow = {
   keyChord: string
   modeLabel: string
   sourceId: string
+  editability: ShortcutRowEditability
+  bindingValue?: ShortcutBindingValue
+  sectionLabel?: string
   contextNote?: string
 }
 
@@ -61,6 +88,12 @@ const keyCodeLabels: Record<string, string> = {
 const getPresetRead = (presetId: ShortcutPresetId): ShortcutPresetRead =>
   shortcutPresetReads.find((preset) => preset.id === presetId) ?? shortcutPresetReads[0]
 
+const toKeyboardBindingValue = (binding: ViewerCameraShortcutBinding): ShortcutBindingValue => ({
+  kind: 'keyboard',
+  code: binding.code,
+  shiftKey: binding.shiftKey || undefined,
+})
+
 const formatKeyChord = (binding: ViewerCameraShortcutBinding): string => {
   const keys = []
   if (binding.shiftKey) {
@@ -72,6 +105,18 @@ const formatKeyChord = (binding: ViewerCameraShortcutBinding): string => {
 
 const toShortcutRows = (source: ShortcutInventorySourceEntry): readonly ShortcutInventoryRow[] => {
   if (source.status !== 'cataloged' || source.bindings === undefined) {
+    if (source.status === 'cataloged' && source.displayBindings !== undefined) {
+      return source.displayBindings.map((binding) => ({
+        id: `${source.id}:${binding.id}`,
+        commandLabel: binding.label,
+        keyChord: binding.keyChord,
+        modeLabel: source.modeLabel,
+        sourceId: source.id,
+        editability: 'read-only',
+        sectionLabel: binding.sectionLabel,
+        contextNote: binding.contextNote,
+      }))
+    }
     return []
   }
 
@@ -81,6 +126,8 @@ const toShortcutRows = (source: ShortcutInventorySourceEntry): readonly Shortcut
     keyChord: formatKeyChord(binding),
     modeLabel: source.modeLabel,
     sourceId: source.id,
+    editability: 'editable',
+    bindingValue: toKeyboardBindingValue(binding),
   }))
 }
 
@@ -115,4 +162,3 @@ export const getShortcutInventoryReadModel = (
   preset: getPresetRead(presetId),
   groups: buildShortcutInventoryGroups(),
 })
-

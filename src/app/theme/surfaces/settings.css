@@ -471,6 +471,204 @@
   min-width: 0;
 }
 
+.SettingsSurfaceEditorNote {
+  margin: 0;
+  color: rgba(216, 227, 247, 0.76);
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+.SettingsSurfaceShortcutGroupList {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.SettingsSurfaceShortcutGroup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(139, 185, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.SettingsSurfaceShortcutGroupHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.SettingsSurfaceShortcutGroupHeader > div,
+.SettingsSurfaceShortcutRowCopy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.SettingsSurfaceShortcutGroupHeader strong,
+.SettingsSurfaceShortcutRowCopy strong {
+  overflow: hidden;
+  color: rgba(244, 248, 255, 0.94);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SettingsSurfaceShortcutMode,
+.SettingsSurfaceShortcutRowCopy span {
+  overflow: hidden;
+  color: rgba(216, 227, 247, 0.68);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.SettingsSurfaceShortcutStatus {
+  justify-self: end;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid rgba(139, 185, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(139, 185, 255, 0.1);
+  color: rgba(238, 244, 255, 0.84);
+  font-size: 0.56rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SettingsSurfaceShortcutSectionList,
+.SettingsSurfaceShortcutSection,
+.SettingsSurfaceShortcutRowList {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.SettingsSurfaceShortcutSection {
+  gap: 6px;
+}
+
+.SettingsSurfaceShortcutSection + .SettingsSurfaceShortcutSection {
+  padding-top: 2px;
+}
+
+.SettingsSurfaceShortcutSectionLabel {
+  overflow: hidden;
+  color: rgba(238, 244, 255, 0.82);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.SettingsSurfaceShortcutRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, auto);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  background: rgba(7, 11, 18, 0.38);
+}
+
+.SettingsSurfaceShortcutRow.isEditable {
+  border-color: rgba(139, 185, 255, 0.13);
+}
+
+.SettingsSurfaceShortcutRow.isListening {
+  border-color: rgba(139, 185, 255, 0.42);
+  background: rgba(42, 72, 118, 0.22);
+}
+
+.SettingsSurfaceShortcutRow.hasConflict {
+  border-color: rgba(255, 201, 119, 0.38);
+}
+
+.SettingsSurfaceShortcutBindingCell {
+  display: inline-grid;
+  grid-template-columns: minmax(0, auto) auto;
+  align-items: center;
+  justify-self: end;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.SettingsSurfaceShortcutConflict {
+  max-width: 180px;
+  overflow: hidden;
+  color: rgba(255, 216, 155, 0.88);
+  font-size: 0.56rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SettingsSurfaceShortcutKey {
+  justify-self: end;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 9px;
+  border: 1px solid rgba(139, 185, 255, 0.22);
+  border-radius: 7px;
+  background: rgba(6, 10, 16, 0.66);
+  color: rgba(245, 248, 255, 0.92);
+  font-family: var(--sp-window-font-family);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SettingsSurfaceShortcutKeyButton {
+  min-height: 25px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.SettingsSurfaceShortcutKeyButton:hover,
+.SettingsSurfaceShortcutKeyButton:focus-visible {
+  border-color: rgba(139, 185, 255, 0.52);
+  background: rgba(61, 110, 176, 0.28);
+  outline: none;
+}
+
+.SettingsSurfaceShortcutRow.isListening .SettingsSurfaceShortcutKeyButton {
+  color: #f3f8ff;
+}
+
+.SettingsSurfaceShortcutDeferred {
+  margin: 0;
+  padding: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(216, 227, 247, 0.72);
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
 .SettingsSurfaceGroupHeader {
   display: grid;
   gap: 4px;

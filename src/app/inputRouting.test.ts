@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   dispatchEditHistoryShortcut,
   routeKeyboardInput,
 } from './inputRouting'
+import { useShortcutPreferencesStore } from './shortcutPreferencesStore'
 
 describe('routeKeyboardInput', () => {
   const createEvent = (key: string): KeyboardEvent =>
     new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+
+  beforeEach(() => {
+    useShortcutPreferencesStore.getState().resetShortcutPreferences()
+  })
 
   it('defers to native text editing when a real text field owns focus', () => {
     const input = document.createElement('input')
@@ -628,6 +633,58 @@ describe('routeKeyboardInput', () => {
 
     expect(result).toEqual({
       owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
+  it('routes custom active viewer camera shortcuts before flat console capture', () => {
+    useShortcutPreferencesStore.getState().setShortcutBindingOverrides([
+      {
+        basePresetId: 'default',
+        rowId: 'viewer-camera-shortcuts:preset-top',
+        bindingValue: { kind: 'keyboard', code: 'Digit1' },
+      },
+    ])
+
+    const result = routeKeyboardInput({
+      event: {
+        key: '1',
+        code: 'Digit1',
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
+  it('leaves overlapping custom viewer camera shortcuts unclaimed', () => {
+    useShortcutPreferencesStore.getState().setShortcutBindingOverrides([
+      {
+        basePresetId: 'default',
+        rowId: 'viewer-camera-shortcuts:preset-front',
+        bindingValue: { kind: 'keyboard', code: 'Numpad5' },
+      },
+    ])
+
+    const result = routeKeyboardInput({
+      event: {
+        key: '5',
+        code: 'Numpad5',
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'staged-console',
       decision: 'handle',
     })
   })

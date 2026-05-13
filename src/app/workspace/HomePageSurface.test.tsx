@@ -198,6 +198,9 @@ describe('HomePageSurface', () => {
       controlRail?.querySelector('[data-home-page-rail-shortcut="github"]')?.getAttribute('href'),
     ).toBe(homePageGithubUrl)
     expect(
+      controlRail?.querySelector('[data-home-page-rail-shortcut="key-bindings"]'),
+    ).not.toBeNull()
+    expect(
       controlRail?.querySelector('[data-home-page-rail-debug-affordance="advanced"]')
         ?.textContent,
     ).toContain('Read-only status')
@@ -434,6 +437,7 @@ describe('HomePageSurface', () => {
 
   it('invokes the first launch callbacks from the visible launch actions', async () => {
     const onOpenSurface = vi.fn()
+    const onOpenSettings = vi.fn()
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -445,6 +449,7 @@ describe('HomePageSurface', () => {
           surfaceInstanceId="home-page-workspace-slot-primary"
           slotId="workspace-slot-primary"
           onOpenSurface={onOpenSurface}
+          onOpenSettings={onOpenSettings}
         />,
       )
     })
@@ -518,6 +523,17 @@ describe('HomePageSurface', () => {
       ['properties'],
       ['editHistory'],
     ])
+
+    const keyBindingsButton = container?.querySelector(
+      '[data-home-page-rail-shortcut="key-bindings"]',
+    ) as HTMLButtonElement | null
+    expect(keyBindingsButton?.disabled).toBe(false)
+
+    await act(async () => {
+      keyBindingsButton?.click()
+    })
+
+    expect(onOpenSettings).toHaveBeenCalledWith('keyBindings')
   })
 
   it('shows Storage Management inventory and preserves selected-key wipe behavior', async () => {

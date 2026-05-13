@@ -3625,12 +3625,13 @@ button.ParaSelectMenuAction:hover {
 
 .HomePageSurfaceRailShortcutLinks {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   min-width: 0;
 }
 
-.HomePageSurfaceRailShortcutLinks a {
+.HomePageSurfaceRailShortcutLinks a,
+.HomePageSurfaceRailShortcutLinks button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3641,20 +3642,30 @@ button.ParaSelectMenuAction:hover {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(241, 244, 255, 0.92);
+  cursor: pointer;
+  font-family: var(--sp-window-font-family);
   font-size: 12px;
   font-weight: 800;
   text-decoration: none;
 }
 
 .HomePageSurfaceRailShortcutLinks a:hover,
-.HomePageSurfaceRailShortcutLinks a:focus-visible {
+.HomePageSurfaceRailShortcutLinks a:focus-visible,
+.HomePageSurfaceRailShortcutLinks button:hover,
+.HomePageSurfaceRailShortcutLinks button:focus-visible {
   border-color: rgba(133, 160, 224, 0.32);
   background: rgba(133, 160, 224, 0.1);
 }
 
-.HomePageSurfaceRailShortcutLinks a:focus-visible {
+.HomePageSurfaceRailShortcutLinks a:focus-visible,
+.HomePageSurfaceRailShortcutLinks button:focus-visible {
   outline: 2px solid rgba(118, 198, 255, 0.48);
   outline-offset: 2px;
+}
+
+.HomePageSurfaceRailShortcutLinks button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .HomePageSurfaceRailDebugAffordance {

@@ -13,6 +13,7 @@ import { ViewportOverlayModeTitlebarControls } from './ViewportOverlayModeTitleb
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './ViewportWorkspaceHost'
 import { getWorkspaceSurfaceActionEligibility } from './workspaceSurfaceActionEligibility'
+import type { SettingsSectionId } from './SettingsSurface'
 import {
   defaultPrimaryViewportSlotId,
   type BrowserPresentationMode,
@@ -47,6 +48,7 @@ type WorkspaceViewportTreeProps = {
   dockedBrowserHostRef: RefObject<HTMLDivElement | null>
   dockedMeatballHostRef: RefObject<HTMLDivElement | null>
   onOpenHomePageSurface?: (surfaceKind: WorkspaceSurfaceKind) => void
+  onOpenSettings?: (initialSectionId?: SettingsSectionId) => void
   onActivateSpaghettiSurface: (
     editorViewportId?: string,
     target?: {
@@ -144,6 +146,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     dockedBrowserHostRef,
     dockedMeatballHostRef,
     onOpenHomePageSurface,
+    onOpenSettings,
     onActivateSpaghettiSurface,
     onActivateViewerSurface,
     onOpenViewportSpawnMenu,
@@ -328,6 +331,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             surfaceInstanceId={slot.surfaceInstanceId}
             onOpenDashboardNoteInNotepad={onOpenDashboardNoteInNotepad}
             onOpenHomePageSurface={onOpenHomePageSurface}
+            onOpenSettings={onOpenSettings}
             onActivateSpaghettiSurface={onActivateSpaghettiSurface}
             spaghettiWindowSettingsOpen={windowSettingsOpenByViewportId[slot.surfaceInstanceId] ?? false}
             settingsInitialSectionId={settingsInitialSectionId}
@@ -489,10 +493,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
           ? 'editor'
           : 'viewer'
     const secondChildArea = firstChildArea === 'editor' ? 'viewer' : 'editor'
-    const getEligiblePaneCorners = (
-      _childNodeId: WorkspaceLayoutNodeId,
-      _paneArea: 'viewer' | 'editor',
-    ): WorkspaceViewportSplitCorner[] => {
+    const getEligiblePaneCorners = (): WorkspaceViewportSplitCorner[] => {
       return ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
     }
 
@@ -500,7 +501,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
       paneArea: 'viewer' | 'editor',
       childNodeId: WorkspaceLayoutNodeId,
     ): ReactNode => {
-      const eligibleCorners = getEligiblePaneCorners(childNodeId, paneArea)
+      const eligibleCorners = getEligiblePaneCorners()
       return renderSplitCornerPaneShell({
         child: renderViewportLayoutNode(childNodeId),
         eligibleCorners,

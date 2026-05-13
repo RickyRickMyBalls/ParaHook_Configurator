@@ -2238,7 +2238,7 @@ describe('AppShell', () => {
     ) as HTMLDivElement | null
     expect(floatingCatalog).not.toBeNull()
     expect(floatingCatalog?.textContent).toContain('Floating Catalog')
-    expect(floatingCatalog?.textContent).toContain('Catalog workspace foundation is live')
+    expect(floatingCatalog?.querySelector('.CatalogSurface')).not.toBeNull()
 
     const quickDockButton = floatingCatalog?.querySelector(
       '.CatalogFloatingWindowQuickDock',
@@ -8850,14 +8850,16 @@ describe('AppShell', () => {
 
     const openBrowserButton = Array.from(
       container?.querySelectorAll('.HomePageSurfaceLaunchActions button') ?? [],
-    ).find((button) => button.textContent === 'Open Browser') as HTMLButtonElement | undefined
+    ).find((button) => button.textContent === 'Browser') as HTMLButtonElement | undefined
     expect(openBrowserButton).not.toBeUndefined()
 
     await act(async () => {
       openBrowserButton?.click()
     })
 
-    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
+    expect(
+      useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('browser')
   })
 
   it('wires the Home Page console launch into the existing shell seam', async () => {
@@ -8865,14 +8867,16 @@ describe('AppShell', () => {
 
     const openConsoleButton = Array.from(
       container?.querySelectorAll('.HomePageSurfaceLaunchActions button') ?? [],
-    ).find((button) => button.textContent === 'Open Console') as HTMLButtonElement | undefined
+    ).find((button) => button.textContent === 'Console') as HTMLButtonElement | undefined
     expect(openConsoleButton).not.toBeUndefined()
 
     await act(async () => {
       openConsoleButton?.click()
     })
 
-    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('console')
+    expect(
+      useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('console')
   })
 
   it('wires the Home Page model viewport launch into the existing viewer seam', async () => {
@@ -8880,9 +8884,7 @@ describe('AppShell', () => {
 
     const openModelViewportButton = Array.from(
       container?.querySelectorAll('.HomePageSurfaceLaunchActions button') ?? [],
-    ).find(
-      (button) => button.textContent === 'Open Model Viewport',
-    ) as HTMLButtonElement | undefined
+    ).find((button) => button.textContent === 'Model Viewport') as HTMLButtonElement | undefined
     expect(openModelViewportButton).not.toBeUndefined()
 
     await act(async () => {
@@ -8893,6 +8895,32 @@ describe('AppShell', () => {
     expect(
       useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
     ).toBe('modelViewer')
+  })
+
+  it('wires the Home Page Key Bindings help shortcut into the Settings section launch seam', async () => {
+    ;({ container, root } = await renderAppShell('homePage'))
+
+    const keyBindingsButton = container?.querySelector(
+      '[data-home-page-rail-shortcut="key-bindings"]',
+    ) as HTMLButtonElement | null
+    expect(keyBindingsButton).not.toBeNull()
+
+    await act(async () => {
+      keyBindingsButton?.click()
+    })
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+    const settingsContent = container?.querySelector(
+      '[aria-label="Settings content"]',
+    ) as HTMLElement | null
+
+    expect(
+      useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('settings')
+    expect(primarySlot?.getAttribute('data-workspace-surface-kind')).toBe('settings')
+    expect(settingsContent?.textContent).toContain('Key Bindings')
+    expect(settingsContent?.textContent).toContain('Console input priority')
+    expect(settingsContent?.textContent).not.toContain('Startup surface')
   })
 
   it('persists shared workspace layout changes into the last-layout snapshot', async () => {

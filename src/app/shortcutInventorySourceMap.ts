@@ -12,9 +12,18 @@ export type ShortcutInventorySourceStatus =
 
 export type ShortcutInventorySourceKind =
   | 'binding-registry'
+  | 'gesture-binding'
   | 'routing-owner'
   | 'settings-owner-backed-behavior'
   | 'inline-handler'
+
+export type ShortcutInventoryDisplayBinding = {
+  id: string
+  label: string
+  keyChord: string
+  sectionLabel?: string
+  contextNote?: string
+}
 
 export type ShortcutInventorySourceEntry = {
   id: string
@@ -25,6 +34,7 @@ export type ShortcutInventorySourceEntry = {
   sourceFiles: readonly string[]
   routingOwners?: readonly InputRoutingOwner[]
   bindings?: readonly ViewerCameraShortcutBinding[]
+  displayBindings?: readonly ShortcutInventoryDisplayBinding[]
   deferredReason?: string
 }
 
@@ -38,6 +48,117 @@ export const shortcutInventorySourceMap: readonly ShortcutInventorySourceEntry[]
     sourceFiles: ['src/app/cameraShortcuts.ts'],
     routingOwners: ['viewer-camera-shortcuts'],
     bindings: viewerCameraShortcutBindings,
+  },
+  {
+    id: 'viewer-normal-camera-controls',
+    label: 'Normal camera controls',
+    status: 'cataloged',
+    kind: 'gesture-binding',
+    modeLabel: 'Viewport',
+    sourceFiles: ['src/viewer/Viewer.ts', 'src/viewer/scene/CameraController.ts'],
+    displayBindings: [
+      {
+        id: 'normal-camera-orbit',
+        label: 'Orbit',
+        keyChord: 'Ctrl+middle mouse drag',
+        sectionLabel: 'Normal camera',
+      },
+      {
+        id: 'normal-camera-pan',
+        label: 'Pan',
+        keyChord: 'Middle mouse drag',
+        sectionLabel: 'Normal camera',
+        contextNote: 'Starts after the held middle button moves past the click threshold.',
+      },
+      {
+        id: 'normal-camera-zoom',
+        label: 'Zoom',
+        keyChord: 'Mouse wheel',
+        sectionLabel: 'Normal camera',
+        contextNote: 'Normal viewing uses OrbitControls wheel zoom; Fly Mode remaps wheel to speed.',
+      },
+    ],
+  },
+  {
+    id: 'viewer-fly-mode-entry',
+    label: 'Fly Mode',
+    status: 'cataloged',
+    kind: 'gesture-binding',
+    modeLabel: 'Viewport',
+    sourceFiles: ['src/viewer/Viewer.ts', 'src/app/viewerBridge.ts', 'src/app/inputRouting.ts'],
+    routingOwners: ['viewer-fly'],
+    displayBindings: [
+      {
+        id: 'fly-mode-entry-right-click-hold',
+        label: 'Enter Fly Mode',
+        keyChord: 'Right click hold',
+        sectionLabel: 'Entry',
+        contextNote: 'Current default fly activation mode.',
+      },
+      {
+        id: 'fly-mode-look-mouse-move',
+        label: 'Look',
+        keyChord: 'Mouse move',
+        sectionLabel: 'While flying',
+        contextNote: 'Active while right click is held in Fly Mode.',
+      },
+      {
+        id: 'fly-mode-forward',
+        label: 'Forward',
+        keyChord: 'W',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-backward',
+        label: 'Backward',
+        keyChord: 'S',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-left',
+        label: 'Left',
+        keyChord: 'A',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-right',
+        label: 'Right',
+        keyChord: 'D',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-up',
+        label: 'Up',
+        keyChord: 'Space',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-down',
+        label: 'Down',
+        keyChord: 'Control',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-boost',
+        label: 'Boost',
+        keyChord: 'Shift',
+        sectionLabel: 'While flying',
+      },
+      {
+        id: 'fly-mode-roll-left',
+        label: 'Roll left',
+        keyChord: 'Q',
+        sectionLabel: 'While flying',
+        contextNote: 'Drone mode only.',
+      },
+      {
+        id: 'fly-mode-roll-right',
+        label: 'Roll right',
+        keyChord: 'E',
+        sectionLabel: 'While flying',
+        contextNote: 'Drone mode only.',
+      },
+    ],
   },
   {
     id: 'shared-input-routing-owners',
@@ -104,4 +225,3 @@ export const shortcutInventorySourceMap: readonly ShortcutInventorySourceEntry[]
 
 export const getShortcutInventorySourceMap = (): readonly ShortcutInventorySourceEntry[] =>
   shortcutInventorySourceMap
-

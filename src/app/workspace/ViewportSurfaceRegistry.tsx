@@ -8,7 +8,7 @@ import { DashboardSurface } from './DashboardSurface'
 import { EditHistoryReaderSurface } from './EditHistoryReaderSurface'
 import { HomePageSurface } from './HomePageSurface'
 import { PropertiesSurface } from './PropertiesSurface'
-import { SettingsSurface } from './SettingsSurface'
+import { SettingsSurface, type SettingsSectionId } from './SettingsSurface'
 import {
   getWorkspaceSurfaceRenderFamily,
 } from './workspaceSurfaceCatalog'
@@ -22,6 +22,7 @@ type ViewportSurfaceRegistryProps = {
   surfaceInstanceId: string
   onOpenDashboardNoteInNotepad?: (surfaceInstanceId: string, noteId: string) => void
   onOpenHomePageSurface?: (surfaceKind: WorkspaceSurfaceKind) => void
+  onOpenSettings?: (initialSectionId?: SettingsSectionId) => void
   onActivateSpaghettiSurface: (
     editorViewportId?: string,
     target?: {
@@ -41,6 +42,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     surfaceInstanceId,
     onOpenDashboardNoteInNotepad,
     onOpenHomePageSurface,
+    onOpenSettings,
     onActivateSpaghettiSurface,
     spaghettiWindowSettingsOpen = false,
     settingsInitialSectionId = 'all',
@@ -126,6 +128,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         slotId={slotId}
         surfaceInstanceId={surfaceInstanceId}
         onOpenSurface={onOpenHomePageSurface}
+        onOpenSettings={onOpenSettings}
       />
     )
   }

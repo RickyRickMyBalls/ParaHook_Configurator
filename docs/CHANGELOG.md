@@ -72,6 +72,464 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1916 -->
+
+### [1916] - 2026-05-12 21:16 - `Settings-2 - Phase 11 - Context Launch, Drift Hardening, And Advanced Boundary`
+
+HUMAN SUMMARY: `Settings-2 now has a final Key Bindings closeout pass. The Home Page help rail can open Settings directly to Key Bindings through the canonical Settings launch seam, and shortcut drift tests now guard editable viewer-camera runtime rows plus read-only/deferred shortcut families.`
+
+#### Scope / Constraints Honored
+
+- Reused the existing Settings surface and `SettingsSectionId` launch contract.
+- Kept the context launch to one Home Page help affordance.
+- Did not add shortcut persistence, import/export, Blender-specific differences, or broader editable shortcut families.
+- Did not change runtime shortcut routing beyond the existing Phase 10 behavior.
+
+#### Summary of Implementation
+
+- Added a `Key Bindings` help button to the Home Page rail.
+- Passed the existing Settings launch handler through `WorkspaceViewportTree` and `ViewportSurfaceRegistry` into `HomePageSurface`.
+- Wired the Home Page button to `onOpenSettings('keyBindings')`.
+- Expanded AppShell and Home Page tests for the direct Key Bindings launch path.
+- Added drift-hardening tests proving editable viewer-camera rows align with runtime-supported actions and that read-only/deferred shortcut families stay non-editable.
+- Closed the Phase 11 planning checklist and recorded the advanced shortcut boundary.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `src/app/viewerCameraShortcutRuntime.test.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Home Page help now includes a `Key Bindings` button that opens Settings directly to the Key Bindings section.
+- Shortcut-family drift checks now protect the Settings read against accidental editable/runtime mismatch.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/HomePageSurface.test.tsx src/app/workspace/SettingsSurface.test.tsx src/app/shortcutInventoryReadModel.test.ts src/app/viewerCameraShortcutRuntime.test.ts`
+- `npm.cmd test -- src/app/AppShell.test.tsx -t "Home Page Key Bindings help shortcut"`
+- `npx.cmd eslint src/app/workspace/HomePageSurface.tsx src/app/workspace/HomePageSurface.test.tsx src/app/workspace/ViewportSurfaceRegistry.tsx src/app/workspace/WorkspaceViewportTree.tsx src/app/shortcutInventoryReadModel.test.ts src/app/viewerCameraShortcutRuntime.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1915 -->
+
+### [1915] - 2026-05-12 21:01 - `Settings-2 - Phase 10 Follow-Up - Shortcut Key Value Readability`
+
+HUMAN SUMMARY: `The Key Bindings shortcut value pills now use slightly larger key text so single-letter bindings read more clearly inside the existing right-side keyboard value control.`
+
+#### Scope / Constraints Honored
+
+- Kept the change limited to Settings shortcut key value presentation.
+- Did not change shortcut rows, routing, custom binding behavior, or preset state.
+
+#### Summary of Implementation
+
+- Increased the `.SettingsSurfaceShortcutKey` font size and slightly adjusted horizontal padding.
+- Preserved the existing pill shape, alignment, and row layout.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Key Binding value text appears larger inside the existing shortcut pill.
+
+#### Verification Steps
+
+- Not run; CSS-only presentation follow-up.
+
+<!-- ENTRY 1914 -->
+
+### [1914] - 2026-05-12 20:51 - `Settings-2 - Phase 10 - Custom Shortcut Runtime Application`
+
+HUMAN SUMMARY: `Custom keyboard shortcuts now apply to the live viewer-camera runtime instead of staying Settings-only. The active preset and overrides flow through a shared shortcut preference store, input routing and command execution share one custom-aware resolver, and overlapping bindings are kept inactive at runtime so no command silently wins a conflict.`
+
+#### Scope / Constraints Honored
+
+- Kept the runtime application pass limited to editable viewer-camera keyboard shortcuts.
+- Kept base shortcut presets immutable.
+- Kept Fly Mode controls, normal camera mouse gestures, display-mode routing, and fragmented shortcut families read-only/deferred.
+- Did not add shortcut import/export profiles or persistence.
+- Preserved `Console first input priority` Zoom Object behavior unless the Zoom Object binding is explicitly customized.
+
+#### Summary of Implementation
+
+- Added a shared `useShortcutPreferencesStore` owner for the active shortcut base preset and binding overrides.
+- Updated `SettingsSurface` to read and write shortcut preset and override state through the shared owner instead of local-only component state.
+- Added a custom-aware viewer camera shortcut runtime resolver that applies overrides, preserves base fallback behavior, and excludes conflicting bindings from activation.
+- Routed `inputRouting`, `useViewerCameraShortcuts`, and the Viewer-local Zoom Object fallback through the shared custom-aware resolver.
+- Expanded runtime, routing, viewer hook, and Settings tests for custom activation, conflict blocking, Zoom Object priority behavior, and store reset hygiene.
+
+#### Files Changed
+
+- `src/app/shortcutPreferencesStore.ts`
+- `src/app/viewerCameraShortcutRuntime.ts`
+- `src/app/viewerCameraShortcutRuntime.test.ts`
+- `src/app/cameraShortcuts.ts`
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/useViewerCameraShortcuts.ts`
+- `src/app/useViewerCameraShortcuts.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Editing a supported viewer-camera shortcut in Key Bindings can now affect live viewer camera shortcut routing and command execution.
+- Overlapping active viewer-camera bindings are visible in Settings and are not activated at runtime until the overlap is resolved.
+- The active shortcut preset selection is shared with runtime, while custom shortcut persistence remains deferred.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/viewerCameraShortcutRuntime.test.ts src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx src/app/workspace/SettingsSurface.test.tsx src/app/shortcutCustomPresetModel.test.ts src/app/cameraShortcuts.test.ts`
+- `npx.cmd eslint src/app/shortcutPreferencesStore.ts src/app/viewerCameraShortcutRuntime.ts src/app/viewerCameraShortcutRuntime.test.ts src/app/inputRouting.ts src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.ts src/app/useViewerCameraShortcuts.test.tsx src/app/workspace/SettingsSurface.tsx src/app/workspace/SettingsSurface.test.tsx src/viewer/Viewer.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1913 -->
+
+### [1913] - 2026-05-12 13:23 - `Settings-2 - Phase 9 - Normal CAD Camera Control Visibility`
+
+HUMAN SUMMARY: `Key Bindings now shows normal CAD camera controls for Orbit, Pan, and Zoom as read-only Viewport gesture rows before runtime shortcut application is widened. The rows document Ctrl+middle mouse drag, middle mouse drag, and mouse wheel without changing pointer, camera, wheel, or custom shortcut behavior.`
+
+#### Scope / Constraints Honored
+
+- Kept the phase limited to shortcut inventory/read presentation.
+- Kept normal camera control rows read-only because mouse gestures do not yet have an editable owner contract.
+- Kept Fly Mode controls in their existing group instead of mixing normal camera controls into Fly Mode.
+- Did not change viewer pointer behavior, wheel behavior, camera behavior, shortcut routing, or custom preset runtime application.
+
+#### Summary of Implementation
+
+- Added a cataloged `Normal camera controls` shortcut source entry backed by the Viewer and CameraController owner seams.
+- Rendered `Orbit`, `Pan`, and `Zoom` as display bindings under the `Normal camera` subsection.
+- Preserved existing editable keyboard camera shortcut rows while keeping the new pointer gesture rows read-only.
+- Expanded source-map, read-model, and Settings tests for the new normal camera control rows.
+
+#### Files Changed
+
+- `src/app/shortcutInventorySourceMap.ts`
+- `src/app/shortcutInventorySourceMap.test.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Key Bindings pane now lists read-only normal camera controls for `Orbit`, `Pan`, and `Zoom`.
+- Runtime camera, pointer, wheel, shortcut routing, and custom preset behavior are unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.test.ts src/app/workspace/SettingsSurface.test.tsx`
+
+<!-- ENTRY 1912 -->
+
+### [1912] - 2026-05-12 11:34 - `Settings-2 - Phase 8 - Editable Shortcut Rows And Custom Preset UI`
+
+HUMAN SUMMARY: `Key Bindings now has the first visible shortcut editing UI. Supported keyboard rows can enter a click-to-listen state, edits change the active preset label to Default (custom) or Blender (working custom), reset clears the active preset's overrides, and overlapping bindings show inline row messages without changing runtime shortcut routing yet.`
+
+#### Scope / Constraints Honored
+
+- Kept the phase limited to Settings UI state and shortcut read presentation.
+- Did not apply custom shortcut bindings to live runtime input routing.
+- Kept Fly Mode gesture, pointer-motion, routing-owner-only, behavior-setting, and fragmented shortcut rows read-only/deferred.
+- Allowed overlaps inline instead of adding a blocking popup or automatic conflict resolution.
+
+#### Summary of Implementation
+
+- Added in-memory shortcut override state to `SettingsSurface` using the Phase 7 custom preset helper.
+- Rendered supported editable shortcut values as click-to-listen buttons.
+- Updated shortcut preset labels to custom variants when the active base preset has overrides.
+- Added active-preset reset behavior.
+- Rendered anchored overlap messages beside both rows that share a shortcut binding.
+- Expanded focused Settings tests for Default custom editing, Blender custom editing, reset, inline overlap warnings, and no runtime preference/history change.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/shortcutCustomPresetModel.ts`
+- `src/app/shortcutCustomPresetModel.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Key Bindings pane now lets users edit supported keyboard shortcut rows locally.
+- Editing a base preset changes its visible selector label to a custom variant.
+- Resetting the active shortcut preset clears the local overrides for that preset.
+- Overlapping editable bindings show inline overlap messages on both affected rows.
+- Runtime shortcut behavior is unchanged until Phase 9.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/SettingsSurface.test.tsx src/app/shortcutCustomPresetModel.test.ts`
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.test.ts src/app/shortcutCustomPresetModel.test.ts src/app/workspace/SettingsSurface.test.tsx`
+- `npx.cmd eslint src/app/workspace/SettingsSurface.tsx src/app/workspace/SettingsSurface.test.tsx src/app/shortcutCustomPresetModel.ts src/app/shortcutCustomPresetModel.test.ts`
+
+<!-- ENTRY 1911 -->
+
+### [1911] - 2026-05-12 10:45 - `Gen 4 - Cleanup 1 Follow-Up - Catalog Shared-Shell Scrollbar Recovery`
+
+HUMAN SUMMARY: `Catalog's shared-shell scrollbars are restored after the shared panel-shell migration. The Catalog rail and content regions now explicitly fill the shared shell panel height so their internal scroll owners can constrain overflow, and the WebKit scrollbar buttons use the same dark cleanup as Settings and Properties.`
+
+#### Scope / Constraints Honored
+
+- Kept the change limited to Catalog shared-shell sizing and scrollbar styling.
+- Did not change Catalog layout, resize behavior, scrolling ownership, source/import behavior, or shared shell runtime logic.
+- Preserved the `WorkspacePanelSplitShell` adoption from entries `[1876]` through `[1881]`.
+
+#### Summary of Implementation
+
+- Restored explicit `height: 100%` and border-box sizing to the Catalog rail/content regions inside `WorkspacePanelSplitShell`.
+- Added `::-webkit-scrollbar-button` cleanup under the existing broad `.CatalogSurface *` scrollbar styling.
+- Matched the Settings/Properties dark scrollbar button treatment without changing Catalog-specific scrollbar colors.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/catalog.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Catalog rail and content scroll regions can constrain overflow inside the shared shell again.
+- Catalog scroll regions no longer show native WebKit scrollbar buttons when the browser exposes them.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx -t "uses an explicit content scroll owner inside the shared Catalog shell"`
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx -t "lets the browse rail resize from the divider by drag and keyboard input"`
+
+<!-- ENTRY 1910 -->
+
+### [1910] - 2026-05-12 10:38 - `Settings-2 - Phase 7 - AppShell Launch Regression Check`
+
+HUMAN SUMMARY: `The AppShell regression coverage now follows the current Home Page launch and Catalog mount contracts. This confirmed the Settings-2 shortcut work did not change pointer capture, Catalog scrolling coverage, or the Browser launch path while cleaning up stale assertions around old Home Page button labels and Catalog placeholder text.`
+
+#### Scope / Constraints Honored
+
+- Kept the change to test coverage only.
+- Did not change runtime pointer, Browser, Catalog, Home Page, or Settings behavior.
+- Preserved the current Home Page launch labels from `HomePageSurface`.
+
+#### Summary of Implementation
+
+- Updated AppShell Home Page launch seam tests to click the current `Browser`, `Console`, and `Model Viewport` buttons.
+- Switched Browser and Console launch assertions to the current workspace-slot surface-kind state.
+- Updated the floating Catalog test to assert the mounted `CatalogSurface` instead of an old placeholder sentence.
+
+#### Files Changed
+
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+
+- No runtime behavior changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/AppShell.test.tsx -t "wires the Home Page browser launch|wires the Home Page console launch|wires the Home Page model viewport launch|constrains the primary left dock panel stack so it can scroll|clears the split-corner gesture session on pointer cancel|clears a split-corner gesture session on under-threshold release|spawns floating spaghetti and browser surfaces from the viewport spawn menu|renders a detached floating catalog surface and quick docks it back"`
+- `npm.cmd test -- src/app/workspace/HomePageSurface.test.tsx -t "launch"`
+
+<!-- ENTRY 1909 -->
+
+### [1909] - 2026-05-12 10:22 - `Settings-2 - Phase 7 - Editable Shortcut Contract And Custom Preset Model`
+
+HUMAN SUMMARY: `Shortcut editing now has a safe contract before the UI starts editing rows. The model can represent immutable base presets, custom variants like Default (custom) and Blender (working custom), reset-to-base overrides, editable versus read-only rows, and conflict reads without changing runtime input behavior.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 7 contract-only.
+- Did not add visible shortcut edit controls.
+- Did not persist custom shortcut state.
+- Did not apply custom bindings to live input routing.
+- Kept Fly Mode gesture and pointer rows read-only until a later editable owner contract exists.
+
+#### Summary of Implementation
+
+- Added `shortcutCustomPresetModel` for custom preset ids, labels, override application, reset-to-base behavior, binding formatting, and conflict reads.
+- Extended the shortcut read model with base/custom preset id types, binding values, and row editability.
+- Marked viewer camera shortcut rows as the first editable contract rows because they come from the stable keyboard binding registry.
+- Kept display/gesture rows read-only, including Fly Mode entry and in-flight controls.
+- Added focused tests for `Default (custom)`, `Blender (working custom)`, immutable base reads, reset behavior, editable-only overrides, conflict reads, and read-only row exclusion.
+
+#### Files Changed
+
+- `src/app/shortcutCustomPresetModel.ts`
+- `src/app/shortcutCustomPresetModel.test.ts`
+- `src/app/shortcutInventoryReadModel.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No visible Settings behavior changed.
+- No runtime shortcut behavior changed.
+- The shortcut read contract now carries row editability and editable binding values for future UI/runtime phases.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/shortcutInventoryReadModel.test.ts src/app/shortcutCustomPresetModel.test.ts`
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.test.ts src/app/shortcutCustomPresetModel.test.ts src/app/workspace/SettingsSurface.test.tsx`
+- `npx.cmd eslint src/app/shortcutCustomPresetModel.ts src/app/shortcutCustomPresetModel.test.ts src/app/shortcutInventoryReadModel.ts src/app/shortcutInventoryReadModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1908 -->
+
+### [1908] - 2026-05-12 10:07 - `Settings-2 - Phase 6 - Fly Mode Control Subsection`
+
+HUMAN SUMMARY: `Key Bindings now shows what to do inside Fly Mode. The Fly Mode shortcut group keeps Enter Fly Mode as Right click hold, then adds a While flying subsection for mouse look, movement, boost, and Drone-only roll controls without changing viewer input behavior.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 6 limited to read-only Fly Mode shortcut reference display.
+- Did not change Fly Mode activation, pointer look, movement behavior, speed settings, mode switching, persisted shortcut profiles, or shortcut editing.
+- Kept Fly Mode entry and in-mode controls grouped together instead of splitting them into unrelated Viewport shortcut rows.
+
+#### Summary of Implementation
+
+- Extended display shortcut rows with an optional section label so Settings can show grouped shortcut subsections.
+- Added `Entry` and `While flying` rows to the source-backed Fly Mode inventory.
+- Added `Mouse move`, `W/A/S/D`, `Space`, `Control`, `Shift`, and Drone-only `Q/E` rows with source provenance through `Viewer.ts`, `viewerBridge.ts`, and `inputRouting.ts`.
+- Updated the Settings Key Bindings renderer and styling to show row subsections inside shortcut groups.
+- Added focused source-map, read-model, and Settings tests for the Fly Mode control subsection.
+
+#### Files Changed
+
+- `src/app/shortcutInventorySourceMap.ts`
+- `src/app/shortcutInventorySourceMap.test.ts`
+- `src/app/shortcutInventoryReadModel.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Key Bindings pane now shows Fly Mode controls in an `Entry` section and a `While flying` section.
+- No runtime Fly Mode, camera, pointer, or keyboard-routing behavior changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.test.ts src/app/workspace/SettingsSurface.test.tsx`
+- `npx.cmd eslint src/app/shortcutInventorySourceMap.ts src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.ts src/app/shortcutInventoryReadModel.test.ts src/app/workspace/SettingsSurface.tsx src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1907 -->
+
+### [1907] - 2026-05-12 09:46 - `Settings-2 - Phase 5 - Fly Mode Entry Binding Visibility`
+
+HUMAN SUMMARY: `Key Bindings now shows the Fly Mode entry gesture. The shortcut inventory can represent source-backed non-keyboard display bindings, and the Settings pane renders Enter Fly Mode as Right click hold without changing viewer pointer behavior or Fly Mode movement controls.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5 limited to Fly Mode entry visibility.
+- Did not change pointer-lock, camera, right-click, Fly Mode activation behavior, movement controls, or shortcut editing.
+- Kept the row source-backed through the shortcut inventory instead of adding a Settings-only line.
+
+#### Summary of Implementation
+
+- Added a generic display-binding shape for source-backed shortcut rows that are not keyboard `code` bindings.
+- Added a cataloged `Fly Mode` Viewport source entry with `Enter Fly Mode` / `Right click hold`.
+- Preserved `Viewer.ts` and `viewerBridge.ts` provenance on the Fly Mode entry source.
+- Updated the shortcut read model to normalize display bindings into visible rows.
+- Updated the Settings Key Bindings row renderer to show row context notes.
+- Added focused source-map, read-model, and Settings tests for the Fly Mode entry row.
+
+#### Files Changed
+
+- `src/app/shortcutInventorySourceMap.ts`
+- `src/app/shortcutInventorySourceMap.test.ts`
+- `src/app/shortcutInventoryReadModel.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Key Bindings pane now lists `Fly Mode` with `Enter Fly Mode` bound to `Right click hold`.
+- No runtime Fly Mode or pointer behavior changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.test.ts src/app/workspace/SettingsSurface.test.tsx`
+- `npx.cmd eslint src/app/shortcutInventorySourceMap.ts src/app/shortcutInventorySourceMap.test.ts src/app/shortcutInventoryReadModel.ts src/app/shortcutInventoryReadModel.test.ts src/app/workspace/SettingsSurface.tsx src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1906 -->
+
+### [1906] - 2026-05-12 09:21 - `Settings-2 - Phase 4 - Grouped Shortcut Pane Rendering`
+
+HUMAN SUMMARY: `The Settings Key Bindings pane now prints the first real shortcut list. It shows Default and Blender (working) as read-only presets, renders cataloged viewport camera shortcuts from the shared read model, and keeps routing-only or fragmented shortcut areas visible as deferred groups instead of guessing them.`
+
+#### Scope / Constraints Honored
+
+- Kept Phase 4 limited to read-only Settings presentation.
+- Did not add rebinding, persisted shortcut profiles, Blender-specific shortcut differences, conflict resolution, or keyboard-routing behavior changes.
+- Preserved the existing Console input-priority owner and edit-history path in the Key Bindings pane.
+
+#### Summary of Implementation
+
+- Consumed `shortcutInventoryReadModel` from `SettingsSurface`.
+- Added a local read-only `Shortcut preset` ParaSelect with `Default` and `Blender (working)`.
+- Rendered cataloged shortcut groups as command/key rows, including the viewport camera shortcuts.
+- Rendered routing-owner-only, behavior-setting, and fragmented shortcut areas as deferred groups with their source-map reasons.
+- Added Settings CSS for the grouped shortcut rows, key badges, status pills, and deferred text.
+- Expanded Settings tests for preset visibility, copied Blender behavior, cataloged rows, deferred groups, local-only preset selection, and continued Console input-priority editing.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-2 - Key Bindings And Mode Shortcut Reference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Key Bindings pane now shows a read-only shortcut preset selector.
+- The Key Bindings pane now lists cataloged viewport camera shortcuts.
+- Deferred shortcut areas are visible as deferred groups rather than hidden.
+- Changing the visible preset only changes the read view and does not persist shortcut profile state.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/SettingsSurface.test.tsx`
+- `npx.cmd eslint src/app/workspace/SettingsSurface.tsx src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd run build`
+
 <!-- ENTRY 1905 -->
 
 ### [1905] - 2026-05-12 09:05 - `Settings-2 - Phase 3 - Key Bindings Section Entry And Routing`

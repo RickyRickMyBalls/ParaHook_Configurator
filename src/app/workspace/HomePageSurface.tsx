@@ -45,6 +45,7 @@ import {
   getWorkspaceSurfaceCatalogEntries,
   type WorkspaceSurfaceCatalogEntry,
 } from './workspaceSurfaceCatalog'
+import type { SettingsSectionId } from './SettingsSurface'
 import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
 
 type HomePageLaunchSurfaceEntry = WorkspaceSurfaceCatalogEntry & {
@@ -69,6 +70,7 @@ type HomePageSurfaceProps = {
   surfaceInstanceId: string
   hostMode?: 'slotted' | 'floating' | 'popout'
   onOpenSurface?: (surfaceKind: WorkspaceSurfaceKind) => void
+  onOpenSettings?: (initialSectionId?: SettingsSectionId) => void
 }
 
 export function HomePageSurface(props: HomePageSurfaceProps) {
@@ -77,6 +79,7 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
     surfaceInstanceId,
     hostMode = 'slotted',
     onOpenSurface,
+    onOpenSettings,
   } = props
   const workspaceStartupSurface = useUiPrefsStore((state) => state.workspaceStartupSurface)
   const [storageRefreshIndex, setStorageRefreshIndex] = useState(0)
@@ -111,7 +114,9 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
         ? null
         : navigator.storage
     if (storageManager === null) {
-      setOriginStorageEstimateText('Unavailable in this browser.')
+      void Promise.resolve().then(() => {
+        setOriginStorageEstimateText('Unavailable in this browser.')
+      })
       return
     }
 
@@ -347,6 +352,14 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
                   >
                     GitHub
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => onOpenSettings?.('keyBindings')}
+                    disabled={onOpenSettings === undefined}
+                    data-home-page-rail-shortcut="key-bindings"
+                  >
+                    Key Bindings
+                  </button>
                 </div>
               </div>
               <div

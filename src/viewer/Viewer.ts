@@ -71,7 +71,7 @@ import { useAppStore } from '../app/store/useAppStore'
 import { useUiPrefsStore } from '../app/store/uiPrefsStore'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
-import { resolveViewerCameraShortcutAction } from '../app/cameraShortcuts'
+import { resolveActiveViewerCameraShortcutAction } from '../app/viewerCameraShortcutRuntime'
 import { resolveZoomObjectTarget } from '../app/zoomObjectTarget'
 import type {
   FlyActivationMode,
@@ -6089,7 +6089,7 @@ export class Viewer {
     }
 
     const uiPrefsState = useUiPrefsStore.getState()
-    const viewerShortcutAction = resolveViewerCameraShortcutAction(
+    const viewerShortcutAction = resolveActiveViewerCameraShortcutAction(
       event,
       uiPrefsState.consoleInputPriorityMode,
     )

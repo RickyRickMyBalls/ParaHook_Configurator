@@ -27,6 +27,12 @@
   height: 10px;
 }
 
+.CatalogSurface *::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 .CatalogSurface *::-webkit-scrollbar-track {
   background: rgba(6, 10, 16, 0.78);
   border-radius: 999px;
@@ -53,8 +59,10 @@
 
 .CatalogShellFilters,
 .CatalogShellContent {
+  height: 100%;
   min-width: 0;
   min-height: 0;
+  box-sizing: border-box;
 }
 
 .CatalogShellFilters {

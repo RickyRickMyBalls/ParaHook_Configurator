@@ -8,7 +8,7 @@ import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import type { WorkspaceViewportId } from './workspace/workspaceShellTypes'
 import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { getViewer } from './viewerBridge'
-import { resolveViewerCameraShortcutAction } from './cameraShortcuts'
+import { resolveActiveViewerCameraShortcutAction } from './viewerCameraShortcutRuntime'
 import { resolveZoomObjectTarget } from './zoomObjectTarget'
 import {
   frameEnvironmentLightCommand,
@@ -60,7 +60,10 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
         return
       }
 
-      const action = resolveViewerCameraShortcutAction(event, uiPrefsState.consoleInputPriorityMode)
+      const action = resolveActiveViewerCameraShortcutAction(
+        event,
+        uiPrefsState.consoleInputPriorityMode,
+      )
       if (action === null) {
         return
       }

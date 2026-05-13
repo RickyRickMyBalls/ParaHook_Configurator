@@ -1,9 +1,25 @@
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { readGraphBrowserStoragePolicy } from '../spaghetti/store/graphBrowserStoragePersistence'
 import { readRecentItemsPolicy } from '../recentItems/recentItemsPersistence'
 import { readPubPartsDownloadsStorage } from '../catalog/pubPartsDownloadsStorage'
 import { ParaSelect } from '../components/ParaSelect'
 import { ParaSlider } from '../components/ParaSlider'
+import {
+  getShortcutInventoryReadModel,
+  shortcutPresetReads,
+  type ShortcutBasePresetId,
+  type ShortcutBindingValue,
+  type ShortcutInventoryGroup,
+  type ShortcutInventoryRow,
+} from '../shortcutInventoryReadModel'
+import {
+  applyShortcutBindingOverrides,
+  readShortcutBindingConflicts,
+  resetShortcutCustomPresetOverrides,
+  resolveShortcutPresetRead,
+  type ShortcutBindingConflict,
+} from '../shortcutCustomPresetModel'
+import { useShortcutPreferencesStore } from '../shortcutPreferencesStore'
 import {
   defaultSpaghettiWindowAppearance,
   spaghettiWindowSliderBounds,
@@ -157,6 +173,11 @@ const paddingScaleOptions: Array<{
   { value: 'loose', label: 'Loose' },
 ]
 
+const shortcutPresetBaseOptions = shortcutPresetReads.map((preset) => ({
+  value: preset.id as ShortcutBasePresetId,
+  label: preset.label,
+}))
+
 const formatOnOff = (value: boolean): string => (value ? 'On' : 'Off')
 
 const formatStartupSurface = (value: 'homePage' | 'modelViewer'): string =>
@@ -177,6 +198,93 @@ const formatBrowserPresentationMode = (value: string): string =>
 
 const formatLibraryStatus = (value: string): string =>
   value === 'enabled' ? 'Connected' : value === 'disabled' ? 'Disabled' : 'Not configured'
+
+const formatShortcutGroupStatus = (status: ShortcutInventoryGroup['status']): string =>
+  status === 'cataloged'
+    ? 'Cataloged'
+    : status === 'routing-owner-only'
+      ? 'Routing owner'
+      : status === 'behavior-setting'
+        ? 'Behavior setting'
+        : 'Deferred'
+
+type ShortcutRowSection = {
+  label?: string
+  rows: ShortcutInventoryRow[]
+}
+
+type ShortcutRowConflictRead = {
+  keyChord: string
+  conflictLabels: readonly string[]
+}
+
+const buildShortcutRowSections = (
+  rows: readonly ShortcutInventoryRow[],
+): readonly ShortcutRowSection[] => {
+  const rowSections: ShortcutRowSection[] = []
+
+  for (const row of rows) {
+    const lastSection = rowSections.at(-1)
+    if (lastSection !== undefined && lastSection.label === row.sectionLabel) {
+      lastSection.rows.push(row)
+    } else {
+      rowSections.push({
+        label: row.sectionLabel,
+        rows: [row],
+      })
+    }
+  }
+
+  return rowSections
+}
+
+const resolveKeyboardBindingValueFromEvent = (
+  event: KeyboardEvent<HTMLButtonElement>,
+): ShortcutBindingValue | null => {
+  if (
+    event.code === '' ||
+    ['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'].includes(
+      event.code,
+    )
+  ) {
+    return null
+  }
+
+  return {
+    kind: 'keyboard',
+    code: event.code,
+    shiftKey: event.shiftKey || undefined,
+    ctrlKey: event.ctrlKey || undefined,
+    altKey: event.altKey || undefined,
+    metaKey: event.metaKey || undefined,
+  }
+}
+
+const readShortcutRowConflicts = (
+  groups: readonly ShortcutInventoryGroup[],
+  conflicts: readonly ShortcutBindingConflict[],
+): ReadonlyMap<string, ShortcutRowConflictRead> => {
+  const rowsById = new Map(
+    groups.flatMap((group) => group.rows.map((row) => [row.id, row] as const)),
+  )
+  const conflictReads = new Map<string, ShortcutRowConflictRead>()
+
+  for (const conflict of conflicts) {
+    for (const rowId of conflict.rowIds) {
+      const conflictLabels = conflict.rowIds
+        .filter((conflictRowId) => conflictRowId !== rowId)
+        .map((conflictRowId) => rowsById.get(conflictRowId)?.commandLabel)
+        .filter((label): label is string => label !== undefined)
+
+      conflictReads.set(rowId, {
+        keyChord: conflict.keyChord,
+        conflictLabels,
+      })
+    }
+  }
+
+  return conflictReads
+}
 
 const buildSettingsRows = (options: {
   workspaceStartupSurface: 'homePage' | 'modelViewer'
@@ -350,6 +458,19 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
     initialSectionId,
     activeSectionId: initialSectionId,
   }))
+  const [listeningShortcutRowId, setListeningShortcutRowId] = useState<string | null>(null)
+  const selectedShortcutBasePresetId = useShortcutPreferencesStore(
+    (state) => state.selectedShortcutBasePresetId,
+  )
+  const setSelectedShortcutBasePresetId = useShortcutPreferencesStore(
+    (state) => state.setSelectedShortcutBasePresetId,
+  )
+  const shortcutBindingOverrides = useShortcutPreferencesStore(
+    (state) => state.shortcutBindingOverrides,
+  )
+  const setShortcutBindingOverrides = useShortcutPreferencesStore(
+    (state) => state.setShortcutBindingOverrides,
+  )
   const spaghettiWindowAppearanceDefaults = useUiPrefsStore(
     (state) => state.spaghettiWindowAppearanceDefaults,
   )
@@ -444,6 +565,72 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
       workspaceStartupSurface,
     ],
   )
+
+  const shortcutInventoryRead = useMemo(() => {
+    const baseInventoryRead = getShortcutInventoryReadModel(selectedShortcutBasePresetId)
+    return {
+      ...baseInventoryRead,
+      preset: resolveShortcutPresetRead(selectedShortcutBasePresetId, shortcutBindingOverrides),
+      groups: baseInventoryRead.groups.map((group) => ({
+        ...group,
+        rows: applyShortcutBindingOverrides(
+          group.rows,
+          selectedShortcutBasePresetId,
+          shortcutBindingOverrides,
+        ),
+      })),
+    }
+  }, [selectedShortcutBasePresetId, shortcutBindingOverrides])
+
+  const shortcutPresetOptions = useMemo(
+    () =>
+      shortcutPresetBaseOptions.map((option) => ({
+        ...option,
+        label: resolveShortcutPresetRead(option.value, shortcutBindingOverrides).label,
+      })),
+    [shortcutBindingOverrides],
+  )
+
+  const shortcutBindingConflictsByRowId = useMemo(
+    () =>
+      readShortcutRowConflicts(
+        shortcutInventoryRead.groups,
+        readShortcutBindingConflicts(
+          shortcutInventoryRead.groups.flatMap((group) => group.rows),
+          selectedShortcutBasePresetId,
+          shortcutBindingOverrides,
+        ),
+      ),
+    [selectedShortcutBasePresetId, shortcutBindingOverrides, shortcutInventoryRead.groups],
+  )
+
+  const hasActiveShortcutOverrides = shortcutBindingOverrides.some(
+    (override) => override.basePresetId === selectedShortcutBasePresetId,
+  )
+
+  const applyShortcutBindingOverride = (
+    rowId: string,
+    bindingValue: ShortcutBindingValue,
+  ) => {
+    setShortcutBindingOverrides([
+      ...shortcutBindingOverrides.filter(
+        (override) =>
+          override.basePresetId !== selectedShortcutBasePresetId || override.rowId !== rowId,
+      ),
+      {
+        basePresetId: selectedShortcutBasePresetId,
+        rowId,
+        bindingValue,
+      },
+    ])
+  }
+
+  const resetSelectedShortcutPreset = () => {
+    setShortcutBindingOverrides(
+      resetShortcutCustomPresetOverrides(selectedShortcutBasePresetId, shortcutBindingOverrides),
+    )
+    setListeningShortcutRowId(null)
+  }
 
   const visibleSections = useMemo(() => {
     if (activeSectionId === 'all') {
@@ -708,6 +895,27 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                     <div className="SettingsSurfaceEditorPanel">
                       <div className="SettingsSurfaceEditorGrid">
                         <div className="SettingsSurfaceEditorField">
+                          <ParaSelect
+                            label="Shortcut preset"
+                            value={selectedShortcutBasePresetId}
+                            options={shortcutPresetOptions}
+                            menuMode="custom"
+                            onChange={(nextValue) =>
+                              setSelectedShortcutBasePresetId(nextValue as ShortcutBasePresetId)
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <button
+                            type="button"
+                            className="SettingsSurfaceEditorResetButton"
+                            disabled={!hasActiveShortcutOverrides}
+                            onClick={resetSelectedShortcutPreset}
+                          >
+                            Reset shortcut preset
+                          </button>
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
                           <label className="HomePageSurfaceStoragePolicyToggle">
                             <span>Console first input priority</span>
                             <input
@@ -728,9 +936,137 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                         </div>
                       </div>
                       <p className="SettingsSurfaceEditorNote">
-                        Grouped shortcut rows and preset selection are prepared for the next
-                        Settings 2 phase.
+                        {shortcutInventoryRead.preset.sourcePresetId === 'default'
+                          ? 'Blender (working) currently reads the Default shortcut set until the Blender differences are supplied.'
+                          : 'Default reads the current cataloged shortcut set.'}
                       </p>
+                    </div>
+                    <div className="SettingsSurfaceShortcutGroupList" role="list">
+                      {shortcutInventoryRead.groups.map((group) => (
+                        <section
+                          key={group.id}
+                          className={`SettingsSurfaceShortcutGroup SettingsSurfaceShortcutGroup--${group.status}`}
+                          aria-label={group.label}
+                          role="listitem"
+                          data-shortcut-group-id={group.id}
+                        >
+                          <header className="SettingsSurfaceShortcutGroupHeader">
+                            <div>
+                              <span className="SettingsSurfaceShortcutMode">
+                                {group.modeLabel}
+                              </span>
+                              <strong>{group.label}</strong>
+                            </div>
+                            <span className="SettingsSurfaceShortcutStatus">
+                              {formatShortcutGroupStatus(group.status)}
+                            </span>
+                          </header>
+                          {group.rows.length > 0 ? (
+                            <div className="SettingsSurfaceShortcutSectionList">
+                              {buildShortcutRowSections(group.rows).map((rowSection, index) => (
+                                <div
+                                  key={`${group.id}:${rowSection.label ?? 'shortcuts'}:${index}`}
+                                  className="SettingsSurfaceShortcutSection"
+                                  data-shortcut-row-section={rowSection.label}
+                                >
+                                  {rowSection.label !== undefined ? (
+                                    <strong className="SettingsSurfaceShortcutSectionLabel">
+                                      {rowSection.label}
+                                    </strong>
+                                  ) : null}
+                                  <div className="SettingsSurfaceShortcutRowList" role="list">
+                                    {rowSection.rows.map((shortcutRow) => (
+                                      <article
+                                        key={shortcutRow.id}
+                                        className={`SettingsSurfaceShortcutRow ${
+                                          shortcutRow.editability === 'editable'
+                                            ? 'isEditable'
+                                            : 'isReadOnly'
+                                        } ${
+                                          listeningShortcutRowId === shortcutRow.id
+                                            ? 'isListening'
+                                            : ''
+                                        } ${
+                                          shortcutBindingConflictsByRowId.has(shortcutRow.id)
+                                            ? 'hasConflict'
+                                            : ''
+                                        }`}
+                                        role="listitem"
+                                        data-shortcut-row-id={shortcutRow.id}
+                                      >
+                                        <div className="SettingsSurfaceShortcutRowCopy">
+                                          <strong>{shortcutRow.commandLabel}</strong>
+                                          <span>
+                                            {shortcutRow.contextNote ?? shortcutRow.modeLabel}
+                                          </span>
+                                        </div>
+                                        <div className="SettingsSurfaceShortcutBindingCell">
+                                          {shortcutBindingConflictsByRowId.has(shortcutRow.id) ? (
+                                            <span className="SettingsSurfaceShortcutConflict">
+                                              Overlaps{' '}
+                                              {shortcutBindingConflictsByRowId
+                                                .get(shortcutRow.id)
+                                                ?.conflictLabels.join(', ') || 'another shortcut'}
+                                            </span>
+                                          ) : null}
+                                          {shortcutRow.editability === 'editable' ? (
+                                            <button
+                                              type="button"
+                                              className="SettingsSurfaceShortcutKey SettingsSurfaceShortcutKeyButton"
+                                              aria-label={`Edit ${shortcutRow.commandLabel} shortcut`}
+                                              aria-pressed={listeningShortcutRowId === shortcutRow.id}
+                                              onClick={() =>
+                                                setListeningShortcutRowId((currentRowId) =>
+                                                  currentRowId === shortcutRow.id
+                                                    ? null
+                                                    : shortcutRow.id,
+                                                )
+                                              }
+                                              onKeyDown={(event) => {
+                                                if (listeningShortcutRowId !== shortcutRow.id) {
+                                                  return
+                                                }
+                                                event.preventDefault()
+                                                event.stopPropagation()
+                                                if (event.key === 'Escape') {
+                                                  setListeningShortcutRowId(null)
+                                                  return
+                                                }
+                                                const nextBinding =
+                                                  resolveKeyboardBindingValueFromEvent(event)
+                                                if (nextBinding === null) {
+                                                  return
+                                                }
+                                                applyShortcutBindingOverride(
+                                                  shortcutRow.id,
+                                                  nextBinding,
+                                                )
+                                                setListeningShortcutRowId(null)
+                                              }}
+                                            >
+                                              {listeningShortcutRowId === shortcutRow.id
+                                                ? 'Listening...'
+                                                : shortcutRow.keyChord}
+                                            </button>
+                                          ) : (
+                                            <kbd className="SettingsSurfaceShortcutKey">
+                                              {shortcutRow.keyChord}
+                                            </kbd>
+                                          )}
+                                        </div>
+                                      </article>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="SettingsSurfaceShortcutDeferred">
+                              {group.deferredReason ?? 'This shortcut area is not cataloged yet.'}
+                            </p>
+                          )}
+                        </section>
+                      ))}
                     </div>
                     <div className="SettingsSurfaceRowList" role="list">
                       {rows.map((row) => (

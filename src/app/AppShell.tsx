@@ -1429,6 +1429,7 @@ export function AppShell() {
       dockedBrowserHostRef={dockedBrowserHostRef}
       dockedMeatballHostRef={dockedMeatballHostRef}
       onOpenHomePageSurface={handleOpenHomePageSurface}
+      onOpenSettings={handleOpenSettingsSurface}
       onActivateSpaghettiSurface={handleActivateSpaghettiSurface}
       onActivateViewerSurface={handleActivateViewerSurface}
       onOpenViewportSpawnMenu={handleOpenViewportSpawnMenu}

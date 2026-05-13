@@ -9,7 +9,8 @@ import { useAppStore } from './store/useAppStore'
 import { editHistoryStore } from './store/editHistoryStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
-import { setViewer } from './viewerBridge'
+import { useShortcutPreferencesStore } from './shortcutPreferencesStore'
+import { setViewer, type ViewerApi } from './viewerBridge'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -66,6 +67,7 @@ describe('useViewerCameraShortcuts', () => {
     useAppStore.setState(useAppStore.getInitialState(), true)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    useShortcutPreferencesStore.getState().resetShortcutPreferences()
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     editHistoryStore.clear()
@@ -85,7 +87,7 @@ describe('useViewerCameraShortcuts', () => {
   it('routes numpad view shortcuts through the shared camera preset command seam for the active viewer', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(480)
     useAppStore.setState((state) => ({
       ...state,
@@ -144,10 +146,92 @@ describe('useViewerCameraShortcuts', () => {
     expect(frameReferenceCommandMock).not.toHaveBeenCalled()
   })
 
+  it('routes custom camera preset shortcuts through the shared camera command seam', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as unknown as ViewerApi)
+    useShortcutPreferencesStore.getState().setShortcutBindingOverrides([
+      {
+        basePresetId: 'default',
+        rowId: 'viewer-camera-shortcuts:preset-top',
+        bindingValue: { kind: 'keyboard', code: 'Digit1' },
+      },
+    ])
+    useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(320)
+    useAppStore.setState((state) => ({
+      ...state,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: '1',
+          code: 'Digit1',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(setCameraPresetCommandMock).toHaveBeenCalledWith('top', viewportId, {
+      animate: true,
+      durationMs: 320,
+    })
+  })
+
+  it('does not dispatch overlapping custom camera preset shortcuts', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as unknown as ViewerApi)
+    useShortcutPreferencesStore.getState().setShortcutBindingOverrides([
+      {
+        basePresetId: 'default',
+        rowId: 'viewer-camera-shortcuts:preset-front',
+        bindingValue: { kind: 'keyboard', code: 'Numpad5' },
+      },
+    ])
+    useAppStore.setState((state) => ({
+      ...state,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: '5',
+          code: 'Numpad5',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
+  })
+
   it('routes Ctrl+Z through edit history before active viewer camera shortcuts', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useAppStore.setState((state) => ({
       ...state,
       selectedPartKey: 'part:object-1',
@@ -199,7 +283,7 @@ describe('useViewerCameraShortcuts', () => {
   it('routes Shift+Z through the shared selected-part framing seam for the active viewer', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(510)
     useAppStore.setState((state) => ({
       ...state,
@@ -239,7 +323,7 @@ describe('useViewerCameraShortcuts', () => {
   it('routes plain Z through the selected-part framing seam when Console input priority is Shortcuts first', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(505)
     useAppStore.setState((state) => ({
@@ -279,7 +363,7 @@ describe('useViewerCameraShortcuts', () => {
   it('routes Shift+Z through the shared selected-reference framing seam when no part target exists', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(275)
     useAppStore.setState((state) => ({
       ...state,
@@ -338,7 +422,7 @@ describe('useViewerCameraShortcuts', () => {
   it('routes Shift+Z through the shared environment-light framing seam', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(410)
     useAppStore.setState((state) => ({
       ...state,
@@ -383,7 +467,7 @@ describe('useViewerCameraShortcuts', () => {
   it('keeps Shift+Z quiet when no zoom target exists', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useAppStore.setState((state) => ({
       ...state,
       workspaceSelection: {
@@ -418,7 +502,7 @@ describe('useViewerCameraShortcuts', () => {
   it('keeps the removed numpad decimal shortcut dormant', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useAppStore.setState((state) => ({
       ...state,
       selectedPartKey: 'part:object-1',
@@ -453,7 +537,7 @@ describe('useViewerCameraShortcuts', () => {
   it('does not fire shortcuts when this viewport is not the active viewer surface', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
-    } as any)
+    } as unknown as ViewerApi)
     useWorkspaceStore.setState((state) => ({
       ...state,
       activeViewerViewportId: 'model-viewer-secondary',
@@ -478,7 +562,7 @@ describe('useViewerCameraShortcuts', () => {
   it('keeps camera shortcuts dormant while fly mode is active', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => true,
-    } as any)
+    } as unknown as ViewerApi)
     useAppStore.setState((state) => ({
       ...state,
       workspaceSelection: {

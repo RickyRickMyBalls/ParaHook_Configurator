@@ -1,4 +1,4 @@
-import { resolveViewerCameraShortcutAction } from './cameraShortcuts'
+import { resolveActiveViewerCameraShortcutAction } from './viewerCameraShortcutRuntime'
 
 export type InputRoutingOwner =
   | 'edit-history'
@@ -333,7 +333,7 @@ export const routeKeyboardInput = ({
   if (
     !viewerFlyActive &&
     viewerCameraShortcutsEnabled &&
-    resolveViewerCameraShortcutAction(event, consoleInputPriorityMode) !== null
+    resolveActiveViewerCameraShortcutAction(event, consoleInputPriorityMode) !== null
   ) {
     return {
       owner: 'viewer-camera-shortcuts',

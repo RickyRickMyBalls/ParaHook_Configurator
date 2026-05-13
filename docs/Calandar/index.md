@@ -42,18 +42,6 @@ Do not use it for:
 ## Recent Weekly Read
 
 <div class="calendar-week-strip">
-  <div class="calendar-week-card phase-build-fix">
-    <strong>Apr 22</strong>
-    <p>Edit History reader, checkpoints, and sketch-draw undo batches turned into the next major workspace-history sprint.</p>
-  </div>
-  <div class="calendar-week-card phase-build-fix">
-    <strong>Apr 27</strong>
-    <p>MkDocs strict warning cleanup tightened the docs-site build so the documentation lane stays green.</p>
-  </div>
-  <div class="calendar-week-card phase-workspace-foundation">
-    <strong>Apr 30</strong>
-    <p>Edit-History Workspace 4 grew from a timeline read model into a draggable vertical scrub rail while camera shortcut routing got repaired beside it.</p>
-  </div>
   <div class="calendar-week-card phase-workspace-foundation">
     <strong>May 1</strong>
     <p>Edit History parity expanded through child restore points, node create/delete history, and timeline grouping before Spaghetti overlay O-mode groundwork opened.</p>
@@ -61,6 +49,26 @@ Do not use it for:
   <div class="calendar-week-card phase-workspace-foundation">
     <strong>May 2</strong>
     <p>Spaghetti overlay ownership, Settings shell/defaults, left-dock cleanup, viewport chrome, and Nodes-6 resizing all landed in one dense editor sprint.</p>
+  </div>
+  <div class="calendar-week-card phase-build-fix">
+    <strong>May 5</strong>
+    <p>Cleanup Gen3 extraction took over with App root facades, browser policy slices, transform ownership, history adapters, and sketch session seams.</p>
+  </div>
+  <div class="calendar-week-card phase-split-polish">
+    <strong>May 9</strong>
+    <p>Workspace-9 turned corner split gestures into a real resize lane with radius settings, continuity proof, and restore toggles.</p>
+  </div>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>May 10</strong>
+    <p>Properties and Materials became the main runway, from workspace mounting and section tabs into material targets, presets, compact controls, and multi-object assignment.</p>
+  </div>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>May 11</strong>
+    <p>Materials mixed-value editing, shared workspace shells, Settings input priority, and Model Viewport display/render-preview phases all landed in one major sweep.</p>
+  </div>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>May 12</strong>
+    <p>Settings-2 opened the Key Bindings lane with shortcut source mapping, normalized preset reads, a dedicated section route, and grouped shortcut rendering.</p>
   </div>
 </div>
 
@@ -2358,7 +2366,7 @@ Do not use it for:
   <div class="month-header">
     <div>
       <h3>May 2026</h3>
-      <p>Opened with Edit History timeline grouping and node-history parity, then shifted into Spaghetti overlay ownership, Settings, dock cleanup, viewport chrome, and Nodes-6 resizing.</p>
+      <p>Opened with Edit History and Spaghetti overlay work, then moved through Nodes-6 hardening, Cleanup Gen3 extraction, Workspace-9 corner split gestures, Properties and Materials buildout, Model Viewport display/render-preview work, and Settings-2 Key Bindings.</p>
     </div>
   </div>
 
@@ -2400,33 +2408,89 @@ Do not use it for:
     <div class="day empty">
       <div class="day-number">3</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">4</div>
+    <div class="day phase-workspace-foundation" data-target="may-4">
+      <div class="day-head"><div class="day-number">4</div><div class="day-title">Nodes</div></div>
+      <ul class="day-bullets">
+        <li>Output preview shell adoption</li>
+        <li>Family frame parity</li>
+        <li>Nodes-6 hardening handoff</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">3 changelog entries</span></div>
+      <div class="day-tag">Nodes-6 closeout</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">5</div>
+    <div class="day phase-build-fix" data-target="may-5">
+      <div class="day-head"><div class="day-number">5</div><div class="day-title">Cleanup</div></div>
+      <ul class="day-bullets">
+        <li>Cleanup Gen3 extraction</li>
+        <li>Browser and transform slices</li>
+        <li>Sketch and history adapters</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">25 changelog entries</span></div>
+      <div class="day-tag">Cleanup Gen3 extraction sprint</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">6</div>
+    <div class="day phase-build-fix" data-target="may-6">
+      <div class="day-head"><div class="day-number">6</div><div class="day-title">Sketch Slices</div></div>
+      <ul class="day-bullets">
+        <li>Draw draft commit extraction</li>
+        <li>Geometry sketch selection actions</li>
+        <li>Component edit action extraction</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">3 changelog entries</span></div>
+      <div class="day-tag">Geometry sketch cleanup</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">7</div>
+    <div class="day phase-split-polish" data-target="may-7">
+      <div class="day-head"><div class="day-number">7</div><div class="day-title">Corners</div></div>
+      <ul class="day-bullets">
+        <li>Narrow shared split line</li>
+        <li>Corner hotspot shell</li>
+        <li>Filleted pane start</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">2 changelog entries</span></div>
+      <div class="day-tag">Workspace-9 corner split start</div>
     </div>
     <div class="day empty">
       <div class="day-number">8</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">9</div>
+    <div class="day phase-split-polish" data-target="may-9">
+      <div class="day-head"><div class="day-number">9</div><div class="day-title">Split Gesture</div></div>
+      <ul class="day-bullets">
+        <li>Corner gesture phases</li>
+        <li>Resize continuity proof</li>
+        <li>Corner radius settings</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">13 changelog entries</span></div>
+      <div class="day-tag">Workspace-9 split gesture buildout</div>
     </div>
 
-    <div class="day empty">
-      <div class="day-number">10</div>
+    <div class="day phase-workspace-foundation" data-target="may-10">
+      <div class="day-head"><div class="day-number">10</div><div class="day-title">Materials</div></div>
+      <ul class="day-bullets">
+        <li>Properties workspace mount</li>
+        <li>Materials targets and presets</li>
+        <li>Compact controls and multi-object scope</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">46 changelog entries</span></div>
+      <div class="day-tag">Properties and Materials buildout</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">11</div>
+    <div class="day phase-workspace-foundation" data-target="may-11">
+      <div class="day-head"><div class="day-number">11</div><div class="day-title">Render Preview</div></div>
+      <ul class="day-bullets">
+        <li>Materials mixed-value editing</li>
+        <li>Shared shell and Settings priority</li>
+        <li>Model Viewport display and render preview</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">40 changelog entries</span></div>
+      <div class="day-tag">Materials, shells, Settings, and render preview</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">12</div>
+    <div class="day phase-workspace-foundation" data-target="may-12">
+      <div class="day-head"><div class="day-number">12</div><div class="day-title">Key Bindings</div></div>
+      <ul class="day-bullets">
+        <li>Shortcut inventory source map</li>
+        <li>Normalized shortcut read model</li>
+        <li>Grouped Key Bindings pane</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">4 changelog entries</span></div>
+      <div class="day-tag">Settings-2 Key Bindings start</div>
     </div>
     <div class="day empty">
       <div class="day-number">13</div>
@@ -2495,6 +2559,266 @@ Do not use it for:
     <div class="day empty"></div>
     <div class="day empty"></div>
   </div>
+</div>
+
+<div class="calendar-nested-weeks">
+  <details class="calendar-week-details">
+  <summary>Week of May 3-9</summary>
+
+  <details class="calendar-day-details" id="may-4">
+  <summary>May 4 - Monday</summary>
+  <ul>
+    <li>Closed the Nodes-6 resizing family through Output Preview shell adoption, family frame parity, overflow honesty, hardening, regression proof, and family handoff.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 3 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (3)</summary>
+    <ul class="calendar-commit-list">
+      <li>`SP - Nodes-6 / Phase 6 - Hardening, Regression Proof, And Family Handoff`</li>
+      <li>`SP - Nodes-6 / Phase 5 - Family Frame Parity And Overflow Honesty`</li>
+      <li>`SP - Nodes-6 / Phase 4 - Output Preview Shared Shell Adoption`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-5">
+  <summary>May 5 - Tuesday</summary>
+  <ul>
+    <li>Kept Spaghetti overlay ownership moving with split-restore memory, overlay z-stack fixes, dock-stack cleanup, and wire-surface history parity.</li>
+    <li>Ran a large Cleanup Gen3 extraction sprint across App root helpers, project/reference slices, transform ownership, browser build/release/export/request seams, accepted runtime helpers, graph and part history adapters, and sketch plane/session extraction.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 25 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (25)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.5.1 - Draw Session Control Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.4 - Geometry Sketch Session Lifecycle Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.3 - Geometry Sketch Plane Graph Write Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.2 - Sketch Plane Pick Draft Transform Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.1 - Sketch Plane Pick Command Session Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 3.4 - Graph Node History Adapter Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 3.3 - Part Feature History Adapter Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 3.2 - Geometry Sketch Commit Adapter Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 3.1 - Geometry Sketch History Helper Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 2 - Pure Types And Accepted Runtime Helper Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 6.1 - Root Facade Shrink`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 5.4 - Project Sync And File-Tail Subscription Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 5.3 - Browser Release And Export Flow Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 5.2 - Delayed Placeholder And Request Intent Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 5.1 - Browser Build Policy Slice Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 4.1 - Transform Session Action Slice Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 4 - Transform Selection And Context Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 3 - Project Content And Reference Workspace Slice Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 1 / Phase 2 - Pure Types Helpers And Selector Extraction`</li>
+      <li>`SP - Overlay Z Stack Follow-Up - Raise Overlay Presentation Window Layer`</li>
+      <li>`SP - Overlay Z Stack - Raise Spaghetti Above Viewport Chrome`</li>
+      <li>`SP - Split Restore Memory - Meatball Editor View Support`</li>
+      <li>`SP - Build Cleanup - Dock Stack, Node Resize Test, And Overlay State Drift`</li>
+      <li>`SP - Edit-History-2 / Phase 1.1 - Wire Surface History Parity`</li>
+      <li>`SP - Graph Edit History - Node Move Label Width Fallback Repair`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-6">
+  <summary>May 6 - Wednesday</summary>
+  <ul>
+    <li>Finished the geometry sketch cleanup tail by extracting draw draft commit/undo, sketch selection actions, and component edit actions.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 3 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (3)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.7 - Geometry Sketch Component Edit Action Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.6 - Geometry Sketch Selection Action Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 4.5.2 - Draw Draft Commit And Undo Extraction`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-7">
+  <summary>May 7 - Thursday</summary>
+  <ul>
+    <li>Opened the Workspace-9 corner-split lane with a narrower shared split divider plus the first corner hotspot and filleted pane shell.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 2 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (2)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Workspace-9 / Phase 1 - Corner Hotspot And Filleted Pane Shell`</li>
+      <li>`Workspace Split Divider - Narrow Shared Split Line To 5px`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-9">
+  <summary>May 9 - Saturday</summary>
+  <ul>
+    <li>Built Workspace-9 corner split gestures through deadzone entry, dominant-axis preview, release/cancel behavior, resize continuity proof, and Settings-owned corner radius preferences.</li>
+    <li>Added follow-ups for corner radius consumption, hit-area tracking, nested divider keep-far-pane behavior, and Home Page restore-toggle persistence.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 13 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (13)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Home-Page / Follow-Up - Workspace Restore Toggle Honors Persisted Refresh State`</li>
+      <li>`Workspace / Follow-Up - Keep-Far-Pane Resize Toggle Defaults On`</li>
+      <li>`Workspace / Follow-Up - Nested Divider Resize Keep-Far-Pane Toggle`</li>
+      <li>`Workspace-9 / Follow-Up - Corner Split Hit Area Tracks Fillet Radius`</li>
+      <li>`Workspace-9 / Follow-Up - Workspace Corner Radius Slider Max To 100`</li>
+      <li>`Workspace-9 / Phase 8 - Shared Workspace Corner Radius Consumption`</li>
+      <li>`Workspace-9 / Phase 7 - Settings-Owned Workspace Corner Radius Preference`</li>
+      <li>`Workspace-9 / Phase 5 - Gesture Regression Proof And Resize Continuity`</li>
+      <li>`Workspace-9 / Phase 4 - Release Commit And Cancel Behavior`</li>
+      <li>`Workspace-9 / Phase 3 - Dominant-Axis Preview Orientation And Footprint`</li>
+      <li>`Workspace-9 / Phase 2 - Corner Gesture Session And Deadzone Entry`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 5.1.2 - Graph Output And Viewer Target Selector Extraction`</li>
+      <li>`Cleanup Gen3 - Cleanup 2 / Phase 5.1.1 - Graph Document And Runtime Selector Extraction`</li>
+    </ul>
+  </details>
+  </details>
+
+  </details>
+
+  <details class="calendar-week-details">
+  <summary>Week of May 10-12</summary>
+
+  <details class="calendar-day-details" id="may-10">
+  <summary>May 10 - Sunday</summary>
+  <ul>
+    <li>Built Properties-2 into a mounted workspace with tab framing, child section shell states, and viewport type picker reachability.</li>
+    <li>Expanded Materials from focused-object intake through editable material controls, assignment flows, imported object fallback, richer fields, project material presets, compact controls, color controls, action rails, search, and multi-object assignment scope.</li>
+    <li>Continued Workspace-9 with outer-corner split entry, corner glyph/layering repairs, pane ownership routing, and four-corner split restoration.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 46 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (46)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Materials-5 / Phase 1 - Multi Object Target Read And Assignment Scope`</li>
+      <li>`Materials-4 / Phase 5 Follow-Up - Project Material Search Label Removal`</li>
+      <li>`Materials-4 / Phase 5 Follow-Up - Project Material Search`</li>
+      <li>`Materials-4 / Phase 5 Follow-Up - Stable Project Material List Height`</li>
+      <li>`Materials-4 / Phase 5 - Compact Material Action Rail`</li>
+      <li>`Materials-4 / Phase 4.1 Follow-Up - White Emissive Defaults`</li>
+      <li>`Materials-4 / Phase 4.1 - Reusable Material Color Control Template`</li>
+      <li>`Materials-4 / Phase 4 Follow-Up - Muted Hue Track Styling`</li>
+      <li>`Materials-4 / Phase 4 Follow-Up - Hue Slider Rainbow Track`</li>
+      <li>`Materials-4 / Phase 4 Follow-Up - Base Color Saturation And Brightness`</li>
+      <li>`Materials-4 / Phase 4 Follow-Up - Expandable Base Color Controls`</li>
+      <li>`Materials-4 / Phase 4 Follow-Up - Compact Para Control Styling`</li>
+      <li>`Materials-4 / Phase 4 - Inline Material Source And Compact Control Layout`</li>
+      <li>`Materials-4 / Phase 3 - Project Material Preset List`</li>
+      <li>`Materials-4 / Phase 2 Follow-Up - Compact Scroll List Defaults`</li>
+      <li>`Materials-4 / Phase 2 Follow-Up - Resizable Focused Item List`</li>
+      <li>`Materials-4 / Phase 2 - Focused Item List And Target Header Simplification`</li>
+      <li>`Materials-4 / Phase 1 - Diagnostic And Reference-Proof Row Removal`</li>
+      <li>`Materials-4 / Cleanup Follow-Through - Remove Phase-Proof Headers`</li>
+      <li>`Materials-4 / Cleanup Follow-Through - Resizable Material Target List`</li>
+      <li>`Materials-4 / Cleanup Follow-Through - Compact Material Target List`</li>
+      <li>`Materials-3 / Phase 3 - Hosted Field Projection And Library Handoff`</li>
+      <li>`Materials-3 / Phase 2 - First Typed Richer Field Expansion`</li>
+      <li>`Materials-3 / Phase 0.1 - Whole Imported Object Material Target Fallback`</li>
+      <li>`Materials-3 / Phase 0 - Imported Object Material Target Discovery`</li>
+      <li>`Materials-2 / Phase 3 - Wider Assignment Reuse And Richer Field Follow-Through`</li>
+      <li>`Materials-2 / Phase 2 - New Material Assign And Duplicate Flows`</li>
+      <li>`Materials-2 / Phase 1 - First Editable Material Property Controls`</li>
+      <li>`Materials-1 / Phase 3 - First Material Property Projection And Action Handoff`</li>
+      <li>`Materials-1 / Phase 2 - Material-Bearing Target List Projection And Selection Flow`</li>
+      <li>`Materials-1 / Phase 1 - Focused Object Intake And Current Material Truth Read`</li>
+      <li>`Properties-2 / Phase 3 - Child Section Contract And Shell States`</li>
+      <li>`Properties-2 / Phase 2 - Section Registry And Tab Framing`</li>
+      <li>`Workspace-10 / Phase 4 - Canonical Viewport Type Menu Reads`</li>
+      <li>`Properties / Follow-Up - Viewport Type Picker Availability`</li>
+      <li>`Properties-2 / Phase 1 - Workspace Mount And Focus Context`</li>
+      <li>`Workspace-9 / Follow-Up - Restore Four-Corner Split Contract`</li>
+      <li>`Workspace-9 / Phase 11 - Shared Corner Contract And Shell-Layer Consistency`</li>
+      <li>`Workspace-9 / Phase 10 - Explicit Pane Ownership And Target Routing Cleanup`</li>
+      <li>`Workspace-9 / Follow-Up - Split Corner Pane Ownership Routing`</li>
+      <li>`Workspace-9 / Follow-Up - Split Pane Outside Corner Availability`</li>
+      <li>`Workspace-9 / Follow-Up - Root Top Corner Split Availability`</li>
+      <li>`Workspace-9 / Follow-Up - Split Corner Glyph Visibility`</li>
+      <li>`Workspace-9 / Follow-Up - Top Split Corner Handle Layering`</li>
+      <li>`Workspace-9 / Follow-Up - Root Split Pane Restores Main Viewport Sizing`</li>
+      <li>`Workspace-9 / Phase 9 - Main Model Viewport Outer-Corner Split Entry`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-11">
+  <summary>May 11 - Monday</summary>
+  <ul>
+    <li>Finished the Materials-5 mixed-value and multi-edit ladder, including focused-item inclusion semantics, list pinning, project-list highlighting, copy toggles, and mixed selected material reads.</li>
+    <li>Extracted and adopted shared panel shells across Settings, Properties, Catalog, and Workspace-10 split/popup close controls.</li>
+    <li>Added Settings-3 Console input priority routing and shortcut priority hardening, then shipped Model-Viewport-3 from display-mode contracts through Shift+D radial menu, render-preview HUD/backend/settings, Properties Render controls, presets, and material-mode lighting fixes.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 40 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (40)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Model-Viewport-3 - Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up`</li>
+      <li>`Model-Viewport-3 - Phase 10 - Material Mode Lighting Separation`</li>
+      <li>`Model-Viewport-3 - Phase 9 - Render Quality Presets And Cleanup`</li>
+      <li>`Model-Viewport-3 - Phase 8 Cleanup - Render Properties Control Styling`</li>
+      <li>`Model-Viewport-3 - Phase 8 - Render Settings Runtime Wiring`</li>
+      <li>`Model-Viewport-3 - Phase 7 - Properties Render Section`</li>
+      <li>`Model-Viewport-3 - Phase 6 - Render Preview Settings Contract`</li>
+      <li>`Model-Viewport-3 - Phase 5 - Progressive Render Preview Backend`</li>
+      <li>`Model-Viewport-3 - Phase 4 - Render Preview Status And HUD Contract`</li>
+      <li>`Model-Viewport-3 - Phase 3 - Fast Display Mode Viewer Application`</li>
+      <li>`Model-Viewport-3 - Phase 2 - Shift+D Radial Menu`</li>
+      <li>`Model-Viewport-3 - Phase 1 - Display Mode Contract`</li>
+      <li>`Settings-3 - Phase 5 Follow-Up - Viewer-Local Zoom Object Priority`</li>
+      <li>`Settings-3 - Phase 5 - Shortcut Priority Hardening And Handoff`</li>
+      <li>`Settings-3 - Phase 4 - Input Priority Routing`</li>
+      <li>`Settings-3 - Phase 3 - Settings Console Input Priority Control`</li>
+      <li>`Settings-3 - Phase 2 - Console Input Priority Preference Contract`</li>
+      <li>`Workspace-10 - Phase 5 - Popup Parity Decision And Final Shell Closeout`</li>
+      <li>`Workspace-10 - Phase 3 - Protected-Pane Eligibility And Close Continuity`</li>
+      <li>`Workspace-10 - Phase 2 - Shared Shell Control Strip Ordering`</li>
+      <li>`Workspace-10 - Phase 1 - Anchored Split-Pane Close Button`</li>
+      <li>`Gen 4 - Cleanup 1 Follow-Up - Workspace Panel Shell Padding Slider`</li>
+      <li>`Gen 4 - Cleanup 1 Follow-Up - Settings And Properties Shell Padding Match`</li>
+      <li>`Gen 4 - Cleanup 1 / Phase 5 - Shell CSS Cleanup And Future Split Handoff`</li>
+      <li>`Gen 4 - Cleanup 1 / Phase 4 - Catalog Outer Shell Adoption`</li>
+      <li>`Gen 4 - Cleanup 1 / Phase 3 - Settings And Properties Section Shell Migration`</li>
+      <li>`Gen 4 - Cleanup 1 / Phase 2 - Shared Panel Split Shell Extraction`</li>
+      <li>`Materials-5 / Phase 2.1 Follow-Up - Focused List Selection Pinning`</li>
+      <li>`Materials-5 / Phase 2.1 Follow-Up - Focused Row Inclusion Toggle`</li>
+      <li>`Materials-5 / Phase 4 Follow-Up - Multi Material Project List Highlight`</li>
+      <li>`Materials-5 / Phase 4 Follow-Up - Multi Edit Copy Toggle`</li>
+      <li>`Materials-5 / Phase 4 - Multi Object Field Editing`</li>
+      <li>`Materials-5 / Phase 3 - Mixed Selected Material Read`</li>
+      <li>`Materials-4 Follow-Up - Selected Material Name Input Padding`</li>
+      <li>`Materials-4 Follow-Up - Full Width Selected Material Name Input`</li>
+      <li>`Materials-5 / Phase 2.1 Follow-Up - Single Focused Item Clear Selection`</li>
+      <li>`Materials-5 / Phase 2.1 - Focused Item Inclusion And Global Deselect Semantics`</li>
+      <li>`Materials-5 / Phase 2 Follow-Up - Focused Item Remove Truth Proof`</li>
+      <li>`Materials-5 / Phase 2 Follow-Up - Focused Item Inclusion Controls`</li>
+      <li>`Materials-5 / Phase 2 - Project Material Batch Assignment`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-12">
+  <summary>May 12 - Tuesday</summary>
+  <ul>
+    <li>Opened Settings-2 with a read-only shortcut inventory source map over viewer camera bindings, routing-only seams, Console input-priority ownership, and fragmented shortcut handlers.</li>
+    <li>Normalized the shortcut read model into groups, rows, and copied Default/Blender preset reads, then routed the Settings rail into a real Key Bindings section with the Console first input priority control relocated there.</li>
+    <li>Rendered the grouped shortcut pane with a read-only preset selector, cataloged viewport camera shortcut rows, deferred shortcut groups, and local-only preset switching proof.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 4 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (4)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Settings-2 - Phase 4 - Grouped Shortcut Pane Rendering`</li>
+      <li>`Settings-2 - Phase 3 - Key Bindings Section Entry And Routing`</li>
+      <li>`Settings-2 - Phase 2 - Shared Shortcut Read Model And Mode Normalization`</li>
+      <li>`Settings-2 - Phase 1 - Shortcut Inventory Source Map`</li>
+    </ul>
+  </details>
+  </details>
+
+  </details>
 </div>
 
 </details>

@@ -1,4 +1,4 @@
-type CameraShortcutKeyboardLikeEvent = {
+export type CameraShortcutKeyboardLikeEvent = {
   key: string
   code?: string
   shiftKey?: boolean
