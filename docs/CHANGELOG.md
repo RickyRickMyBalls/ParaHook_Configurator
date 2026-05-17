@@ -72,6 +72,103 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1918 -->
+
+### [1918] - 2026-05-17 12:29 - `Settings-3 - Phase 7 - Staged Console Input Priority Tree`
+
+HUMAN SUMMARY: `Console input-priority control now lives in the visible staged Console tree. The new \`Settings > KeyBindings > ConsoleInput > On/Off\` path and direct Root \`ConsoleInput\` shortcut update the same owner-backed preference while retiring the earlier flat \`consolefirst\` command shape.`
+
+#### Scope / Constraints Honored
+
+- Reused the existing `consoleInputPriorityMode` preference owner.
+- Routed staged `On` and `Off` actions through `setConsoleInputPriorityModeWithHistory(...)`.
+- Kept shortcut routing, Settings UI, Key Bindings UI, and shortcut rebinding behavior unchanged.
+- Retired the flat Phase 6 command shape from parser/help behavior instead of keeping two equal command paths.
+
+#### Summary of Implementation
+
+- Added staged `Settings`, `KeyBindings`, and `ConsoleInput` scopes to the Console navigation tree.
+- Added direct Root `ConsoleInput` entry into the same `ConsoleInput` action scope.
+- Added `settings.consoleInput.on` and `settings.consoleInput.off` staged actions.
+- Wired those actions to update the existing input-priority preference and report the resulting mode in Console output.
+- Added stable radio command identities for the new staged scopes and actions.
+- Removed `consolefirst`, `cf`, `consoleinputpriority`, and `inputpriority` from the flat command parser and help surface.
+- Added and closed the `Settings-3 / Phase 7` planning slice.
+
+#### Files Changed
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/consoleCommandParser.ts`
+- `src/app/console/consoleCommandParser.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Settings > KeyBindings > ConsoleInput > On` sets Console input priority to `Console first`.
+- `Settings > KeyBindings > ConsoleInput > Off` sets Console input priority to `Shortcuts first`.
+- `ConsoleInput > On/Off` is also available directly from Root as a shortcut into the same staged command session.
+- The flat `consolefirst on/off` and alias command path is no longer exposed as a Console command.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx -t "ConsoleInput|Console input priority|known commands|flat command aliases|staged Console input priority"`
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "staged ConsoleInput command tree"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1917 -->
+
+### [1917] - 2026-05-13 07:03 - `Settings-3 - Phase 6 - Console Input Priority Command`
+
+HUMAN SUMMARY: `Console can now change the existing Console input-priority setting directly. The new \`consolefirst on/off\` command and compact aliases update the same owner-backed preference as Settings, with focused parser and Console submission coverage.`
+
+#### Scope / Constraints Honored
+
+- Reused the existing `consoleInputPriorityMode` preference owner.
+- Routed command mutation through `setConsoleInputPriorityModeWithHistory(...)`.
+- Kept Settings UI, shortcut routing semantics, Key Bindings rows, and rebinding behavior unchanged.
+- Did not create a separate Console-owned setting.
+
+#### Summary of Implementation
+
+- Added `consolefirst`, `cf`, `consoleinputpriority`, and `inputpriority` as flat Console command aliases.
+- Added argument parsing for `on`, `off`, `console-first`, `shortcuts-first`, and status reads.
+- Wired the command to update `consoleInputPriorityMode` and report the resulting mode in Console output.
+- Added focused parser and ConsoleDock coverage for command parsing, preference mutation, and history-backed updates.
+- Added and closed the `Settings-3 / Phase 6` planning slice.
+
+#### Files Changed
+
+- `src/app/console/consoleCommandParser.ts`
+- `src/app/console/consoleCommandParser.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Future/Settings-3 - Open Settings Additions And Owner-Backed Toggles.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `consolefirst on` sets Console input priority to `Console first`.
+- `consolefirst off` sets Console input priority to `Shortcuts first`.
+- `cf`, `consoleinputpriority`, and `inputpriority` also route to the same command.
+- Running the command with no argument reports the current mode.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/ConsoleDock.test.tsx -t "Console input priority"`
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts`
+- `npm.cmd run build`
+
 <!-- ENTRY 1916 -->
 
 ### [1916] - 2026-05-12 21:16 - `Settings-2 - Phase 11 - Context Launch, Drift Hardening, And Advanced Boundary`

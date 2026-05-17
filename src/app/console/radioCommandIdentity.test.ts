@@ -337,6 +337,51 @@ describe('radioCommandIdentity', () => {
     ).toBe('Console.References.Transform.Settings.Space.World')
   })
 
+  it('resolves staged Console input priority identities', () => {
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedAdvance',
+        activeScopeId: null,
+        matchedCanonicalToken: 'SETTINGS',
+        matchedLabel: 'Settings',
+      }),
+    ).toBe('Console.Root.Settings')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedAdvance',
+        activeScopeId: 'settingsRoot',
+        matchedCanonicalToken: 'KEYBINDINGS',
+        matchedLabel: 'KeyBindings',
+      }),
+    ).toBe('Console.Settings.KeyBindings')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedAdvance',
+        activeScopeId: 'settingsKeyBindingsRoot',
+        matchedCanonicalToken: 'CONSOLEINPUT',
+        matchedLabel: 'ConsoleInput',
+      }),
+    ).toBe('Console.Settings.KeyBindings.ConsoleInput')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'settingsConsoleInputRoot',
+        actionId: 'settings.consoleInput.on',
+      }),
+    ).toBe('Console.Settings.KeyBindings.ConsoleInput.On')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: 'settingsConsoleInputRoot',
+        actionId: 'settings.consoleInput.off',
+      }),
+    ).toBe('Console.Settings.KeyBindings.ConsoleInput.Off')
+  })
+
   it('resolves flat command aliases through the parsed semantic command name', () => {
     expect(
       resolveConsoleRadioCommandIdentity({

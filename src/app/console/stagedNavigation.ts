@@ -124,6 +124,9 @@ export type ConsoleStagedNavigationChoice = {
 
 export type ConsoleStagedNavigationScopeId =
   | 'root'
+  | 'settingsRoot'
+  | 'settingsKeyBindingsRoot'
+  | 'settingsConsoleInputRoot'
   | 'workspaceModesRoot'
   | 'workspaceModeViewportSelected'
   | 'workspaceModeViewportSplitSelected'
@@ -367,6 +370,8 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'content.transform.snap.scale.x.value'
     | 'content.transform.snap.scale.y.value'
     | 'content.transform.snap.scale.z.value'
+    | 'settings.consoleInput.on'
+    | 'settings.consoleInput.off'
   breadcrumb: string[]
   selections: ConsoleStagedNavigationSelection
 }
@@ -825,6 +830,41 @@ const ZOOM_OBJECT_DIRECT_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const ROOT_SETTINGS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SETTINGS',
+  aliases: [],
+  label: 'Settings',
+  kind: 'scope',
+}
+
+const KEY_BINDINGS_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'KEYBINDINGS',
+  aliases: ['KB'],
+  label: 'KeyBindings',
+  kind: 'scope',
+}
+
+const CONSOLE_INPUT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CONSOLEINPUT',
+  aliases: ['CI'],
+  label: 'ConsoleInput',
+  kind: 'scope',
+}
+
+const CONSOLE_INPUT_ON_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'ON',
+  aliases: [],
+  label: 'On',
+  kind: 'action',
+}
+
+const CONSOLE_INPUT_OFF_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OFF',
+  aliases: [],
+  label: 'Off',
+  kind: 'action',
+}
+
 const SKETCH_DRAW_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'SKETCH DRAW',
   aliases: ['SKETCHDRAW', 'SD'],
@@ -1222,6 +1262,8 @@ const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_HIDE_CHOICE,
   ROOT_UNHIDE_ALL_CHOICE,
   ROOT_WORKSPACE_MODES_CHOICE,
+  ROOT_SETTINGS_CHOICE,
+  CONSOLE_INPUT_CHOICE,
   ROOT_CAMERA_CHOICE,
   ROOT_RADIO_CHOICE,
   ROOT_ZOOM_CHOICE,
@@ -1378,6 +1420,62 @@ export const createConsoleRootSession = (): ConsoleStagedNavigationSession => ({
     sketchNodeId: null,
   },
   validChoices: buildRootChoices(),
+})
+
+const buildSettingsRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  KEY_BINDINGS_CHOICE,
+  createBackChoice(),
+]
+
+const buildSettingsKeyBindingsRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  CONSOLE_INPUT_CHOICE,
+  createBackChoice(),
+]
+
+const buildSettingsConsoleInputRootChoices = (): ConsoleStagedNavigationChoice[] => [
+  CONSOLE_INPUT_ON_CHOICE,
+  CONSOLE_INPUT_OFF_CHOICE,
+  createBackChoice(),
+]
+
+const createSettingsRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'settingsRoot',
+  breadcrumb: ['Root', ROOT_SETTINGS_CHOICE.label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildSettingsRootChoices(),
+})
+
+const createSettingsKeyBindingsRootSession = (): ConsoleStagedNavigationSession => ({
+  scopeId: 'settingsKeyBindingsRoot',
+  breadcrumb: ['Root', ROOT_SETTINGS_CHOICE.label, KEY_BINDINGS_CHOICE.label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildSettingsKeyBindingsRootChoices(),
+})
+
+const createSettingsConsoleInputRootSession = (
+  breadcrumb: string[] = [
+    'Root',
+    ROOT_SETTINGS_CHOICE.label,
+    KEY_BINDINGS_CHOICE.label,
+    CONSOLE_INPUT_CHOICE.label,
+  ],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'settingsConsoleInputRoot',
+  breadcrumb,
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+  },
+  validChoices: buildSettingsConsoleInputRootChoices(),
 })
 
 const buildRadioRootChoices = (): ConsoleStagedNavigationChoice[] => [
@@ -3584,6 +3682,16 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedRootChoice.canonicalToken === ROOT_WORKSPACE_MODES_CHOICE.canonicalToken) {
       return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedRootChoice)
     }
+    if (matchedRootChoice.canonicalToken === ROOT_SETTINGS_CHOICE.canonicalToken) {
+      return createAdvanceResult(createSettingsRootSession(), submittedToken, matchedRootChoice)
+    }
+    if (matchedRootChoice.canonicalToken === CONSOLE_INPUT_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createSettingsConsoleInputRootSession(['Root', CONSOLE_INPUT_CHOICE.label]),
+        submittedToken,
+        matchedRootChoice,
+      )
+    }
     if (matchedRootChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
       return createAdvanceResult(radioRootSession, submittedToken, matchedRootChoice)
@@ -3666,6 +3774,16 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === ROOT_WORKSPACE_MODES_CHOICE.canonicalToken) {
       return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedChoice)
     }
+    if (matchedChoice.canonicalToken === ROOT_SETTINGS_CHOICE.canonicalToken) {
+      return createAdvanceResult(createSettingsRootSession(), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === CONSOLE_INPUT_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createSettingsConsoleInputRootSession(['Root', CONSOLE_INPUT_CHOICE.label]),
+        submittedToken,
+        matchedChoice,
+      )
+    }
     if (matchedChoice.canonicalToken === ROOT_CONTENT_CHOICE.canonicalToken) {
       return createAdvanceResult(createContentRootSession(context), submittedToken, matchedChoice)
     }
@@ -3707,6 +3825,72 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     return createAdvanceResult(rootSession, submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'settingsRoot') {
+    const settingsChoices = buildSettingsRootChoices()
+    const matchedChoice =
+      settingsChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: settingsChoices }, submittedToken, settingsChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    return createAdvanceResult(createSettingsKeyBindingsRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'settingsKeyBindingsRoot') {
+    const keyBindingsChoices = buildSettingsKeyBindingsRootChoices()
+    const matchedChoice =
+      keyBindingsChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: keyBindingsChoices },
+        submittedToken,
+        keyBindingsChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createSettingsRootSession(), submittedToken, matchedChoice)
+    }
+    return createAdvanceResult(createSettingsConsoleInputRootSession(), submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'settingsConsoleInputRoot') {
+    const consoleInputChoices = buildSettingsConsoleInputRootChoices()
+    const matchedChoice =
+      consoleInputChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: consoleInputChoices },
+        submittedToken,
+        consoleInputChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const hasDirectRootBreadcrumb =
+        session.breadcrumb.length === 2 && session.breadcrumb[1] === CONSOLE_INPUT_CHOICE.label
+      return createAdvanceResult(
+        hasDirectRootBreadcrumb
+          ? createConsoleRootSession()
+          : createSettingsKeyBindingsRootSession(),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    return {
+      kind: 'execute',
+      session: { ...session, validChoices: consoleInputChoices },
+      submittedToken,
+      matchedChoice,
+      actionId:
+        matchedChoice.canonicalToken === 'ON'
+          ? 'settings.consoleInput.on'
+          : 'settings.consoleInput.off',
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
   }
 
   if (session.scopeId === 'workspaceModesRoot') {

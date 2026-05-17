@@ -16,7 +16,8 @@ import {
   selectConsoleWorkspaceContextTarget,
   useAppStore,
 } from '../store/useAppStore'
-import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { type ConsoleInputPriorityMode, useUiPrefsStore } from '../store/uiPrefsStore'
+import { setConsoleInputPriorityModeWithHistory } from '../store/uiPreferenceEditHistory'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { floatWorkspaceSurface, popoutWorkspaceSurface } from '../workspace/workspaceSurfaceActions'
 import {
@@ -324,6 +325,10 @@ const formatRadioSampleBurstTime = (value: number): string => {
   }
   return `${value}`.replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0$/u, '')
 }
+
+const formatConsoleInputPriorityMode = (
+  mode: ConsoleInputPriorityMode,
+): string => (mode === 'console-first' ? 'Console first' : 'Shortcuts first')
 
 const isContentObjectTransformSnapScope = (
   scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
@@ -2537,6 +2542,37 @@ export function useConsoleInteraction(
               stagedResult,
             })
           ) {
+            return
+          }
+          if (
+            stagedResult.actionId === 'settings.consoleInput.on' ||
+            stagedResult.actionId === 'settings.consoleInput.off'
+          ) {
+            const nextMode =
+              stagedResult.actionId === 'settings.consoleInput.on'
+                ? 'console-first'
+                : 'shortcuts-first'
+            setConsoleInputPriorityModeWithHistory(nextMode)
+            setStagedNavigationSession(stagedResult.session)
+            requestRadioBurst(commandIdentity, 'enter')
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Shortcuts',
+              text: `Console input priority: ${formatConsoleInputPriorityMode(nextMode)}`,
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
             return
           }
           if (

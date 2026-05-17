@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+17. 2026-05-17 12:29:14: Implemented and closed `Settings-3 / Phase 7 - Staged Console Input Priority Tree` by adding the visible staged `Root > Settings > KeyBindings > ConsoleInput > On/Off` path, direct Root `ConsoleInput` shortcut, owner-backed preference mutation, flat command retirement, focused staged-navigation, identity, parser, and ConsoleDock coverage, and build verification.
+16. 2026-05-17 11:57:57: Prepped `Settings-3 / Phase 7 - Staged Console Input Priority Tree` for implementation by locking the staged scope/action ids, direct Root shortcut behavior, local alias boundary, flat-command retirement rule, owner-backed mutation seam, and focused staged-navigation plus ConsoleDock verification targets.
+15. 2026-05-13 10:09:18: Added `Settings-3 / Phase 7 - Staged Console Input Priority Tree` as the corrective follow-up to move Console input-priority control into the visible no-space staged Console tree at `Root > Settings > KeyBindings > ConsoleInput > On/Off`, while also allowing `ConsoleInput` to be called directly from Root.
+14. 2026-05-13 07:03:07: Implemented and closed `Settings-3 / Phase 6 - Console Input Priority Command` by adding a flat `consolefirst` Console command with `cf`, `consoleinputpriority`, and `inputpriority` aliases, owner-backed history-aware preference mutation, status/invalid-argument feedback, and focused parser plus ConsoleDock coverage.
+13. 2026-05-13 07:03:07: Added `Settings-3 / Phase 6 - Console Input Priority Command` as the follow-on command lane for turning the shipped Console input-priority setting on or off from typed Console input without creating a second Settings owner or changing shortcut routing.
 12. 2026-05-11 17:46:18: Implemented and closed `Settings-3 / Phase 5 - Shortcut Priority Hardening And Handoff` by adding focused routing regression coverage for Console-first capture, Shortcuts-first `C`, editable, fly, sketch, sketch-plane, reference, staged Console, and edit-history owners, while recording the handoff to later key-binding visibility and rebinding work.
 11. 2026-05-11 17:42:13: Prepped `Settings-3 / Phase 5 - Shortcut Priority Hardening And Handoff` for implementation against the post-Phase-4 routing shape, focused final regression targets, existing full-ConsoleDock failure boundary, editable/fly/sketch/reference/staged owner preservation, and the handoff from the first Console input-priority setting to later key-binding visibility work.
 10. 2026-05-11 17:35:50: Implemented and closed `Settings-3 / Phase 4 - Input Priority Routing` by routing the persisted Console input-priority mode through `inputRouting`, `useConsoleInteraction`, and viewer camera shortcuts, preserving Console-first printable capture plus `Shift+Z`, adding Shortcuts-first plain `Z` Zoom Object and `C` Console entry without seeding text, and proving docked/floating plus popout Console focus behavior.
@@ -50,6 +55,8 @@ The first implementation ladder should stay narrow:
 3. add the visible Settings control
 4. route Console-first versus Shortcuts-first keyboard priority
 5. harden priority, editable-field, and future key-bindings boundaries
+6. expose a small typed Console command for changing the same setting
+7. replace the flat command lane with a visible no-space staged Console tree path
 
 Important planning rule:
 - Settings projects and changes the preference, but the Console/input-routing owner decides what the preference means at runtime
@@ -62,6 +69,8 @@ This phase owns:
 - the Settings projection for that setting
 - the runtime routing behavior needed to honor Console-first versus Shortcuts-first priority
 - focused proof that plain letters become shortcuts only in Shortcuts-first mode
+- the typed Console command that changes the same owner-backed input-priority preference
+- the staged Console-tree correction for the command path
 
 This phase does not own:
 - full key-binding editing
@@ -69,6 +78,8 @@ This phase does not own:
 - replacing the `Settings-2` shortcut reference lane
 - changing camera, transform, sketch, or viewport shortcut behavior beyond respecting the new Console input-priority preference
 - unrelated Settings controls that should become later `Settings-3` phases
+- a separate Console-only copy of the input-priority setting
+- freeform multi-token commands for the input-priority setting
 
 ### Current Planning Read
 
@@ -83,6 +94,9 @@ The healthy future read is:
 - direct clicks into the Console input still work in both modes
 - text fields and editable controls keep native keyboard ownership
 - higher-priority shortcuts still beat Console capture
+- the user can use the staged `ConsoleInput > On/Off` command path from the Console to change the same setting without opening Settings
+- the healthier command path is a visible staged tree with no-space tokens: `Root > Settings > KeyBindings > ConsoleInput > On/Off`
+- `ConsoleInput` should also be callable directly from Root as a shortcut into the same `ConsoleInput` staged session
 
 ### Ownership Boundary
 
@@ -98,6 +112,17 @@ Settings must not:
 - invent a second command-capture owner
 - decide shortcut priority locally
 - hide the fact that future key-bindings work belongs to `Settings-2` or a later rebinding family
+
+Console may:
+- expose a typed command that writes the same owner-backed preference
+- report the current mode and invalid command arguments
+- expose the preference in the staged command tree
+
+Console must not:
+- create a separate local setting
+- bypass the history-aware preference mutation seam
+- change input routing semantics while handling the command
+- require space-separated command submissions for this setting
 
 ## Vision
 
@@ -188,6 +213,32 @@ What must stay true:
 - [x] `Settings-Gen1-HLG-8`
 - [x] Settings-Gen1-CLG-3.
 - [x] Settings-Gen1-CLG-5.
+- [x] Settings-Gen1-CLG-7.
+
+### `Settings-3 / Phase 6`
+
+- [x] Add a typed Console command for the existing Console input-priority setting.
+- [x] Support turning Console-first priority on and off from Console input.
+- [x] Route the command through the same owner-backed preference mutation used by Settings.
+- [x] Report the current mode without changing state when no mode argument is provided.
+- [x] Keep input routing, shortcut semantics, and key-binding UI unchanged.
+- [x] `Settings-Gen1-HLG-6`
+- [x] `Settings-Gen1-HLG-8`
+- [x] Settings-Gen1-CLG-3.
+- [x] Settings-Gen1-CLG-7.
+
+### `Settings-3 / Phase 7`
+
+- [x] Add a visible staged Console path for the input-priority setting.
+- [x] Use the no-space path `Root > Settings > KeyBindings > ConsoleInput > On/Off`.
+- [x] Allow `ConsoleInput` to be submitted from Root and land directly in the same `ConsoleInput` staged session.
+- [x] Use local `On` and `Off` actions to change the existing `consoleInputPriorityMode` preference.
+- [x] Keep the mutation routed through the owner-backed history-aware preference helper.
+- [x] Retire or supersede the earlier space-requiring flat `consolefirst on/off` behavior.
+- [x] Keep shortcut routing, Settings UI, Key Bindings UI, and rebinding behavior unchanged.
+- [x] `Settings-Gen1-HLG-6`
+- [x] `Settings-Gen1-HLG-8`
+- [x] Settings-Gen1-CLG-3.
 - [x] Settings-Gen1-CLG-7.
 
 ## [x] `Settings-3 / Phase 1` - `Console Capture Owner Audit`
@@ -953,3 +1004,249 @@ Key-binding handoff:
 
 - `npm.cmd test -- src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx`
 - `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "input priority is Shortcuts first"`
+
+## [x] `Settings-3 / Phase 6` - `Console Input Priority Command`
+
+### Phase 6 Summary
+
+Add a small typed Console command for the shipped Console input-priority setting.
+
+This phase lets the user switch the same preference without opening Settings:
+- `consolefirst on` means `Console first`
+- `consolefirst off` means `Shortcuts first`
+- `cf on` and `cf off` are compact aliases
+
+### Phase 6 Implementation Spec
+
+#### Purpose
+
+Expose a Console-side control for the owner-backed `consoleInputPriorityMode` preference while preserving the existing Settings toggle and input-routing behavior.
+
+#### Owns
+
+- flat Console command parsing for the input-priority setting
+- command aliases for compact Console use
+- history-aware preference mutation through the existing UI preference helper
+- status and invalid-argument feedback
+- focused parser and ConsoleDock coverage
+
+#### Does Not Own
+
+- changing `Console first` or `Shortcuts first` routing semantics
+- adding a new Settings control
+- changing Key Bindings rows
+- shortcut rebinding or conflict resolution
+- a second Console-only preference owner
+
+#### First Pass Decisions
+
+1. Use `consolefirst` as the readable command name because the existing UI label is `Console first input priority`.
+2. Support `cf`, `consoleinputpriority`, and `inputpriority` as aliases.
+3. Treat `on`, `console-first`, and `consolefirst` as `console-first`.
+4. Treat `off`, `shortcuts-first`, and `shortcutsfirst` as `shortcuts-first`.
+5. Show current status when no argument is supplied.
+6. Route mutation through `setConsoleInputPriorityModeWithHistory(...)`.
+
+#### Checklist
+
+- [x] parse the new command and aliases
+- [x] parse on/off and mode-name arguments
+- [x] update the owner-backed preference
+- [x] record undoable preference history when the value changes
+- [x] report current mode and invalid arguments in Console output
+- [x] keep routing behavior unchanged
+
+#### Phase 6 Implementation Result
+
+Phase 6 is complete.
+
+Implemented behavior:
+- `src/app/console/consoleCommandParser.ts` now recognizes `consolefirst`, `cf`, `consoleinputpriority`, and `inputpriority`.
+- `consolefirst on` sets `consoleInputPriorityMode` to `console-first`.
+- `consolefirst off` sets `consoleInputPriorityMode` to `shortcuts-first`.
+- `consolefirst` without arguments reports the current mode.
+- invalid arguments warn without changing the preference.
+- `src/app/console/useConsoleInteraction.ts` uses `setConsoleInputPriorityModeWithHistory(...)` so Console command changes share the same owner-backed undo target as Settings.
+- No shortcut routing, Settings UI, Key Bindings UI, or rebinding behavior changed.
+
+#### Phase 6 Verification Result
+
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/ConsoleDock.test.tsx -t "Console input priority"`
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts`
+- `npm.cmd run build`
+
+## [x] `Settings-3 / Phase 7` - `Staged Console Input Priority Tree`
+
+### Phase 7 Summary
+
+Replace the flat Console input-priority command with a visible staged Console-tree path that uses no-space command tokens.
+
+The intended user paths are:
+- `Root > Settings > KeyBindings > ConsoleInput > On`
+- `Root > Settings > KeyBindings > ConsoleInput > Off`
+- `Root > ConsoleInput > On`
+- `Root > ConsoleInput > Off`
+
+`ConsoleInput` from Root should be a shortcut into the same `ConsoleInput` staged session, not a second owner or a separate behavior path.
+
+### Phase 7 Implementation Spec
+
+#### Purpose
+
+Make the Console input-priority setting discoverable in the guided Console tree and align its command grammar with the no-space staged command model.
+
+#### Owns
+
+- `Settings` root staged scope
+- `KeyBindings` staged scope under `Settings`
+- `ConsoleInput` staged scope under `KeyBindings`
+- direct Root-level `ConsoleInput` entry into the same staged scope
+- `On` and `Off` staged actions for the existing `consoleInputPriorityMode` preference
+- retirement or supersession of the Phase 6 flat `consolefirst on/off` command shape
+- focused staged-navigation and Console submission tests
+
+#### Does Not Own
+
+- a broad Settings command tree beyond the minimum `KeyBindings > ConsoleInput` path
+- opening the Settings workspace surface
+- changing the visible Settings UI
+- changing shortcut routing semantics
+- shortcut rebinding or conflict resolution
+- keeping space-separated command paths for this setting
+
+#### Current Live Read
+
+Phase 6 added a flat typed command handled by `consoleCommandParser.ts` and `useConsoleInteraction.ts`.
+
+That command does not appear in the staged Console tree and uses space-separated arguments such as `consolefirst off`.
+
+The correct next cut should move the user-facing command shape into `stagedNavigation.ts`, where visible Console choices are defined.
+
+Likely implementation anchors:
+- `src/app/console/stagedNavigation.ts`
+  - add `settingsRoot`, `settingsKeyBindingsRoot`, and `settingsConsoleInputRoot` scope ids
+  - add root `Settings` and root `ConsoleInput` choices
+  - add `KeyBindings`, `ConsoleInput`, `On`, `Off`, and `Back` choices
+  - return execute actions for `settings.consoleInput.on` and `settings.consoleInput.off`
+- `src/app/console/useConsoleInteraction.ts`
+  - handle the new staged execute actions by calling `setConsoleInputPriorityModeWithHistory(...)`
+  - report `Console input priority: Console first` or `Console input priority: Shortcuts first`
+  - remove or de-emphasize the Phase 6 flat command case if the staged command fully replaces it
+- `src/app/console/radioCommandIdentity.ts`
+  - add stable identities for the new staged choices/actions if needed by radio command tracking
+- `src/app/console/stagedNavigation.test.ts` or a focused staged-navigation test
+  - prove the tree shape and root `ConsoleInput` shortcut
+- `src/app/console/ConsoleDock.test.tsx`
+  - prove `ConsoleInput > On/Off` mutates the existing preference
+
+#### First Pass Decisions
+
+1. Use `Settings` as a root staged scope, with no root alias unless an existing no-conflict alias is chosen later.
+2. Use `KeyBindings` as one no-space token under `Settings`, with optional `KB` alias.
+3. Use `ConsoleInput` as the staged setting name, with optional `CI` alias.
+4. Add `ConsoleInput` directly at Root as a shortcut into the same `settingsConsoleInputRoot` session.
+5. Use local `On` and `Off` actions inside `ConsoleInput`.
+6. Map `On` to `console-first`.
+7. Map `Off` to `shortcuts-first`.
+8. Do not require `consolefirst on`, `consolefirst off`, or any other space-separated command for this setting.
+
+#### No-Widening Rule
+
+- do not add the full Settings workspace command tree
+- do not add Key Bindings editing commands
+- do not change how keyboard shortcuts route after the preference is changed
+- do not add new shortcut rows or Settings controls
+- do not make `On` or `Off` global root commands
+- do not use this phase to repair unrelated Console staged-navigation issues
+
+#### Acceptance Read
+
+Phase 7 is ready to implement when the next code pass can prove:
+- Root choices include `Settings` and `ConsoleInput`
+- `Settings > KeyBindings > ConsoleInput` reaches a staged session with `On`, `Off`, and `Back`
+- submitting `ConsoleInput` from Root reaches that same staged session
+- submitting `On` changes the existing preference to `console-first`
+- submitting `Off` changes the existing preference to `shortcuts-first`
+- the change is undoable through the existing preference history seam
+- the old space-separated command shape is retired or clearly superseded
+
+#### Implementation Notes
+
+Use these concrete identifiers unless the live code already has a narrower naming convention at implementation time:
+- scope ids:
+  - `settingsRoot`
+  - `settingsKeyBindingsRoot`
+  - `settingsConsoleInputRoot`
+- action ids:
+  - `settings.consoleInput.on`
+  - `settings.consoleInput.off`
+- radio identities:
+  - `Console > Settings > KeyBindings > ConsoleInput > On`
+  - `Console > Settings > KeyBindings > ConsoleInput > Off`
+
+Staged tree shape:
+- `Root` should expose `Settings` as a normal scope choice.
+- `Root` should expose `ConsoleInput` as a shortcut scope choice into the exact same `settingsConsoleInputRoot` session reached through `Settings > KeyBindings > ConsoleInput`.
+- `Settings` should expose only `KeyBindings` plus `Back` for this phase.
+- `KeyBindings` should expose only `ConsoleInput` plus `Back` for this phase.
+- `ConsoleInput` should expose only `On`, `Off`, and `Back`.
+
+Back behavior:
+- `Back` from `ConsoleInput` should return to `Settings > KeyBindings` when the user arrived through `Settings > KeyBindings > ConsoleInput`.
+- `Back` from the direct Root `ConsoleInput` shortcut may return to `Root` if the existing staged-navigation model cannot preserve the skipped parent breadcrumb cleanly.
+- Do not invent a new navigation stack just for this phase.
+
+Alias boundary:
+- `Settings` should start with no alias.
+- `KeyBindings` may use `KB` only if it does not collide with existing staged tokens.
+- `ConsoleInput` may use `CI` only if it does not collide with existing staged tokens.
+- `On` and `Off` should not become Root-level actions or global aliases.
+
+Flat-command retirement:
+- Prefer removing `consolefirst`, `cf`, `consoleinputpriority`, and `inputpriority` from the flat command help surface once staged `ConsoleInput` is working.
+- If parser compatibility is kept temporarily, mark it as compatibility-only in code/tests and keep the visible prompt/help language focused on the staged no-space tree.
+- Do not keep both paths as equally recommended user flows.
+
+Runtime mutation:
+- Both staged actions must call `setConsoleInputPriorityModeWithHistory(...)`.
+- `settings.consoleInput.on` maps to `console-first`.
+- `settings.consoleInput.off` maps to `shortcuts-first`.
+- Console output should continue to use `Console input priority: Console first` and `Console input priority: Shortcuts first`.
+
+#### Verification Shape
+
+- focused `src/app/console/stagedNavigation.test.ts` coverage for:
+  - Root exposing `Settings` and direct `ConsoleInput`
+  - `Settings > KeyBindings > ConsoleInput` reaching `On`, `Off`, and `Back`
+  - direct Root `ConsoleInput` reaching the same action scope
+  - `Back` behavior from each new scope
+- focused `src/app/console/radioCommandIdentity` coverage if new action ids require explicit identity handling.
+- focused `src/app/console/ConsoleDock.test.tsx` coverage for:
+  - `ConsoleInput > On` mutating the existing preference to `console-first`
+  - `ConsoleInput > Off` mutating the existing preference to `shortcuts-first`
+  - mutation using the owner-backed history-aware helper, checked through the same observable history seam used by Phase 6 tests
+- parser tests only if the flat parser remains as a compatibility shim
+- `npm.cmd test -- src/app/console/stagedNavigation.test.ts src/app/console/ConsoleDock.test.tsx -t "ConsoleInput"`
+- `npm.cmd test -- src/app/console/stagedNavigation.test.ts`
+- `npm.cmd run build`
+
+#### Phase 7 Implementation Result
+
+Phase 7 is complete.
+
+Implemented behavior:
+- `src/app/console/stagedNavigation.ts` now exposes `Settings` and direct `ConsoleInput` root choices.
+- `Root > Settings > KeyBindings > ConsoleInput` reaches a staged `ConsoleInput` session with `On`, `Off`, and `Back`.
+- `Root > ConsoleInput` reaches the same action scope as a shortcut path.
+- `settings.consoleInput.on` sets `consoleInputPriorityMode` to `console-first`.
+- `settings.consoleInput.off` sets `consoleInputPriorityMode` to `shortcuts-first`.
+- both staged actions route through `setConsoleInputPriorityModeWithHistory(...)`.
+- the Phase 6 flat `consolefirst` command and aliases were retired from parser/help behavior so the visible staged tree is the recommended command path.
+- shortcut routing, Settings UI, Key Bindings UI, and rebinding behavior were unchanged.
+
+#### Phase 7 Verification Result
+
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts src/app/console/ConsoleDock.test.tsx -t "ConsoleInput|Console input priority|known commands|flat command aliases|staged Console input priority"`
+- `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "staged ConsoleInput command tree"`
+- `npm.cmd run build`

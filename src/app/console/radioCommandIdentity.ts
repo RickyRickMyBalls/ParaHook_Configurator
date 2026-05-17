@@ -126,6 +126,12 @@ const resolveStagedAdvanceIdentity = ({
     if (matchedCanonicalToken === 'ZOOM') {
       return buildIdentity('Console', 'Root', 'Zoom')
     }
+    if (matchedCanonicalToken === 'SETTINGS') {
+      return buildIdentity('Console', 'Root', 'Settings')
+    }
+    if (matchedCanonicalToken === 'CONSOLEINPUT') {
+      return buildIdentity('Console', 'Root', 'ConsoleInput')
+    }
     if (matchedCanonicalToken === 'PAN') {
       return buildIdentity('Console', 'Root', 'Pan')
     }
@@ -273,6 +279,29 @@ const resolveStagedAdvanceIdentity = ({
       return matchedCanonicalToken === 'BACK'
         ? buildIdentity('Console', 'Radio', 'Back')
         : null
+    case 'settingsRoot':
+      return matchedCanonicalToken === 'KEYBINDINGS'
+        ? buildIdentity('Console', 'Settings', 'KeyBindings')
+        : matchedCanonicalToken === 'BACK'
+          ? buildIdentity('Console', 'Settings', 'Back')
+          : null
+    case 'settingsKeyBindingsRoot':
+      return matchedCanonicalToken === 'CONSOLEINPUT'
+        ? buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput')
+        : matchedCanonicalToken === 'BACK'
+          ? buildIdentity('Console', 'Settings', 'KeyBindings', 'Back')
+          : null
+    case 'settingsConsoleInputRoot':
+      switch (matchedCanonicalToken) {
+        case 'ON':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'On')
+        case 'OFF':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'Off')
+        case 'BACK':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'Back')
+        default:
+          return null
+      }
     case 'graphRoot':
       if (matchedCanonicalToken === 'LIST') {
         return buildIdentity('Console', 'Graph', 'List')
@@ -590,6 +619,35 @@ const resolveStagedChoiceIdentity = ({
         default:
           return null
       }
+    case 'settingsRoot':
+      switch (matchedCanonicalToken) {
+        case 'KEYBINDINGS':
+          return buildIdentity('Console', 'Settings', 'KeyBindings')
+        case 'BACK':
+          return buildIdentity('Console', 'Settings', 'Back')
+        default:
+          return null
+      }
+    case 'settingsKeyBindingsRoot':
+      switch (matchedCanonicalToken) {
+        case 'CONSOLEINPUT':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput')
+        case 'BACK':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'Back')
+        default:
+          return null
+      }
+    case 'settingsConsoleInputRoot':
+      switch (matchedCanonicalToken) {
+        case 'ON':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'On')
+        case 'OFF':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'Off')
+        case 'BACK':
+          return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'Back')
+        default:
+          return null
+      }
     case 'referenceHideRoot':
       return matchedCanonicalToken === 'BACK'
         ? buildIdentity('Console', 'Root', 'Hide', 'Back')
@@ -738,6 +796,10 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Radio', 'OpenToolbar')
     case 'radio.closeToolbar':
       return buildIdentity('Console', 'Radio', 'CloseToolbar')
+    case 'settings.consoleInput.on':
+      return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'On')
+    case 'settings.consoleInput.off':
+      return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'Off')
     case 'graph.list':
       return buildIdentity('Console', 'Graph', 'List')
     case 'camera.pan':

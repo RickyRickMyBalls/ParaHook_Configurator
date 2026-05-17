@@ -3418,6 +3418,65 @@ describe('ConsoleDock', () => {
     expect(lastEntry?.text).toBe('Unknown command: mirror')
   })
 
+  it('changes Console input priority from the staged ConsoleInput command tree', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('ConsoleInput')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'settingsConsoleInputRoot',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Off')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('shortcuts-first')
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Console input priority: Shortcuts first'),
+    ).toBe(true)
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Change Console input priority',
+      targetId: 'ui-pref:consoleInputPriorityMode',
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('On')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Console input priority: Console first'),
+    ).toBe(true)
+  })
+
   it('treats m as typed-first command entry and resolves it on submit', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)

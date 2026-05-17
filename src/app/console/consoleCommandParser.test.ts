@@ -26,7 +26,6 @@ describe('consoleCommandParser', () => {
       args: [],
       argumentText: '',
     })
-
     expect(parseConsoleCommand('  m   1,2,3  ')).toEqual({
       raw: 'm   1,2,3',
       name: 'move',

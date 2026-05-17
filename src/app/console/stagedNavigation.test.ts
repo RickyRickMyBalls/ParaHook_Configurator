@@ -21,6 +21,8 @@ describe('stagedNavigation', () => {
       'HIDE',
       'UNHIDEALL',
       'WORKSPACEMODES',
+      'SETTINGS',
+      'CONSOLEINPUT',
       'CAMERA',
       'RADIO',
       'ZOOM',
@@ -76,6 +78,118 @@ describe('stagedNavigation', () => {
       kind: 'advance',
       session: {
         scopeId: 'referenceHideRoot',
+      },
+    })
+  })
+
+  it('routes Console input priority through the staged Settings tree and root shortcut', () => {
+    const context = createConsoleStagedNavigationContext([], [], [])
+
+    const settingsRoot = submitConsoleStagedNavigationToken(
+      createConsoleRootSession(),
+      'Settings',
+      context,
+    )
+    expect(settingsRoot).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'settingsRoot',
+        breadcrumb: ['Root', 'Settings'],
+      },
+    })
+    if (settingsRoot.kind !== 'advance') {
+      throw new Error('Expected Settings to advance')
+    }
+    expect(settingsRoot.validChoices.map((choice) => choice.label)).toEqual([
+      'KeyBindings',
+      'Back',
+    ])
+
+    const keyBindingsRoot = submitConsoleStagedNavigationToken(
+      settingsRoot.session,
+      'KeyBindings',
+      context,
+    )
+    expect(keyBindingsRoot).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'settingsKeyBindingsRoot',
+        breadcrumb: ['Root', 'Settings', 'KeyBindings'],
+      },
+    })
+    if (keyBindingsRoot.kind !== 'advance') {
+      throw new Error('Expected KeyBindings to advance')
+    }
+
+    const consoleInputRoot = submitConsoleStagedNavigationToken(
+      keyBindingsRoot.session,
+      'ConsoleInput',
+      context,
+    )
+    expect(consoleInputRoot).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'settingsConsoleInputRoot',
+        breadcrumb: ['Root', 'Settings', 'KeyBindings', 'ConsoleInput'],
+      },
+    })
+    if (consoleInputRoot.kind !== 'advance') {
+      throw new Error('Expected ConsoleInput to advance')
+    }
+    expect(consoleInputRoot.validChoices.map((choice) => choice.label)).toEqual([
+      'On',
+      'Off',
+      'Back',
+    ])
+
+    expect(
+      submitConsoleStagedNavigationToken(consoleInputRoot.session, 'On', context),
+    ).toMatchObject({
+      kind: 'execute',
+      actionId: 'settings.consoleInput.on',
+      breadcrumb: ['Root', 'Settings', 'KeyBindings', 'ConsoleInput', 'On'],
+    })
+    expect(
+      submitConsoleStagedNavigationToken(consoleInputRoot.session, 'Off', context),
+    ).toMatchObject({
+      kind: 'execute',
+      actionId: 'settings.consoleInput.off',
+      breadcrumb: ['Root', 'Settings', 'KeyBindings', 'ConsoleInput', 'Off'],
+    })
+
+    const backToKeyBindings = submitConsoleStagedNavigationToken(
+      consoleInputRoot.session,
+      'Back',
+      context,
+    )
+    expect(backToKeyBindings).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'settingsKeyBindingsRoot',
+      },
+    })
+
+    const directConsoleInputRoot = submitConsoleStagedNavigationToken(
+      createConsoleRootSession(),
+      'ConsoleInput',
+      context,
+    )
+    expect(directConsoleInputRoot).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'settingsConsoleInputRoot',
+        breadcrumb: ['Root', 'ConsoleInput'],
+      },
+    })
+    if (directConsoleInputRoot.kind !== 'advance') {
+      throw new Error('Expected direct ConsoleInput to advance')
+    }
+    expect(
+      submitConsoleStagedNavigationToken(directConsoleInputRoot.session, 'Back', context),
+    ).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'root',
       },
     })
   })
@@ -2003,6 +2117,8 @@ describe('stagedNavigation', () => {
       'HIDE',
       'UNHIDEALL',
       'WORKSPACEMODES',
+      'SETTINGS',
+      'CONSOLEINPUT',
       'CAMERA',
       'RADIO',
       'ZOOM',

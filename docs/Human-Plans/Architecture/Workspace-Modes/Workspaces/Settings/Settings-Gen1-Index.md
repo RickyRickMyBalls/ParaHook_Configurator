@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+22. 2026-05-17 12:29:14: Marked `Settings-3 / Phase 7 - Staged Console Input Priority Tree` complete after the future doc recorded the visible staged `Settings > KeyBindings > ConsoleInput > On/Off` path, direct Root `ConsoleInput` shortcut, owner-backed preference mutation, flat command retirement, focused verification, and no shortcut-routing or Settings UI widening.
+21. 2026-05-17 11:57:57: Prepped `Settings-3 / Phase 7 - Staged Console Input Priority Tree` in the family phase doc with concrete staged scope/action ids, direct Root `ConsoleInput` behavior, owner-backed mutation rules, flat-command retirement guidance, and focused verification expectations.
+20. 2026-05-13 10:09:18: Added `Settings-3 / Phase 7 - Staged Console Input Priority Tree` to the family ladder so the next input-priority command pass uses the visible no-space staged path `Root > Settings > KeyBindings > ConsoleInput > On/Off` plus direct Root `ConsoleInput` entry instead of the earlier flat space-separated command shape.
+19. 2026-05-13 07:03:07: Marked `Settings-3 / Phase 6 - Console Input Priority Command` complete after the future doc recorded the `consolefirst` typed command, compact aliases, owner-backed preference mutation, status feedback, focused parser and ConsoleDock coverage, and no routing or key-binding UI widening.
 18. 2026-05-11 17:46:18: Marked `Settings-3 / Phase 5 - Shortcut Priority Hardening And Handoff` complete after the future doc recorded final input-priority routing regression coverage, targeted Console side-effect proof, and the handoff from the first Console input-priority setting to later `Settings-2` key-binding visibility and rebinding work.
 17. 2026-05-11 17:35:50: Marked `Settings-3 / Phase 4 - Input Priority Routing` complete after the future doc recorded Console-first printable capture preservation, Console-first `Shift+Z`, Shortcuts-first plain `Z`, Shortcuts-first `C` Console entry without seeding text, focused routing/Console verification, and build proof.
 16. 2026-05-11 17:21:55: Marked `Settings-3 / Phase 3 - Settings Console Input Priority Control` complete after the future doc recorded the General-section Console-first toggle, All/General read row projection, history-backed preference mutation, focused Settings tests, and no-routing boundary.
@@ -130,6 +134,8 @@ It should collect focused Settings additions that the user wants to implement on
 - `Phase 3` - Settings Console input-priority control
 - `Phase 4` - input priority routing
 - `Phase 5` - shortcut priority hardening and handoff
+- `Phase 6` - Console input-priority command
+- `Phase 7` - staged Console input-priority tree
 - later phases - user-added Settings controls, grouped only when a narrower owner family is not justified yet
 
 Important planning rule:
@@ -243,6 +249,8 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Use `Settings-3 / Phase 3` to project the preference into Settings.
 - [x] Use `Settings-3 / Phase 4` to honor Console-first `Shift+letter` shortcut routing and Shortcuts-first plain-letter plus `C` Console-entry routing.
 - [x] Use `Settings-3 / Phase 5` to harden priority and record the key-binding handoff.
+- [x] Use `Settings-3 / Phase 6` to expose the same input-priority preference through a typed Console command.
+- [x] Use `Settings-3 / Phase 7` to move Console input-priority control into the visible no-space staged Console tree.
 - [x] Keep the Console input-priority setting owned by the Console/input-routing preference seam, with Settings only projecting and changing that preference.
 - [ ] Leave later `Settings-3` phases open for user-added controls instead of pretending this index already knows every random Settings item.
 - [ ] Keep each later phase small enough for one Codex implementation pass.
