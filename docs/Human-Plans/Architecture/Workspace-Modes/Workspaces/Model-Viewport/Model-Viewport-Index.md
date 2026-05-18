@@ -174,17 +174,17 @@ The current `Model-Viewport-1` status is:
     - `Phase 6C - Backend Failure Honesty And Focused Verification`
       - shipped
     - `Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
-      - open
+      - shipped
     - `Phase 8 - Export Input Contract From Authoritative Results`
-      - open
+      - shipped
     - `Phase 9 - Export Gating And On-Demand Authoritative Preparation`
-      - open
+      - shipped
     - `Phase 10 - STEP Writer Adapter And Worker Export Operation`
-      - open
+      - shipped
     - `Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout`
-      - open
+      - shipped
   - next honest handoff:
-    - `Model-Viewport 1.3 Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
+    - `Export-1+` for the broader visible Export workspace surface and target/settings review
 
 Important rule:
 - the viewport should display geometry states

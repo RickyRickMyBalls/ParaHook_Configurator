@@ -13,6 +13,7 @@ export type BrowserGraphTargetActionOptions = {
 export type BrowserRowActionHandlers = {
   sharedViewerCompositionActive: boolean
   onSaveGraph: (cachedGraphId: string) => void
+  onExportGraphStep: (graphDocumentId: string) => void
   onActivateGraphTarget: (
     graphDocumentId: string,
     nodeId: string | null,
@@ -32,6 +33,10 @@ export const runBrowserRowAction = (
   if (row.rowKind === 'graph-document') {
     if (action.actionId === 'save') {
       handlers.onSaveGraph(row.cachedGraphId)
+      return
+    }
+    if (action.actionId === 'export-step') {
+      handlers.onExportGraphStep(row.graphDocumentId)
       return
     }
     if (action.actionId === 'open') {

@@ -62,6 +62,7 @@ export type WorkspaceSurfaceKind =
   | 'homePage'
   | 'settings'
   | 'properties'
+  | 'export'
   | 'editHistory'
 
 export type WorkspaceSurfaceInstanceId = string
@@ -416,6 +417,9 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   if (surfaceKind === 'properties') {
     return `properties-${slotId}`
   }
+  if (surfaceKind === 'export') {
+    return `export-${slotId}`
+  }
   if (surfaceKind === 'editHistory') {
     return `edit-history-${slotId}`
   }
@@ -435,6 +439,7 @@ export const workspacePrimarySlotSupportsSurfaceKind = (
   surfaceKind === 'homePage' ||
   surfaceKind === 'settings' ||
   surfaceKind === 'properties' ||
+  surfaceKind === 'export' ||
   surfaceKind === 'editHistory'
 
 export const resolveWorkspaceActiveSurfaceInstanceId = ({

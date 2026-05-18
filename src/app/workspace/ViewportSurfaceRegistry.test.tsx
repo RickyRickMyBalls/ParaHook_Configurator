@@ -206,6 +206,31 @@ describe('ViewportSurfaceRegistry', () => {
     expect(propertiesSurface?.textContent).toContain('Ready for Materials-1')
   })
 
+  it('renders export through the canonical workspace surface registry branch', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ViewportSurfaceRegistry
+          slotId="workspace-slot-export"
+          surfaceKind="export"
+          surfaceInstanceId="export-workspace-slot-export"
+          onActivateSpaghettiSurface={vi.fn()}
+        />,
+      )
+    })
+
+    const exportSurface = container?.querySelector(
+      '.WorkspaceViewportSlotSurface--export[data-workspace-surface-instance-id="export-workspace-slot-export"]',
+    ) as HTMLDivElement | null
+
+    expect(exportSurface).not.toBeNull()
+    expect(exportSurface?.textContent).toContain('Export')
+    expect(exportSurface?.textContent).toContain('STEP')
+  })
+
   it('renders edit history through the canonical workspace surface registry branch', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)

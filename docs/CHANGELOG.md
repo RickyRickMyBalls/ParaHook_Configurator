@@ -72,6 +72,253 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1927 -->
+
+### [1927] - 2026-05-18 08:08 - `Export-1 - Phase 4 - Project File, Spaghetti File, And Later Export Neighbors`
+
+HUMAN SUMMARY: ``The Export surface now shows a read-only `Related Outputs` owner map so geometry export, graph file save, project file persistence, and spaghetti file persistence are visibly separate. `Export STEP` remains the only executable Export action, and `Export-1` is closed while later `Export-2+` work stays deferred until real worker writers or result management are ready.```
+
+#### Scope / Constraints Honored
+
+- Kept `Export STEP` as the only executable Export-surface action.
+- Did not duplicate the Browser-owned `Save Graph File` handler inside Export.
+- Did not add project-file save/load behavior.
+- Did not change graph-document or spaghetti-file persistence schemas.
+- Kept geometry export distinct from graph/project/spaghetti persistence.
+
+#### Summary of Implementation
+
+- Added a local `ExportNeighborActionView` model in `ExportSurface`.
+- Added a read-only `Related Outputs` panel for geometry export, graph file, project file, and spaghetti file neighbors.
+- Labeled `Geometry export` as `Export / Worker` and available for `STEP`.
+- Labeled `Graph file` as `Graph persistence / Browser` and available through the Browser graph-file save path.
+- Labeled `Project file` and `Spaghetti file` as deferred persistence-owned neighbors.
+- Extended focused `ExportSurface` coverage for neighbor labels, non-executable project/spaghetti rows, and unavailable-format ownership stability.
+- Marked `Export-1 / Phase 4` shipped, closed `Export-1`, and deferred separate `Export-2+` docs until worker writer or result-management work is ready.
+
+#### Files Changed
+
+- `src/app/workspace/ExportSurface.tsx`
+- `src/app/workspace/ExportSurface.test.tsx`
+- `src/app/theme/surfaces/export.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Export surface now shows distinct owner-labeled related outputs.
+- Geometry export remains a `STEP` worker export path.
+- Graph file save remains separate from geometry export.
+- Project file and spaghetti file persistence appear as deferred owner handoffs, not executable Export actions.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ExportSurface.test.tsx src/app/store/exportWorkspaceTargets.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1926 -->
+
+### [1926] - 2026-05-18 08:00 - `Export-1 - Phase 3 - Format-Specific Settings And Detail Controls`
+
+HUMAN SUMMARY: ``Export settings now follow the selected format instead of showing one generic readout. `STEP` stays tied to authoritative worker B-rep geometry, while `STL`, `OBJ`, and `GLB` show deferred mesh/scene/package settings without fake working controls or export behavior.```
+
+#### Scope / Constraints Honored
+
+- Kept `STEP` as the only executable format.
+- Did not add STL, OBJ, or GLB worker writers.
+- Did not add fake tessellation, decimation, scene packaging, or universal detail controls.
+- Kept viewer mesh export off and did not export from Three.js viewer state.
+
+#### Summary of Implementation
+
+- Added a local `ExportFormatSettingsView` model in `ExportSurface`.
+- Replaced the stale generic Settings panel readout with selected-format settings rows and notes.
+- Added B-rep-honest `STEP` settings for authoritative worker B-rep and graph-document shape ownership.
+- Added deferred settings reads for `STL`, `OBJ`, and `GLB`, including explicit deferred executable controls messaging.
+- Extended `ExportSurface` tests to prove settings switch by format and unavailable settings do not trigger export.
+- Marked `Export-1 / Phase 3` shipped and moved the Export family next task to Phase 4.
+
+#### Files Changed
+
+- `src/app/workspace/ExportSurface.tsx`
+- `src/app/workspace/ExportSurface.test.tsx`
+- `src/app/theme/surfaces/export.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Export settings panel heading and rows now update when the selected format changes.
+- `STEP` settings describe authoritative B-rep export without mesh detail controls.
+- `STL`, `OBJ`, and `GLB` settings explain their deferred worker-writer state and keep export disabled.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ExportSurface.test.tsx src/app/store/exportWorkspaceTargets.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1925 -->
+
+### [1925] - 2026-05-18 07:50 - `Export-1 - Phase 2 - Target Collection And Selection Integration`
+
+HUMAN SUMMARY: ``Export can now hold its own target review list instead of only reflecting the active graph. The surface can seed targets from workspace selection, review and remove them without changing Browser/project selection truth, keep graph-document `STEP` export executable, and show non-graph targets as honest review-only targets.```
+
+#### Scope / Constraints Honored
+
+- Kept `STEP` execution graph-document-only and downstream from the authoritative export handoff.
+- Did not create object/component/assembly/reference/part STEP export contracts.
+- Did not export Three.js viewer meshes, camera state, draft meshes, or final viewport meshes.
+- Kept target removal scoped to Export workspace state without mutating Browser/workspace selection truth.
+
+#### Summary of Implementation
+
+- Added `ExportWorkspaceTarget`, stable export target keys, and app-store state/actions for app-owned export targets.
+- Added selection-seeded target replacement from `workspaceSelection.explicitSelectedTargets`, with selected-target fallback and dedupe.
+- Updated `ExportSurface` to render target review rows, active target selection, remove controls, and active-graph fallback continuity.
+- Gated `Export STEP` so only graph-document export targets route through `requestGraphDocumentStepExport(graphDocumentId)`.
+- Added focused store and surface tests for normalization, dedupe, remove behavior, graph-document export routing, non-graph review-only gating, and unavailable format non-routing.
+- Marked `Export-1 / Phase 2` shipped and moved the Export family next task to Phase 3.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/store/exportWorkspaceTargets.test.ts`
+- `src/app/workspace/ExportSurface.tsx`
+- `src/app/workspace/ExportSurface.test.tsx`
+- `src/app/theme/surfaces/export.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Export targets can now be seeded from current workspace selection using the `Use Selection` action.
+- Export target rows can be reviewed, activated, and removed inside the Export surface.
+- Graph-document targets can still run `Export STEP`; non-graph targets disable the action with `Target review only`.
+- Empty app-owned target lists still show the active graph fallback row so Phase 1 export behavior remains usable.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/exportWorkspaceTargets.test.ts src/app/workspace/ExportSurface.test.tsx`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1924 -->
+
+### [1924] - 2026-05-18 07:17 - `Export-1 - Phase 1 - Workspace Surface, STEP Action, And Honest Format Shell`
+
+HUMAN SUMMARY: ``Export now has its first real workspace surface. The app registers an optional persisted Export viewport, renders a focused Export surface with target, format, settings, and action sections, exposes `STEP`, `STL`, `OBJ`, and `GLB` honestly, and routes only `STEP` through the authoritative B-rep worker export handoff.``
+
+#### Scope / Constraints Honored
+
+- Kept `STEP` export downstream from the existing authoritative worker B-rep export path.
+- Did not export from Three.js scene state, draft meshes, final viewport meshes, or viewer selection.
+- Kept `STL`, `OBJ`, and `GLB` visible but unavailable until later worker writers and settings phases own them.
+- Did not build broad target collection, project-file export, spaghetti-file export, or final format-specific settings.
+
+#### Summary of Implementation
+
+- Registered `export` as an optional persisted workspace surface with slotted and split support.
+- Added the `EXP` compact viewport type alias.
+- Added `ExportSurface` with `Targets`, `Format`, `Settings`, and `Action` sections.
+- Wired `Export STEP` to `requestGraphDocumentStepExport(graphDocumentId)` so the surface reuses the app-level authoritative export handoff.
+- Added focused tests for workspace catalog registration, viewport type aliases, registry rendering, enabled/disabled format behavior, no-graph disabled state, and STEP action routing.
+- Marked `Export-1 / Phase 1` shipped and moved the Export family handoff to `Export-2 - Target Collection And Selection Integration`.
+
+#### Files Changed
+
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `src/app/workspace/workspaceViewportTypeChoices.ts`
+- `src/app/workspace/workspaceViewportTypeChoices.test.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/workspace/ExportSurface.tsx`
+- `src/app/workspace/ExportSurface.test.tsx`
+- `src/app/theme/v15Theme.css`
+- `src/app/theme/surfaces/export.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Users can now switch a workspace viewport to `Export`.
+- The Export surface shows the active graph target, the first format family, current STEP status, and an explicit `Export STEP` action.
+- Only `STEP` can trigger export; `STL`, `OBJ`, and `GLB` remain unavailable instead of silently routing through the wrong pipeline.
+
+#### Verification Steps
+
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd test -- --run src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/workspaceViewportTypeChoices.test.ts src/app/workspace/ViewportSurfaceRegistry.test.tsx src/app/workspace/ExportSurface.test.tsx -t "export|ExportSurface|shared compact aliases"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1923 -->
+
+### [1923] - 2026-05-17 23:23 - `Model-Viewport 1.3 - Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout`
+
+HUMAN SUMMARY: ``STEP export now has an app-facing handoff instead of stopping at the worker. Browser graph rows can request authoritative STEP export, the dispatcher routes export results/errors separately from builds, the app tracks export status and downloads the worker-provided STEP bytes, and `Model-Viewport-1.3` is closed with the broader Export workspace deferred to the Export family.``
+
+#### Scope / Constraints Honored
+
+- Kept STEP bytes downstream from worker-owned authoritative B-rep export results.
+- Did not derive STEP from Three.js viewer state, draft meshes, or app-side geometry reconstruction.
+- Kept full Export workspace UI, multi-target collection, format settings, and STL/OBJ/GLB writing deferred to the `Export` family.
+- Kept graph-file persistence distinct from authoritative STEP export.
+
+#### Summary of Implementation
+
+- Added dispatcher-owned `requestGraphExport(...)` routing, export result validation, stale export suppression, and export-specific runtime hooks.
+- Added graph-level app export status and `requestGraphDocumentStepExport(...)` so export preparation gates pending/blocked/ready states before worker messages are sent.
+- Added browser-safe download handoff for worker-provided base64 STEP bytes.
+- Wired export success/failure into app status, console, and runtime inspector handling without treating export failure as build settlement.
+- Split Browser graph-row actions into `Export STEP` and `Save Graph File` so graph JSON save no longer appears under a misleading export label.
+- Marked `Model-Viewport-1.3` closed and handed broader visible export workspace work forward to `Export-1+`.
+
+#### Files Changed
+
+- `src/shared/buildTypes.ts`
+- `src/shared/exportTypes.ts`
+- `src/shared/exportTypes.test.ts`
+- `src/worker/worker.ts`
+- `src/worker/worker.test.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/exportDownload.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowActions.ts`
+- `src/app/panels/browserRowActions.test.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Graph rows now expose `Export STEP` for authoritative STEP export and `Save Graph File` for graph-document persistence.
+- Export requests now wait on or block from authoritative export preparation instead of sending worker messages from draft or unavailable geometry.
+- Export success downloads the worker-provided `.step` file; export failures update export status and diagnostics separately from build acceptance.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildDispatcher.test.ts src/shared/exportTypes.test.ts src/worker/worker.test.ts src/app/store/useAppStore.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx -t "requestGraphDocumentStepExport|exports STEP through the row menu|validates worker export|BuildDispatcher runtime hooks and routing|worker export routing|runBrowserRowAction|selectBrowserTreeRows"`
+- `npm.cmd run build`
+
 <!-- ENTRY 1922 -->
 
 ### [1922] - 2026-05-17 22:59 - `Model-Viewport 1.3 - Phase 10 - STEP Writer Adapter And Worker Export Operation`

@@ -22,6 +22,7 @@ const workspaceViewportTypeAliasesByKind: Partial<
   notepad: ['NOTE'],
   homePage: ['HP', 'HOME'],
   properties: ['PROP', 'PROPS'],
+  export: ['EXP'],
 }
 
 export function getWorkspaceViewportTypeLabel(surfaceKind: WorkspaceSurfaceKind): string {

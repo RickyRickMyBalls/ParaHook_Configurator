@@ -255,6 +255,9 @@ export function useBrowserPanelController(
     (state) => state.loadGraphDocumentIntoNewGraphFromFile,
   )
   const saveCachedGraphEntryToFile = useSpaghettiStore((state) => state.saveCachedGraphEntryToFile)
+  const requestGraphDocumentStepExport = useAppStore(
+    (state) => state.requestGraphDocumentStepExport,
+  )
   const openGraphDocumentInViewport = useSpaghettiStore((state) => state.openGraphDocumentInViewport)
   const openGraphDocumentInNewViewport = useSpaghettiStore(
     (state) => state.openGraphDocumentInNewViewport,
@@ -2744,6 +2747,9 @@ export function useBrowserPanelController(
             console.error(`Failed to save cached graph "${cachedGraphId}".`, error)
           })
         },
+        onExportGraphStep: (graphDocumentId) => {
+          requestGraphDocumentStepExport(graphDocumentId)
+        },
         onActivateGraphTarget: handleActivateGraphTarget,
         onTransformReference: handleTransformReferenceRow,
         onRevealGraph: handleRevealGraph,
@@ -2760,6 +2766,7 @@ export function useBrowserPanelController(
       handleActivateGraphTarget,
       handleRevealGraph,
       handleTransformReferenceRow,
+      requestGraphDocumentStepExport,
       saveCachedGraphEntryToFile,
       setActiveEditorViewportId,
       sharedViewerComposition,

@@ -14,6 +14,7 @@ export type WorkspaceSurfaceRenderFamily =
   | 'homePage'
   | 'settings'
   | 'properties'
+  | 'export'
   | 'editHistory'
 
 export type WorkspaceSurfaceScope = 'core' | 'optional'
@@ -51,6 +52,7 @@ export type OptionalWorkspaceSurfaceKind =
   | 'homePage'
   | 'settings'
   | 'properties'
+  | 'export'
   | 'editHistory'
 
 const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = [
@@ -184,6 +186,20 @@ const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = 
     kind: 'properties',
     defaultLabel: 'Properties',
     renderFamily: 'properties',
+    scope: 'optional',
+    supports: {
+      slotted: true,
+      floating: false,
+      popout: false,
+      split: true,
+    },
+    participatesInPersistence: true,
+    coordination: 'plain',
+  },
+  {
+    kind: 'export',
+    defaultLabel: 'Export',
+    renderFamily: 'export',
     scope: 'optional',
     supports: {
       slotted: true,

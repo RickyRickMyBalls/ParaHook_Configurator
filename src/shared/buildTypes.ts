@@ -432,6 +432,7 @@ export type WorkerError = {
   projectFileId?: string
   graphDocumentId?: string
   buildRequestId?: string
+  requestId?: string
 }
 
 export type BuildSuperseded = {

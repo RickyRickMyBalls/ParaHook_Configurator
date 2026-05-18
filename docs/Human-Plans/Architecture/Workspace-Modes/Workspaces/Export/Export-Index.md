@@ -3,262 +3,202 @@
 ## Doc Header
 
 ### Doc History
-1. 2026-03-26 20:03: Created this folderized `Export` architecture family, added the first `Export-1` future phase doc, and defined the export-toolbar direction for selecting authored 3D objects/references, choosing format/detail settings, and leaving room for later project-file and spaghetti-file save/export behavior
+11. 2026-05-18 08:14:11: Added `Export-2 - Cleanup And Feature Enrichment` as the next open Export family phase after `Export-1` closed, keeping it as a lightweight user-defined phase-by-phase cleanup and enrichment runway rather than pre-filling speculative worker-writer or persistence-schema work.
+10. 2026-05-18 08:08:06: Marked `Export-1 / Phase 4 - Project File, Spaghetti File, And Later Export Neighbors` shipped and closed the first Export surface family after the Export surface gained read-only related outputs owner labels for geometry export, graph file, project file, and spaghetti file, preserving Export's `STEP`-only executable behavior and deferring `Export-2+` until real worker writer or result-management work is ready.
+9. 2026-05-18 08:04:34: Prepped `Export-1 / Phase 4 - Project File, Spaghetti File, And Later Export Neighbors` for implementation inside the active `Export-1` doc, keeping the closeout task scoped to visible geometry-export versus graph/project/spaghetti persistence owner labels, no schema migration, no duplicated Browser graph-save handler, and an explicit `Export-1` closeout or `Export-2+` handoff decision.
+8. 2026-05-18 08:00:58: Marked `Export-1 / Phase 3 - Format-Specific Settings And Detail Controls` shipped after the Export surface gained selected-format settings groups, B-rep-honest `STEP` settings, deferred non-STEP mesh/scene/package setting readouts, focused settings tests, and production build proof.
+7. 2026-05-18 07:55:26: Prepped `Export-1 / Phase 3 - Format-Specific Settings And Detail Controls` for implementation inside the active `Export-1` doc, keeping the next task scoped to format-specific settings presentation, minimal B-rep-honest `STEP` settings, and read-only/deferred non-STEP setting groups without adding mesh/scene writers.
+6. 2026-05-18 07:50:16: Marked `Export-1 / Phase 2 - Target Collection And Selection Integration` shipped after the Export surface gained app-owned target review from workspace selection, removable target rows that do not mutate Browser/project truth, graph-document-only `STEP` execution, non-graph review-only gating, focused tests, and production build proof.
+5. 2026-05-18 07:39:13: Prepped `Export-1 / Phase 2 - Target Collection And Selection Integration` for implementation inside the active `Export-1` doc, keeping the next task focused on app-owned export target review seeded from workspace selection while preserving graph-document-only STEP execution.
+4. 2026-05-18 07:22:34: Cleaned up this index after the first Export surface shipped, reformatting it as a compact family scan surface and folding the near-term target collection, format settings, and persistence-neighbor work back into `Export-1` as internal implementation phases instead of separate sibling family phases.
+3. 2026-05-18 07:17:59: Marked `Export-1 / Phase 1 - Workspace Surface, STEP Action, And Honest Format Shell` shipped after the repo added the optional `export` workspace surface, first `ExportSurface`, `EXP` viewport alias, `STEP`-only executable format shell, and authoritative graph STEP action wiring, then moved the next family handoff to `Export-2 - Target Collection And Selection Integration`.
+2. 2026-05-18 07:07:32: Re-prepped `Export-1 / Phase 1 - Workspace Surface, STEP Action, And Honest Format Shell` after `Model-Viewport-1.3` shipped the authoritative STEP handoff, tightening the first Export implementation boundary around the current workspace-surface registry, `STEP` as the only active format, unavailable non-STEP format honesty, and no viewer-mesh export.
+1. 2026-03-26 20:03: Created this folderized `Export` architecture family, added the first `Export-1` future phase doc, and defined the export-toolbar direction for selecting authored 3D objects/references, choosing format/detail settings, and leaving room for later project-file and spaghetti-file save/export behavior.
 
 ### Purpose
 
-This file is the umbrella planning index for the `Export` family under `Architecture`.
+This file is the umbrella planning index for the `Export` workspace family.
 
 Use it to answer:
-- what the `Export` surface should own
-- how export should relate to the shared toolbar template
-- how export should relate to workspace modes
-- what export targets the user should be able to collect and review
-- how format/settings selection should be organized
-- where future standalone `Export` docs should branch
+- what the visible `Export` surface owns
+- where active Export implementation work lives
+- how Export stays separate from worker file writers and persistence systems
+- what should happen next after the first visible surface
 
 ### Scope
 
 This doc covers:
-- the user-facing `Export` surface
-- export target collection for authored objects and references
-- format and detail-setting direction
-- the relationship between export, project save, and later spaghetti-file save/export
-- likely phase split for the export family
+- user-facing Export workspace direction
+- current family-phase routing
+- target, format, settings, and action ownership boundaries
+- follow-on handoff after the first Export family phase
 
 This doc does not cover:
-- the final worker-side file writers for every format
+- final worker-side writers for every export format
 - final project-file schema
 - final spaghetti-document persistence rules
-- every later manufacturing/export metadata feature
+- B-rep viewer/runtime implementation
 
 ### Family Structure
 
-Use this folder like this:
-
 - `Export-Index.md`
-  - umbrella architecture direction
-  - family summary
-  - future routing surface
+  - umbrella scan surface and current routing
 - `Future/`
-  - standalone implementation-ready export phase docs
+  - active and future Export family phase docs
 - `Shipped/`
-  - shipped records for completed `Export` cuts
+  - completed Export records when a whole family phase is archived
 
 Current roadmap home:
 - canonical phase family:
   - `EX`
-- this architecture family is the user-facing planning home for the `Export` surface that should later feed those canonical export phases
+- active architecture family phase:
+  - `Export-2 - Cleanup And Feature Enrichment`
 
 ## Doc Body
 
 ### Short Version
 
-ParaHook should gain one real `Export` tool surface.
+ParaHook needs one real `Export` workspace surface.
 
-That surface should:
-- use the shared toolbar template
-- later participate in workspace modes like other tool surfaces
-- let the user collect or review export targets such as authored 3D objects and references
-- let the user choose export output/settings such as:
-  - `STL`
-  - `STEP`
-  - `OBJ`
-  - `GLB`
-  - detail or tessellation level where that setting makes sense
-- leave room for later save/export-adjacent outputs such as:
-  - project file
-  - spaghetti file
+That surface should let the user:
+- review what will be exported
+- choose an output format
+- see honest format readiness
+- trigger export explicitly
+- understand whether the export comes from authoritative geometry or is not available yet
 
-It should feel like a real export workspace surface, not only a one-click download button.
+The first shipped cut is intentionally narrow:
+- `STEP` is active
+- `STL`, `OBJ`, and `GLB` are visible but unavailable
+- `STEP` routes through authoritative worker-owned B-rep export
+- no export path reads Three.js viewer meshes
 
-### Why This Doc Exists
+### Current Status
 
-The repo already has the canonical `EX` export/output family in `docs/Phase-Plans/12_EX - Phase-Plans.md`.
+`Export-1` is shipped and closed as the first multi-phase Export surface family doc.
 
-That phase family already says export belongs to:
-- deterministic output/export behavior
-- worker-side export ownership
-- explicit export contracts
+Shipped inside `Export-1`:
+- Phase 1:
+  - `Workspace Surface, STEP Action, And Honest Format Shell`
+- Phase 2:
+  - `Target Collection And Selection Integration`
+- Phase 3:
+  - `Format-Specific Settings And Detail Controls`
+- Phase 4:
+  - `Project File, Spaghetti File, And Later Export Neighbors`
 
-But there is not yet one dedicated architecture-family doc for the visible user-facing `Export` surface.
+Open inside `Export-1`:
+- none
 
-This doc exists to define:
-- what the export toolbar/panel should be
-- what the user can add/select there
-- how the surface should relate to workspace layout and the shared toolbar shell
-- how format/settings choice should be organized before implementation grows ad hoc
+Current next task:
+- define and prep `Export-2 / Phase 1` when the first cleanup or feature-enrichment target is chosen.
 
 ### Cross-Doc Boundaries
 
-Canonical ownership should stay split like this:
+`Export` owns:
+- visible export workspace surface
+- target collection/review UI
+- format choice UI
+- user-facing export settings
+- export action entrypoints and result/status reads
 
-- `Export`
-  - visible export tool surface
-  - target collection/review
-  - format choice
-  - user-facing export settings
-  - export action entry
-- `Toolbar`
-  - shared floating toolbar shell/chrome/template behavior
-- `Workspace-Modes`
-  - where the export surface can live:
-    - `Windowed`
-    - `Tiled`
-- `Browser`
-  - authored object/reference selection truth that export can consume
+`Export` does not own:
+- worker-side deterministic file writer internals
+- project-file schema
+- graph/spaghetti save/load schema
+- viewer geometry state
+- B-rep runtime generation
+
+Neighbor ownership:
 - `Worker`
   - actual deterministic export execution
-- `GE` / project persistence docs
-  - final project-file ownership
-- graph/spaghetti persistence docs
-  - final spaghetti-file save/load ownership
+  - B-rep/mesh/scene writer implementations
+- `Model-Viewport`
+  - viewport presentation and final/draft display honesty
+  - not export geometry ownership
+- `Browser`
+  - authored graph/content selection truth that Export can consume
+- `Workspace-Modes`
+  - surface placement, split, floating, and popout behavior
+- project and graph persistence families
+  - durable save/load contracts
 
-Important rule:
-- do not let the export toolbar become the hidden owner of file-format business logic that should live in shared export contracts or the worker
+Hard rule:
+- clean export outputs must derive from explicit authoritative geometry/export contracts, not from Three.js viewer meshes or camera state.
 
-### Core Direction
+### Active Family Phase
 
-The first real `Export` surface should be a dedicated tool that lets the user prepare and review an export job.
+#### `Export-2 - Cleanup And Feature Enrichment`
 
-Expected first-pass responsibilities:
-- open the export surface from a visible toolbar entry
-- review which authored 3D objects or references are included
-- add or remove export targets intentionally
-- choose export format
-- choose export-detail settings when the format needs them
-- trigger export through one explicit action
+Doc:
+- `Future/Export-2 - Cleanup And Feature Enrichment.md`
 
-This should feel closer to:
-- export preparation
-- export review
-- deterministic job setup
+Goal:
+- provide a clean open runway for Export cleanup and feature enrichment after the first visible Export surface shipped.
 
-than to:
-- a one-off browser-context-menu afterthought
+Current rule:
+- the user will define `Export-2` phase by phase.
+- do not implement Phase 1 until its concrete cleanup or enrichment target is chosen and prepped.
+- keep larger worker-writer, persistence-schema, or B-rep-viewer widening in separate future family phases when needed.
 
-### Surface Shape
+#### `Export-1 - Toolbar Shell And Format Surface`
 
-The export surface should reuse the shared `Toolbar` template.
-
-That means:
-- shared title bar
-- shared close behavior
-- shared drag/resize behavior
-- shared sectioned body layout
-
-Recommended first sections:
-
-#### 1. Targets
-
-- list the current export targets
-- show whether each target is:
-  - authored object
-  - reference
-  - maybe later assembly/group export root
-- allow add/remove behavior
-
-#### 2. Format
-
-- `STL`
-- `STEP`
-- `OBJ`
-- `GLB`
-- later:
-  - project file
-  - spaghetti file
-
-#### 3. Settings
-
-- detail/tessellation quality when relevant
-- only show settings that are honest for the selected format
-
-#### 4. Action / Result
-
-- one explicit `Export`
-- progress/result read
-- clear failure/success feedback
-
-### Target Collection Direction
-
-The export surface should be able to consume real authored selection truth from the workspace.
-
-Good first targets:
-- authored 3D objects
-- references already loaded into the workspace
-
-Later targets:
-- assemblies
-- folders/groups
-- full project export roots
-- graph-specific export roots
-
-Important rule:
-- export target truth should come from explicit authored/project identity, not camera/view state
-
-### Format Direction
-
-The first visible format family should include:
-- `STL`
-- `STEP`
-- `OBJ`
-- `GLB`
-
-Important rule:
-- the UI should not force one fake universal settings model across every format
-- keep shared settings shared
-- keep format-specific settings format-specific
-
-### Project File And Spaghetti File Direction
-
-This export family should leave explicit room for later save/export-adjacent outputs.
-
-Current read:
-- a later `project file` export/save path is plausible
-- a later `spaghetti file` save/export path is plausible
-
-Recommended rule:
-- let `Export` become the visible home for discussing those outputs with the user
-- but keep the underlying ownership clean if project persistence or graph persistence gets its own canonical save/load contracts
-
-### Workspace-Modes Direction
-
-The export surface should be able to participate in the shared workspace layout model later.
-
-That means it should be able to live as:
-- `Windowed`
-- `Tiled`
-
-Important rule:
-- the export surface should use the same shared surface-instance model as other tool surfaces
-- do not invent a special one-off shell for export
-
-### Phase Ladder
-
-The first export-family ladder should be:
-
-- `Export-1`
-  - `Toolbar Shell And Format Surface`
-  - create the visible export surface with shared-toolbar behavior, first format choices, and one explicit export entry path
-- `Export-2`
-  - `Target Collection And Selection Integration`
-  - connect Browser/workspace selection truth to the export target list and allow add/remove review behavior
-- `Export-3`
-  - `Format-Specific Settings And Detail Controls`
-  - make mesh-vs-CAD-vs-scene settings honest instead of forcing one fake shared detail model
-- `Export-4`
-  - `Project File, Spaghetti File, And Later Export Neighbors`
-  - decide how later project-file and spaghetti-file save/export options surface here without blurring canonical persistence ownership
-
-Standalone future docs:
+Doc:
 - `Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
+
+Goal:
+- build the first real Export workspace surface and widen it just enough to support honest target review, format readiness, settings, and save/export-neighbor placement.
+
+Internal implementation phases:
+
+1. `[x] Workspace Surface, STEP Action, And Honest Format Shell`
+   - shipped the optional `export` workspace surface
+   - shipped the first `ExportSurface`
+   - made `STEP` executable through the authoritative B-rep handoff
+   - kept `STL`, `OBJ`, and `GLB` visible but unavailable
+
+2. `[x] Target Collection And Selection Integration`
+   - shipped an app-owned export target list seeded from workspace selection
+   - lets the user review/remove targets without mutating Browser/project truth
+   - keeps graph-document targets executable through STEP
+   - keeps non-graph targets visible but not executable until a later target-to-export contract exists
+
+3. `[x] Format-Specific Settings And Detail Controls`
+   - shipped selected-format settings copy/readouts
+   - kept `STEP` minimal and B-rep honest
+   - kept unavailable mesh/scene/package settings deferred without executable controls
+   - kept mesh and scene settings visibly separate from CAD/STEP settings
+
+4. `[x] Project File, Spaghetti File, And Later Export Neighbors`
+   - shipped read-only related output neighbors for geometry export, graph file, project file, and spaghetti file
+   - kept project persistence and graph persistence ownership separate
+   - avoided turning Export into the owner of every save/load contract
+   - closed `Export-1`
+
+### Later Family Phases
+
+`Export-1` is closed. `Export-2` is now the active cleanup and feature-enrichment runway.
+
+Likely later family phases:
+- `Export-3 - Multi-Format Worker Writers And Result Management`
+  - when STL/OBJ/GLB execution is ready to become real
+- `Export-4 - Export Presets, History, And Batch Jobs`
+  - when the app needs durable export recipes, repeat exports, or job history
+- `Export-5 - Manufacturing Metadata And Advanced Output Packages`
+  - when output packaging grows beyond simple file export
+
+### What Must Stay True
+
+- The Export surface is user-facing workflow, not the source of geometry truth.
+- `STEP` must stay downstream from authoritative B-rep worker geometry.
+- Mesh formats should not quietly fake correctness by exporting the viewport.
+- Target identity should come from graph/project/content ownership, not camera state.
+- Save/export-adjacent outputs may appear here, but their durable schemas remain with their owning persistence families.
 
 ### Summary
 
-The umbrella direction is now:
-- ParaHook should have one real `Export` tool surface
-- that surface should reuse the shared toolbar template
-- that surface should later work inside workspace modes like other tool surfaces
-- the user should be able to collect/review authored 3D objects and references for export
-- the user should be able to choose format and honest format-relevant settings
-- later project-file and spaghetti-file save/export options should be allowed to surface here without turning export into the owner of all persistence logic
+The cleaned-up routing is:
+- keep `Export-1` as the shipped first surface-and-format family
+- use `Export-2` as the open cleanup and feature-enrichment lane
+- treat geometry export, graph file, project file, and spaghetti file as distinct owner-labeled neighbors
+- delay worker-writer, persistence-schema, or output-package family phases until those systems are ready for their own explicit plans

@@ -163,6 +163,7 @@ workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => 
         projectFileId: message.projectFileId,
         graphDocumentId: message.graphDocumentId,
         buildRequestId: message.buildRequestId,
+        requestId: message.requestId,
       }
       workerScope.postMessage(workerError)
     }

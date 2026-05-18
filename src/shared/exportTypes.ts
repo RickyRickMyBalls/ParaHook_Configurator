@@ -111,6 +111,26 @@ export const isExportWorkerRequest = (value: unknown): value is ExportWorkerRequ
   isExportFormat(value.format) &&
   isAuthoritativeExportInput(value.input)
 
+export const isExportWorkerResult = (value: unknown): value is ExportWorkerResult =>
+  isRecord(value) &&
+  value.type === 'export_result' &&
+  value.lane === 'export' &&
+  typeof value.seq === 'number' &&
+  Number.isInteger(value.seq) &&
+  typeof value.projectFileId === 'string' &&
+  value.projectFileId.length > 0 &&
+  typeof value.graphDocumentId === 'string' &&
+  value.graphDocumentId.length > 0 &&
+  typeof value.buildRequestId === 'string' &&
+  value.buildRequestId.length > 0 &&
+  typeof value.requestId === 'string' &&
+  value.requestId.length > 0 &&
+  isExportFormat(value.format) &&
+  typeof value.filename === 'string' &&
+  value.filename.length > 0 &&
+  typeof value.dataBase64 === 'string' &&
+  value.dataBase64.length > 0
+
 export const createAuthoritativeExportInput = (options: {
   request: GeometryResultRequestIdentity
   authoritativeHandle: GeometryResultAuthoritativeHandle

@@ -44,6 +44,7 @@ describe('workspaceViewportTypeChoices', () => {
     expect(byKind.spaghettiEditor).toEqual(['SE', 'SP'])
     expect(byKind.homePage).toEqual(['HP', 'HOME'])
     expect(byKind.properties).toEqual(['PROP', 'PROPS'])
+    expect(byKind.export).toEqual(['EXP'])
     expect(byKind.settings).toEqual([])
   })
 })

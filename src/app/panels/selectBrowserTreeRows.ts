@@ -36,6 +36,7 @@ export type BrowserTreeRowKind =
 export type BrowserTreeRowActionId =
   | 'open'
   | 'save'
+  | 'export-step'
   | 'new-editor'
   | 'swap-editor'
   | 'reveal'
@@ -1586,9 +1587,14 @@ export const selectBrowserTreeRows = (options: {
         ...resolveGraphPolicy(row.graphDocumentId),
         actions: [
           {
+            actionId: 'export-step',
+            label: 'Export STEP',
+            ariaLabel: `Export ${row.label} as STEP`,
+          },
+          {
             actionId: 'save',
-            label: 'Export Graph',
-            ariaLabel: `Export ${row.label}`,
+            label: 'Save Graph File',
+            ariaLabel: `Save ${row.label} graph file`,
           },
           {
             actionId: 'open',

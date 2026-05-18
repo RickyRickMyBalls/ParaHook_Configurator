@@ -8,6 +8,7 @@ import {
   deriveAuthoritativeExportInput,
   isAuthoritativeExportInput,
   isExportWorkerRequest,
+  isExportWorkerResult,
 } from './exportTypes'
 
 const createRequest = () => ({
@@ -140,6 +141,38 @@ describe('authoritative export input contract', () => {
           ...input,
           authoritativeHandle: null,
         },
+      }),
+    ).toBe(false)
+  })
+
+  it('validates worker export results around routing identity and STEP bytes', () => {
+    expect(
+      isExportWorkerResult({
+        type: 'export_result',
+        lane: 'export',
+        seq: 4,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        requestId: 'export-request-1',
+        format: 'step',
+        filename: 'parahook-build-request-1.step',
+        dataBase64: btoa('ISO-10303-21;'),
+      }),
+    ).toBe(true)
+
+    expect(
+      isExportWorkerResult({
+        type: 'export_result',
+        lane: 'export',
+        seq: 4,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        requestId: 'export-request-1',
+        format: 'step',
+        filename: 'parahook-build-request-1.step',
+        dataBase64: '',
       }),
     ).toBe(false)
   })

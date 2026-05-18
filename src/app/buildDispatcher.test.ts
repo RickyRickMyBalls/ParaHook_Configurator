@@ -4,6 +4,7 @@ import {
   type BuildChangedInputHint,
   type BuildExecutionIntent,
 } from '../shared/buildTypes'
+import { createAuthoritativeExportInput } from '../shared/exportTypes'
 import type { GeometryResultBundle } from '../shared/geometryResult'
 import { emitArtifacts } from '../worker/pipeline/artifactEmitter'
 
@@ -144,6 +145,18 @@ const requestGraphBuild = (
     buildStatsPartKeys: options?.buildStatsPartKeys ?? ['cube'],
     executionIntent: options?.executionIntent,
   })
+
+const exportInput = createAuthoritativeExportInput({
+  request: {
+    graphDocumentId: 'graph-a',
+    buildRequestId: 'request-a-1',
+    partKeys: ['cube'],
+  },
+  authoritativeHandle: {
+    resourceType: 'shape_set',
+    handleId: 'shape-set-1',
+  },
+})
 
 describe('BuildDispatcher runtime hooks and routing', () => {
   const originalWorker = globalThis.Worker
@@ -745,6 +758,199 @@ describe('BuildDispatcher runtime hooks and routing', () => {
         message: 'active build failed',
       }),
     )
+    dispatcher.dispose()
+  })
+
+  it('posts authoritative-worker export requests with retained B-rep input', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onExportRequestStarted = vi.fn()
+
+    dispatcher.setRuntimeHooks({
+      onExportRequestStarted,
+    })
+
+    const seq = dispatcher.requestGraphExport({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+      format: 'step',
+      input: exportInput,
+    })
+
+    expect(seq).toBe(1)
+    expect(getAuthoritativeWorker(dispatcher).postedMessages[0]).toEqual({
+      type: 'export',
+      lane: 'export',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      schemaVersion: 1,
+      requestId: 'export-request-1',
+      format: 'step',
+      input: exportInput,
+    })
+    expect(getDraftWorker(dispatcher).postedMessages).toEqual([])
+    expect(onExportRequestStarted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'export',
+        lane: 'export',
+        requestId: 'export-request-1',
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('forwards accepted export results through export handlers', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onExportResult = vi.fn()
+    const onExportResultSettled = vi.fn()
+
+    dispatcher.setExportResultHandler(onExportResult)
+    dispatcher.setRuntimeHooks({
+      onExportResultSettled,
+    })
+
+    dispatcher.requestGraphExport({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+      format: 'step',
+      input: exportInput,
+    })
+
+    const result = {
+      type: 'export_result',
+      lane: 'export',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+      format: 'step',
+      filename: 'parahook-request-a-1.step',
+      dataBase64: btoa('ISO-10303-21;'),
+    } as const
+    getAuthoritativeWorker(dispatcher).dispatchMessage(result)
+
+    expect(onExportResult).toHaveBeenCalledWith(result)
+    expect(onExportResultSettled).toHaveBeenCalledWith(result)
+    dispatcher.dispose()
+  })
+
+  it('ignores stale export results after a newer same-graph export request', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onExportResult = vi.fn()
+
+    dispatcher.setExportResultHandler(onExportResult)
+
+    dispatcher.requestGraphExport({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+      format: 'step',
+      input: exportInput,
+    })
+    dispatcher.requestGraphExport({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-2',
+      format: 'step',
+      input: exportInput,
+    })
+
+    getAuthoritativeWorker(dispatcher).dispatchMessage({
+      type: 'export_result',
+      lane: 'export',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+      format: 'step',
+      filename: 'stale.step',
+      dataBase64: btoa('stale'),
+    })
+    getAuthoritativeWorker(dispatcher).dispatchMessage({
+      type: 'export_result',
+      lane: 'export',
+      seq: 2,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-2',
+      format: 'step',
+      filename: 'fresh.step',
+      dataBase64: btoa('fresh'),
+    })
+
+    expect(onExportResult).toHaveBeenCalledTimes(1)
+    expect(onExportResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seq: 2,
+        filename: 'fresh.step',
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('forwards export worker errors without treating them as build settlement', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onWorkerError = vi.fn()
+    const onExportError = vi.fn()
+    const onBuildResultSettled = vi.fn()
+
+    dispatcher.setWorkerErrorHandler(onWorkerError)
+    dispatcher.setRuntimeHooks({
+      onExportError,
+      onBuildResultSettled,
+    })
+
+    dispatcher.requestGraphExport({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+      format: 'step',
+      input: exportInput,
+    })
+    getAuthoritativeWorker(dispatcher).dispatchMessage({
+      type: 'worker_error',
+      seq: 1,
+      op: 'export',
+      lane: 'export',
+      message: 'STEP writer transfer failed.',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      requestId: 'export-request-1',
+    })
+
+    expect(onWorkerError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: 'export',
+        message: 'STEP writer transfer failed.',
+      }),
+    )
+    expect(onExportError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: 'export',
+        requestId: 'export-request-1',
+      }),
+    )
+    expect(onBuildResultSettled).not.toHaveBeenCalled()
     dispatcher.dispose()
   })
 })

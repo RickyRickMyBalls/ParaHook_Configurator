@@ -532,9 +532,14 @@ describe('selectBrowserTreeRows', () => {
         effectiveBrowserBuildPolicySourceLabel: null,
         actions: [
           {
+            actionId: 'export-step',
+            label: 'Export STEP',
+            ariaLabel: 'Export Graph 1 as STEP',
+          },
+          {
             actionId: 'save',
-            label: 'Export Graph',
-            ariaLabel: 'Export Graph 1',
+            label: 'Save Graph File',
+            ariaLabel: 'Save Graph 1 graph file',
           },
           {
             actionId: 'open',
@@ -648,8 +653,8 @@ describe('selectBrowserTreeRows', () => {
           disabled: true,
         }),
         expect.objectContaining({
-          actionId: 'save',
-          label: 'Export Graph',
+          actionId: 'export-step',
+          label: 'Export STEP',
         }),
       ]),
     })

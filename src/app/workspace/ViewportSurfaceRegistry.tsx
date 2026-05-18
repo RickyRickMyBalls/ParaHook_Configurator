@@ -6,6 +6,7 @@ import { NotepadSurface } from '../notepad/NotepadSurface'
 import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
 import { EditHistoryReaderSurface } from './EditHistoryReaderSurface'
+import { ExportSurface } from './ExportSurface'
 import { HomePageSurface } from './HomePageSurface'
 import { PropertiesSurface } from './PropertiesSurface'
 import { SettingsSurface, type SettingsSectionId } from './SettingsSurface'
@@ -145,6 +146,10 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
 
   if (renderFamily === 'properties') {
     return <PropertiesSurface slotId={slotId} surfaceInstanceId={surfaceInstanceId} />
+  }
+
+  if (renderFamily === 'export') {
+    return <ExportSurface slotId={slotId} surfaceInstanceId={surfaceInstanceId} />
   }
 
   if (renderFamily === 'editHistory') {

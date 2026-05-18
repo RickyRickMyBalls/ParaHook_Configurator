@@ -104,7 +104,13 @@ import {
   createBuildFacadeBridge,
   type BuildFacadeBridge,
 } from './builds/appStoreBuildFacade'
-import type { ExportPreparationResult } from '../../shared/exportTypes'
+import { buildDispatcher } from '../buildDispatcher'
+import type {
+  ExportPreparationBlockedReason,
+  ExportPreparationPendingReason,
+  ExportPreparationResult,
+  ExportWorkerResult,
+} from '../../shared/exportTypes'
 import { deleteRecordKey } from './storeRecordUtils'
 export { canStagedImportFileUseMultipleObjects } from './references/referenceWorkspaceState'
 export {
@@ -146,6 +152,142 @@ export {
 
 type PartsVisibility = Record<string, boolean>
 type BuildPolicy = 'live' | 'release' | 'manual'
+export type GraphDocumentExportStatus =
+  | {
+      status: 'idle'
+    }
+  | {
+      status: 'pending'
+      graphDocumentId: string
+      pendingReason: ExportPreparationPendingReason
+      buildRequestId?: string
+      buildSeq?: number
+    }
+  | {
+      status: 'blocked'
+      graphDocumentId: string
+      blockedReason: ExportPreparationBlockedReason
+      message: string
+    }
+  | {
+      status: 'exporting'
+      graphDocumentId: string
+      requestId: string
+      buildRequestId: string
+      exportSeq: number
+    }
+  | {
+      status: 'success'
+      graphDocumentId: string
+      requestId: string
+      buildRequestId: string
+      filename: string
+      format: ExportWorkerResult['format']
+    }
+  | {
+      status: 'failed'
+      graphDocumentId: string
+      requestId: string
+      buildRequestId: string
+      message: string
+    }
+
+export type GraphDocumentStepExportRequestResult =
+  | ExportPreparationResult
+  | {
+      status: 'exporting'
+      graphDocumentId: string
+      requestId: string
+      buildRequestId: string
+      exportSeq: number
+    }
+
+export type ExportWorkspaceTarget =
+  | {
+      kind: 'graph-document'
+      graphDocumentId: string
+    }
+  | {
+      kind: 'graph-node'
+      graphDocumentId: string
+      nodeId: string
+    }
+  | {
+      kind: 'reference-item'
+      referenceId: string
+    }
+  | {
+      kind: 'assembly'
+      assemblyId: string
+    }
+  | {
+      kind: 'component'
+      componentId: string
+    }
+  | {
+      kind: 'object'
+      objectId: string
+    }
+  | {
+      kind: 'part'
+      partKey: string
+    }
+
+export const getExportWorkspaceTargetKey = (target: ExportWorkspaceTarget): string => {
+  switch (target.kind) {
+    case 'graph-document':
+      return `graph-document:${target.graphDocumentId}`
+    case 'graph-node':
+      return `graph-node:${target.graphDocumentId}:${target.nodeId}`
+    case 'reference-item':
+      return `reference-item:${target.referenceId}`
+    case 'assembly':
+      return `assembly:${target.assemblyId}`
+    case 'component':
+      return `component:${target.componentId}`
+    case 'object':
+      return `object:${target.objectId}`
+    case 'part':
+      return `part:${target.partKey}`
+  }
+}
+
+const normalizeWorkspaceTargetForExport = (
+  target: WorkspaceSelectedTarget | null,
+): ExportWorkspaceTarget | null => {
+  if (target === null) {
+    return null
+  }
+  if (
+    target.kind === 'graph-document' ||
+    target.kind === 'graph-node' ||
+    target.kind === 'reference-item' ||
+    target.kind === 'assembly' ||
+    target.kind === 'component' ||
+    target.kind === 'object' ||
+    target.kind === 'part'
+  ) {
+    return target
+  }
+  return null
+}
+
+const normalizeExportWorkspaceTargets = (
+  targets: readonly ExportWorkspaceTarget[],
+): ExportWorkspaceTarget[] => {
+  const seenTargetKeys = new Set<string>()
+  const normalizedTargets: ExportWorkspaceTarget[] = []
+  for (const target of targets) {
+    const targetKey = getExportWorkspaceTargetKey(target)
+    if (seenTargetKeys.has(targetKey)) {
+      continue
+    }
+    seenTargetKeys.add(targetKey)
+    normalizedTargets.push(target)
+  }
+  return normalizedTargets
+}
+
 export type BrowserBuildPolicy = 'live' | 'release' | 'manual' | 'off'
 export type BrowserBuildExecutionTarget = {
   kind: 'graph-document'
@@ -1192,6 +1334,9 @@ export type AppState = {
   pendingBrowserBuildGraphDocumentIds: Record<string, true>
   delayedDraftBuildByGraphDocumentId: Record<string, DelayedDraftBuildPlaceholder>
   delayedAuthoritativeBuildByGraphDocumentId: Record<string, DelayedAuthoritativeBuildPlaceholder>
+  graphDocumentExportStatusById: Record<string, GraphDocumentExportStatus>
+  exportWorkspaceTargets: ExportWorkspaceTarget[]
+  activeExportWorkspaceTargetKey: string | null
   isInteracting: boolean
   pendingBuildAfterRelease: boolean
   currentProject: ProjectFile
@@ -1213,9 +1358,15 @@ export type AppState = {
     options?: GraphDocumentBuildRequestOptions,
   ) => CompileSpaghettiGraphResult
   prepareGraphDocumentExport: (graphDocumentId: string) => ExportPreparationResult
+  requestGraphDocumentStepExport: (graphDocumentId: string) => GraphDocumentStepExportRequestResult
   compileSpaghetti: () => CompileSpaghettiGraphResult
   requestSpaghettiBuild: () => CompileSpaghettiGraphResult
   prepareSpaghettiExport: () => ExportPreparationResult
+  requestSpaghettiStepExport: () => GraphDocumentStepExportRequestResult
+  setExportWorkspaceTargets: (targets: ExportWorkspaceTarget[]) => void
+  replaceExportWorkspaceTargetsFromSelection: () => void
+  removeExportWorkspaceTarget: (targetKey: string) => void
+  setActiveExportWorkspaceTarget: (targetKey: string | null) => void
   setBuildPolicy: (policy: BuildPolicy) => void
   getBrowserGraphBuildPolicy: (graphDocumentId: string) => BrowserBuildPolicy | null
   getBrowserContentBuildPolicy: (rowId: string) => BrowserBuildPolicy | null
@@ -1241,6 +1392,13 @@ export type AppState = {
   endInteraction: () => void
   requestManualBuild: () => void
   acceptBuildResult: (result: BuildResult) => void
+  acceptGraphDocumentExportResult: (result: ExportWorkerResult) => void
+  failGraphDocumentExport: (error: {
+    graphDocumentId?: string
+    buildRequestId?: string
+    requestId?: string
+    message: string
+  }) => void
   setWorkerError: (message: string | null) => void
   toggleReferenceWorkspaceExpanded: () => void
   toggleReferenceCategoryExpanded: (categoryId: ReferenceCategoryId) => void
@@ -5186,6 +5344,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingBrowserBuildGraphDocumentIds: {},
   delayedDraftBuildByGraphDocumentId: {},
   delayedAuthoritativeBuildByGraphDocumentId: {},
+  graphDocumentExportStatusById: {},
+  exportWorkspaceTargets: [],
+  activeExportWorkspaceTargetKey: null,
   isInteracting: false,
   pendingBuildAfterRelease: false,
   currentProject: createInitialProjectFile(),
@@ -5230,6 +5391,158 @@ export const useAppStore = create<AppState>((set, get) => ({
   prepareSpaghettiExport: () => {
     const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
     return get().prepareGraphDocumentExport(activeGraphDocument.graphDocumentId)
+  },
+  requestGraphDocumentStepExport: (graphDocumentId) => {
+    const preparation = get().prepareGraphDocumentExport(graphDocumentId)
+    if (preparation.status === 'pending') {
+      set((state) => ({
+        graphDocumentExportStatusById: {
+          ...state.graphDocumentExportStatusById,
+          [graphDocumentId]: {
+            status: 'pending',
+            graphDocumentId,
+            pendingReason: preparation.pendingReason,
+            ...(preparation.buildRequestId === undefined
+              ? {}
+              : { buildRequestId: preparation.buildRequestId }),
+            ...(preparation.buildSeq === undefined ? {} : { buildSeq: preparation.buildSeq }),
+          },
+        },
+      }))
+      appendConsoleEntry({
+        layer: 'Worker',
+        text: `STEP export waiting for authoritative geometry (${graphDocumentId})`,
+        source: graphDocumentId,
+        severity: 'info',
+      })
+      return preparation
+    }
+    if (preparation.status === 'blocked') {
+      set((state) => ({
+        graphDocumentExportStatusById: {
+          ...state.graphDocumentExportStatusById,
+          [graphDocumentId]: {
+            status: 'blocked',
+            graphDocumentId,
+            blockedReason: preparation.blockedReason,
+            message: preparation.message,
+          },
+        },
+      }))
+      appendConsoleEntry({
+        layer: 'Diagnostics',
+        text: `STEP export blocked: ${preparation.message}`,
+        source: graphDocumentId,
+        severity: 'error',
+      })
+      return preparation
+    }
+
+    const requestId = newId('export-request')
+    const exportSeq = buildDispatcher.requestGraphExport({
+      projectFileId: get().currentProject.projectFileId,
+      graphDocumentId,
+      buildRequestId: preparation.input.request.buildRequestId,
+      requestId,
+      format: 'step',
+      input: preparation.input,
+    })
+    const result: GraphDocumentStepExportRequestResult = {
+      status: 'exporting',
+      graphDocumentId,
+      requestId,
+      buildRequestId: preparation.input.request.buildRequestId,
+      exportSeq,
+    }
+    set((state) => ({
+      graphDocumentExportStatusById: {
+        ...state.graphDocumentExportStatusById,
+        [graphDocumentId]: result,
+      },
+    }))
+    appendConsoleEntry({
+      layer: 'Worker',
+      text: `STEP export started (${graphDocumentId})`,
+      source: graphDocumentId,
+      severity: 'info',
+    })
+    return result
+  },
+  requestSpaghettiStepExport: () => {
+    const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
+    return get().requestGraphDocumentStepExport(activeGraphDocument.graphDocumentId)
+  },
+  setExportWorkspaceTargets: (targets) => {
+    const normalizedTargets = normalizeExportWorkspaceTargets(targets)
+    set((state) => {
+      const currentActiveTargetKey = state.activeExportWorkspaceTargetKey
+      const nextActiveTargetKey =
+        currentActiveTargetKey !== null &&
+        normalizedTargets.some(
+          (target) => getExportWorkspaceTargetKey(target) === currentActiveTargetKey,
+        )
+          ? currentActiveTargetKey
+          : (normalizedTargets[0] === undefined
+              ? null
+              : getExportWorkspaceTargetKey(normalizedTargets[0]))
+      return {
+        exportWorkspaceTargets: normalizedTargets,
+        activeExportWorkspaceTargetKey: nextActiveTargetKey,
+      }
+    })
+  },
+  replaceExportWorkspaceTargetsFromSelection: () => {
+    const selection = get().workspaceSelection
+    const selectedTargets =
+      selection.explicitSelectedTargets.length > 0
+        ? selection.explicitSelectedTargets
+        : selection.selectedTarget === null
+          ? []
+          : [selection.selectedTarget]
+    const normalizedTargets = normalizeExportWorkspaceTargets(
+      selectedTargets
+        .map(normalizeWorkspaceTargetForExport)
+        .filter((target): target is ExportWorkspaceTarget => target !== null),
+    )
+    set({
+      exportWorkspaceTargets: normalizedTargets,
+      activeExportWorkspaceTargetKey:
+        normalizedTargets[0] === undefined
+          ? null
+          : getExportWorkspaceTargetKey(normalizedTargets[0]),
+    })
+  },
+  removeExportWorkspaceTarget: (targetKey) => {
+    set((state) => {
+      const nextTargets = state.exportWorkspaceTargets.filter(
+        (target) => getExportWorkspaceTargetKey(target) !== targetKey,
+      )
+      const nextActiveTargetKey =
+        state.activeExportWorkspaceTargetKey !== targetKey
+          ? state.activeExportWorkspaceTargetKey
+          : nextTargets[0] === undefined
+            ? null
+            : getExportWorkspaceTargetKey(nextTargets[0])
+      return {
+        exportWorkspaceTargets: nextTargets,
+        activeExportWorkspaceTargetKey:
+          nextActiveTargetKey !== null &&
+          nextTargets.some((target) => getExportWorkspaceTargetKey(target) === nextActiveTargetKey)
+            ? nextActiveTargetKey
+            : null,
+      }
+    })
+  },
+  setActiveExportWorkspaceTarget: (targetKey) => {
+    set((state) => ({
+      activeExportWorkspaceTargetKey:
+        targetKey !== null &&
+        state.exportWorkspaceTargets.some(
+          (target) => getExportWorkspaceTargetKey(target) === targetKey,
+        )
+          ? targetKey
+          : null,
+    }))
   },
   setViewportPresentationOpacity: (stateId, opacity) => {
     set((state) => {
@@ -5363,6 +5676,57 @@ export const useAppStore = create<AppState>((set, get) => ({
             lastBuildSeq: result.seq,
           },
     )
+  },
+  acceptGraphDocumentExportResult: (result) => {
+    if (result.projectFileId !== get().currentProject.projectFileId) {
+      return
+    }
+    set((state) => ({
+      graphDocumentExportStatusById: {
+        ...state.graphDocumentExportStatusById,
+        [result.graphDocumentId]: {
+          status: 'success',
+          graphDocumentId: result.graphDocumentId,
+          requestId: result.requestId,
+          buildRequestId: result.buildRequestId,
+          filename: result.filename,
+          format: result.format,
+        },
+      },
+    }))
+    appendConsoleEntry({
+      layer: 'Worker',
+      text: `STEP export ready: ${result.filename}`,
+      source: result.graphDocumentId,
+      severity: 'info',
+    })
+  },
+  failGraphDocumentExport: (error) => {
+    if (
+      error.graphDocumentId === undefined ||
+      error.buildRequestId === undefined ||
+      error.requestId === undefined
+    ) {
+      return
+    }
+    set((state) => ({
+      graphDocumentExportStatusById: {
+        ...state.graphDocumentExportStatusById,
+        [error.graphDocumentId as string]: {
+          status: 'failed',
+          graphDocumentId: error.graphDocumentId as string,
+          buildRequestId: error.buildRequestId as string,
+          requestId: error.requestId as string,
+          message: error.message,
+        },
+      },
+    }))
+    appendConsoleEntry({
+      layer: 'Diagnostics',
+      text: `STEP export failed: ${error.message}`,
+      source: error.graphDocumentId,
+      severity: 'error',
+    })
   },
   setWorkerError: (message) => {
     set({ workerError: message })

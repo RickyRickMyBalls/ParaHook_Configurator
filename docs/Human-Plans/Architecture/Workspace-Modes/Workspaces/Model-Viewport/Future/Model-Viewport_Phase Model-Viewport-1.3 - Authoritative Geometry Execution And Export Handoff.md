@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-05-17 23:23:24: Marked `Model-Viewport 1.3 Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout` shipped after the app gained a dispatcher-backed STEP export request/result lane, graph-level export status tracking, browser-safe STEP download handoff from worker bytes, export-specific runtime inspector/console wiring, and a truthful Browser graph-row split between `Export STEP` and `Save Graph File`, closing `Model-Viewport-1.3` without building the broader Export workspace surface.
+29. 2026-05-17 23:08:38: Prepped `Model-Viewport 1.3 Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout` for implementation by grounding the final closeout in the live app handoff gap: Browser still routes `Export Graph` to graph-document save, `prepareGraphDocumentExport` only prepares authoritative export input, `BuildDispatcher` has no public export request/result operation yet, worker export errors are recognized but not tied to export result status, and the `Export` family keeps visible toolbar ownership separate from worker-side STEP writing.
 28. 2026-05-17 22:59:05: Marked `Model-Viewport 1.3 Phase 10 - STEP Writer Adapter And Worker Export Operation` shipped after the worker export service started writing real STEP data from retained authoritative OpenCascade `shape_set` resources, added worker export request/result routing, handled OpenCascade MEMFS filename mangling inside the adapter, and proved missing handles, writer failures, multi-shape compound export, and no-draft export behavior with focused tests plus production build verification.
 27. 2026-05-17 22:46:30: Prepped `Model-Viewport 1.3 Phase 10 - STEP Writer Adapter And Worker Export Operation` for implementation by grounding the next cut in the live placeholder export service, worker-local authoritative `shape_set` store, OpenCascade STEP writer bindings, worker message routing gap, fake plus real OC verification expectations, and no-draft-mesh export rule.
 26. 2026-04-07 16:26: Marked `Model-Viewport 1.3 Phase 9 - Export Gating And On-Demand Authoritative Preparation` shipped after the app store gained the first explicit export-preparation outcome contract, export preparation started reusing accepted authoritative geometry or requesting one forced authoritative build honestly through the existing build path, graph runtime started retaining the in-flight build execution intent so export can recognize authoritative preparation already in progress, and focused app-store tests proved ready versus pending versus blocked export-preparation states without falling back to draft geometry truth
@@ -116,7 +118,7 @@ Current internal status:
 - `Phase 10 - STEP Writer Adapter And Worker Export Operation`
   - shipped
 - `Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout`
-  - open
+  - shipped
 
 Locked recommendation:
 - treat the shipped `Phase 2` as a broad first cut, not as proof that the whole remaining `1.3` lane is now one export-sized step
@@ -1384,7 +1386,7 @@ Definition of done:
 - missing, stale, or unsupported authoritative handles fail honestly
 - file-writing logic stays outside viewport and toolbar ownership
 
-## [ ] Model-Viewport 1.3 Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout
+## [x] Model-Viewport 1.3 Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout
 
 ### Summary
 
@@ -1404,12 +1406,110 @@ Definition of done:
 
 ### Implementation Spec
 
-Likely files:
-- app/export handoff surfaces
-- focused verification tests
-- `1.3` family docs close-out updates
+#### Prep Read
+
+Live source read:
+- `src/app/store/builds/appStoreBuildReleaseFlow.ts`
+  - `prepareGraphDocumentExport(graphDocumentId)` already owns the authoritative export-preparation gate.
+  - It returns `ready` only from `deriveAuthoritativeExportInput(runtime.acceptedAuthoritativeGeometryResult)`.
+  - It can request an explicit authoritative build and report `pending`.
+  - It can block honestly when compile/build prep fails or the current revision has no reusable authoritative result.
+- `src/shared/exportTypes.ts`
+  - already defines `AuthoritativeExportInput`, `ExportWorkerRequest`, `ExportWorkerResult`, and worker-request validation.
+  - does not yet define an app-facing export job/status state.
+- `src/worker/worker.ts`
+  - now accepts `type: 'export'` messages and posts `export_result` or `worker_error` with `op: 'export'`.
+- `src/app/buildDispatcher.ts`
+  - currently owns build request routing and build supersession ledgers.
+  - it recognizes worker errors with `op: 'export'`, but has no public `requestExport(...)` method, no export result validator, no export result callback, and no export-specific status hook.
+  - export messages therefore cannot yet be initiated from the app through the dispatcher even though the worker can handle them.
+- `src/app/bootstrapBuildWiring.ts`
+  - currently connects build start/progress/result/error to app state, build stats, runtime inspector tasks, and console entries.
+  - it has no export-specific wiring for pending/success/download/failure status.
+- `src/app/panels/selectBrowserTreeRows.ts`, `src/app/panels/browserRowActions.ts`, and `src/app/panels/useBrowserPanelController.ts`
+  - the graph-row action labeled `Export Graph` still uses action id `save`.
+  - that action calls `saveCachedGraphEntryToFile(cachedGraphId)`, so it exports/saves the graph document JSON rather than requesting authoritative STEP export.
+  - Phase 11 should not silently overload that old action without renaming or status honesty.
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+  - keeps the visible `Export` toolbar/surface as a separate future family.
+  - Phase 11 should provide a narrow app handoff and status path, not build the full Export workspace surface.
+
+#### Implementation Targets
+
+1. Add one app-facing export operation downstream from `prepareGraphDocumentExport`.
+   - likely owner: `src/app/buildDispatcher.ts` plus app-store facade/action wiring
+   - expected behavior:
+     - call export preparation first
+     - if preparation is `pending` or `blocked`, return/report that state without sending a worker export request
+     - if preparation is `ready`, send an `ExportWorkerRequest` to the authoritative worker
+     - keep the request identity tied to `projectFileId`, `graphDocumentId`, `buildRequestId`, and one export `requestId`
+2. Add export result handling in the app boundary.
+   - validate `ExportWorkerResult`
+   - ignore stale or mismatched export results
+   - surface success with filename, format, and base64 data
+   - surface failure from `worker_error` with `op: 'export'`
+   - do not treat export failure as a geometry build failure unless the existing runtime inspector needs a clearly labeled export task state
+3. Add a browser-safe download handoff for the returned STEP bytes.
+   - create a Blob/object URL from `dataBase64`
+   - trigger download with the worker-provided `.step` filename
+   - revoke object URLs after use
+   - keep file bytes downstream from the worker result, not reconstructed in the app
+4. Retire or rename the misleading graph-row action path.
+   - do not leave a graph-row button labeled `Export Graph` if it still only saves a graph document file
+   - either:
+     - rename the current action to graph save/export language that is truthful, or
+     - route the `Export Graph` action through the new authoritative STEP handoff
+   - keep the full dedicated Export toolbar/surface deferred to the `Export` family.
+5. Close `Model-Viewport-1.3` from proof.
+   - update the family doc and index after implementation.
+   - explicitly park anything that still belongs to `Export-1+`, such as target collection, format settings, and a full visible export workspace.
+
+#### Boundary Rules
+
+Do not use Phase 11 to:
+- build the full `Export` toolbar/workspace surface
+- add multi-target export collection
+- add STL/OBJ/GLB export writing
+- derive STEP from Three.js viewer meshes
+- reconstruct geometry in the app after the worker has already produced authoritative B-rep resources
+- make Browser, viewport, or toolbar state the owner of export file truth
+
+#### Verification Plan
+
+Focused proof should cover:
+- `prepareGraphDocumentExport` ready path sends exactly one authoritative-worker export request.
+- pending/blocked preparation states do not send worker export messages and report honest status.
+- `export_result` invokes the success handler/download handoff with the worker-provided filename and data.
+- export worker errors with `op: 'export'` become export failure status without clearing unrelated build state as if a build failed.
+- stale or mismatched export results are ignored.
+- the graph-row action no longer misleadingly labels graph-document save as authoritative STEP export.
+- existing build dispatch tests still pass.
+- production build passes.
+
+#### Shipped Implementation
+
+1. Added a dispatcher-owned export lane in `src/app/buildDispatcher.ts`.
+   - `requestGraphExport(...)` sends `ExportWorkerRequest` messages to the authoritative worker.
+   - accepted `export_result` messages validate through the shared result guard before reaching app handlers.
+   - stale or mismatched export results and export errors are ignored through an export-specific routing ledger.
+2. Added app-level STEP export status and action ownership in `src/app/store/useAppStore.ts`.
+   - `requestGraphDocumentStepExport(...)` calls `prepareGraphDocumentExport(...)` first.
+   - pending and blocked preparation results update export status without sending a worker export message.
+   - ready preparation sends one authoritative STEP export request downstream from the retained authoritative handle.
+   - export success and failure update graph-level export status separately from geometry build acceptance.
+3. Added browser-safe download handoff in `src/app/exportDownload.ts`.
+   - the app downloads the worker-provided base64 STEP bytes as the worker-provided filename.
+   - the app does not reconstruct STEP content from viewer meshes or app-side geometry.
+4. Updated `src/app/bootstrapBuildWiring.ts` so export start, success, and failure are visible in console/runtime inspector wiring without treating export failure as a geometry build settlement.
+5. Split the Browser graph-row action truthfully.
+   - `Export STEP` now routes to the authoritative STEP handoff.
+   - graph-document persistence now reads as `Save Graph File`.
+   - the misleading `Export Graph` label no longer points at graph JSON save.
+6. Kept the broader Export workspace deferred.
+   - no multi-target collection, format settings surface, STL/OBJ/GLB writing, or Export toolbar shell was added in this closeout.
 
 Definition of done:
 - `.step` export is end-to-end downstream from authoritative geometry truth
 - the temporary transitional bridges left by earlier `1.3` phases are either removed or explicitly documented
 - `Model-Viewport-1.3` is honestly closable
+- shipped: the `Model-Viewport-1.3` child ladder is closed; the next visible export-surface work belongs to `Export-1+`

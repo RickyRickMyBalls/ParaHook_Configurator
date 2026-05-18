@@ -134,6 +134,38 @@ describe('workspaceSurfaceCatalog', () => {
     )
   })
 
+  it('registers export as an optional persisted workspace surface with split support only', () => {
+    expect(parseWorkspaceSurfaceKind('export')).toBe('export')
+    expect(isWorkspaceSurfaceOptional('export')).toBe(true)
+    expect(workspaceSurfaceSupportsSplit('export')).toBe(true)
+    expect(workspaceSurfaceParticipatesInPersistence('export')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('export', 'floating')).toBe(false)
+    expect(workspaceSurfaceSupportsHostMode('export', 'popout')).toBe(false)
+    expect(workspacePrimarySlotSupportsSurfaceKind('export')).toBe(true)
+    expect(getWorkspaceSurfaceCatalogEntry('export')).toEqual(
+      expect.objectContaining({
+        kind: 'export',
+        defaultLabel: 'Export',
+        renderFamily: 'export',
+        scope: 'optional',
+        participatesInPersistence: true,
+        coordination: 'plain',
+        supports: expect.objectContaining({
+          slotted: true,
+          floating: false,
+          popout: false,
+          split: true,
+        }),
+      }),
+    )
+  })
+
+  it('creates explicit slot instance ids for export instead of falling through to spaghetti ids', () => {
+    expect(createWorkspaceSurfaceInstanceIdForSlot('export', 'workspace-slot-export')).toBe(
+      'export-workspace-slot-export',
+    )
+  })
+
   it('creates explicit slot instance ids for home page instead of falling through to spaghetti ids', () => {
     expect(createWorkspaceSurfaceInstanceIdForSlot('homePage', 'workspace-slot-primary')).toBe(
       'home-page-workspace-slot-primary',

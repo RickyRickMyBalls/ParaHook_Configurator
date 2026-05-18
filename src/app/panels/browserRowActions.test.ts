@@ -154,6 +154,7 @@ const action = (actionId: BrowserTreeRowActionVm['actionId']): BrowserTreeRowAct
 const handlers = (sharedViewerCompositionActive = false) => ({
   sharedViewerCompositionActive,
   onSaveGraph: vi.fn(),
+  onExportGraphStep: vi.fn(),
   onActivateGraphTarget: vi.fn(),
   onTransformReference: vi.fn(),
   onRevealGraph: vi.fn(),
@@ -299,5 +300,14 @@ describe('runBrowserRowAction', () => {
         fitCanvasInViewport: true,
       },
     )
+  })
+
+  it('routes graph STEP export through the authoritative export handler', () => {
+    const nextHandlers = handlers(false)
+
+    runBrowserRowAction(graphRow, action('export-step'), nextHandlers)
+
+    expect(nextHandlers.onExportGraphStep).toHaveBeenCalledWith('graph-document-1')
+    expect(nextHandlers.onSaveGraph).not.toHaveBeenCalled()
   })
 })

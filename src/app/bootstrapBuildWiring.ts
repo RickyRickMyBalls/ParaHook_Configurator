@@ -1,4 +1,5 @@
 import { buildDispatcher } from './buildDispatcher'
+import { downloadExportResult } from './exportDownload'
 import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { appendConsoleEntry } from './console/useConsoleStore'
 import { useBuildStatsStore } from './store/buildStatsStore'
@@ -115,6 +116,10 @@ export const bootstrapBuildWiring = (): void => {
   buildDispatcher.setBuildResultHandler((result) => {
     useAppStore.getState().acceptBuildResult(result)
   })
+  buildDispatcher.setExportResultHandler((result) => {
+    useAppStore.getState().acceptGraphDocumentExportResult(result)
+    downloadExportResult(result)
+  })
   buildDispatcher.setWorkerErrorHandler((error) => {
     if (
       error.op === 'build' &&
@@ -128,6 +133,9 @@ export const bootstrapBuildWiring = (): void => {
         buildRequestId: error.buildRequestId,
         buildSeq: error.seq,
       })
+    }
+    if (error.op === 'export') {
+      useAppStore.getState().failGraphDocumentExport(error)
     }
     useAppStore.getState().setWorkerError(error.message)
   })
@@ -219,6 +227,51 @@ export const bootstrapBuildWiring = (): void => {
           `evicted ${result.bundle.summary.evictedCount}`,
         source: result.graphDocumentId,
         severity: 'info',
+      })
+    },
+    onExportRequestStarted: (request) => {
+      useRuntimeInspectorTaskStore.getState().beginBuild({
+        seq: request.seq,
+        graphDocumentId: request.graphDocumentId,
+        buildRequestId: request.buildRequestId,
+        partKey: null,
+        label: `Export ${request.graphDocumentId}`,
+        status: 'Starting',
+        progress01: null,
+        detail: 'Writing STEP from authoritative geometry.',
+        state: 'queued',
+      })
+      appendConsoleEntry({
+        layer: 'Worker',
+        text: `STEP export started (${request.graphDocumentId})`,
+        source: request.graphDocumentId,
+        severity: 'info',
+      })
+    },
+    onExportResultSettled: (result) => {
+      useRuntimeInspectorTaskStore.getState().settleBuild({
+        seq: result.seq,
+        graphDocumentId: result.graphDocumentId,
+        buildRequestId: result.buildRequestId,
+      })
+      appendConsoleEntry({
+        layer: 'Worker',
+        text: `STEP export complete (${result.filename})`,
+        source: result.graphDocumentId,
+        severity: 'info',
+      })
+    },
+    onExportError: (error) => {
+      useRuntimeInspectorTaskStore.getState().failBuild({
+        seq: error.seq,
+        graphDocumentId: error.graphDocumentId ?? null,
+        buildRequestId: error.buildRequestId ?? null,
+        partKey: null,
+        label: error.graphDocumentId === undefined ? 'STEP export' : `Export ${error.graphDocumentId}`,
+        status: 'Failed',
+        progress01: null,
+        detail: error.message,
+        state: 'error',
       })
     },
     onWorkerError: (error) => {

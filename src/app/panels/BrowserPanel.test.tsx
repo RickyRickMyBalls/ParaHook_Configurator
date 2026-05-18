@@ -1595,6 +1595,7 @@ describe('BrowserPanel', () => {
       setEditorViewportPosition: vi.fn(),
       setViewerTargetGraphDocumentId: vi.fn(),
       setSelectedNodeId: vi.fn(),
+      requestEditorViewportCanvasFit: vi.fn(),
       requestEditorViewportNodeFit: vi.fn(),
       sharedViewerComposition: null,
       sharedViewerCompositionGraphDocumentIds: [],
@@ -1748,6 +1749,7 @@ describe('BrowserPanel', () => {
       }),
       requestGraphDocumentBuild: mockRequestBrowserGraphDocumentBuild,
       requestBrowserGraphDocumentBuild: mockRequestBrowserGraphDocumentBuild,
+      requestGraphDocumentStepExport: vi.fn(),
       setPartVisibility: vi.fn(),
       selectPart: vi.fn(),
       toggleReferenceWorkspaceExpanded: vi.fn(),
@@ -2665,7 +2667,7 @@ describe('BrowserPanel', () => {
 
     expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Graph 1')
     expect(findButtonByLabel('New Editor')).not.toBeNull()
-    expect(findButtonByLabel('Export Graph')).not.toBeNull()
+    expect(findButtonByLabel('Export STEP')).not.toBeNull()
 
     await click(findButtonByLabel('New Editor')!)
 
@@ -3032,11 +3034,11 @@ describe('BrowserPanel', () => {
     await contextMenu(rowMain!)
 
     expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Graph 1')
-    expect(findButtonByLabel('Export Graph')).not.toBeNull()
+    expect(findButtonByLabel('Export STEP')).not.toBeNull()
     expect(findButtonByLabel('Swap Editor')).not.toBeNull()
   })
 
-  it('exports through the row menu and no longer renders the legacy graph save button', async () => {
+  it('exports STEP through the row menu and keeps graph-file save label honest', async () => {
     ;({ root } = await renderBrowserPanel())
 
     const graphRow = findRowMainByLabel('Graph 1')
@@ -3046,11 +3048,15 @@ describe('BrowserPanel', () => {
     await contextMenu(graphRow!)
 
     expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Graph 1')
-    expect(findButtonByLabel('Export Graph')).not.toBeNull()
+    expect(findButtonByLabel('Export STEP')).not.toBeNull()
+    expect(findButtonByLabel('Save Graph File')).not.toBeNull()
 
-    await click(findButtonByLabel('Export Graph')!)
+    await click(findButtonByLabel('Export STEP')!)
 
-    expect(currentSpaghettiState.saveCachedGraphEntryToFile).toHaveBeenCalledWith('cached-graph-1')
+    expect(currentAppState.requestGraphDocumentStepExport).toHaveBeenCalledWith(
+      'graph-document-1',
+    )
+    expect(currentSpaghettiState.saveCachedGraphEntryToFile).not.toHaveBeenCalled()
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
 

@@ -477,6 +477,7 @@ describe('worker export routing', () => {
         projectFileId: 'project-1',
         graphDocumentId: 'graph-document-1',
         buildRequestId: 'build-request-1',
+        requestId: 'export-request-1',
       },
     ])
   })

@@ -4257,6 +4257,87 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(requestBuildSpy).not.toHaveBeenCalled()
   })
 
+  it('requestGraphDocumentStepExport sends ready authoritative input to the export worker lane', async () => {
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    resetStoreWithManifestReferences(useAppStore)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const graphDocumentId = 'graph-document-1'
+    const compileResult = useAppStore.getState().compileGraphDocument(graphDocumentId)
+    expect(compileResult.ok).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult,
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: compileResult.buildInputs?.orderedPartKeys ?? [],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'build-request-export-ready',
+      buildSeq: 1,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 1,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId,
+        buildRequestId: 'build-request-export-ready',
+        artifacts: [baseplateArtifact],
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'build-request-export-ready',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-export-ready',
+          },
+        }),
+      }),
+    )
+
+    const requestExportSpy = vi.spyOn(buildDispatcher, 'requestGraphExport').mockReturnValue(121)
+
+    expect(useAppStore.getState().requestGraphDocumentStepExport(graphDocumentId)).toEqual({
+      status: 'exporting',
+      graphDocumentId,
+      requestId: expect.any(String),
+      buildRequestId: 'build-request-export-ready',
+      exportSeq: 121,
+    })
+    expect(requestExportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId,
+        buildRequestId: 'build-request-export-ready',
+        format: 'step',
+        input: expect.objectContaining({
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-export-ready',
+          },
+        }),
+      }),
+    )
+    expect(useAppStore.getState().graphDocumentExportStatusById[graphDocumentId]).toEqual({
+      status: 'exporting',
+      graphDocumentId,
+      requestId: expect.any(String),
+      buildRequestId: 'build-request-export-ready',
+      exportSeq: 121,
+    })
+  })
+
   it('prepareGraphDocumentExport requests an authoritative build once and stays pending while it is in flight', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
@@ -4308,6 +4389,43 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       buildSeq: 77,
     })
     expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('requestGraphDocumentStepExport does not send worker export while preparation is pending', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    resetStoreWithManifestReferences(useAppStore)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Export Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(77)
+    const requestExportSpy = vi.spyOn(buildDispatcher, 'requestGraphExport').mockReturnValue(121)
+
+    expect(useAppStore.getState().requestGraphDocumentStepExport(graphDocumentId)).toEqual({
+      status: 'pending',
+      graphDocumentId,
+      pendingReason: 'requested-authoritative-build',
+      buildRequestId: expect.any(String),
+      buildSeq: 77,
+    })
+    expect(requestExportSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().graphDocumentExportStatusById[graphDocumentId]).toEqual({
+      status: 'pending',
+      graphDocumentId,
+      pendingReason: 'requested-authoritative-build',
+      buildRequestId: expect.any(String),
+      buildSeq: 77,
+    })
   })
 
   it('prepareGraphDocumentExport blocks honestly after the current graph revision finishes an authoritative build without retained authoritative geometry', async () => {

@@ -7,6 +7,7 @@
 @import './surfaces/console.css';
 @import './surfaces/workspace-panel-shell.css';
 @import './surfaces/settings.css';
+@import './surfaces/export.css';
 @import './surfaces/viewport-overlay.css';
 @import './surfaces/spaghetti.css';
 @import './surfaces/radio-audio.css';

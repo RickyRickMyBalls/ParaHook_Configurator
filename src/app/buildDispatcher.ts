@@ -21,8 +21,16 @@ import type {
   CompiledBuildData,
   WorkerError,
 } from '../shared/buildTypes'
+import {
+  isExportWorkerResult,
+  type AuthoritativeExportInput,
+  type ExportFormat,
+  type ExportWorkerRequest,
+  type ExportWorkerResult,
+} from '../shared/exportTypes'
 
 type BuildResultHandler = (result: BuildResult) => void
+type ExportResultHandler = (result: ExportWorkerResult) => void
 type WorkerErrorHandler = (error: WorkerError) => void
 type BuildDispatcherWorker = Pick<
   Worker,
@@ -40,6 +48,15 @@ type GraphBuildRequestOptions = {
   invalidation: BuildInvalidation
 }
 
+type GraphExportRequestOptions = {
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
+  requestId: string
+  format: ExportFormat
+  input: AuthoritativeExportInput
+}
+
 type GeometryExecutionTarget = BuildExecutionIntent['geometryTarget']
 
 type RoutingLedger = {
@@ -48,6 +65,18 @@ type RoutingLedger = {
   latestResolvedSeq: number
   pendingChangedParamIdsBySeq: Map<number, string[]>
   pendingBuildRequestIdBySeq: Map<number, string>
+}
+
+type ExportRoutingLedger = {
+  latestRequestedSeq: number
+  latestResolvedSeq: number
+  pendingRequestBySeq: Map<
+    number,
+    {
+      buildRequestId: string
+      requestId: string
+    }
+  >
 }
 
 export type BuildSupersessionTarget = Pick<
@@ -70,9 +99,12 @@ export type BuildRequestStartedContext = {
 
 export type BuildDispatcherRuntimeHooks = {
   onBuildRequestStarted?: (context: BuildRequestStartedContext) => void
+  onExportRequestStarted?: (request: ExportWorkerRequest) => void
   onBuildProgress?: (progress: BuildProgress) => void
   onBuildSuperseded?: (superseded: BuildSuperseded) => void
   onBuildResultSettled?: (result: BuildResult) => void
+  onExportResultSettled?: (result: ExportWorkerResult) => void
+  onExportError?: (error: WorkerError) => void
   onWorkerError?: (error: WorkerError) => void
 }
 
@@ -158,6 +190,9 @@ const isWorkerError = (value: unknown): value is WorkerError => {
   if (value.buildRequestId !== undefined && typeof value.buildRequestId !== 'string') {
     return false
   }
+  if (value.requestId !== undefined && typeof value.requestId !== 'string') {
+    return false
+  }
   if (value.lane !== undefined && value.lane !== 'build' && value.lane !== 'export') {
     return false
   }
@@ -231,8 +266,10 @@ export class BuildDispatcher {
   private latestRequestedSeq = 0
   private latestResolvedSeq = 0
   private readonly routingLedgerByKey = new Map<string, RoutingLedger>()
+  private readonly exportRoutingLedgerByKey = new Map<string, ExportRoutingLedger>()
   private readonly executionTargetBySeq = new Map<number, GeometryExecutionTarget>()
   private onBuildResult: BuildResultHandler = () => {}
+  private onExportResult: ExportResultHandler = () => {}
   private onWorkerError: WorkerErrorHandler = () => {}
   private runtimeHooks: BuildDispatcherRuntimeHooks = {}
 
@@ -245,6 +282,10 @@ export class BuildDispatcher {
 
   public setBuildResultHandler(handler: BuildResultHandler): void {
     this.onBuildResult = handler
+  }
+
+  public setExportResultHandler(handler: ExportResultHandler): void {
+    this.onExportResult = handler
   }
 
   public setWorkerErrorHandler(handler: WorkerErrorHandler): void {
@@ -326,6 +367,33 @@ export class BuildDispatcher {
     return seq
   }
 
+  public requestGraphExport(options: GraphExportRequestOptions): number {
+    const seq = ++this.seqCounter
+    const ledger = this.getOrCreateExportRoutingLedger(options)
+    ledger.latestRequestedSeq = seq
+    ledger.pendingRequestBySeq.set(seq, {
+      buildRequestId: options.buildRequestId,
+      requestId: options.requestId,
+    })
+    this.prunePendingExportRoutingState(ledger)
+
+    const message: ExportWorkerRequest = {
+      type: 'export',
+      lane: 'export',
+      seq,
+      projectFileId: options.projectFileId,
+      graphDocumentId: options.graphDocumentId,
+      buildRequestId: options.buildRequestId,
+      schemaVersion: 1,
+      requestId: options.requestId,
+      format: options.format,
+      input: options.input,
+    }
+    this.runtimeHooks.onExportRequestStarted?.(message)
+    this.authoritativeWorker.postMessage(message)
+    return seq
+  }
+
   public dispose(): void {
     this.draftWorker.removeEventListener('message', this.handleMessage)
     this.authoritativeWorker.removeEventListener('message', this.handleMessage)
@@ -351,6 +419,20 @@ export class BuildDispatcher {
   }
 
   private readonly handleMessage = (event: MessageEvent<unknown>): void => {
+    if (isExportWorkerResult(event.data)) {
+      const ledger = this.getOrCreateExportRoutingLedger(event.data)
+      this.prunePendingExportRoutingState(ledger)
+      if (this.isExportStale(event.data, ledger)) {
+        ledger.pendingRequestBySeq.delete(event.data.seq)
+        return
+      }
+      ledger.pendingRequestBySeq.delete(event.data.seq)
+      ledger.latestResolvedSeq = event.data.seq
+      this.onExportResult(event.data)
+      this.runtimeHooks.onExportResultSettled?.(event.data)
+      return
+    }
+
     if (isBuildProgress(event.data)) {
       const executionTarget = this.executionTargetBySeq.get(event.data.seq)
       if (executionTarget === undefined) {
@@ -417,6 +499,20 @@ export class BuildDispatcher {
     }
 
     if (isWorkerError(event.data)) {
+      if (event.data.op === 'export' && this.hasExportRoutingIdentity(event.data)) {
+        const ledger = this.getOrCreateExportRoutingLedger(event.data)
+        this.prunePendingExportRoutingState(ledger)
+        if (this.isExportStale(event.data, ledger)) {
+          ledger.pendingRequestBySeq.delete(event.data.seq)
+          return
+        }
+        ledger.pendingRequestBySeq.delete(event.data.seq)
+        ledger.latestResolvedSeq = event.data.seq
+        this.onWorkerError(event.data)
+        this.runtimeHooks.onExportError?.(event.data)
+        this.runtimeHooks.onWorkerError?.(event.data)
+        return
+      }
       if (event.data.op === 'build' && this.hasRoutingIdentity(event.data)) {
         const executionTarget = this.executionTargetBySeq.get(event.data.seq)
         if (executionTarget === undefined) {
@@ -532,6 +628,14 @@ export class BuildDispatcher {
     }
   }
 
+  private prunePendingExportRoutingState(ledger: ExportRoutingLedger): void {
+    for (const seq of ledger.pendingRequestBySeq.keys()) {
+      if (seq <= ledger.latestResolvedSeq) {
+        ledger.pendingRequestBySeq.delete(seq)
+      }
+    }
+  }
+
   private getOrCreateRoutingLedger(
     identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
     executionTarget: GeometryExecutionTarget,
@@ -552,11 +656,57 @@ export class BuildDispatcher {
     return created
   }
 
+  private getOrCreateExportRoutingLedger(
+    identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
+  ): ExportRoutingLedger {
+    const key = this.exportRoutingKey(identity)
+    const existing = this.exportRoutingLedgerByKey.get(key)
+    if (existing !== undefined) {
+      return existing
+    }
+    const created: ExportRoutingLedger = {
+      latestRequestedSeq: 0,
+      latestResolvedSeq: 0,
+      pendingRequestBySeq: new Map(),
+    }
+    this.exportRoutingLedgerByKey.set(key, created)
+    return created
+  }
+
   private buildRoutingKey(
     identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
     executionTarget: GeometryExecutionTarget,
   ): string {
     return `${identity.projectFileId}::${identity.graphDocumentId}::${executionTarget}`
+  }
+
+  private exportRoutingKey(
+    identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
+  ): string {
+    return `${identity.projectFileId}::${identity.graphDocumentId}::export`
+  }
+
+  private isExportStale(
+    message: Pick<ExportWorkerResult | WorkerError, 'seq' | 'buildRequestId' | 'requestId'>,
+    ledger: ExportRoutingLedger,
+  ): boolean {
+    if (message.seq < ledger.latestRequestedSeq) {
+      return true
+    }
+    if (message.seq <= ledger.latestResolvedSeq) {
+      return true
+    }
+    const expected = ledger.pendingRequestBySeq.get(message.seq)
+    if (expected === undefined) {
+      return true
+    }
+    if (message.buildRequestId !== expected.buildRequestId) {
+      return true
+    }
+    if (message.requestId !== expected.requestId) {
+      return true
+    }
+    return false
   }
 
   private workerForExecutionTarget(
@@ -581,6 +731,15 @@ export class BuildDispatcher {
       typeof error.graphDocumentId === 'string' &&
       typeof error.buildRequestId === 'string'
     )
+  }
+
+  private hasExportRoutingIdentity(
+    error: WorkerError,
+  ): error is WorkerError &
+    Required<Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId' | 'buildRequestId'>> & {
+      requestId: string
+    } {
+    return this.hasRoutingIdentity(error) && typeof error.requestId === 'string'
   }
 }
 
