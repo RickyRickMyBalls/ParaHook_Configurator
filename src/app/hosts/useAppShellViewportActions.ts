@@ -279,25 +279,32 @@ export function useAppShellViewportActions(input: UseAppShellViewportActionsInpu
   )
 
   const handleViewportSlotSplit = useCallback(
-    (slotId: string, splitDockSide: WorkspaceSplitDockSide) => {
+    (
+      slotId: string,
+      splitDockSide: WorkspaceSplitDockSide,
+      options?: {
+        surfaceKind?: WorkspaceViewportSlot['surfaceKind']
+      },
+    ) => {
       const sourceSlot = viewportSlotsById[slotId] ?? null
       if (sourceSlot === null) {
         return
       }
+      const nextSurfaceKind = options?.surfaceKind ?? sourceSlot.surfaceKind
       const sourceSlotFrame = appShellRef.current?.querySelector(
         `[data-workspace-slot-id="${slotId}"]`,
       )
       const sourceSlotFrameRect =
         sourceSlotFrame instanceof HTMLElement ? sourceSlotFrame.getBoundingClientRect() : null
       const preferredBrowserSideSplitRatio =
-        sourceSlot.surfaceKind === 'browser' &&
+        nextSurfaceKind === 'browser' &&
         (splitDockSide === 'left' || splitDockSide === 'right') &&
         sourceSlotFrameRect !== null &&
         sourceSlotFrameRect.width > 0
           ? defaultBrowserFloatingSize.width / sourceSlotFrameRect.width
           : undefined
       const nextSurfaceInstanceId =
-        sourceSlot.surfaceKind === 'spaghettiEditor'
+        nextSurfaceKind === 'spaghettiEditor'
           ? createDuplicatedEditorSurfaceInstanceId(sourceSlot.surfaceInstanceId)
           : null
       const sourceViewer =
@@ -316,7 +323,7 @@ export function useAppShellViewportActions(input: UseAppShellViewportActionsInpu
         sourceSlot.surfaceInstanceId,
       )
       const nextSlotId = splitViewportSlot(slotId, splitDockSide, {
-        surfaceKind: sourceSlot.surfaceKind,
+        surfaceKind: nextSurfaceKind,
         ...(nextSurfaceInstanceId === null ? {} : { surfaceInstanceId: nextSurfaceInstanceId }),
         ...(preferredBrowserSideSplitRatio === undefined
           ? {}

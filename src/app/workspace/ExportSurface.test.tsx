@@ -50,6 +50,9 @@ describe('ExportSurface', () => {
       '.ExportSurfaceFormatButton[aria-pressed="true"]',
     )
     const exportButton = container.querySelector('.ExportSurfacePrimaryAction') as HTMLButtonElement
+    const headerPanel = container.querySelector('.ExportSurfaceHeader')
+    const targetsPanel = container.querySelector('section[aria-label="Export targets"]')
+    const bottomActionPanel = container.querySelector('section.ExportSurfacePanel--action')
 
     expect(container.textContent).toContain('Export Review')
     expect(container.textContent).toContain('STEP')
@@ -67,6 +70,9 @@ describe('ExportSurface', () => {
     expect(container.textContent).toContain('Save Graph File writes graph document JSON')
     expect(container.textContent).not.toContain('Executable controls deferred')
     expect(stepButton?.textContent).toContain('STEP')
+    expect(headerPanel?.contains(exportButton)).toBe(true)
+    expect(targetsPanel?.contains(exportButton)).toBe(false)
+    expect(bottomActionPanel).toBeNull()
     expect(exportButton.disabled).toBe(false)
     expect(exportButton.textContent).toBe('Export STEP')
   })

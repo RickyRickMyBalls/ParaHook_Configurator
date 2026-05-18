@@ -72,6 +72,254 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1933 -->
+
+### [1933] - 2026-05-18 11:29 - `Titlebar-1 - Follow-Up - Forgiving Split Workspace Type Submenu`
+
+HUMAN SUMMARY: ``The third-level titlebar split menu is now easier to reach with the mouse. Split direction workspace-type submenus stay open briefly after pointer leave and have an invisible hover bridge across the menu gap, while direct split clicks remain unchanged.```
+
+#### Scope / Constraints Honored
+
+- Kept direct split direction clicks unchanged.
+- Kept the selected workspace type split callback path unchanged.
+- Limited the runtime change to titlebar menu hover forgiveness and the small CSS bridge.
+- Did not add new titlebar menu items, workspace types, or broader titlebar redesign.
+
+#### Summary of Implementation
+
+- Added a short delayed close for split direction workspace-type submenus.
+- Cancelled the delayed close when the pointer returns to a split direction before the delay expires.
+- Added an invisible submenu bridge so the pointer can cross the visual gap between submenu levels without losing hover.
+- Added focused `ViewportFrame` tests for delayed close and delay cancellation.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The third-level split workspace type menu is less likely to disappear while the user moves the pointer from `Split Right` into the workspace type submenu.
+- The menu still closes after a short delay if the pointer leaves the split direction path.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1932 -->
+
+### [1932] - 2026-05-18 11:12 - `Titlebar-1 - Phase 3 - Regression Proof And Closeout`
+
+HUMAN SUMMARY: ``The titlebar split-direction workspace-type menu now has final regression coverage for the behaviors that matter most: direct split clicks, `Split Right > Browser`, canonical workspace type reuse, and disabled selected-type choices when the callback is absent. This closes the `Titlebar-1` family phase without adding new titlebar UX scope.```
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3 focused on regression proof and closeout.
+- Did not change runtime titlebar menu behavior.
+- Did not add floating-titlebar parity, popup parity, broad titlebar styling, or new workspace surface labels.
+- Kept selected workspace type splitting on the existing `ViewportFrame` to `WorkspaceViewportTree` to store-facing split path.
+
+#### Summary of Implementation
+
+- Tightened `ViewportFrame` canonical-list proof so the third-level split-direction workspace type labels are compared directly against `getWorkspaceViewportTypeChoiceEntries()`.
+- Hardened selected-type split coverage so `Split Right > Browser` is proven to call only `onSplitWithSurfaceKind('right', 'browser')`, not the direct `onSplitRight` action.
+- Added disabled/no-callback coverage proving third-level workspace type buttons remain disabled and inert when selected-type split routing is unavailable.
+- Closed the `Titlebar-1 / Phase 3` planning checklist and recorded the completed family phase.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/Future/Titlebar-1 - Split Direction Workspace Type Menu.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/TitleBar-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior changed.
+- The shipped titlebar split menu behavior is now better protected by focused regression coverage.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1931 -->
+
+### [1931] - 2026-05-18 10:13 - `Titlebar-1 - Phase 2 - Selected Workspace Split Action`
+
+HUMAN SUMMARY: ``The workspace titlebar split menu now lets users choose a workspace type from the third-level split-direction menu, so flows like `Split Right > Browser` create the new pane as that selected workspace type. Direct split-direction clicks still use the existing default split behavior.```
+
+#### Scope / Constraints Honored
+
+- Kept titlebar intent emission in `ViewportFrame`.
+- Reused the existing `WorkspaceViewportTree` and AppShell split ownership path.
+- Routed selected workspace type splits through `splitViewportSlot(..., { surfaceKind })`.
+- Preserved direct `Split Top`, `Split Right`, `Split Bottom`, and `Split Left` behavior.
+- Did not add floating-titlebar or popup parity.
+
+#### Summary of Implementation
+
+- Added a generic `onSplitWithSurfaceKind(splitDockSide, surfaceKind)` callback to `ViewportFrame`.
+- Activated third-level workspace type buttons when the selected-type split callback is available.
+- Bridged selected split intents through `WorkspaceViewportTree` with the current slot id.
+- Widened AppShell viewport slot split handling to accept an optional selected surface kind while preserving default source-surface duplication.
+- Added focused `ViewportFrame` and `WorkspaceViewportTree` proof for `Split Right > Browser`.
+
+#### Files Changed
+
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellViewportActions.ts`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/Future/Titlebar-1 - Split Direction Workspace Type Menu.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/TitleBar-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Selecting a workspace type from a split direction submenu creates the new pane with that workspace type.
+- Direct direction clicks still split with the existing default behavior.
+- Unsupported canonical choices remain disabled according to the same state used by the viewport type submenu.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1930 -->
+
+### [1930] - 2026-05-18 08:50 - `Titlebar-1 - Phase 1 - Nested Split Direction Menu`
+
+HUMAN SUMMARY: ``The workspace titlebar split menu now shows a third-level canonical workspace-type list under each split direction while keeping direct split direction clicks working. The workspace-type choices are display-only for this phase; the actual selected-type split action is reserved for `Titlebar-1 / Phase 2`.```
+
+#### Scope / Constraints Honored
+
+- Kept the change inside the shared `ViewportFrame` titlebar menu owner.
+- Reused the existing canonical `surfaceChoices` read for workspace type labels.
+- Preserved direct `Split Top`, `Split Right`, `Split Bottom`, and `Split Left` callbacks.
+- Did not add selected workspace split mutation or new workspace store behavior.
+
+#### Summary of Implementation
+
+- Added direction-level submenu hover state for the split submenu.
+- Converted split direction rows into submenu-capable rows with chevrons.
+- Rendered a third-level workspace type submenu under each split direction from canonical viewport type choices.
+- Left third-level workspace type buttons disabled/display-only until Phase 2 owns direction-plus-surface split actions.
+- Added focused `ViewportFrame` tests for canonical workspace type display and direct split click preservation.
+
+#### Files Changed
+
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/Future/Titlebar-1 - Split Direction Workspace Type Menu.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/TitleBar-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Hovering a split direction in the titlebar context menu now reveals a third-level canonical workspace-type list.
+- Clicking a split direction directly still performs the existing default split action.
+- Choosing a workspace type from the third-level menu is not active until the next phase.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1929 -->
+
+### [1929] - 2026-05-18 08:32 - `Export-2 - Phase 2 - Workspace Header Export Action Placement`
+
+HUMAN SUMMARY: ``The Export surface now places the active `Export STEP` command directly in the main `Workspace / Export` header panel beside the surface description. The command still uses the same authoritative STEP export handoff, and target/format gating remains unchanged.```
+
+#### Scope / Constraints Honored
+
+- Kept the existing `requestGraphDocumentStepExport(...)` handoff.
+- Did not add new export formats or worker writers.
+- Did not change graph, project, or spaghetti persistence ownership.
+- Did not change unsupported target or unavailable format gating.
+
+#### Summary of Implementation
+
+- Moved the export action status, status detail, primary button, and readiness hint into `ExportSurfaceHeader`.
+- Removed the inline action block from the `Export Review` targets panel.
+- Preserved the same button disabled states and click guard.
+- Updated `ExportSurface` coverage to prove the primary button now lives inside the workspace header and not inside the targets panel.
+- Marked `Export-2 / Phase 2` shipped and advanced the Export index to wait for a user-defined Phase 3.
+
+#### Files Changed
+
+- `src/app/workspace/ExportSurface.tsx`
+- `src/app/workspace/ExportSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Future/Export-2 - Cleanup And Feature Enrichment.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Export button appears in the main Workspace/Export header panel.
+- Export behavior remains unchanged: `STEP` still routes through authoritative worker B-rep export for graph-document targets.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ExportSurface.test.tsx src/app/store/exportWorkspaceTargets.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1928 -->
+
+### [1928] - 2026-05-18 08:23 - `Export-2 - Phase 1 - Top Panel Export Action Placement`
+
+HUMAN SUMMARY: ``The Export surface now keeps the active `Export STEP` command in the top `Export Review` panel beside target readiness instead of in a separate lower action panel. The button still uses the same authoritative graph-document STEP handoff, and unsupported targets or formats remain gated as before.```
+
+#### Scope / Constraints Honored
+
+- Kept the existing `requestGraphDocumentStepExport(...)` handoff.
+- Did not add new export formats or worker writers.
+- Did not change graph, project, or spaghetti persistence ownership.
+- Did not change unsupported target or unavailable format gating.
+
+#### Summary of Implementation
+
+- Moved the export action status, status detail, primary button, and readiness hint into the first `Export Review` panel.
+- Removed the standalone lower action panel from the Export surface layout.
+- Added inline action styling so the button sits cleanly beside the status read.
+- Extended `ExportSurface` coverage to prove the primary button now lives inside the targets panel and the old action panel is gone.
+- Marked `Export-2 / Phase 1` shipped and advanced the Export index to wait for a user-defined Phase 2.
+
+#### Files Changed
+
+- `src/app/workspace/ExportSurface.tsx`
+- `src/app/workspace/ExportSurface.test.tsx`
+- `src/app/theme/surfaces/export.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Future/Export-2 - Cleanup And Feature Enrichment.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Export button appears in the first top panel.
+- Export behavior remains unchanged: `STEP` still routes through authoritative worker B-rep export for graph-document targets.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ExportSurface.test.tsx src/app/store/exportWorkspaceTargets.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd run build`
+
 <!-- ENTRY 1927 -->
 
 ### [1927] - 2026-05-18 08:08 - `Export-1 - Phase 4 - Project File, Spaghetti File, And Later Export Neighbors`

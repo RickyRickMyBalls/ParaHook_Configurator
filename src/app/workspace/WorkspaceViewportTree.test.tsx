@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorkspaceViewportTree } from './WorkspaceViewportTree'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
-import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
+import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
+import type { WorkspaceSplitDockSide } from './workspaceSplitTypes'
 
 vi.mock('./PrimaryViewportLeftDock', () => ({
   PrimaryViewportLeftDock: () => <div className="PrimaryViewportLeftDockMock" />,
@@ -63,9 +64,15 @@ describe('WorkspaceViewportTree', () => {
 
   const renderWorkspaceTree = async (options: {
     onCloseViewportSlot?: (slotId: WorkspaceViewportSlotId) => void
+    onSplitViewportSlot?: (
+      slotId: WorkspaceViewportSlotId,
+      dockSide: WorkspaceSplitDockSide,
+      splitOptions?: { surfaceKind?: WorkspaceSurfaceKind },
+    ) => void
   } = {}) => {
     const workspaceState = useWorkspaceStore.getState()
     const onCloseViewportSlot = options.onCloseViewportSlot ?? vi.fn()
+    const onSplitViewportSlot = options.onSplitViewportSlot ?? vi.fn()
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -95,7 +102,10 @@ describe('WorkspaceViewportTree', () => {
           onCycleBrowserPresentationMode={() => {}}
           onRequestViewportSlotSurfaceKind={() => {}}
           onOpenDashboardNoteInNotepad={() => {}}
-          onSplitViewportSlot={() => {}}
+          onSplitViewportSlot={(slotId, dockSide) => onSplitViewportSlot(slotId, dockSide)}
+          onSplitViewportSlotWithSurfaceKind={(slotId, dockSide, surfaceKind) =>
+            onSplitViewportSlot(slotId, dockSide, { surfaceKind })
+          }
           onFloatViewportSlot={() => {}}
           onPopOutViewportSlot={() => {}}
           onCloseViewportSlot={onCloseViewportSlot}
@@ -114,6 +124,7 @@ describe('WorkspaceViewportTree', () => {
 
     return {
       onCloseViewportSlot,
+      onSplitViewportSlot,
       workspaceState,
     }
   }
@@ -273,6 +284,76 @@ describe('WorkspaceViewportTree', () => {
     expect(closeMenuButton).toBeDefined()
     expect(closeMenuButton?.disabled).toBe(true)
     expect(onCloseViewportSlot).not.toHaveBeenCalled()
+  })
+
+  it('splits a titlebar direction with the selected workspace type', async () => {
+    const onSplitViewportSlot = vi.fn(
+      (
+        slotId: WorkspaceViewportSlotId,
+        dockSide: WorkspaceSplitDockSide,
+        splitOptions?: { surfaceKind?: WorkspaceSurfaceKind },
+      ) => {
+        useWorkspaceStore.getState().splitViewportSlot(slotId, dockSide, splitOptions)
+      },
+    )
+    await renderWorkspaceTree({ onSplitViewportSlot })
+
+    const modelFrame = container?.querySelector(
+      '.ViewportFrame[data-workspace-slot-id="workspace-slot-primary"][data-workspace-surface-kind="modelViewer"]',
+    ) as HTMLDivElement | null
+    const header = modelFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = modelFrame?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      modelFrame?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const browserButton = Array.from(
+      modelFrame?.querySelectorAll(
+        '.ViewportFrameActionSubmenu--workspaceTypes .ViewportFrameActionMenuAction',
+      ) ?? [],
+    ).find((button) => button.textContent?.trim() === 'Browser') as HTMLButtonElement | undefined
+
+    expect(browserButton).toBeDefined()
+    expect(browserButton?.disabled).toBe(false)
+
+    await act(async () => {
+      browserButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onSplitViewportSlot).toHaveBeenCalledWith('workspace-slot-primary', 'right', {
+      surfaceKind: 'browser',
+    })
+
+    const browserSlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slot) => slot.surfaceKind === 'browser',
+    )
+    expect(browserSlot).toBeDefined()
+    const parentSplit = Object.values(useWorkspaceStore.getState().viewportLayoutNodesById).find(
+      (node) =>
+        node.kind === 'split' &&
+        browserSlot !== undefined &&
+        (node.firstChildId === browserSlot.leafNodeId ||
+          node.secondChildId === browserSlot.leafNodeId),
+    )
+    expect(parentSplit?.kind === 'split' ? parentSplit.splitDockSide : null).toBe('right')
   })
 
   it('keeps secondary model viewer direct and menu close routes on the clicked slot', async () => {

@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-05-18 08:32:58: Marked `Export-2 / Phase 2 - Workspace Header Export Action Placement` shipped after moving the active `Export STEP` command, status, and readiness hint into the main `Workspace / Export` header panel while preserving the authoritative STEP export handoff and existing target/format gating.
+12. 2026-05-18 08:23:50: Marked `Export-2 / Phase 1 - Top Panel Export Action Placement` shipped after the active `Export STEP` action, status, and readiness hint moved into the top `Export Review` panel without changing authoritative STEP routing or persistence ownership boundaries.
 11. 2026-05-18 08:14:11: Added `Export-2 - Cleanup And Feature Enrichment` as the next open Export family phase after `Export-1` closed, keeping it as a lightweight user-defined phase-by-phase cleanup and enrichment runway rather than pre-filling speculative worker-writer or persistence-schema work.
 10. 2026-05-18 08:08:06: Marked `Export-1 / Phase 4 - Project File, Spaghetti File, And Later Export Neighbors` shipped and closed the first Export surface family after the Export surface gained read-only related outputs owner labels for geometry export, graph file, project file, and spaghetti file, preserving Export's `STEP`-only executable behavior and deferring `Export-2+` until real worker writer or result-management work is ready.
 9. 2026-05-18 08:04:34: Prepped `Export-1 / Phase 4 - Project File, Spaghetti File, And Later Export Neighbors` for implementation inside the active `Export-1` doc, keeping the closeout task scoped to visible geometry-export versus graph/project/spaghetti persistence owner labels, no schema migration, no duplicated Browser graph-save handler, and an explicit `Export-1` closeout or `Export-2+` handoff decision.
@@ -91,7 +93,7 @@ Open inside `Export-1`:
 - none
 
 Current next task:
-- define and prep `Export-2 / Phase 1` when the first cleanup or feature-enrichment target is chosen.
+- define and prep `Export-2 / Phase 3` when the next cleanup or feature-enrichment target is chosen.
 
 ### Cross-Doc Boundaries
 
@@ -138,7 +140,9 @@ Goal:
 
 Current rule:
 - the user will define `Export-2` phase by phase.
-- do not implement Phase 1 until its concrete cleanup or enrichment target is chosen and prepped.
+- Phase 1 shipped the top-panel export action placement.
+- Phase 2 shipped the workspace-header export action placement.
+- do not implement Phase 3 until its concrete cleanup or enrichment target is chosen and prepped.
 - keep larger worker-writer, persistence-schema, or B-rep-viewer widening in separate future family phases when needed.
 
 #### `Export-1 - Toolbar Shell And Format Surface`

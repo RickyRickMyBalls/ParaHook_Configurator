@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-05-18 11:12:21: Marked `Titlebar-1 / Phase 3 - Regression Proof And Closeout` shipped after the focused titlebar split-menu regression pass proved direct split preservation, selected workspace type split callback separation, canonical workspace type reuse, disabled/no-callback inertness, tree-level Browser split routing, and production build verification, completing the `Titlebar-1` family phase.
+6. 2026-05-18 11:08:40: Prepped `Titlebar-1 / Phase 3 - Regression Proof And Closeout` in the active family doc, narrowing the next task to regression coverage for direct split preservation, selected workspace type split routing, canonical workspace type reuse, disabled/no-callback safeguards, and final `Titlebar-1` closeout without broad titlebar redesign or parity widening.
+5. 2026-05-18 10:13:04: Marked `Titlebar-1 / Phase 2 - Selected Workspace Split Action` shipped after titlebar split-direction workspace-type choices became active through the shared `ViewportFrame` to `WorkspaceViewportTree` to `splitViewportSlot(..., { surfaceKind })` path, advancing the family to Phase 3 regression proof and closeout.
+4. 2026-05-18 09:09:06: Prepped `Titlebar-1 / Phase 2 - Selected Workspace Split Action` for implementation in the active family doc, grounding the next task in the existing `ViewportFrame` third-level menu, `WorkspaceViewportTree` callback bridge, and `splitViewportSlot(..., { surfaceKind })` store path.
+3. 2026-05-18 08:50:02: Marked `Titlebar-1 / Phase 1 - Nested Split Direction Menu` shipped after the shared `ViewportFrame` titlebar menu gained third-level canonical workspace-type display submenus under split directions, preserving direct split clicks and advancing the next task to Phase 2 selected workspace split actions.
 2. 2026-05-18 08:15:50: Prepped `Titlebar-1 / Phase 1 - Nested Split Direction Menu` for implementation in the active family doc, keeping the next task scoped to `ViewportFrame` menu-state and canonical-choice display without selected workspace split mutation.
 1. 2026-05-18 08:08:05: Added this `TitleBar` family index to route the first titlebar-specific workspace-shell phase, `Titlebar-1 - Split Direction Workspace Type Menu`, while keeping the family scoped to shared titlebar interaction planning instead of widening into all workspace chrome.
 
@@ -63,9 +68,9 @@ The key rule is:
 
 ### Current Status
 
-`Titlebar-1` is open as the active family phase doc.
+`Titlebar-1` has completed its internal implementation phases.
 
-Open inside `Titlebar-1`:
+Shipped inside `Titlebar-1`:
 - Phase 1:
   - `Nested Split Direction Menu`
 - Phase 2:
@@ -74,7 +79,7 @@ Open inside `Titlebar-1`:
   - `Regression Proof And Closeout`
 
 Current next task:
-- implement the now-prepped `Titlebar-1 / Phase 1 - Nested Split Direction Menu`
+- no open `Titlebar-1` implementation phase is currently recorded
 
 ### Cross-Doc Boundaries
 

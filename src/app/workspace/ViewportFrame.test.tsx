@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ComponentProps } from 'react'
 import { ViewportFrame } from './ViewportFrame'
+import { getWorkspaceViewportTypeChoiceEntries } from './workspaceViewportTypeChoices'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -19,6 +20,7 @@ describe('ViewportFrame', () => {
         root?.unmount()
       })
     }
+    vi.useRealTimers()
     container?.remove()
     container = null
     root = null
@@ -141,6 +143,288 @@ describe('ViewportFrame', () => {
 
     expect(container?.textContent).toContain('Split Top')
     expect(container?.textContent).toContain('Split Right')
+  })
+
+  it('shows canonical workspace type choices from a split direction submenu', async () => {
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+
+    expect(splitRightButton).not.toBeUndefined()
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const workspaceTypeSubmenu = container?.querySelector(
+      '.ViewportFrameActionSubmenu--workspaceTypes',
+    )
+    const workspaceTypeButtons = Array.from(
+      workspaceTypeSubmenu?.querySelectorAll('.ViewportFrameActionMenuAction') ?? [],
+    ) as HTMLButtonElement[]
+
+    expect(workspaceTypeSubmenu).not.toBeNull()
+    expect(workspaceTypeButtons.map((button) => button.textContent?.trim())).toEqual(
+      getWorkspaceViewportTypeChoiceEntries().map((choice) => choice.label),
+    )
+    expect(workspaceTypeButtons.every((button) => button.disabled)).toBe(true)
+  })
+
+  it('keeps a split direction workspace type submenu open briefly after pointer leave', async () => {
+    vi.useFakeTimers()
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+    const splitRightGroup = splitRightButton?.closest(
+      '.ViewportFrameActionMenuSubmenuGroup--splitDirection',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('.ViewportFrameActionSubmenu--workspaceTypes')).not.toBeNull()
+
+    await act(async () => {
+      splitRightGroup?.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('.ViewportFrameActionSubmenu--workspaceTypes')).not.toBeNull()
+
+    await act(async () => {
+      vi.advanceTimersByTime(179)
+    })
+
+    expect(container?.querySelector('.ViewportFrameActionSubmenu--workspaceTypes')).not.toBeNull()
+
+    await act(async () => {
+      vi.advanceTimersByTime(1)
+    })
+
+    expect(container?.querySelector('.ViewportFrameActionSubmenu--workspaceTypes')).toBeNull()
+  })
+
+  it('cancels split direction workspace type submenu close when pointer returns', async () => {
+    vi.useFakeTimers()
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+    const splitRightGroup = splitRightButton?.closest(
+      '.ViewportFrameActionMenuSubmenuGroup--splitDirection',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      splitRightGroup?.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(90)
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+      vi.advanceTimersByTime(180)
+    })
+
+    expect(container?.querySelector('.ViewportFrameActionSubmenu--workspaceTypes')).not.toBeNull()
+  })
+
+  it('keeps direct split direction clicks working from nested split rows', async () => {
+    const onSplitRight = vi.fn()
+    await renderFrame({ onSplitRight })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onSplitRight).toHaveBeenCalledTimes(1)
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it('calls the selected workspace type split action from a split direction submenu', async () => {
+    const onSplitWithSurfaceKind = vi.fn()
+    const onSplitRight = vi.fn()
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+      onSplitRight,
+      onSplitWithSurfaceKind,
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const browserButton = Array.from(
+      container?.querySelectorAll(
+        '.ViewportFrameActionSubmenu--workspaceTypes .ViewportFrameActionMenuAction',
+      ) ?? [],
+    ).find((button) => button.textContent?.trim() === 'Browser') as HTMLButtonElement | undefined
+
+    expect(browserButton).not.toBeUndefined()
+    expect(browserButton?.disabled).toBe(false)
+
+    await act(async () => {
+      browserButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onSplitWithSurfaceKind).toHaveBeenCalledTimes(1)
+    expect(onSplitWithSurfaceKind).toHaveBeenCalledWith('right', 'browser')
+    expect(onSplitRight).not.toHaveBeenCalled()
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it('keeps selected workspace type split choices inert without a selected-type callback', async () => {
+    const onSplitRight = vi.fn()
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+      onSplitRight,
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup > .ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim().startsWith('Split Right')) as
+      | HTMLButtonElement
+      | undefined
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const browserButton = Array.from(
+      container?.querySelectorAll(
+        '.ViewportFrameActionSubmenu--workspaceTypes .ViewportFrameActionMenuAction',
+      ) ?? [],
+    ).find((button) => button.textContent?.trim() === 'Browser') as HTMLButtonElement | undefined
+
+    expect(browserButton).toBeDefined()
+    expect(browserButton?.disabled).toBe(true)
+
+    await act(async () => {
+      browserButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onSplitRight).not.toHaveBeenCalled()
+    expect(container?.querySelector('.ViewportFrameActionMenu')).not.toBeNull()
   })
 
   it('locks a titlebar submenu open when its row is clicked', async () => {

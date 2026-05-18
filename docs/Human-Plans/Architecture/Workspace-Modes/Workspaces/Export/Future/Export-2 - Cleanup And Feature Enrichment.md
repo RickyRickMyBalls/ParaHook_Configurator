@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-05-18 08:32:58: Marked `Export-2 / Phase 2 - Workspace Header Export Action Placement` shipped after moving the active `Export STEP` button, status, and readiness hint from the `Export Review` panel into the main `Workspace / Export` header panel while preserving the existing authoritative STEP handoff and focused placement coverage.
+2. 2026-05-18 08:23:50: Marked `Export-2 / Phase 1 - Top Panel Export Action Placement` shipped after moving the active `Export STEP` button, export status, and readiness hint into the top `Export Review` panel while preserving the existing authoritative STEP handoff, keeping related outputs and settings read-only, and adding focused surface coverage for the new button placement.
 1. 2026-05-18 08:14:11: Created `Export-2 - Cleanup And Feature Enrichment` as the next open Export family phase after `Export-1` closed, intentionally keeping the phase ladder lightweight so the user can define cleanup and feature-enrichment slices one phase at a time.
 
 ### Purpose
@@ -89,33 +91,62 @@ When a new idea arrives:
 
 ### `Export-2 / Phase 1`
 
-- [ ] HLG: `Export-2-HLG-1`
-- [ ] HLG: `Export-2-HLG-2`
-- [ ] CLG: wait for the user's first concrete cleanup or enrichment target
-- [ ] CLG: prep Phase 1 before implementation
-- [ ] CLG: keep the first slice narrow enough to verify cleanly
+- [x] HLG: `Export-2-HLG-1`
+- [x] HLG: `Export-2-HLG-2`
+- [x] HLG: `Export-2-HLG-3`
+- [x] CLG: move the active export action into the first top panel
+- [x] CLG: preserve the existing authoritative STEP export behavior
+- [x] CLG: keep the first slice narrow enough to verify cleanly
 
-## [ ] `Export-2 / Phase 1` - `User-Defined Cleanup Or Enrichment Slice`
+## [x] `Export-2 / Phase 1` - `Top Panel Export Action Placement`
 
 ### Phase 1 Summary
 
-Phase 1 is intentionally open until the user names the first concrete cleanup or feature-enrichment target.
+Phase 1 moves the active export button out of the lower standalone action panel and into the first top `Export Review` panel.
 
-This placeholder exists so the Export family has a clean next home without forcing a speculative implementation plan.
+This keeps the primary action near target review and makes the first Export panel feel like the command center for the export job without changing what the button does.
 
 ### Phase 1 Implementation Spec
 
-Implementation is not ready yet.
+Implementation is shipped.
 
-Before implementation:
-- collect the user's first `Export-2` cleanup or enrichment target
-- read the current Export surface and adjacent owner files
-- define the exact code/doc scope
-- define the no-widening rules
-- define focused tests and build verification
+Shipped scope:
+- moved `Export STEP`, the export status label, status detail, and readiness hint into the top `Export Review` panel
+- removed the separate bottom action panel from the rendered layout
+- kept `requestGraphDocumentStepExport(...)` as the only active executable export handoff
+- kept unavailable formats and non-graph targets disabled as before
+- added focused coverage proving the export button now lives inside the targets panel
 
 Definition of done:
-- Phase 1 has a concrete title
-- Phase 1 has a current code read
-- Phase 1 has an implementation spec
-- Phase 1 has focused verification targets
+- shipped: the primary export action appears in the first top panel
+- shipped: the export handoff behavior is unchanged
+- shipped: unsupported target and format gating is unchanged
+- shipped: focused Export surface tests pass
+
+## [x] `Export-2 / Phase 2` - `Workspace Header Export Action Placement`
+
+### Phase 2 Summary
+
+Phase 2 moves the active export command into the main `Workspace / Export` header panel that introduces the Export surface.
+
+This supersedes the Phase 1 placement by putting the command in the exact top panel that contains:
+- `Workspace`
+- `Export`
+- `Prepare an authoritative export job from graph-owned geometry.`
+
+### Phase 2 Implementation Spec
+
+Implementation is shipped.
+
+Shipped scope:
+- moved `Export STEP`, export status, status detail, and readiness hint into the main `ExportSurfaceHeader`
+- removed the inline action block from the `Export Review` targets panel
+- preserved the same `requestGraphDocumentStepExport(...)` action path
+- preserved unavailable format and non-graph target gating
+- updated focused coverage so the primary action is expected in the workspace header and not in the targets panel
+
+Definition of done:
+- shipped: the primary export action appears in the main `Workspace / Export` header panel
+- shipped: the export handoff behavior is unchanged
+- shipped: unsupported target and format gating is unchanged
+- shipped: focused Export surface tests pass

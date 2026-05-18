@@ -74,7 +74,30 @@
   gap: 3px;
 }
 
+.ExportSurfaceInlineAction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(131, 216, 167, 0.22);
+  border-radius: 8px;
+  background: rgba(49, 91, 66, 0.16);
+}
+
+.ExportSurfaceInlineAction > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ExportSurfaceInlineAction .ExportSurfaceActionHint {
+  grid-column: 1 / -1;
+}
+
 .ExportSurfacePanelHeader strong,
+.ExportSurfaceInlineAction strong,
 .ExportSurfaceTargetCard strong,
 .ExportSurfaceNeighborCard strong {
   color: #f7fffb;
@@ -281,7 +304,10 @@
 }
 
 .ExportSurfacePrimaryAction {
+  width: max-content;
+  min-width: 112px;
   min-height: 38px;
+  padding: 0 12px;
   border: 1px solid rgba(131, 216, 167, 0.5);
   border-radius: 8px;
   background: rgba(81, 153, 108, 0.28);
@@ -327,5 +353,13 @@
 @media (max-width: 820px) {
   .ExportSurfaceGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ExportSurfaceInlineAction {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ExportSurfacePrimaryAction {
+    width: 100%;
   }
 }

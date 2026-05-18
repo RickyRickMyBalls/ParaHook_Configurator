@@ -356,6 +356,32 @@ export function ExportSurface(props: ExportSurfaceProps) {
         <span className="ExportSurfaceEyebrow">Workspace</span>
         <h2>Export</h2>
         <p>Prepare an authoritative export job from graph-owned geometry.</p>
+        <div className="ExportSurfaceInlineAction" aria-label="Export action">
+          <div>
+            <span className="ExportSurfaceEyebrow">Action</span>
+            <strong>{statusLabel(activeStatus)}</strong>
+            <p className="ExportSurfaceStatusDetail">{statusDetail(activeStatus)}</p>
+          </div>
+          <button
+            type="button"
+            className="ExportSurfacePrimaryAction"
+            disabled={exportDisabled}
+            title={exportDisabledReason}
+            onClick={() => {
+              if (
+                activeGraphDocumentIdForExport === null ||
+                selectedFormatOption.id !== 'step' ||
+                !selectedTargetAllowsStep
+              ) {
+                return
+              }
+              requestGraphDocumentStepExport(activeGraphDocumentIdForExport)
+            }}
+          >
+            Export STEP
+          </button>
+          <p className="ExportSurfaceActionHint">{exportDisabledReason}</p>
+        </div>
       </header>
 
       <div className="ExportSurfaceGrid">
@@ -479,33 +505,6 @@ export function ExportSurface(props: ExportSurfaceProps) {
               </article>
             ))}
           </div>
-        </section>
-
-        <section className="ExportSurfacePanel ExportSurfacePanel--action" aria-label="Export action">
-          <div className="ExportSurfacePanelHeader">
-            <span className="ExportSurfaceEyebrow">Action</span>
-            <strong>{statusLabel(activeStatus)}</strong>
-          </div>
-          <p className="ExportSurfaceStatusDetail">{statusDetail(activeStatus)}</p>
-          <button
-            type="button"
-            className="ExportSurfacePrimaryAction"
-            disabled={exportDisabled}
-            title={exportDisabledReason}
-            onClick={() => {
-              if (
-                activeGraphDocumentIdForExport === null ||
-                selectedFormatOption.id !== 'step' ||
-                !selectedTargetAllowsStep
-              ) {
-                return
-              }
-              requestGraphDocumentStepExport(activeGraphDocumentIdForExport)
-            }}
-          >
-            Export STEP
-          </button>
-          <p className="ExportSurfaceActionHint">{exportDisabledReason}</p>
         </section>
       </div>
     </section>

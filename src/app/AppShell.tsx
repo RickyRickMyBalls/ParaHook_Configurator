@@ -1439,6 +1439,9 @@ export function AppShell() {
       onRequestViewportSlotSurfaceKind={handleViewportSlotSurfaceKindChange}
       onOpenDashboardNoteInNotepad={handleOpenDashboardNoteInNotepad}
       onSplitViewportSlot={handleViewportSlotSplit}
+      onSplitViewportSlotWithSurfaceKind={(slotId, splitDockSide, surfaceKind) =>
+        handleViewportSlotSplit(slotId, splitDockSide, { surfaceKind })
+      }
       onFloatViewportSlot={handleViewportSlotFloat}
       onPopOutViewportSlot={handleViewportSlotPopOut}
       onCloseViewportSlot={handleCloseViewportSlotFromMenu}

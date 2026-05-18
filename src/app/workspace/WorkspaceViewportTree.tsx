@@ -70,6 +70,11 @@ type WorkspaceViewportTreeProps = {
   onOpenDashboardNoteInNotepad: (surfaceInstanceId: string, noteId: string) => void
   settingsInitialSectionId?: import('./SettingsSurface').SettingsSectionId
   onSplitViewportSlot: (slotId: WorkspaceViewportSlotId, dockSide: WorkspaceSplitDockSide) => void
+  onSplitViewportSlotWithSurfaceKind?: (
+    slotId: WorkspaceViewportSlotId,
+    dockSide: WorkspaceSplitDockSide,
+    surfaceKind: WorkspaceSurfaceKind,
+  ) => void
   onFloatViewportSlot: (slotId: WorkspaceViewportSlotId) => void
   onPopOutViewportSlot: (slotId: WorkspaceViewportSlotId) => void
   onCloseViewportSlot: (slotId: WorkspaceViewportSlotId) => void
@@ -155,6 +160,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onOpenDashboardNoteInNotepad,
     settingsInitialSectionId = 'all',
     onSplitViewportSlot,
+    onSplitViewportSlotWithSurfaceKind,
     onFloatViewportSlot,
     onPopOutViewportSlot,
     onCloseViewportSlot,
@@ -228,6 +234,12 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         onSplitRight={() => onSplitViewportSlot(slot.slotId, 'right')}
         onSplitBottom={() => onSplitViewportSlot(slot.slotId, 'bottom')}
         onSplitLeft={() => onSplitViewportSlot(slot.slotId, 'left')}
+        onSplitWithSurfaceKind={
+          onSplitViewportSlotWithSurfaceKind === undefined
+            ? undefined
+            : (splitDockSide, nextSurfaceKind) =>
+                onSplitViewportSlotWithSurfaceKind(slot.slotId, splitDockSide, nextSurfaceKind)
+        }
         onFloat={isPrimarySlot ? undefined : () => onFloatViewportSlot(slot.slotId)}
         onPopOut={
           slotActionEligibility.canPopout

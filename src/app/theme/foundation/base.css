@@ -2451,6 +2451,16 @@ button.ParaSelectMenuAction:hover {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
 }
 
+.ViewportFrameActionSubmenu::before,
+.PrimaryViewportLeftDockResizeSubmenu::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+}
+
 .ViewportFrameActionMenuAction:hover,
 .ViewportFrameActionMenuAction:focus-visible,
 .ViewportFrameTypePickerAction:hover,

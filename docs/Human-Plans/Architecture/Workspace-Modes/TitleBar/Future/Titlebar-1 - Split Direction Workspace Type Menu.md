@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-05-18 11:12:21: Implemented and closed `Titlebar-1 / Phase 3 - Regression Proof And Closeout` after focused `ViewportFrame` regression coverage proved canonical third-level workspace type reuse, direct `Split Right` click preservation, selected `Split Right > Browser` callback separation from direct split callbacks, disabled/no-callback inertness, `WorkspaceViewportTree` still proved selected surface-kind split routing, and production build verification passed.
+6. 2026-05-18 11:08:40: Prepped `Titlebar-1 / Phase 3 - Regression Proof And Closeout` for implementation against the shipped Phase 1 and Phase 2 menu behavior, existing `ViewportFrame` and `WorkspaceViewportTree` tests, direct split click preservation, selected workspace type split proof, canonical workspace type list reuse, disabled/no-callback safeguards, and final closeout tracking.
+5. 2026-05-18 10:13:04: Implemented and closed `Titlebar-1 / Phase 2 - Selected Workspace Split Action` after the third-level titlebar workspace-type choices became active, `ViewportFrame` emitted direction-plus-surface split intents, `WorkspaceViewportTree` bridged those intents into the existing split callback path, AppShell routed them through `splitViewportSlot(..., { surfaceKind })`, focused frame/tree tests proved `Split Right > Browser`, and production build verification passed.
+4. 2026-05-18 09:09:06: Prepped `Titlebar-1 / Phase 2 - Selected Workspace Split Action` for implementation against the shipped Phase 1 third-level menu, the existing `ViewportFrame` split direction rows, `WorkspaceViewportTree` slot-level split callback bridge, and `useWorkspaceStore.splitViewportSlot(..., { surfaceKind })` owner path, keeping the work scoped away from new store mutations, floating-titlebar parity, and broad menu redesign.
+3. 2026-05-18 08:50:02: Implemented and closed `Titlebar-1 / Phase 1 - Nested Split Direction Menu` after `ViewportFrame` gained third-level canonical workspace-type display submenus under each split direction, direct split-direction clicks stayed on the existing callbacks, focused frame tests covered canonical labels and click preservation, and production build verification passed.
 2. 2026-05-18 08:15:50: Prepped `Titlebar-1 / Phase 1 - Nested Split Direction Menu` for implementation against the live `ViewportFrame` action-menu state, existing `splitActions` and `surfaceChoices` reads, third-level split-direction hover state, no selected-workspace split mutation, and focused menu-display plus direct-click preservation proof.
 1. 2026-05-18 08:06:14: Added this future `Titlebar-1` plan to capture the titlebar right-click split workflow where each split direction can either run the default split action directly or open a third-level canonical workspace-type menu for choosing the new pane's surface.
 
@@ -50,11 +55,15 @@ Useful current seams:
 - `ViewportFrame` already has `hoveredActionSubmenu` and `lockedActionSubmenu` state for first-level action submenus.
 - `ViewportFrame` already builds `surfaceChoices` from `getWorkspaceViewportTypeChoiceEntries(availableSurfaceKinds)` and applies primary-slot disabled state through `workspacePrimarySlotSupportsSurfaceKind(...)`.
 - `ViewportFrame` already builds `splitActions` from `onSplitTop`, `onSplitRight`, `onSplitBottom`, and `onSplitLeft`.
-- `ViewportFrame` currently renders the `Split` submenu as a flat list of direction buttons, so Phase 1 should reshape that list into direction rows that can also reveal a third-level submenu.
+- Phase 1 changed `ViewportFrame` so the `Split` submenu now renders direction rows that can reveal a third-level canonical workspace type submenu.
+- The Phase 1 third-level workspace type buttons are intentionally disabled/display-only until Phase 2 wires selected workspace split mutation.
 - `src/app/workspace/WorkspaceViewportTree.tsx` converts slot state into `ViewportFrame` action callbacks.
+- `WorkspaceViewportTree` currently passes `onSplitTop`, `onSplitRight`, `onSplitBottom`, and `onSplitLeft` as `slotId + dockSide` wrappers around its `onSplitViewportSlot(...)` prop.
+- `WorkspaceViewportTree` can add one direction-plus-surface callback without owning the split mutation itself.
 - `src/app/workspace/workspaceViewportTypeChoices.ts` owns the canonical viewport/workspace type menu entries and labels.
 - `src/app/workspace/workspaceSurfaceActionEligibility.ts` owns shared titlebar action availability for split, viewport type, float, pop-out, and close.
 - `src/app/workspace/useWorkspaceStore.ts` owns the actual split mutation path.
+- `useWorkspaceStore.splitViewportSlot(slotId, dockSide, { surfaceKind })` already accepts a selected `WorkspaceSurfaceKind` and creates the new pane with a generated surface instance id.
 
 ### Locked Direction
 
@@ -124,55 +133,55 @@ What must stay true:
 ## Wishlist Organization
 
 ### High Level Goals
-- [ ] `Titlebar-1-HLG-1. Right-clicking a workspace titlebar should let the user split the current workspace by direction.`
-- [ ] `Titlebar-1-HLG-2. Hovering a split direction should reveal a third menu containing the canonical workspace type list.`
-- [ ] `Titlebar-1-HLG-3. Clicking a direction directly should keep the existing default split behavior.`
-- [ ] `Titlebar-1-HLG-4. Choosing a workspace type from the third menu should split in that direction and open the chosen workspace type in the new pane.`
-- [ ] `Titlebar-1-HLG-5. The third menu should stay canonical so new registered workspace types appear without a second hard-coded list.`
+- [x] `Titlebar-1-HLG-1. Right-clicking a workspace titlebar should let the user split the current workspace by direction.`
+- [x] `Titlebar-1-HLG-2. Hovering a split direction should reveal a third menu containing the canonical workspace type list.`
+- [x] `Titlebar-1-HLG-3. Clicking a direction directly should keep the existing default split behavior.`
+- [x] `Titlebar-1-HLG-4. Choosing a workspace type from the third menu should split in that direction and open the chosen workspace type in the new pane.`
+- [x] `Titlebar-1-HLG-5. The third menu should stay canonical so new registered workspace types appear without a second hard-coded list.`
 
 ### Codex Level Goals
-- [ ] CLG 1. Reuse `getWorkspaceViewportTypeChoiceEntries(...)` for the third-level workspace type submenu.
-- [ ] CLG 2. Keep nested titlebar menu state local to `ViewportFrame` unless later implementation shows it must be shared.
-- [ ] CLG 3. Add direction-plus-surface callbacks from `ViewportFrame` to `WorkspaceViewportTree`.
-- [ ] CLG 4. Route selected surface-kind splits through the existing workspace split mutation owner.
-- [ ] CLG 5. Preserve the existing direct split direction click behavior.
-- [ ] CLG 6. Add focused tests for direct direction split and direction-plus-workspace split.
+- [x] CLG 1. Reuse `getWorkspaceViewportTypeChoiceEntries(...)` for the third-level workspace type submenu.
+- [x] CLG 2. Keep nested titlebar menu state local to `ViewportFrame` unless later implementation shows it must be shared.
+- [x] CLG 3. Add direction-plus-surface callbacks from `ViewportFrame` to `WorkspaceViewportTree`.
+- [x] CLG 4. Route selected surface-kind splits through the existing workspace split mutation owner.
+- [x] CLG 5. Preserve the existing direct split direction click behavior.
+- [x] CLG 6. Add focused tests for direct direction split and direction-plus-workspace split.
 
 ### `Titlebar-1 / Phase 1`
 
-- [ ] Add the third-level split direction workspace-type menu in `ViewportFrame`.
-- [ ] Preserve direct split-direction click behavior.
-- [ ] Reuse canonical viewport type choice entries.
-- [ ] `Titlebar-1-HLG-1`
-- [ ] `Titlebar-1-HLG-2`
-- [ ] `Titlebar-1-HLG-3`
-- [ ] `Titlebar-1-HLG-5`
-- [ ] CLG 1.
-- [ ] CLG 2.
-- [ ] CLG 5.
+- [x] Add the third-level split direction workspace-type menu in `ViewportFrame`.
+- [x] Preserve direct split-direction click behavior.
+- [x] Reuse canonical viewport type choice entries.
+- [x] `Titlebar-1-HLG-1`
+- [x] `Titlebar-1-HLG-2`
+- [x] `Titlebar-1-HLG-3`
+- [x] `Titlebar-1-HLG-5`
+- [x] CLG 1.
+- [x] CLG 2.
+- [x] CLG 5.
 
 ### `Titlebar-1 / Phase 2`
 
-- [ ] Add direction-plus-surface callback plumbing from `ViewportFrame` into `WorkspaceViewportTree`.
-- [ ] Split the current pane in the requested direction with the selected workspace type.
-- [ ] Keep unsupported surface choices disabled or filtered according to shared action/catalog rules.
-- [ ] `Titlebar-1-HLG-4`
-- [ ] `Titlebar-1-HLG-5`
-- [ ] CLG 3.
-- [ ] CLG 4.
+- [x] Add direction-plus-surface callback plumbing from `ViewportFrame` into `WorkspaceViewportTree`.
+- [x] Split the current pane in the requested direction with the selected workspace type.
+- [x] Keep unsupported surface choices disabled or filtered according to shared action/catalog rules.
+- [x] `Titlebar-1-HLG-4`
+- [x] `Titlebar-1-HLG-5`
+- [x] CLG 3.
+- [x] CLG 4.
 
 ### `Titlebar-1 / Phase 3`
 
-- [ ] Add focused regression proof for direct split direction behavior.
-- [ ] Add focused regression proof for split direction plus selected workspace type.
-- [ ] Close the phase or record follow-on polish separately.
-- [ ] `Titlebar-1-HLG-1`
-- [ ] `Titlebar-1-HLG-2`
-- [ ] `Titlebar-1-HLG-3`
-- [ ] `Titlebar-1-HLG-4`
-- [ ] CLG 6.
+- [x] Add focused regression proof for direct split direction behavior.
+- [x] Add focused regression proof for split direction plus selected workspace type.
+- [x] Close the phase or record follow-on polish separately.
+- [x] `Titlebar-1-HLG-1`
+- [x] `Titlebar-1-HLG-2`
+- [x] `Titlebar-1-HLG-3`
+- [x] `Titlebar-1-HLG-4`
+- [x] CLG 6.
 
-## [ ] `Titlebar-1 / Phase 1` - `Nested Split Direction Menu`
+## [x] `Titlebar-1 / Phase 1` - `Nested Split Direction Menu`
 
 ### Phase 1 Summary
 
@@ -246,7 +255,19 @@ This first pass should:
 - Direct split direction clicks still call the existing split callbacks.
 - No selected-workspace split mutation is claimed until Phase 2.
 
-## [ ] `Titlebar-1 / Phase 2` - `Selected Workspace Split Action`
+#### Shipped Result
+
+- `ViewportFrame` now renders split direction rows as nested submenu-capable rows.
+- Hovering or focusing a split direction reveals the canonical workspace type list from the same `surfaceChoices` read as the existing viewport type submenu.
+- Third-level workspace type buttons are intentionally disabled/display-only in Phase 1 because selected workspace split mutation belongs to Phase 2.
+- Direct split direction clicks still call the existing split callbacks and close the titlebar menu.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd run build`
+
+## [x] `Titlebar-1 / Phase 2` - `Selected Workspace Split Action`
 
 ### Phase 2 Summary
 
@@ -280,16 +301,32 @@ Turn the third-level menu from a displayed chooser into an actual split-authorin
 #### First Code Cut
 
 This pass should:
-- add optional callbacks such as `onSplitRightWithSurfaceKind(surfaceKind)`
-- route each selected workspace type into the workspace split path for the current slot
+- replace the Phase 1 disabled third-level workspace type buttons with active buttons when the matching direction split callback exists
+- add one generic `ViewportFrame` callback such as `onSplitWithSurfaceKind(dockSide, surfaceKind)` instead of four near-duplicate props, unless local TypeScript ergonomics strongly favor explicit direction props
+- keep the existing direct direction callbacks unchanged for `Split Right` direct clicks
+- route each selected workspace type from `ViewportFrame` into `WorkspaceViewportTree` with the chosen direction and `WorkspaceSurfaceKind`
+- have `WorkspaceViewportTree` call `onSplitViewportSlot(slot.slotId, dockSide, { surfaceKind })` or an equivalent widened prop shape
+- route the selected surface kind into `useWorkspaceStore.splitViewportSlot(slotId, dockSide, { surfaceKind })` from the existing AppShell owner path
 - close the menu after selection
 - keep the direct split direction action as the default no-type-selected action
+
+#### Implementation Notes
+
+- Prefer widening the existing split callback shape over adding a second unrelated split system.
+- Keep the split mutation owned by the current AppShell/store path. `ViewportFrame` should only emit intent.
+- Reuse existing `WorkspaceSplitDockSide` and `WorkspaceSurfaceKind` types.
+- Do not create a separate selected-workspace split helper unless it removes real duplication after the first implementation pass.
+- Keep the third-level list canonical through the existing `surfaceChoices` read.
+- Treat disabled `surfaceChoices` entries the same way as the existing viewport type submenu; if a choice is disabled there, it should not become an active split target here.
+- The direct direction button and the third-level type button should be separate click targets: direct `Split Right` uses current/default split behavior, while `Split Right > Browser` creates the new right pane as Browser.
 
 #### Likely Files
 
 - `src/app/workspace/ViewportFrame.tsx`
 - `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
 - `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/ViewportFrame.test.tsx`
 - `src/app/workspace/WorkspaceViewportTree.test.tsx`
 - `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/Future/Titlebar-1 - Split Direction Workspace Type Menu.md`
 - `docs/CHANGELOG.md`
@@ -298,15 +335,33 @@ This pass should:
 #### Verification Shape
 
 - Focused test for direct `Split Right`.
-- Focused test for `Split Right > Browser`.
+- Focused `ViewportFrame` test that selecting `Split Right > Browser` calls the direction-plus-surface callback and closes the menu.
+- Focused `WorkspaceViewportTree` or store-facing test that `Split Right > Browser` creates a right split whose new slot has `surfaceKind: 'browser'`.
 - Focused test that the menu options come from the canonical viewport type choices.
+- Production build.
 
 #### Done Shape
 
 - Users can split by direction and choose the newly created pane's workspace type in one flow.
 - Direct split direction behavior remains intact.
+- The third-level workspace type buttons are active for supported choices.
+- No floating-titlebar or popup parity is claimed.
 
-## [ ] `Titlebar-1 / Phase 3` - `Regression Proof And Closeout`
+#### Shipped Result
+
+- `ViewportFrame` now supports a generic `onSplitWithSurfaceKind(splitDockSide, surfaceKind)` callback.
+- Third-level workspace type choices are active when that callback is available and still honor the existing disabled state from canonical `surfaceChoices`.
+- `WorkspaceViewportTree` bridges selected workspace type split intents with the current slot id.
+- AppShell routes selected workspace type splits through the existing `handleViewportSlotSplit(...)` and `splitViewportSlot(..., { surfaceKind })` owner path.
+- Direct direction clicks still use the existing default split behavior.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
+
+## [x] `Titlebar-1 / Phase 3` - `Regression Proof And Closeout`
 
 ### Phase 3 Summary
 
@@ -335,27 +390,83 @@ Close `Titlebar-1` with focused behavior proof and a clear follow-on boundary.
 - cross-window menu parity
 - broader workspace shell cleanup
 
-#### First Code Cut
+#### Current Live Read
+
+- `ViewportFrame.test.tsx` already covers opening the titlebar action menu, revealing `Split`, showing canonical workspace type choices under `Split Right`, preserving direct `Split Right` clicks, and selecting `Split Right > Browser`.
+- `WorkspaceViewportTree.test.tsx` already covers the store-facing `Split Right > Browser` path by using the tree callback to call `splitViewportSlot(slotId, dockSide, { surfaceKind })`.
+- `ViewportFrame` now owns one generic `onSplitWithSurfaceKind(splitDockSide, nextSurfaceKind)` callback and keeps direct split direction callbacks separate.
+- The third-level menu still uses `surfaceChoices`, so canonical workspace type list proof should stay tied to the existing viewport type choice helper instead of a duplicate fixture.
+- Phase 3 should add missing guardrails only where the current proof is thin, not reshape the runtime feature.
+
+#### First Pass Decisions
+
+- Treat Phase 3 as regression hardening and closeout, not a new UX phase.
+- Prefer focused tests over runtime code edits unless a test exposes a real behavior gap.
+- Keep the direct split direction click as the most important preserved behavior.
+- Keep `Browser` as the representative selected workspace type because it exercises the selected surface-kind path and the browser split-ratio branch.
+- Add a disabled/no-callback guard if current coverage does not already prove that display-only third-level choices cannot fire when `onSplitWithSurfaceKind` is absent.
+
+#### Exact First Code Cut
 
 This pass should:
-- add or tighten tests around the final interaction path
-- update this phase doc with closeout notes
-- update tracking docs according to repo rules
+- add or tighten `ViewportFrame` coverage that direct `Split Right` still calls only `onSplitRight`, even after the third-level submenu has been revealed
+- add or tighten `ViewportFrame` coverage that `Split Right > Browser` calls `onSplitWithSurfaceKind('right', 'browser')`, closes the menu, and does not call the direct split callback
+- add or tighten coverage that third-level choices are disabled or inert when no selected-workspace split callback is available
+- keep canonical-list proof anchored to `getWorkspaceViewportTypeChoiceEntries(...)` / `surfaceChoices`
+- keep `WorkspaceViewportTree` coverage for the selected workspace type split path, including the new slot's `surfaceKind`
+- update this phase doc with closeout notes after implementation
+- update `docs/CHANGELOG.md` and `docs/Doc-Log.md` according to repo rules after implementation
 
 #### Likely Files
 
 - `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
 - `src/app/workspace/WorkspaceViewportTree.test.tsx`
 - `docs/Human-Plans/Architecture/Workspace-Modes/TitleBar/Future/Titlebar-1 - Split Direction Workspace Type Menu.md`
 - `docs/CHANGELOG.md`
 - `docs/Doc-Log.md`
 
+#### No-Widening Rule
+
+Do not add floating-titlebar parity, pop-out titlebar parity, new workspace type labels, menu animation work, or broad titlebar visual redesign in this phase. If any of those are desirable, record them as follow-on polish instead of folding them into `Titlebar-1 / Phase 3`.
+
+#### Implementation Risks
+
+- A third-level button could accidentally also trigger the parent direction click if event handling regresses.
+- Direct split clicks could become harder to use if hover state steals focus or changes button semantics.
+- Disabled third-level choices could become active in shells that do not provide `onSplitWithSurfaceKind`.
+- A future workspace type could be missed if tests accidentally hard-code an alternate list instead of proving canonical helper reuse.
+
+#### Checklist
+
+- [x] Preserve direct `Split Right` click behavior after nested submenu reveal.
+- [x] Prove `Split Right > Browser` calls the selected workspace split callback only.
+- [x] Prove selected workspace type split reaches the tree/store-facing split path with `surfaceKind: 'browser'`.
+- [x] Prove third-level choices remain canonical through existing workspace viewport type choices.
+- [x] Prove no-callback or disabled third-level choices are inert.
+- [x] Close `Titlebar-1` or record follow-on polish separately.
+
 #### Verification Shape
 
-- Focused menu tests.
-- Production build if runtime code changed.
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
 
 #### Done Shape
 
 - `Titlebar-1` has shipped or has a clearly recorded follow-on.
 - Remaining menu polish is separated from the core split-direction workspace-type action.
+
+#### Shipped Result
+
+- `ViewportFrame` regression coverage now compares split-direction workspace type labels directly against `getWorkspaceViewportTypeChoiceEntries()`, keeping the third-level menu tied to the canonical workspace type list.
+- `ViewportFrame` regression coverage now proves `Split Right > Browser` calls only `onSplitWithSurfaceKind('right', 'browser')` and does not also call the direct `onSplitRight` action.
+- `ViewportFrame` regression coverage now proves third-level workspace type buttons remain disabled and inert when no selected-type split callback exists.
+- `WorkspaceViewportTree` coverage continues to prove `Split Right > Browser` reaches the store-facing split path and creates a right split with a Browser slot.
+- No broad titlebar visual redesign, floating-titlebar parity, popup parity, or new workspace surface labels were added.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd run build`
