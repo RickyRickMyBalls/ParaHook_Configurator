@@ -13,6 +13,7 @@ import {
 } from '../features/featureVirtualPorts'
 import type { ExtrudeFeature } from '../features/featureTypes'
 import { isFeatureEnabled } from '../features/featureTypes'
+import { getProfileDisplayVertices } from '../features/profileDisplayVertices'
 import type { SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { SP_INTERACTIVE_PROPS } from '../spInteractive'
@@ -254,7 +255,7 @@ export function FeatureStackView({
           operation.profilesResolved.map((profile) => ({
             profileId: profile.profileId,
             area: profile.area,
-            vertices: profile.verticesProxy,
+            vertices: getProfileDisplayVertices(profile),
           })),
         ),
       )

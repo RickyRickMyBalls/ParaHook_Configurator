@@ -65,6 +65,7 @@ import type {
   SketchComponent,
   SketchFeature,
 } from '../spaghetti/features/featureTypes'
+import { getProfileDisplayVertices } from '../spaghetti/features/profileDisplayVertices'
 import {
   formatStableNumber,
   labelProfilesForPreview,
@@ -2535,7 +2536,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     (sketchFeature?.outputs.profiles ?? []).map((profile) => ({
       profileId: profile.profileId,
       area: profile.area,
-      vertices: profile.verticesProxy,
+      vertices: getProfileDisplayVertices(profile),
     })),
   )
   const selectedProfileId =

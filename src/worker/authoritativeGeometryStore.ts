@@ -22,6 +22,18 @@ export const registerAuthoritativeShapeSet = (
   }
 }
 
+export const getAuthoritativeShapeSet = (
+  handleId: string,
+): AuthoritativeShapeSetResource | null => {
+  const resource = authoritativeShapeSets.get(handleId)
+  if (resource === undefined) {
+    return null
+  }
+  return {
+    ownedResources: [...resource.ownedResources],
+  }
+}
+
 const disposeAuthoritativeShapeSetResource = (resource: AuthoritativeShapeSetResource): void => {
   for (const ownedResource of resource.ownedResources) {
     if (typeof ownedResource.delete === 'function') {

@@ -6,14 +6,22 @@ import type {
   WorkerError,
   BuildProgress,
 } from '../shared/buildTypes'
+import {
+  createAuthoritativeExportInput,
+  type ExportWorkerResult,
+} from '../shared/exportTypes'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void | Promise<void>
 
 class MockWorkerScope {
-  public readonly postedMessages: Array<BuildResult | WorkerError | BuildProgress | BuildSuperseded> = []
+  public readonly postedMessages: Array<
+    BuildResult | WorkerError | BuildProgress | BuildSuperseded | ExportWorkerResult
+  > = []
   private readonly handlers = new Set<WorkerMessageHandler>()
 
-  public postMessage(message: BuildResult | WorkerError | BuildProgress | BuildSuperseded): void {
+  public postMessage(
+    message: BuildResult | WorkerError | BuildProgress | BuildSuperseded | ExportWorkerResult,
+  ): void {
     this.postedMessages.push(message)
   }
 
@@ -334,5 +342,142 @@ describe('worker cooperative supersession', () => {
 
     expect(buildPipeline).not.toHaveBeenCalled()
     expect(workerScope.postedMessages).toEqual([])
+  })
+})
+
+describe('worker export routing', () => {
+  const originalSelf = globalThis.self
+
+  beforeEach(() => {
+    vi.resetModules()
+  })
+
+  afterEach(() => {
+    globalThis.self = originalSelf
+  })
+
+  it('routes export requests through the worker export service', async () => {
+    const workerScope = new MockWorkerScope()
+    globalThis.self = workerScope as unknown as typeof globalThis.self
+    const exportService = vi.fn().mockResolvedValue({
+      requestId: 'export-request-1',
+      format: 'step',
+      filename: 'parahook-build-request-1.step',
+      dataBase64: btoa('ISO-10303-21;'),
+    })
+
+    vi.doMock('./pipeline/exportService', () => ({
+      exportService,
+    }))
+    vi.doMock('./pipeline/buildPipeline', () => ({
+      BuildSupersededError: class BuildSupersededError extends Error {},
+      isBuildSupersededError: (error: unknown): error is Error => error instanceof Error,
+      buildPipeline: vi.fn(),
+    }))
+    vi.doMock('./authoritativeGeometryStore', () => ({
+      releaseAuthoritativeShapeSets: vi.fn(),
+    }))
+
+    await import('./worker')
+    const input = createAuthoritativeExportInput({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        partKeys: ['part-a'],
+      },
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-1',
+      },
+    })
+    await workerScope.dispatchMessage({
+      type: 'export',
+      lane: 'export',
+      seq: 7,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-1',
+      schemaVersion: 1,
+      requestId: 'export-request-1',
+      format: 'step',
+      input,
+    })
+
+    expect(exportService).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'export',
+        requestId: 'export-request-1',
+        input,
+      }),
+    )
+    expect(workerScope.postedMessages).toEqual([
+      {
+        type: 'export_result',
+        lane: 'export',
+        seq: 7,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        requestId: 'export-request-1',
+        format: 'step',
+        filename: 'parahook-build-request-1.step',
+        dataBase64: btoa('ISO-10303-21;'),
+      },
+    ])
+  })
+
+  it('posts export worker errors when export writing fails', async () => {
+    const workerScope = new MockWorkerScope()
+    globalThis.self = workerScope as unknown as typeof globalThis.self
+    const exportService = vi.fn().mockRejectedValue(new Error('STEP writer transfer failed.'))
+
+    vi.doMock('./pipeline/exportService', () => ({
+      exportService,
+    }))
+    vi.doMock('./pipeline/buildPipeline', () => ({
+      BuildSupersededError: class BuildSupersededError extends Error {},
+      isBuildSupersededError: (error: unknown): error is Error => error instanceof Error,
+      buildPipeline: vi.fn(),
+    }))
+    vi.doMock('./authoritativeGeometryStore', () => ({
+      releaseAuthoritativeShapeSets: vi.fn(),
+    }))
+
+    await import('./worker')
+    await workerScope.dispatchMessage({
+      type: 'export',
+      lane: 'export',
+      seq: 8,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-1',
+      schemaVersion: 1,
+      requestId: 'export-request-1',
+      format: 'step',
+      input: createAuthoritativeExportInput({
+        request: {
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-1',
+          partKeys: ['part-a'],
+        },
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    })
+
+    expect(workerScope.postedMessages).toEqual([
+      {
+        type: 'worker_error',
+        seq: 8,
+        op: 'export',
+        lane: 'export',
+        message: 'STEP writer transfer failed.',
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+      },
+    ])
   })
 })

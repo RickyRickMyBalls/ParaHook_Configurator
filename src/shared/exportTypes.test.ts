@@ -7,6 +7,7 @@ import {
   createAuthoritativeExportInput,
   deriveAuthoritativeExportInput,
   isAuthoritativeExportInput,
+  isExportWorkerRequest,
 } from './exportTypes'
 
 const createRequest = () => ({
@@ -99,5 +100,47 @@ describe('authoritative export input contract', () => {
     request.partKeys.push('part-c')
 
     expect(exportInput.request.partKeys).toEqual(['part-a', 'part-b'])
+  })
+
+  it('validates worker export requests around authoritative input', () => {
+    const input = createAuthoritativeExportInput({
+      request: createRequest(),
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-4',
+      },
+    })
+
+    expect(
+      isExportWorkerRequest({
+        type: 'export',
+        lane: 'export',
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        schemaVersion: 1,
+        requestId: 'export-request-1',
+        format: 'step',
+        input,
+      }),
+    ).toBe(true)
+    expect(
+      isExportWorkerRequest({
+        type: 'export',
+        lane: 'export',
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-1',
+        schemaVersion: 1,
+        requestId: 'export-request-1',
+        format: 'step',
+        input: {
+          ...input,
+          authoritativeHandle: null,
+        },
+      }),
+    ).toBe(false)
   })
 })

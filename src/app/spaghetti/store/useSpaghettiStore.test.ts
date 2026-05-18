@@ -47,6 +47,7 @@ import {
   selectViewerTargetGraphCommittedDraftGeometryResult,
   selectViewerTargetGraphDocumentId,
   selectViewerTargetGraphOutputSurface,
+  selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult,
   useSpaghettiStore,
 } from './useSpaghettiStore'
 import {
@@ -3011,6 +3012,230 @@ describe('useSpaghettiStore graph normalization', () => {
       }),
     )
     expect(runtime?.compileBuild.inFlightBuildSeq).toBeNull()
+  })
+
+  it('stageAuthoritativePreviewGraphBuildResult rejects stale preview-ready authoritative arrivals and releases their handles', () => {
+    const graphDocumentId = 'graph-document-1'
+    const releaseSpy = vi
+      .spyOn(buildDispatcher, 'releaseAuthoritativeHandles')
+      .mockImplementation(() => {})
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_depth'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'build-request-preview-stale-91',
+      buildSeq: 91,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'live',
+      },
+    })
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_width'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'build-request-preview-current-92',
+      buildSeq: 92,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'live',
+      },
+    })
+
+    const staged = useSpaghettiStore.getState().stageAuthoritativePreviewGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId,
+      buildRequestId: 'build-request-preview-stale-91',
+      buildSeq: 91,
+      authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+        graphDocumentId,
+        buildRequestId: 'build-request-preview-stale-91',
+        partKeys: ['baseplate'],
+        handleId: 'shape-set-preview-stale-91',
+      }),
+    })
+
+    const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(staged).toBe(false)
+    expect(runtime?.compileBuild.inFlightBuildSeq).toBe(92)
+    expect(runtime?.stagedAuthoritativePreviewResult).toBeNull()
+    expect(releaseSpy).toHaveBeenCalledWith(['shape-set-preview-stale-91'])
+  })
+
+  it('promoteStagedAuthoritativePreviewResult clears stale staged final truth and releases its handle', () => {
+    const graphDocumentId = 'graph-document-1'
+    const releaseSpy = vi
+      .spyOn(buildDispatcher, 'releaseAuthoritativeHandles')
+      .mockImplementation(() => {})
+    const acceptedAuthoritativeGeometryResult = createAcceptedAuthoritativeGeometryResult({
+      graphDocumentId,
+      buildRequestId: 'accepted-authoritative-101',
+      partKeys: ['baseplate'],
+      handleId: 'shape-set-authoritative-101',
+    })
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          acceptedAuthoritativeGraphRevision: 1,
+          acceptedAuthoritativeGeometryResult,
+        },
+      },
+    }))
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_depth'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'build-request-preview-staged-102',
+      buildSeq: 102,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'live',
+      },
+    })
+
+    expect(
+      useSpaghettiStore.getState().stageAuthoritativePreviewGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-preview-staged-102',
+        buildSeq: 102,
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-preview-staged-102',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-preview-staged-102',
+        }),
+      }),
+    ).toBe(true)
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 3,
+          },
+        },
+      },
+    }))
+
+    const promoted = useSpaghettiStore
+      .getState()
+      .promoteStagedAuthoritativePreviewResult(graphDocumentId)
+    const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(promoted).toBe(false)
+    expect(runtime?.stagedAuthoritativePreviewResult).toBeNull()
+    expect(runtime?.acceptedAuthoritativeGraphRevision).toBe(1)
+    expect(runtime?.acceptedAuthoritativeGeometryResult).toEqual(
+      acceptedAuthoritativeGeometryResult,
+    )
+    expect(releaseSpy).toHaveBeenCalledWith(['shape-set-preview-staged-102'])
+  })
+
+  it('viewer selectors do not expose stale preview-ready authoritative results after graph revision advances', () => {
+    const graphDocumentId = 'graph-document-1'
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          stagedAuthoritativePreviewResult: {
+            buildSeq: 103,
+            buildRequestId: 'build-request-preview-ready-103',
+            graphRevision: 1,
+            targetBuildUnitIds: [],
+            acceptedBuildImpact: {
+              seq: 103,
+              graphDocumentId,
+              buildRequestId: 'build-request-preview-ready-103',
+              changedParamIds: ['sp_depth'],
+              affectedBuildUnitIds: [],
+              targetBuildUnitIds: [],
+              summary: {
+                rebuiltCount: 0,
+                retainedCount: 0,
+                evictedCount: 0,
+              },
+              entries: [],
+            },
+            acceptedBuildBundle: createAcceptedBundle({
+              seq: 103,
+              graphDocumentId,
+              buildRequestId: 'build-request-preview-ready-103',
+              entries: [],
+            }),
+            acceptedPreviewBuildBundle: createAcceptedBundle({
+              seq: 103,
+              graphDocumentId,
+              buildRequestId: 'build-request-preview-ready-103',
+              entries: [],
+            }),
+            acceptedBuildOutputs: [],
+            acceptedPreviewBuildOutputs: [],
+            authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+              graphDocumentId,
+              buildRequestId: 'build-request-preview-ready-103',
+              partKeys: ['baseplate'],
+              handleId: 'shape-set-preview-ready-103',
+            }),
+          },
+        },
+      },
+    }))
+
+    expect(
+      selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult(
+        useSpaghettiStore.getState(),
+      ),
+    ).toBeNull()
   })
 
   it('focus changes do not rebind an in-flight graph build result', () => {

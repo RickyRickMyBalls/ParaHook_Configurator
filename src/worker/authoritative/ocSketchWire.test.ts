@@ -6,8 +6,10 @@ const createFakeRuntime = (options?: {
   wireDelete?: ReturnType<typeof vi.fn>
   faceDelete?: ReturnType<typeof vi.fn>
   failFaceConstruction?: boolean
+  failSingleCurveEdgeConstruction?: boolean
 }) => {
   const edgeKinds: string[] = []
+  const edgeArgCounts: number[] = []
   const wireEdgeCounts: number[] = []
   const faceBuildCounts: number[] = []
   const pointCoords: Array<{ x: number; y: number; z: number }> = []
@@ -55,6 +57,27 @@ const createFakeRuntime = (options?: {
   }
 
   class FakeArcCurve {
+    public get(): FakeArcCurveValue {
+      return new FakeArcCurveValue()
+    }
+
+    public delete(): void {}
+  }
+
+  class FakeArcCurveValue {
+    public delete(): void {}
+  }
+
+  class Handle_Geom_Curve {
+    public readonly curve: Geom_BezierCurve | FakeArcCurveValue
+
+    public constructor(curve: Geom_BezierCurve | FakeArcCurve | FakeArcCurveValue) {
+      if (curve instanceof FakeArcCurve) {
+        throw new Error('trimmed curve handle must be unwrapped before upcast')
+      }
+      this.curve = curve
+    }
+
     public delete(): void {}
   }
 
@@ -80,18 +103,29 @@ const createFakeRuntime = (options?: {
     public readonly args: unknown[]
 
     public constructor(...args: unknown[]) {
+      const [first] = args
+      const source = first instanceof Handle_Geom_Curve ? first.curve : first
+      if (
+        options?.failSingleCurveEdgeConstruction === true &&
+        args.length === 1 &&
+        (source instanceof Geom_BezierCurve || source instanceof FakeArcCurveValue)
+      ) {
+        throw new Error('single curve edge construction unavailable')
+      }
       this.args = args
     }
 
     public Edge(): { kind: string; delete: ReturnType<typeof vi.fn> } {
       const [first] = this.args
+      const source = first instanceof Handle_Geom_Curve ? first.curve : first
       const kind =
-        first instanceof gp_Pnt
+        source instanceof gp_Pnt
           ? 'line2'
-          : first instanceof Geom_BezierCurve
+          : source instanceof Geom_BezierCurve
             ? 'bezier2'
             : 'arc3pt2'
       edgeKinds.push(kind)
+      edgeArgCounts.push(this.args.length)
       return {
         kind,
         delete: options?.edgeDelete ?? vi.fn(),
@@ -142,6 +176,7 @@ const createFakeRuntime = (options?: {
     gp_Pnt,
     TColgp_Array1OfPnt,
     Geom_BezierCurve,
+    Handle_Geom_Curve,
     GC_MakeArcOfCircle,
     BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeWire,
@@ -150,6 +185,7 @@ const createFakeRuntime = (options?: {
 
   return {
     edgeKinds,
+    edgeArgCounts,
     wireEdgeCounts,
     faceBuildCounts,
     pointCoords,
@@ -220,6 +256,46 @@ describe('buildOcSketchProfileWire', () => {
     expect(edgeKinds).toEqual(['line2', 'bezier2', 'arc3pt2'])
     expect(wireEdgeCounts).toEqual([3])
     expect(result?.ownedResources).toHaveLength(4)
+  })
+
+  it('falls back to bounded curve edge overloads for first-class circle arcs', () => {
+    const { runtime, edgeKinds, edgeArgCounts, wireEdgeCounts } = createFakeRuntime({
+      failSingleCurveEdgeConstruction: true,
+    })
+
+    const result = buildOcSketchProfileWire(runtime, {
+      profileId: 'profile-circle',
+      profileIndex: 0,
+      area: 1256,
+      loop: {
+        winding: 'CCW',
+        segments: [
+          {
+            kind: 'arc3pt2',
+            start: { x: 20, y: 0 },
+            mid: { x: 0, y: 20 },
+            end: { x: -20, y: 0 },
+          },
+          {
+            kind: 'arc3pt2',
+            start: { x: -20, y: 0 },
+            mid: { x: 0, y: -20 },
+            end: { x: 20, y: 0 },
+          },
+        ],
+      },
+      verticesProxy: [
+        { x: 20, y: 0 },
+        { x: 0, y: 20 },
+        { x: -20, y: 0 },
+        { x: 0, y: -20 },
+      ],
+    })
+
+    expect(result).not.toBeNull()
+    expect(edgeKinds).toEqual(['arc3pt2', 'arc3pt2'])
+    expect(edgeArgCounts).toEqual([3, 3])
+    expect(wireEdgeCounts).toEqual([2])
   })
 
   it('can build a planar face from the lowered wire with projected world-space points', () => {

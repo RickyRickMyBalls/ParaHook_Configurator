@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-05-17 22:59:05: Marked `Model-Viewport 1.3 Phase 10 - STEP Writer Adapter And Worker Export Operation` shipped after the worker export service started writing real STEP data from retained authoritative OpenCascade `shape_set` resources, added worker export request/result routing, handled OpenCascade MEMFS filename mangling inside the adapter, and proved missing handles, writer failures, multi-shape compound export, and no-draft export behavior with focused tests plus production build verification.
+27. 2026-05-17 22:46:30: Prepped `Model-Viewport 1.3 Phase 10 - STEP Writer Adapter And Worker Export Operation` for implementation by grounding the next cut in the live placeholder export service, worker-local authoritative `shape_set` store, OpenCascade STEP writer bindings, worker message routing gap, fake plus real OC verification expectations, and no-draft-mesh export rule.
 26. 2026-04-07 16:26: Marked `Model-Viewport 1.3 Phase 9 - Export Gating And On-Demand Authoritative Preparation` shipped after the app store gained the first explicit export-preparation outcome contract, export preparation started reusing accepted authoritative geometry or requesting one forced authoritative build honestly through the existing build path, graph runtime started retaining the in-flight build execution intent so export can recognize authoritative preparation already in progress, and focused app-store tests proved ready versus pending versus blocked export-preparation states without falling back to draft geometry truth
 25. 2026-04-07 16:14: Marked `Model-Viewport 1.3 Phase 8 - Export Input Contract From Authoritative Results` shipped after the repo published the first shared `AuthoritativeExportInput` contract plus authoritative-retained-result derivation helper in `src/shared/exportTypes.ts`, aligned the worker export stub in `src/worker/pipeline/exportService.ts` to consume that contract, and added focused export-contract verification, then tightened `Phase 9 - Export Gating And On-Demand Authoritative Preparation` into the next implementation-ready slice by grounding the remaining export-preparation gap in the live accepted-authoritative store selectors, existing authoritative build-request path, and still-missing export request/result routing seam
 24. 2026-04-07 09:10: Marked `Model-Viewport 1.3 Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview` shipped after the viewport result selector split authoritative-derived render ownership from the draft artifact bridge, `ViewerHost.tsx` started rendering from selector-owned final-vs-draft truth, and focused selector/viewer tests proved `Final` no longer displays draft geometry under a final label, then tightened `Phase 8 - Export Input Contract From Authoritative Results` into an implementation-ready next slice by grounding the export-input gap in the live `src/shared/exportTypes.ts` placeholder request, `src/worker/pipeline/exportService.ts` build-request-id stub, the retained authoritative-handle seam in `src/shared/geometryResult.ts`, and the still-placeholder export routing room in `src/worker/worker.ts` plus `src/app/buildDispatcher.ts`
@@ -112,7 +114,7 @@ Current internal status:
 - `Phase 9 - Export Gating And On-Demand Authoritative Preparation`
   - shipped
 - `Phase 10 - STEP Writer Adapter And Worker Export Operation`
-  - open
+  - shipped
 - `Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout`
   - open
 
@@ -1245,7 +1247,7 @@ Definition of done:
 - the app/runtime can distinguish ready, pending-authoritative-preparation, and honestly blocked export states
 - `.step` export never silently uses draft mesh-only data
 
-## [ ] Model-Viewport 1.3 Phase 10 - STEP Writer Adapter And Worker Export Operation
+## [x] Model-Viewport 1.3 Phase 10 - STEP Writer Adapter And Worker Export Operation
 
 ### Summary
 
@@ -1253,22 +1255,133 @@ Definition of done:
 - add the first real worker-side `.step` export operation downstream from the authoritative export-input contract
 
 #### Current read:
-- once authoritative export input is explicit and gated correctly, file writing can become one narrow worker-owned operation
+- `src/shared/exportTypes.ts` already limits export input to retained authoritative results with a worker-owned `shape_set` handle.
+- `src/app/store/builds/appStoreBuildReleaseFlow.ts` already gates export preparation around ready, pending, and blocked states without falling back to draft mesh.
+- `src/worker/pipeline/exportService.ts` is still a placeholder that base64-encodes request identity and the `shape_set` handle instead of writing STEP geometry.
+- `src/worker/authoritativeGeometryStore.ts` owns the in-memory authoritative shape resources, but it currently exposes registration and release only; Phase 10 needs a read-only lookup/export seam.
+- `src/worker/worker.ts` currently accepts build requests and authoritative-handle release requests only; there is no worker message route for an export request/result yet.
+- `opencascade.js` includes `STEPControl_Writer`, `BRep_Builder`, `TopoDS_Compound`, `TopoDS_Shape`, and Emscripten `FS`, so the likely path is available but still needs a real binding probe before implementation locks exact overload names.
 
 #### Locked direction:
 - keep `.step` writing behind a worker adapter
 - keep toolbar/export UI downstream from that worker operation
 - keep format-specific logic out of viewport/result selectors
+- make STEP export consume only authoritative `shape_set` resources, never `meshPreview`, draft retained geometry, artifact-preview data, or Three.js viewer state
+- preserve `stl` as a later mesh-export format; Phase 10 is about true B-rep `.step` only
 
 ### Implementation Spec
 
-Likely files:
-- worker export operation files
-- worker message routing
-- export tests
+#### Exact First Code Cut
+
+Replace the export descriptor stub with a worker-owned STEP writer adapter that:
+
+1. Validates `ExportRequest.format === 'step'`.
+2. Looks up the authoritative `shape_set` by `request.input.authoritativeHandle.handleId`.
+3. Converts the retained shape set into one exportable OC shape:
+   - one retained shape can be transferred directly
+   - multiple retained shapes should be assembled into a `TopoDS_Compound` with `BRep_Builder`
+4. Runs `STEPControl_Writer.Transfer(...)` and `STEPControl_Writer.Write(...)` against an Emscripten in-memory file.
+5. Reads the generated STEP bytes/text from `oc.FS`.
+6. Returns `ExportResult` with:
+   - `format: 'step'`
+   - `filename: parahook-<buildRequestId>.step`
+   - `dataBase64` containing the actual STEP file contents
+7. Returns or throws an honest worker/export failure when:
+   - the handle is missing or already released
+   - the shape set is empty
+   - the STEP writer transfer/write status fails
+   - the OC filesystem read fails
+
+#### Likely Files
+
+- `src/worker/pipeline/exportService.ts`
+- `src/worker/pipeline/exportService.test.ts`
+- `src/worker/authoritativeGeometryStore.ts`
+- `src/worker/authoritativeGeometryStore.test.ts` if lookup/release behavior needs focused coverage
+- `src/worker/worker.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/shared/buildTypes.ts` if the existing worker message family remains the home for export worker messages
+- `src/shared/exportTypes.ts` only if export result/error validation needs a small contract addition
+- optional new worker-local helper such as `src/worker/pipeline/stepExportWriter.ts`
+
+#### Binding Probe
+
+Before replacing the stub, run one narrow local probe against the installed `opencascade.js` build to confirm the exact JavaScript binding names and return values for:
+
+- `new oc.STEPControl_Writer()`
+- `writer.Transfer(shape, ...)`
+- `writer.Write(filename)`
+- `oc.FS.readFile(filename, { encoding: 'binary' | 'utf8' })`
+- `new oc.TopoDS_Compound()`
+- `new oc.BRep_Builder()`
+- `builder.MakeCompound(compound)`
+- `builder.Add(compound, shape)`
+
+Keep the probe temporary and remove it before finalizing the implementation.
+
+#### No-Widening Rule
+
+Do not use Phase 10 to:
+
+- add a full Export workspace UI
+- solve Browser target collection
+- implement `.stl`, `.obj`, or `.glb`
+- export imported STEP/reference B-rep
+- widen node-family B-rep support
+- use draft `meshPreview` as STEP input
+- make viewport selectors or Three.js objects part of export truth
+
+#### Implementation Risks
+
+- `opencascade.js` overload names may need the same reflective candidate lookup style already used by the authoritative builder.
+- The current `AuthoritativeShapeSetResource` stores generic owned resources, so the implementation may need a narrow shape-resource type or lookup helper without leaking raw OC objects to app/shared contracts.
+- Multi-body exports need a compound shape so a multi-profile authoritative result writes as one STEP file.
+- Worker export routing should avoid disturbing build supersession and authoritative handle release behavior already proven for build requests.
+
+#### Verification Shape
+
+Focused tests should prove:
+
+- `exportService(...)` no longer returns the old descriptor string for `step`.
+- a registered authoritative shape set can be exported to STEP through a fake writer/FS runtime.
+- missing or released handles fail honestly instead of producing a fake file.
+- multi-shape resources are added to a compound before transfer.
+- draft-only export input cannot reach the writer because the shared export input helper still returns `null`.
+- worker routing can accept an export request and post an export result or export worker error without corrupting build routing.
+
+Run:
+
+- `npm.cmd test -- --run src/worker/pipeline/exportService.test.ts src/shared/exportTypes.test.ts`
+- any new focused worker routing/store tests added in the implementation
+- `npm.cmd run build`
+
+#### Shipped Implementation
+
+1. Replaced the placeholder export descriptor with real STEP writer output.
+   - `src/worker/pipeline/exportService.ts` now looks up the authoritative `shape_set`, rejects missing handles, boots the OpenCascade worker instance, and returns base64 STEP text.
+   - `src/worker/pipeline/exportService.test.ts` proves the old descriptor path is gone and missing handles fail honestly.
+2. Added a worker-local STEP writer adapter.
+   - `src/worker/pipeline/stepExportWriter.ts` transfers one retained shape directly or combines multiple retained shapes into a `TopoDS_Compound` with `BRep_Builder`.
+   - The adapter runs `STEPControl_Writer.Transfer(shape, 0, true)` and `STEPControl_Writer.Write(...)`, then reads the generated STEP file from OpenCascade MEMFS.
+   - The adapter hides the current OpenCascade.js filename-binding quirk by detecting and reading the newly created MEMFS file when `Write(...)` mangles the requested filename.
+3. Added the read-only authoritative shape-set lookup needed by export.
+   - `src/worker/authoritativeGeometryStore.ts` now exposes `getAuthoritativeShapeSet(...)` without exposing that worker-local resource through app/shared contracts.
+4. Added worker export routing.
+   - `src/shared/exportTypes.ts` now validates `ExportWorkerRequest`.
+   - `src/worker/worker.ts` accepts `type: 'export'` messages and posts either `export_result` or export-scoped `worker_error`.
+   - `src/worker/worker.test.ts` proves export requests route through the export service and failures post export worker errors.
+5. Kept Phase 10 scoped to true B-rep `.step`.
+   - No Export workspace UI, Browser target collection, imported STEP export, `.stl`, `.obj`, `.glb`, or node-family B-rep widening shipped in this phase.
+   - Draft meshes, artifact previews, `meshPreview`, viewport selectors, and Three.js state remain outside STEP export truth.
+6. Verified the implementation.
+   - The installed `opencascade.js` binding probe confirmed `STEPControl_Writer_1`, `Transfer(shape, 0, true)`, `Write(...)`, `BRep_Builder.MakeCompound(...)`, and `BRep_Builder.Add(...)` are available.
+   - Focused tests and production build passed.
 
 Definition of done:
-- the worker can emit a `.step` result from authoritative export input
+- the worker can emit a real `.step` result from authoritative export input
+- the exported data comes from retained OpenCascade B-rep shape resources, not draft mesh or viewer state
+- missing, stale, or unsupported authoritative handles fail honestly
 - file-writing logic stays outside viewport and toolbar ownership
 
 ## [ ] Model-Viewport 1.3 Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout

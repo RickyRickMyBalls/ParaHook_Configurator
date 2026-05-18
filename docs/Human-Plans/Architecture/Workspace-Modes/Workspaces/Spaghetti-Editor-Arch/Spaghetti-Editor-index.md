@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-05-17 14:57:56: Added `Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline` as the clean workspace-level plan for fast live draft meshes, separate authoritative B-rep generation, Auto draft-to-final swapping, and authoritative-only export truth for Spaghetti-authored geometry.
 20. 2026-05-02 09:39:04: Added `Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts` as the next open Spaghetti-editor follow-on after Bug 23 research showed the docked meatball editor is likely being reclassified out of `meatball editor view` during split-right handling, giving the family a dedicated future phase home for dock ownership and regression proof.
 19. 2026-05-02 08:06:26: Marked `Spaghetti-Editor 3 / Phase 4 - Essentials Canvas Background Transparency Cleanup` shipped in the umbrella read, confirming that `e` mode now has its own Spaghetti editor titlebar `BG` slider and essentials-only canvas readability tuning without reopening overlay ownership.
 18. 2026-05-02 07:59:17: Tightened the `Spaghetti-Editor 3` umbrella read by adding `Phase 4 - Essentials Canvas Background Transparency Cleanup` as the next implementation-ready slice, so the remaining `e`-mode readability polish has its own honest follow-on focused on a Spaghetti editor titlebar canvas-background transparency slider instead of widening the shipped overlay-titlebar phase.
@@ -473,3 +474,32 @@ Short read:
 
 Initial phase breakdown:
 - `Spaghetti-Editor 5 - Phase 1 - Preserve Meatball Dock Ownership Through Split-Right`
+
+### [ ] Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md`
+
+#### Purpose
+
+Compile the high-level geometry experience where Spaghetti-authored graph truth feeds both a fast draft mesh path and a separate authoritative B-rep path.
+
+This phase should separate:
+- draft mesh generation for live parameter feedback
+- authoritative B-rep generation for final display and export
+- viewport result policy for `Auto`, `Draft`, and `Final`
+- node-family B-rep widening work that belongs in deeper node docs
+
+Short read:
+- draft meshes should update quickly while the user is changing parameters
+- authoritative B-rep geometry should build on a separate path from the same graph intent
+- `Auto` should show draft while editing and swap to the matching final B-rep-derived display when ready
+- export should consume authoritative B-rep geometry only, never draft mesh truth
+
+Initial phase breakdown:
+- `Spaghetti-Editor 6 - Phase 1 - Draft And Authoritative Support Audit`
+- `Spaghetti-Editor 6 - Phase 2 - Revision Matching And Worker Supersession`
+- `Spaghetti-Editor 6 - Phase 3 - Node-Family Authoritative Widening Ladder`
+- `Spaghetti-Editor 6 - Phase 4 - Auto Draft-To-Final Viewport Policy Verification`
+- `Spaghetti-Editor 6 - Phase 5 - Authoritative Export Handoff Completion`
+- `Spaghetti-Editor 6 - Phase 6 - Mesh-Truth Leak Cleanup And HLG Closeout`

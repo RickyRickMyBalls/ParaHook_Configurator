@@ -1,4 +1,5 @@
 import type { ExtrudeFeature, FeatureStack } from '../../features/featureTypes'
+import { getProfileDisplayVertices } from '../../features/profileDisplayVertices'
 import { useSpaghettiStore } from '../../store/useSpaghettiStore'
 import { SP_INTERACTIVE_PROPS } from '../../spInteractive'
 import { FeatureValueBar } from './FeatureValueBar'
@@ -84,7 +85,7 @@ export function ExtrudeFeatureView({
       sourceSketch.outputs.profiles.map((profile) => ({
         profileId: profile.profileId,
         area: profile.area,
-        vertices: profile.verticesProxy,
+        vertices: getProfileDisplayVertices(profile),
       })),
     )
   }

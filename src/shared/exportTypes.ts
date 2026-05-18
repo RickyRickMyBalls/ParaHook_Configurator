@@ -61,6 +61,24 @@ export interface ExportResult {
   dataBase64: string
 }
 
+export type ExportWorkerRequest = ExportRequest & {
+  type: 'export'
+  lane: 'export'
+  seq: number
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
+}
+
+export type ExportWorkerResult = ExportResult & {
+  type: 'export_result'
+  lane: 'export'
+  seq: number
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -71,6 +89,27 @@ export const isAuthoritativeExportInput = (
   value.schemaVersion === AUTHORITATIVE_EXPORT_INPUT_SCHEMA_VERSION &&
   isGeometryResultRequestIdentity(value.request) &&
   isGeometryResultAuthoritativeHandle(value.authoritativeHandle)
+
+export const isExportFormat = (value: unknown): value is ExportFormat =>
+  value === 'stl' || value === 'step'
+
+export const isExportWorkerRequest = (value: unknown): value is ExportWorkerRequest =>
+  isRecord(value) &&
+  value.type === 'export' &&
+  value.lane === 'export' &&
+  typeof value.seq === 'number' &&
+  Number.isInteger(value.seq) &&
+  typeof value.projectFileId === 'string' &&
+  value.projectFileId.length > 0 &&
+  typeof value.graphDocumentId === 'string' &&
+  value.graphDocumentId.length > 0 &&
+  typeof value.buildRequestId === 'string' &&
+  value.buildRequestId.length > 0 &&
+  typeof value.schemaVersion === 'number' &&
+  typeof value.requestId === 'string' &&
+  value.requestId.length > 0 &&
+  isExportFormat(value.format) &&
+  isAuthoritativeExportInput(value.input)
 
 export const createAuthoritativeExportInput = (options: {
   request: GeometryResultRequestIdentity

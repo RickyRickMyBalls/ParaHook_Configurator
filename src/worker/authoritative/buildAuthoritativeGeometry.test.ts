@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CompiledBuildData } from '../../shared/buildTypes'
+import type { ProfileLoop } from '../../shared/sketchTypes'
 import { releaseAuthoritativeShapeSets, resetAuthoritativeShapeSetsForTests } from '../authoritativeGeometryStore'
 
 const { getOcMock } = vi.hoisted(() => ({
@@ -59,6 +60,24 @@ const triangleProfileLoop = {
   winding: 'CCW' as const,
 }
 
+const circleProfileLoop = {
+  segments: [
+    {
+      kind: 'arc3pt2' as const,
+      start: { x: 20, y: 0 },
+      mid: { x: 0, y: 20 },
+      end: { x: -20, y: 0 },
+    },
+    {
+      kind: 'arc3pt2' as const,
+      start: { x: -20, y: 0 },
+      mid: { x: 0, y: -20 },
+      end: { x: 20, y: 0 },
+    },
+  ],
+  winding: 'CCW' as const,
+}
+
 const openProfileLoop = {
   segments: [
     {
@@ -83,7 +102,7 @@ const openProfileLoop = {
 const resolvedProfile = (
   profileId: string,
   options?: {
-    loop?: typeof rectangleProfileLoop
+    loop?: ProfileLoop
     verticesProxy?: Array<{ x: number; y: number }>
   },
 ) => ({
@@ -267,6 +286,46 @@ const triangleCompiledBuildData = (): CompiledBuildData => ({
             taperResolved: 0,
             offsetResolved: 0,
             bodyId: 'triangle-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const circleCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['circle'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        circle: [
+          {
+            op: 'sketch',
+            featureId: 'circle-sketch-1',
+            profilesResolved: [
+              resolvedProfile('circle-profile-1', {
+                loop: circleProfileLoop,
+                verticesProxy: [
+                  { x: 20, y: 0 },
+                  { x: 0, y: 20 },
+                  { x: -20, y: 0 },
+                  { x: 0, y: -20 },
+                ],
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'circle-extrude-1',
+            profileRef: resolvedProfileRef('circle-sketch-1', 'circle-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'circle-body-1',
           },
         ],
       },
@@ -702,8 +761,10 @@ const createFakeOc = (options: {
   wireDelete?: ReturnType<typeof vi.fn>
   faceDelete?: ReturnType<typeof vi.fn>
   recordEdgeKind?: (kind: string) => void
+  recordEdgeArgCount?: (count: number) => void
   recordWireEdgeCount?: (count: number) => void
   recordPrismVector?: (vector: { x: number; y: number; z: number }) => void
+  failSingleCurveEdgeConstruction?: boolean
   failOnShapeCall?: number
 }) => {
   let shapeCallCount = 0
@@ -764,6 +825,27 @@ const createFakeOc = (options: {
   }
 
   class FakeArcCurve {
+    public get(): FakeArcCurveValue {
+      return new FakeArcCurveValue()
+    }
+
+    public delete(): void {}
+  }
+
+  class FakeArcCurveValue {
+    public delete(): void {}
+  }
+
+  class Handle_Geom_Curve {
+    public readonly curve: Geom_BezierCurve | FakeArcCurveValue
+
+    public constructor(curve: Geom_BezierCurve | FakeArcCurve | FakeArcCurveValue) {
+      if (curve instanceof FakeArcCurve) {
+        throw new Error('trimmed curve handle must be unwrapped before upcast')
+      }
+      this.curve = curve
+    }
+
     public delete(): void {}
   }
 
@@ -789,18 +871,29 @@ const createFakeOc = (options: {
     public readonly args: unknown[]
 
     public constructor(...args: unknown[]) {
+      const [first] = args
+      const source = first instanceof Handle_Geom_Curve ? first.curve : first
+      if (
+        options.failSingleCurveEdgeConstruction === true &&
+        args.length === 1 &&
+        (source instanceof Geom_BezierCurve || source instanceof FakeArcCurveValue)
+      ) {
+        throw new Error('single curve edge construction unavailable')
+      }
       this.args = args
     }
 
     public Edge(): { kind: string; delete: ReturnType<typeof vi.fn> } {
       const [first] = this.args
+      const source = first instanceof Handle_Geom_Curve ? first.curve : first
       const kind =
-        first instanceof gp_Pnt
+        source instanceof gp_Pnt
           ? 'line2'
-          : first instanceof Geom_BezierCurve
+          : source instanceof Geom_BezierCurve
             ? 'bezier2'
             : 'arc3pt2'
       options.recordEdgeKind?.(kind)
+      options.recordEdgeArgCount?.(this.args.length)
       return {
         kind,
         delete: options.edgeDelete ?? vi.fn(),
@@ -871,6 +964,7 @@ const createFakeOc = (options: {
     gp_Vec,
     TColgp_Array1OfPnt,
     Geom_BezierCurve,
+    Handle_Geom_Curve,
     GC_MakeArcOfCircle,
     BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeWire,
@@ -981,6 +1075,63 @@ describe('buildAuthoritativeGeometry', () => {
     expect(wireEdgeCounts).toEqual([3])
     expect(prismVectors).toEqual([{ x: 0, y: 0, z: 20 }])
     expect(edgeDelete).toHaveBeenCalledTimes(3)
+    expect(wireDelete).toHaveBeenCalledTimes(1)
+    expect(faceDelete).toHaveBeenCalledTimes(1)
+    const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId
+    expect(handleId).toBe('shape-set-1')
+    expect(releaseAuthoritativeShapeSets(handleId === undefined ? [] : [handleId])).toBe(1)
+  })
+
+  it('mints authoritative geometry for a first-class circle sketch body extrude through two arc edges', async () => {
+    const edgeDelete = vi.fn()
+    const wireDelete = vi.fn()
+    const faceDelete = vi.fn()
+    const edgeKinds: string[] = []
+    const edgeArgCounts: number[] = []
+    const wireEdgeCounts: number[] = []
+    const prismVectors: Array<{ x: number; y: number; z: number }> = []
+    getOcMock.mockResolvedValue(
+      createFakeOc({
+        shapeDelete: vi.fn(),
+        edgeDelete,
+        wireDelete,
+        faceDelete,
+        failSingleCurveEdgeConstruction: true,
+        recordEdgeKind: (kind) => edgeKinds.push(kind),
+        recordEdgeArgCount: (count) => edgeArgCounts.push(count),
+        recordWireEdgeCount: (count) => wireEdgeCounts.push(count),
+        recordPrismVector: (vector) => prismVectors.push(vector),
+      }),
+    )
+
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: circleCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-circle',
+        partKeys: ['circle'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'authoritative',
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    )
+    expect(Object.keys(result.authoritativeGeometryResult?.bodies ?? {})).toEqual([
+      'circle:circle-body-1',
+    ])
+    expect(result.authoritativeGeometryResult?.meshPreview).not.toBeNull()
+    expect(getOcMock).toHaveBeenCalledTimes(1)
+    expect(edgeKinds).toEqual(['arc3pt2', 'arc3pt2'])
+    expect(edgeArgCounts).toEqual([3, 3])
+    expect(wireEdgeCounts).toEqual([2])
+    expect(prismVectors).toEqual([{ x: 0, y: 0, z: 20 }])
+    expect(edgeDelete).toHaveBeenCalledTimes(2)
     expect(wireDelete).toHaveBeenCalledTimes(1)
     expect(faceDelete).toHaveBeenCalledTimes(1)
     const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId

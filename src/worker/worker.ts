@@ -7,6 +7,10 @@ import type {
   WorkerError,
 } from '../shared/buildTypes'
 import {
+  isExportWorkerRequest,
+  type ExportWorkerResult,
+} from '../shared/exportTypes'
+import {
   isBuildChangedInputHint,
   isBuildIdentity,
   isBuildInvalidation,
@@ -17,10 +21,13 @@ import {
   isBuildSupersededError,
   type ProgressEmitter,
 } from './pipeline/buildPipeline'
+import { exportService } from './pipeline/exportService'
 import { releaseAuthoritativeShapeSets } from './authoritativeGeometryStore'
 
 interface WorkerScope {
-  postMessage: (message: BuildResult | WorkerError | BuildProgress | BuildSuperseded) => void
+  postMessage: (
+    message: BuildResult | WorkerError | BuildProgress | BuildSuperseded | ExportWorkerResult,
+  ) => void
   addEventListener: (
     type: 'message',
     listener: (event: MessageEvent<unknown>) => void,
@@ -133,6 +140,35 @@ workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => 
   }
 
   const message = event.data
+  if (isExportWorkerRequest(message)) {
+    try {
+      const exportResult = await exportService(message)
+      workerScope.postMessage({
+        type: 'export_result',
+        lane: 'export',
+        seq: message.seq,
+        projectFileId: message.projectFileId,
+        graphDocumentId: message.graphDocumentId,
+        buildRequestId: message.buildRequestId,
+        ...exportResult,
+      })
+    } catch (error: unknown) {
+      const messageText = error instanceof Error ? error.message : 'Export failed.'
+      const workerError: WorkerError = {
+        type: 'worker_error',
+        seq: message.seq,
+        op: 'export',
+        lane: 'export',
+        message: messageText,
+        projectFileId: message.projectFileId,
+        graphDocumentId: message.graphDocumentId,
+        buildRequestId: message.buildRequestId,
+      }
+      workerScope.postMessage(workerError)
+    }
+    return
+  }
+
   if (!isBuildRequest(message)) {
     return
   }

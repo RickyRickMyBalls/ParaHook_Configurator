@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+290. 2026-05-17 14:57:56: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md` to the docs map and refreshed the Spaghetti editor family index so the new HLG plan for fast draft mesh feedback, separate authoritative B-rep generation, Auto draft-to-final swapping, and authoritative-only export truth is discoverable.
 289. 2026-05-12 08:37:00: Added a `Summary 3` source-code-size line after a read-only scan of `/20/parahook/src`, recording source-style file and raw-line totals beside the docs snapshot.
 288. 2026-05-12 08:22:22: Added `Summary 3` to the `### Doc Stats` section using a fresh read-only Markdown scan under `/20/parahook/docs`, updating the non-`/archive/` versus `/archive/` file and raw-line totals to today's counts while preserving the older summaries for comparison.
 287. 2026-05-01 18:43:47: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md` to the docs map and refreshed the node-family index/list so the planned `Geometry/Loft` node now has a dedicated feature-addition checklist covering node UI, Console commands, toolbar workflow, edit history, parameter/object types, compile/runtime, preview/output publication, and verification.
@@ -892,6 +893,8 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md`
 ####### --------------Shipped
             - `Workspaces/Spaghetti-Editor-Arch/Shipped/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
 ####### --------------Nodes

@@ -121,6 +121,51 @@ const constructOcValueFromArgVariants = (
   return null
 }
 
+const invokeOptionalOcMethod = (
+  runtime: OcSketchWireRuntime,
+  target: object,
+  methodNames: readonly string[],
+  args: unknown[],
+): unknown | null => {
+  try {
+    return runtime.invokeOcMethod(target, methodNames, args)
+  } catch {
+    return null
+  }
+}
+
+const constructGeomCurveHandle = (
+  runtime: OcSketchWireRuntime,
+  curve: OcOwnedResource,
+): OcOwnedResource | null => {
+  const unwrappedCurve = invokeOptionalOcMethod(runtime, curve as object, ['get'], [])
+  return constructOcValueFromArgVariants(runtime, 'Handle_Geom_Curve', [
+    [curve],
+    ...(unwrappedCurve === null ? [] : [[unwrappedCurve]]),
+  ])
+}
+
+const constructCurveEdgeBuilder = (
+  runtime: OcSketchWireRuntime,
+  curve: OcOwnedResource,
+  start: OcOwnedResource,
+  end: OcOwnedResource,
+  transientResources: OcOwnedResource[],
+): OcOwnedResource | null => {
+  const curveHandle = constructGeomCurveHandle(runtime, curve)
+  if (curveHandle === null) {
+    return constructOcValueFromArgVariants(runtime, 'BRepBuilderAPI_MakeEdge', [
+      [curve],
+      [curve, start, end],
+    ])
+  }
+  transientResources.push(curveHandle)
+  return constructOcValueFromArgVariants(runtime, 'BRepBuilderAPI_MakeEdge', [
+    [curveHandle],
+    [curveHandle, start, end],
+  ])
+}
+
 const buildSegmentEdge = (
   runtime: OcSketchWireRuntime,
   segment: Segment2,
@@ -198,10 +243,14 @@ const buildSegmentEdge = (
         return null
       }
       transientResources.push(curve)
-      const edgeBuilder = runtime.constructOcValue(runtime.oc, 'BRepBuilderAPI_MakeEdge', [
+      const edgeBuilder = constructCurveEdgeBuilder(
+        runtime,
         curve,
-      ]) as OcOwnedResource | null
-      if (!isOwnedResource(edgeBuilder)) {
+        points[0],
+        points[3],
+        transientResources,
+      )
+      if (edgeBuilder === null) {
         return null
       }
       transientResources.push(edgeBuilder)
@@ -253,10 +302,8 @@ const buildSegmentEdge = (
       return null
     }
     transientResources.push(curve)
-    const edgeBuilder = runtime.constructOcValue(runtime.oc, 'BRepBuilderAPI_MakeEdge', [
-      curve,
-    ]) as OcOwnedResource | null
-    if (!isOwnedResource(edgeBuilder)) {
+    const edgeBuilder = constructCurveEdgeBuilder(runtime, curve, start, end, transientResources)
+    if (edgeBuilder === null) {
       return null
     }
     transientResources.push(edgeBuilder)

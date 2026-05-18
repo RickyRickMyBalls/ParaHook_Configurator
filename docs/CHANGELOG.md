@@ -72,6 +72,176 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1922 -->
+
+### [1922] - 2026-05-17 22:59 - `Model-Viewport 1.3 - Phase 10 - STEP Writer Adapter And Worker Export Operation`
+
+HUMAN SUMMARY: `STEP export now writes from retained authoritative OpenCascade B-rep shape sets instead of returning the old placeholder descriptor. The worker export lane can route \`.step\` export requests, build a single shape or compound from the retained \`shape_set\`, run the OpenCascade STEP writer, and fail honestly when authoritative geometry is missing.`
+
+#### Scope / Constraints Honored
+
+- Kept `.step` export downstream from authoritative `shape_set` handles only.
+- Did not use draft `meshPreview`, artifact preview data, Three.js viewer state, or viewport selectors as export input.
+- Kept `.stl`, `.obj`, `.glb`, imported STEP/reference export, Export workspace UI, and Browser target collection out of this phase.
+- Kept file writing worker-owned and format-specific.
+
+#### Summary of Implementation
+
+- Added `writeStepFromAuthoritativeShapeSet(...)` as the worker-local OpenCascade STEP writer adapter.
+- Added read-only authoritative shape-set lookup so export can consume retained worker-owned B-rep resources by handle without exposing raw OC objects to app/shared contracts.
+- Updated `exportService(...)` to reject missing authoritative geometry and return base64 STEP file contents instead of the previous request descriptor string.
+- Added worker export request/result validation and routed `type: 'export'` worker messages through the export service with export-specific worker errors.
+- Added focused fake-OC coverage for single-shape STEP writing, mangled MEMFS filename recovery, multi-shape compound export, writer failure handling, worker export routing, and shared export request validation.
+- Probed the installed `opencascade.js` binding and confirmed `STEPControl_Writer_1`, `Transfer(shape, 0, true)`, `Write(...)`, `BRep_Builder.MakeCompound(...)`, and `BRep_Builder.Add(...)` are available; the implementation hides the observed MEMFS filename mangling inside the adapter.
+
+#### Files Changed
+
+- `src/shared/exportTypes.ts`
+- `src/shared/exportTypes.test.ts`
+- `src/worker/authoritativeGeometryStore.ts`
+- `src/worker/pipeline/exportService.ts`
+- `src/worker/pipeline/exportService.test.ts`
+- `src/worker/pipeline/stepExportWriter.ts`
+- `src/worker/pipeline/stepExportWriter.test.ts`
+- `src/worker/worker.ts`
+- `src/worker/worker.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Worker-side `.step` export now produces real STEP text from authoritative OpenCascade B-rep resources.
+- Missing or released authoritative `shape_set` handles now fail export honestly instead of producing a fake file.
+- Multi-shape authoritative exports are assembled into an OpenCascade compound before STEP transfer.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/worker/worker.test.ts src/worker/pipeline/exportService.test.ts src/worker/pipeline/stepExportWriter.test.ts src/shared/exportTypes.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1921 -->
+
+### [1921] - 2026-05-17 21:37 - `Spaghetti-Editor 6 - Phase 2.1 - Circle Sketch Extrude Authoritative Runtime Fix`
+
+HUMAN SUMMARY: `Sketch circle extrudes now have a narrower authoritative repair for OpenCascade runtimes that reject direct trimmed-curve edge construction. The worker normalizes arc and Bezier sketch curves to \`Handle_Geom_Curve\` `before falling back to bounded curve-edge overloads, and the regression suite proves first-class circle profiles still mint final authoritative shape-set geometry when the old constructor path is unavailable.`
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside supported Sketch/Profile `Body` extrude authoritative lowering.
+- Did not widen authoritative support to Loft, Sweep, Boolean, Shell, taper, offset, walls, or other node families.
+- Preserved the fast draft mesh path and existing Auto/Final result-selection policy.
+- Kept Phase 3 blocked behind this baseline repair instead of blending node-family widening into the fix.
+
+#### Summary of Implementation
+
+- Updated `src/worker/authoritative/ocSketchWire.ts` so Bezier and arc sketch curves are re-held as `Handle_Geom_Curve` before `BRepBuilderAPI_MakeEdge(...)` construction.
+- Kept the bounded `BRepBuilderAPI_MakeEdge(curve, start, end)` fallback for curve-backed sketch edges when single-curve edge construction is unavailable.
+- Added `ocSketchWire` coverage that simulates an OpenCascade runtime where single-curve edge construction is unavailable and trimmed-curve handles must be unwrapped before upcast, then verifies two-arc circle profiles still lower into a wire.
+- Hardened the authoritative circle-extrude regression so the end-to-end authoritative builder mints a non-null `shape_set` bundle and `meshPreview` through the bounded arc-edge overload path.
+- Probed the real `opencascade.js` module from Node with the same two-arc circle path and confirmed it builds edges, wire, face, prism, and shape after the `Handle_Geom_Curve` normalization.
+
+#### Files Changed
+
+- `src/worker/authoritative/ocSketchWire.ts`
+- `src/worker/authoritative/ocSketchWire.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Authoritative sketch lowering is more tolerant of OpenCascade WASM handle and overload differences for curve-backed sketch edges.
+- First-class circle sketch extrudes can continue through authoritative final geometry generation even when the one-argument curve edge constructor is unavailable.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/worker/authoritative/ocSketchWire.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1920 -->
+
+### [1920] - 2026-05-17 20:55 - `Spaghetti-Editor 6 - Sketch Circle Extrude Display And Authoritative Proof`
+
+HUMAN SUMMARY: `Sketch circle profile overlays now render from tessellated loop geometry instead of the bookkeeping proxy polygon, removing the unexpected square/diamond inside authored circles. Authoritative circle extrude behavior is now covered by a regression proving first-class circle profiles lower into two arc edges and mint a final shape-set handle.`
+
+#### Scope / Constraints Honored
+
+- Kept the stored `verticesProxy` contract intact for deterministic profile bookkeeping.
+- Reused the existing loop tessellation path already used by draft mesh extrusion.
+- Kept the authoritative worker contract focused on supported zero-taper, zero-offset `Body` extrudes.
+- Did not start `Spaghetti-Editor 6 / Phase 3`.
+
+#### Summary of Implementation
+
+- Added a profile display helper that prefers tessellated loop segments when a profile has typed loop geometry.
+- Routed active sketch overlays, visible sketch overlays, viewport profile previews, feature-stack previews, and extrude profile cards through the display helper.
+- Added an authoritative worker regression for first-class circle sketch extrudes represented as two `arc3pt2` segments.
+- Widened the authoritative test profile helper to accept the shared `ProfileLoop` type instead of only rectangle-shaped line loops.
+
+#### Files Changed
+
+- `src/app/spaghetti/features/profileDisplayVertices.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Circle profile overlays and preview cards display as circles instead of proxy diamonds/squares.
+- First-class sketch circle extrudes are now explicitly protected as authoritative two-arc B-rep build candidates in regression coverage.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/app/spaghetti/features/compileFeatureStack.test.ts src/app/spaghetti/features/profileDerivation.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1919 -->
+
+### [1919] - 2026-05-17 20:31 - `Spaghetti-Editor 6 - Phase 2 - Revision Matching And Worker Supersession`
+
+HUMAN SUMMARY: `Spaghetti authoritative final results are now covered by focused stale-result regression tests. The existing runtime gates reject stale preview-ready authoritative results, release abandoned B-rep handles, and keep stale staged final truth out of the viewer after the graph revision moves on.`
+
+#### Scope / Constraints Honored
+
+- Kept production runtime behavior unchanged because the existing identity gates passed the new stale-authoritative cases.
+- Reused the current `graphDocumentId`, `buildRequestId`, `buildSeq`, and graph-revision runtime contract.
+- Kept node-family B-rep widening, export writing, and geometry-result schema changes out of this phase.
+- Preserved the existing worker supersession and delayed-authoritative placeholder model.
+
+#### Summary of Implementation
+
+- Added store regression coverage for stale preview-ready authoritative arrivals after a newer authoritative request supersedes them.
+- Verified rejected stale preview-ready authoritative `shape_set` handles are released.
+- Added staged-authoritative promotion coverage proving stale staged final truth is cleared rather than accepted when graph revision no longer matches.
+- Verified stale staged authoritative `shape_set` handles are released during promotion cleanup.
+- Added viewer selector coverage proving stale preview-ready authoritative geometry is hidden once current graph revision moves ahead.
+- Closed the `Spaghetti-Editor 6 / Phase 2` planning slice.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No production behavior changed.
+- Stale authoritative-result protection is now explicitly covered at the store and viewer-selector boundary.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "stale preview-ready|stale staged final truth|viewer selectors do not expose stale"`
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "delayed|waiting authoritative|only the latest release-first authoritative|release graph revisions|stages release-authoritative"`
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts` currently also reports unrelated existing OutputPreview `publicationMode` expectation failures outside the Phase 2 stale-authoritative coverage.
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/worker/worker.test.ts src/app/bootstrapBuildWiring.test.ts` currently passes `src/worker/worker.test.ts` and `src/app/spaghetti/selectors/selectViewportResultState.test.ts`, while unrelated existing AppStore/project-content and bootstrap mock-worker failures remain.
+
 <!-- ENTRY 1918 -->
 
 ### [1918] - 2026-05-17 12:29 - `Settings-3 - Phase 7 - Staged Console Input Priority Tree`

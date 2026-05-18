@@ -69,6 +69,7 @@ import {
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import type { SketchFeature } from '../spaghetti/features/featureTypes'
+import { getProfileDisplayVertices } from '../spaghetti/features/profileDisplayVertices'
 import {
   selectPreviewRenderVmFromPreparation,
   type PreviewRenderVm,
@@ -758,7 +759,7 @@ export function ViewerHost(props: ViewerHostProps) {
 
     const profiles = (sketchFeature.outputs.profiles ?? []).map((profile) => ({
       profileId: profile.profileId,
-      vertices: profile.verticesProxy,
+      vertices: getProfileDisplayVertices(profile),
     }))
     const selectedProfileId =
       sketchFeature.uiState.selectedProfileId ??
@@ -864,7 +865,7 @@ export function ViewerHost(props: ViewerHostProps) {
           components: sketchFeature.components ?? [],
           profiles: (sketchFeature.outputs.profiles ?? []).map((profile) => ({
             profileId: profile.profileId,
-            vertices: profile.verticesProxy,
+            vertices: getProfileDisplayVertices(profile),
           })),
         } satisfies VisibleGeometrySketchOverlayVm
       })
