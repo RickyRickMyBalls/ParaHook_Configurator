@@ -3,6 +3,7 @@ import {
   DEFAULT_ENVIRONMENT_GRADE,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
   DEFAULT_VIEW_DISPLAY_MODE,
+  DEFAULT_VIEW_EDGE_DISPLAY_MODE,
   DEFAULT_VIEW_SETTINGS,
   areEnvironmentLookSnapshotsEqual,
   createEnvironmentLookSnapshot,
@@ -235,15 +236,18 @@ describe('uiPrefsStore environment source state', () => {
 
   it('normalizes display mode as view presentation state with legacy wireframe migration', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe(DEFAULT_VIEW_DISPLAY_MODE)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe(DEFAULT_VIEW_EDGE_DISPLAY_MODE)
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
 
     const legacyWireframeView = normalizeViewSettings({
       ...structuredClone(DEFAULT_VIEW_SETTINGS),
       displayMode: undefined,
+      edgeDisplayMode: undefined,
       wireframe: true,
     } as unknown as Parameters<typeof normalizeViewSettings>[0])
 
     expect(legacyWireframeView.displayMode).toBe('wireframe')
+    expect(legacyWireframeView.edgeDisplayMode).toBe('on')
     expect(legacyWireframeView.wireframe).toBe(true)
 
     const invalidDisplayModeView = normalizeViewSettings({
@@ -256,21 +260,49 @@ describe('uiPrefsStore environment source state', () => {
     expect(invalidDisplayModeView.wireframe).toBe(false)
   })
 
+  it('normalizes edge display mode as independent view presentation state', () => {
+    const validEdgeView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      edgeDisplayMode: 'visibleEdgesOnly',
+    })
+
+    expect(validEdgeView.edgeDisplayMode).toBe('visibleEdgesOnly')
+
+    const invalidEdgeView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      edgeDisplayMode: 'triangles',
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(invalidEdgeView.edgeDisplayMode).toBe(DEFAULT_VIEW_EDGE_DISPLAY_MODE)
+  })
+
   it('keeps the display mode contract synchronized with the legacy wireframe key', () => {
     useUiPrefsStore.getState().setViewKey('displayMode', 'solid')
 
     expect(useUiPrefsStore.getState().view.displayMode).toBe('solid')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('off')
 
     useUiPrefsStore.getState().setViewKey('wireframe', true)
 
     expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(true)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
 
     useUiPrefsStore.getState().setViewKey('wireframe', false)
 
     expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('off')
+  })
+
+  it('keeps explicit edge display mode independent from non-wireframe display modes', () => {
+    useUiPrefsStore.getState().setViewKey('edgeDisplayMode', 'visibleEdgesOnly')
+    useUiPrefsStore.getState().setViewKey('displayMode', 'material')
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
+    expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
   })
 
   it('normalizes render-preview quality settings as presentation state', () => {

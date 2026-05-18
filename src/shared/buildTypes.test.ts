@@ -96,6 +96,7 @@ describe('buildTypes PartArtifact contract', () => {
     expect(toViewerRenderablePart(cubeArtifact(), 's001')).toEqual({
       viewerKey: 's001',
       artifact: cubeArtifact(),
+      topologyPreview: null,
     })
   })
 

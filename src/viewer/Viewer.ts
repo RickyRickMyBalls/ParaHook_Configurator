@@ -24,6 +24,7 @@ import {
   LineSegments,
   MathUtils,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   NoToneMapping,
   Object3D,
@@ -33,6 +34,7 @@ import {
   PerspectiveCamera,
   PointLight,
   Points,
+  PointsMaterial,
   Quaternion,
   Raycaster,
   Scene,
@@ -45,7 +47,7 @@ import {
   WireframeGeometry,
 } from 'three'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
-import type { ViewerRenderablePart } from '../shared/buildTypes'
+import type { ArtifactMesh, ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
   DEFAULT_ENVIRONMENT_BACKGROUND,
@@ -145,11 +147,26 @@ import {
   createRenderPreviewRuntime,
   type RenderPreviewRuntime,
 } from './renderPreviewRuntime'
+import {
+  createSemanticEdgeOverlayGeometry,
+  createSemanticEdgeSelectionGeometry,
+  createSemanticFaceHighlightGeometry,
+  createSemanticPointMarkerGeometry,
+  resolveTopologyPointPosition,
+  resolveTopologyFaceFromTriangleIndex,
+  type SelectedTopologyEntity,
+  type SelectedTopologyFace,
+} from './semanticTopologySelection'
 
 type GizmoSpace = 'local' | 'world'
 type MaterialPresetId = string
 type ViewerPartMaterial = MeshStandardMaterial
 type ReferenceTransformBase = ReferenceTransformOverride
+const isArtifactMeshLike = (value: unknown): value is ArtifactMesh =>
+  typeof value === 'object' &&
+  value !== null &&
+  Array.isArray((value as { vertices?: unknown }).vertices) &&
+  Array.isArray((value as { indices?: unknown }).indices)
 type ReferenceTransformSession = {
   referenceId: string
   mode: TransformControlsMode
@@ -541,6 +558,12 @@ export class Viewer {
   private readonly baselinePartMeshes = new Map<string, Mesh>()
   private readonly overlayPartMeshes = new Map<string, Mesh>()
   private readonly partSelectionOutlines = new Map<string, LineSegments>()
+  private readonly semanticEdgeOverlaysByPartKey = new Map<string, LineSegments>()
+  private readonly meshEdgeWireframeOverlaysByPartKey = new Map<string, LineSegments[]>()
+  private readonly topologyEdgePickTargetsByPartKey = new Map<string, LineSegments[]>()
+  private readonly topologyPointPickTargetsByPartKey = new Map<string, Points[]>()
+  private selectedTopologyEntity: SelectedTopologyEntity | null = null
+  private selectedTopologyEntityOverlay: Object3D | null = null
   private readonly contentObjectPivots = new Map<string, Group>()
   private readonly partKeyToContentObjectId = new Map<string, string>()
   private contentObjectTransformOverrides: Record<string, ReferenceTransformOverride | null> = {}
@@ -1046,7 +1069,14 @@ export class Viewer {
       mesh.castShadow = this.resolveDisplayModeShadowsEnabled()
       mesh.receiveShadow = this.resolveDisplayModeShadowsEnabled()
       mesh.userData.partKey = partKeyStr
+      mesh.userData.topologyPreview = part.topologyPreview ?? null
+      mesh.userData.artifactMesh = artifact.kind === 'mesh' ? artifact.mesh : null
       mesh.userData.disposeMaterial = material !== baseMaterial
+      this.attachSemanticEdgeOverlay(partKeyStr, mesh)
+      this.attachMeshEdgeWireframeOverlay(partKeyStr, mesh)
+      this.attachTopologyEdgePickTargets(partKeyStr, mesh)
+      this.attachTopologyPointPickTargets(partKeyStr, mesh)
+      this.applyMeshDisplayModePresentation(mesh)
       const selectionOutline = new LineSegments(
         new EdgesGeometry(geometry),
         new LineBasicMaterial({
@@ -1120,7 +1150,14 @@ export class Viewer {
       mesh.receiveShadow = false
       mesh.renderOrder = 40
       mesh.userData.partKey = partKeyStr
+      mesh.userData.topologyPreview = part.topologyPreview ?? null
+      mesh.userData.artifactMesh = artifact.kind === 'mesh' ? artifact.mesh : null
       mesh.userData.disposeMaterial = true
+      this.attachSemanticEdgeOverlay(partKeyStr, mesh)
+      this.attachMeshEdgeWireframeOverlay(partKeyStr, mesh)
+      this.attachTopologyEdgePickTargets(partKeyStr, mesh)
+      this.attachTopologyPointPickTargets(partKeyStr, mesh)
+      this.applyMeshDisplayModePresentation(mesh)
       const contentObjectId = this.partKeyToContentObjectId.get(partKeyStr) ?? null
       if (contentObjectId !== null) {
         let pivot = this.contentObjectPivots.get(contentObjectId)
@@ -1171,6 +1208,7 @@ export class Viewer {
       mesh.renderOrder = 20
       mesh.userData.partKey = partKeyStr
       mesh.userData.disposeMaterial = true
+      this.attachMeshEdgeWireframeOverlay(partKeyStr, mesh)
       const contentObjectId = this.partKeyToContentObjectId.get(partKeyStr) ?? null
       if (contentObjectId !== null) {
         let pivot = this.contentObjectPivots.get(contentObjectId)
@@ -1198,6 +1236,8 @@ export class Viewer {
     }
 
     this.refreshSelectionStyling()
+    this.refreshSelectedTopologyEntityOverlay()
+    this.syncSemanticEdgeOverlayVisibility()
     this.refreshGizmoAttachment()
     this.resetRenderPreviewRuntime()
   }
@@ -2558,9 +2598,31 @@ export class Viewer {
   }
 
   public setSelectedPart(partId: string | null): void {
+    if (
+      this.selectedTopologyEntity !== null &&
+      this.selectedTopologyEntity.partKey !== partId
+    ) {
+      this.setSelectedTopologyEntity(null)
+    }
     this.selectedPartKey = partId
     this.refreshSelectionStyling()
     this.refreshGizmoAttachment()
+  }
+
+  public setSelectedTopologyFace(face: SelectedTopologyFace | null): void {
+    this.setSelectedTopologyEntity(
+      face === null
+        ? null
+        : {
+            kind: 'face',
+            ...face,
+          },
+    )
+  }
+
+  public setSelectedTopologyEntity(entity: SelectedTopologyEntity | null): void {
+    this.selectedTopologyEntity = entity
+    this.refreshSelectedTopologyEntityOverlay()
   }
 
   public setHighlightedPartKeys(partIds: string[]): void {
@@ -3715,6 +3777,21 @@ export class Viewer {
     return mode === 'wireframe' || (mode === 'rendered' && this.currentViewSettings.wireframe)
   }
 
+  private resolveEdgeOverlayVisible(): boolean {
+    if (this.currentViewSettings.edgeDisplayMode === 'off') {
+      return false
+    }
+    return (
+      this.currentViewSettings.edgeDisplayMode === 'on' ||
+      this.currentViewSettings.edgeDisplayMode === 'visibleEdgesOnly' ||
+      this.resolveDisplayModeWireframe()
+    )
+  }
+
+  private resolveVisibleEdgesOnly(): boolean {
+    return this.currentViewSettings.edgeDisplayMode === 'visibleEdgesOnly'
+  }
+
   private resolveDisplayModeShadowsEnabled(): boolean {
     const mode = this.resolveDisplayMode()
     return mode === 'rendered' && this.currentViewSettings.shadowsEnabled
@@ -3811,10 +3888,261 @@ export class Viewer {
     return material
   }
 
+  private meshHasSemanticEdgeOverlay(mesh: Mesh): boolean {
+    const partKey = mesh.userData.partKey
+    return (
+      typeof partKey === 'string' &&
+      partKey.length > 0 &&
+      this.semanticEdgeOverlaysByPartKey.has(partKey)
+    )
+  }
+
+  private meshHasMeshEdgeWireframeOverlay(mesh: Mesh): boolean {
+    const partKey = mesh.userData.partKey
+    if (typeof partKey !== 'string' || partKey.length === 0) {
+      return false
+    }
+    const overlays = this.meshEdgeWireframeOverlaysByPartKey.get(partKey)
+    return overlays !== undefined && overlays.some((overlay) => overlay.parent === mesh)
+  }
+
+  private shouldUseMaterialWireframeForMesh(mesh: Mesh): boolean {
+    return (
+      this.resolveDisplayModeWireframe() &&
+      this.currentViewSettings.edgeDisplayMode !== 'off' &&
+      !this.meshHasSemanticEdgeOverlay(mesh) &&
+      !this.meshHasMeshEdgeWireframeOverlay(mesh)
+    )
+  }
+
+  private disposeOwnedMeshMaterial(mesh: Mesh): void {
+    if (mesh.userData.disposeMaterial !== true) {
+      return
+    }
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach((material) => material.dispose())
+    } else {
+      mesh.material.dispose()
+    }
+    mesh.userData.disposeMaterial = false
+  }
+
+  private ensureOwnedMeshMaterialForPresentation(mesh: Mesh, wireframe: boolean): void {
+    if (wireframe === this.resolveDisplayModeWireframe() || mesh.userData.disposeMaterial === true) {
+      return
+    }
+    mesh.material = Array.isArray(mesh.material)
+      ? mesh.material.map((material) => material.clone())
+      : mesh.material.clone()
+    mesh.userData.disposeMaterial = true
+  }
+
+  private applyMeshDisplayModePresentation(mesh: Mesh): void {
+    const wireframe = this.shouldUseMaterialWireframeForMesh(mesh)
+    this.ensureOwnedMeshMaterialForPresentation(mesh, wireframe)
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    for (const material of materials) {
+      if (!(material instanceof MeshStandardMaterial)) {
+        continue
+      }
+      material.wireframe = wireframe
+      material.needsUpdate = true
+    }
+  }
+
+  private syncPartDisplayModePresentation(): void {
+    for (const mesh of [
+      ...this.partMeshes.values(),
+      ...this.baselinePartMeshes.values(),
+      ...this.overlayPartMeshes.values(),
+    ]) {
+      this.applyMeshDisplayModePresentation(mesh)
+    }
+    this.syncSemanticEdgeOverlayVisibility()
+  }
+
+  private attachSemanticEdgeOverlay(partKey: string, mesh: Mesh): void {
+    const geometry = createSemanticEdgeOverlayGeometry(mesh.userData.topologyPreview)
+    if (geometry === null) {
+      return
+    }
+    const overlay = new LineSegments(
+      geometry,
+      new LineBasicMaterial({
+        color: new Color(ACTIVE_PART_SELECTION_OUTLINE),
+        transparent: true,
+        opacity: 0.88,
+        toneMapped: false,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    )
+    overlay.name = `${partKey}:semantic-edge-overlay`
+    overlay.visible = false
+    overlay.renderOrder = 95
+    overlay.frustumCulled = false
+    overlay.userData.partKey = partKey
+    overlay.userData.semanticEdgeOverlay = true
+    mesh.add(overlay)
+    this.semanticEdgeOverlaysByPartKey.set(partKey, overlay)
+  }
+
+  private attachMeshEdgeWireframeOverlay(partKey: string, mesh: Mesh): void {
+    if (this.meshHasSemanticEdgeOverlay(mesh)) {
+      return
+    }
+    const geometry = new EdgesGeometry(mesh.geometry)
+    const positions = geometry.getAttribute('position')
+    if (positions === undefined || positions.count === 0) {
+      geometry.dispose()
+      return
+    }
+    const overlay = new LineSegments(
+      geometry,
+      new LineBasicMaterial({
+        color: new Color(ACTIVE_PART_SELECTION_OUTLINE),
+        transparent: true,
+        opacity: 0.64,
+        toneMapped: false,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    )
+    overlay.name = `${partKey}:mesh-edge-wireframe-overlay`
+    overlay.visible = false
+    overlay.renderOrder = 90
+    overlay.frustumCulled = false
+    overlay.userData.partKey = partKey
+    overlay.userData.meshEdgeWireframeOverlay = true
+    mesh.add(overlay)
+    const overlays = this.meshEdgeWireframeOverlaysByPartKey.get(partKey) ?? []
+    overlays.push(overlay)
+    this.meshEdgeWireframeOverlaysByPartKey.set(partKey, overlays)
+  }
+
+  private attachTopologyEdgePickTargets(partKey: string, mesh: Mesh): void {
+    const topologyPreview = mesh.userData.topologyPreview
+    if (topologyPreview === null || topologyPreview === undefined) {
+      return
+    }
+    const targets: LineSegments[] = []
+    for (const edge of topologyPreview.edges) {
+      const geometry = createSemanticEdgeSelectionGeometry(topologyPreview, edge.edgeId)
+      if (geometry === null) {
+        continue
+      }
+      const target = new LineSegments(
+        geometry,
+        new LineBasicMaterial({
+          color: new Color('#ffd36e'),
+          transparent: true,
+          opacity: 0.01,
+          toneMapped: false,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      )
+      target.name = `${partKey}:${edge.edgeId}:topology-edge-pick`
+      target.visible = false
+      target.renderOrder = 100
+      target.frustumCulled = false
+      target.userData.partKey = partKey
+      target.userData.edgeId = edge.edgeId
+      target.userData.topologyBodyId = edge.bodyId
+      target.userData.topologyPickTarget = true
+      mesh.add(target)
+      targets.push(target)
+    }
+    if (targets.length > 0) {
+      this.topologyEdgePickTargetsByPartKey.set(partKey, targets)
+    }
+  }
+
+  private attachTopologyPointPickTargets(partKey: string, mesh: Mesh): void {
+    const topologyPreview = mesh.userData.topologyPreview
+    if (topologyPreview === null || topologyPreview === undefined) {
+      return
+    }
+    const targets: Points[] = []
+    for (const point of topologyPreview.points) {
+      const geometry = createSemanticPointMarkerGeometry(topologyPreview, point.pointId)
+      if (geometry === null) {
+        continue
+      }
+      const target = new Points(
+        geometry,
+        new PointsMaterial({
+          color: new Color('#ff7a5c'),
+          size: 0.075,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.92,
+          toneMapped: false,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      )
+      target.name = `${partKey}:${point.pointId}:topology-point-pick`
+      target.visible = false
+      target.renderOrder = 110
+      target.frustumCulled = false
+      target.userData.partKey = partKey
+      target.userData.pointId = point.pointId
+      target.userData.topologyBodyId = point.bodyId
+      target.userData.topologyPickTarget = true
+      mesh.add(target)
+      targets.push(target)
+    }
+    if (targets.length > 0) {
+      this.topologyPointPickTargetsByPartKey.set(partKey, targets)
+    }
+  }
+
+  private syncSemanticEdgeOverlayVisibility(): void {
+    const visible = this.resolveEdgeOverlayVisible()
+    const visibleEdgesOnly = this.resolveVisibleEdgesOnly()
+    for (const overlay of this.semanticEdgeOverlaysByPartKey.values()) {
+      this.applyEdgeOverlayDepthMode(overlay, visibleEdgesOnly)
+      overlay.visible = visible && overlay.parent?.visible !== false
+    }
+    for (const overlays of this.meshEdgeWireframeOverlaysByPartKey.values()) {
+      for (const overlay of overlays) {
+        this.applyEdgeOverlayDepthMode(overlay, visibleEdgesOnly)
+        overlay.visible = visible && overlay.parent?.visible !== false
+      }
+    }
+    for (const targets of this.topologyEdgePickTargetsByPartKey.values()) {
+      for (const target of targets) {
+        target.visible = visible && target.parent?.visible !== false
+      }
+    }
+    for (const targets of this.topologyPointPickTargetsByPartKey.values()) {
+      for (const target of targets) {
+        target.visible = visible && target.parent?.visible !== false
+      }
+    }
+  }
+
+  private applyEdgeOverlayDepthMode(overlay: LineSegments, visibleEdgesOnly: boolean): void {
+    const materials = Array.isArray(overlay.material) ? overlay.material : [overlay.material]
+    for (const material of materials) {
+      if (!(material instanceof LineBasicMaterial)) {
+        continue
+      }
+      material.depthTest = visibleEdgesOnly
+      material.depthWrite = false
+      material.needsUpdate = true
+    }
+  }
+
   private applyMaterialAssignmentsToScene(): void {
     for (const [partKeyStr, mesh] of this.partMeshes.entries()) {
+      this.disposeOwnedMeshMaterial(mesh)
       mesh.material = this.resolveMaterialForPart(partKeyStr)
+      mesh.userData.disposeMaterial = false
+      this.applyMeshDisplayModePresentation(mesh)
     }
+    this.syncPartDisplayModePresentation()
   }
 
   private resolveMaterialForPart(partKey: string): ViewerPartMaterial {
@@ -3970,6 +4298,7 @@ export class Viewer {
   }
 
   private clearPartMeshes(): void {
+    this.disposeSelectedTopologyEntityOverlay()
     for (const mesh of [
       ...this.partMeshes.values(),
       ...this.baselinePartMeshes.values(),
@@ -3979,7 +4308,7 @@ export class Viewer {
         mesh.parent.remove(mesh)
       }
       mesh.traverse((child) => {
-        if (child instanceof LineSegments) {
+        if (child instanceof LineSegments || child instanceof Points) {
           child.geometry.dispose()
           if (Array.isArray(child.material)) {
             child.material.forEach((material) => material.dispose())
@@ -4001,6 +4330,10 @@ export class Viewer {
     this.baselinePartMeshes.clear()
     this.overlayPartMeshes.clear()
     this.partSelectionOutlines.clear()
+    this.semanticEdgeOverlaysByPartKey.clear()
+    this.meshEdgeWireframeOverlaysByPartKey.clear()
+    this.topologyEdgePickTargetsByPartKey.clear()
+    this.topologyPointPickTargetsByPartKey.clear()
     for (const pivot of this.contentObjectPivots.values()) {
       if (pivot.parent === this.rootGroup) {
         this.rootGroup.remove(pivot)
@@ -4452,6 +4785,154 @@ export class Viewer {
       outline.visible =
         partKeyStr === this.selectedPartKey || this.highlightedPartKeys.has(partKeyStr)
     }
+  }
+
+  private disposeSelectedTopologyEntityOverlay(): void {
+    if (this.selectedTopologyEntityOverlay === null) {
+      return
+    }
+    if (this.selectedTopologyEntityOverlay.parent !== null) {
+      this.selectedTopologyEntityOverlay.parent.remove(this.selectedTopologyEntityOverlay)
+    }
+    if (
+      this.selectedTopologyEntityOverlay instanceof Mesh ||
+      this.selectedTopologyEntityOverlay instanceof LineSegments ||
+      this.selectedTopologyEntityOverlay instanceof Points
+    ) {
+      this.selectedTopologyEntityOverlay.geometry.dispose()
+      if (Array.isArray(this.selectedTopologyEntityOverlay.material)) {
+        this.selectedTopologyEntityOverlay.material.forEach((material) => material.dispose())
+      } else {
+        this.selectedTopologyEntityOverlay.material.dispose()
+      }
+    }
+    this.selectedTopologyEntityOverlay = null
+  }
+
+  private refreshSelectedTopologyEntityOverlay(): void {
+    this.disposeSelectedTopologyEntityOverlay()
+    if (this.selectedTopologyEntity === null) {
+      return
+    }
+    const selectedMesh =
+      this.partMeshes.get(this.selectedTopologyEntity.partKey) ??
+      this.overlayPartMeshes.get(this.selectedTopologyEntity.partKey)
+    if (selectedMesh === undefined || !selectedMesh.visible) {
+      this.selectedTopologyEntity = null
+      return
+    }
+    if (this.selectedTopologyEntity.kind === 'edge') {
+      this.refreshSelectedTopologyEdgeOverlay(selectedMesh, this.selectedTopologyEntity)
+      return
+    }
+    if (this.selectedTopologyEntity.kind === 'point') {
+      this.refreshSelectedTopologyPointOverlay(selectedMesh, this.selectedTopologyEntity)
+      return
+    }
+    const artifactMesh = selectedMesh.userData.artifactMesh
+    if (!isArtifactMeshLike(artifactMesh)) {
+      this.selectedTopologyEntity = null
+      return
+    }
+    const geometry = createSemanticFaceHighlightGeometry(
+      artifactMesh,
+      selectedMesh.userData.topologyPreview,
+      this.selectedTopologyEntity.faceId,
+    )
+    if (geometry === null) {
+      this.selectedTopologyEntity = null
+      return
+    }
+    const material = new MeshBasicMaterial({
+      color: new Color(ACTIVE_PART_SELECTION_OUTLINE),
+      transparent: true,
+      opacity: 0.34,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    })
+    const overlay = new Mesh(geometry, material)
+    overlay.name = `${this.selectedTopologyEntity.partKey}:${this.selectedTopologyEntity.faceId}:semantic-face-selection`
+    overlay.renderOrder = 130
+    overlay.frustumCulled = false
+    overlay.userData.selectionOverlay = true
+    overlay.userData.partKey = this.selectedTopologyEntity.partKey
+    overlay.userData.faceId = this.selectedTopologyEntity.faceId
+    overlay.userData.topologyBodyId = this.selectedTopologyEntity.bodyId
+    selectedMesh.add(overlay)
+    this.selectedTopologyEntityOverlay = overlay
+  }
+
+  private refreshSelectedTopologyEdgeOverlay(
+    selectedMesh: Mesh,
+    edge: Extract<SelectedTopologyEntity, { kind: 'edge' }>,
+  ): void {
+    const geometry = createSemanticEdgeSelectionGeometry(
+      selectedMesh.userData.topologyPreview,
+      edge.edgeId,
+    )
+    if (geometry === null) {
+      this.selectedTopologyEntity = null
+      return
+    }
+    const overlay = new LineSegments(
+      geometry,
+      new LineBasicMaterial({
+        color: new Color('#ffd36e'),
+        transparent: true,
+        opacity: 1,
+        toneMapped: false,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    )
+    overlay.name = `${edge.partKey}:${edge.edgeId}:semantic-edge-selection`
+    overlay.renderOrder = 135
+    overlay.frustumCulled = false
+    overlay.userData.selectionOverlay = true
+    overlay.userData.partKey = edge.partKey
+    overlay.userData.edgeId = edge.edgeId
+    overlay.userData.topologyBodyId = edge.bodyId
+    selectedMesh.add(overlay)
+    this.selectedTopologyEntityOverlay = overlay
+  }
+
+  private refreshSelectedTopologyPointOverlay(
+    selectedMesh: Mesh,
+    point: Extract<SelectedTopologyEntity, { kind: 'point' }>,
+  ): void {
+    const position = resolveTopologyPointPosition(
+      selectedMesh.userData.topologyPreview,
+      point.pointId,
+    )
+    if (position === null) {
+      this.selectedTopologyEntity = null
+      return
+    }
+    const overlay = new Mesh(
+      new SphereGeometry(0.055, 12, 8),
+      new MeshBasicMaterial({
+        color: new Color('#ff7a5c'),
+        transparent: true,
+        opacity: 1,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    )
+    overlay.position.set(position[0], position[1], position[2])
+    overlay.name = `${point.partKey}:${point.pointId}:semantic-point-selection`
+    overlay.renderOrder = 140
+    overlay.frustumCulled = false
+    overlay.userData.selectionOverlay = true
+    overlay.userData.partKey = point.partKey
+    overlay.userData.pointId = point.pointId
+    overlay.userData.topologyBodyId = point.bodyId
+    selectedMesh.add(overlay)
+    this.selectedTopologyEntityOverlay = overlay
   }
 
   private refreshGizmoAttachment(): void {
@@ -5395,6 +5876,14 @@ export class Viewer {
     this.raycaster.setFromCamera(this.pointer, this.cameraController.getActiveCamera())
     const pickRoots = this.collectWorkspaceSelectionCandidates().map((candidate) => candidate.object)
     const intersections = this.raycaster.intersectObjects(pickRoots, true)
+    const pointPick = this.pickDirectTopologyEntity(intersections, 'point')
+    if (pointPick !== null) {
+      return pointPick
+    }
+    const edgePick = this.pickDirectTopologyEntity(intersections, 'edge')
+    if (edgePick !== null) {
+      return edgePick
+    }
     for (const intersection of intersections) {
       let current: Object3D | null = intersection.object
       while (current !== null) {
@@ -5414,9 +5903,72 @@ export class Viewer {
         }
         const partKey = current.userData.partKey
         if (typeof partKey === 'string' && partKey.length > 0) {
+          const directFaceId = current.userData.faceId
+          const directBodyId = current.userData.topologyBodyId
+          const semanticFace =
+            typeof directFaceId === 'string' &&
+            directFaceId.length > 0 &&
+            typeof directBodyId === 'string' &&
+            directBodyId.length > 0
+              ? { faceId: directFaceId, bodyId: directBodyId }
+              : resolveTopologyFaceFromTriangleIndex(
+                  current.userData.topologyPreview,
+                  intersection.faceIndex,
+                )
           return {
             kind: 'part',
             partKey,
+            ...(semanticFace === null
+              ? {}
+              : {
+                  faceId: semanticFace.faceId,
+                  topologyBodyId: semanticFace.bodyId,
+                }),
+          }
+        }
+        current = current.parent
+      }
+    }
+    return null
+  }
+
+  private pickDirectTopologyEntity(
+    intersections: Array<{ object: Object3D }>,
+    kind: 'edge' | 'point',
+  ): WorkspaceSelectionPick | null {
+    for (const intersection of intersections) {
+      let current: Object3D | null = intersection.object
+      while (current !== null) {
+        const partKey = current.userData.partKey
+        const bodyId = current.userData.topologyBodyId
+        if (
+          typeof partKey === 'string' &&
+          partKey.length > 0 &&
+          typeof bodyId === 'string' &&
+          bodyId.length > 0 &&
+          current.userData.topologyPickTarget === true &&
+          isObjectWorldVisible(current)
+        ) {
+          if (kind === 'point') {
+            const pointId = current.userData.pointId
+            if (typeof pointId === 'string' && pointId.length > 0) {
+              return {
+                kind: 'part',
+                partKey,
+                pointId,
+                topologyBodyId: bodyId,
+              }
+            }
+          } else {
+            const edgeId = current.userData.edgeId
+            if (typeof edgeId === 'string' && edgeId.length > 0) {
+              return {
+                kind: 'part',
+                partKey,
+                edgeId,
+                topologyBodyId: bodyId,
+              }
+            }
           }
         }
         current = current.parent

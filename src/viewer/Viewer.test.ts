@@ -3,7 +3,11 @@
 import {
   DoubleSide,
   FrontSide,
+  LineBasicMaterial,
+  LineSegments,
+  Mesh,
   MeshStandardMaterial,
+  Points,
   Texture,
   Vector3,
 } from 'three'
@@ -487,6 +491,26 @@ const createArtifact = (partKeyStr: string, length: number) => ({
   partKeyStr,
   partKey: { id: partKeyStr, instance: null },
   params: { width: 10, length, height: 5 },
+})
+
+const createTwoTriangleMeshArtifact = (partKeyStr: string) => ({
+  id: `artifact:${partKeyStr}:mesh`,
+  kind: 'mesh' as const,
+  label: partKeyStr,
+  partKeyStr,
+  partKey: { id: partKeyStr, instance: null },
+  mesh: {
+    vertices: [
+      0, 0, 0,
+      1, 0, 0,
+      1, 1, 0,
+      0, 1, 0,
+    ],
+    indices: [
+      0, 1, 2,
+      0, 2, 3,
+    ],
+  },
 })
 
 describe('Viewer baseline replacement', () => {
@@ -2769,10 +2793,14 @@ describe('Viewer baseline replacement', () => {
           geometry: object
           material: {
             color: { getHexString: () => string }
+            depthWrite: boolean
+            opacity: number
+            transparent: boolean
             wireframe: boolean
           }
         }
       >
+      meshEdgeWireframeOverlaysByPartKey: Map<string, LineSegments[]>
     }
 
     runtime.setViewportRenderLayers(
@@ -2835,6 +2863,7 @@ describe('Viewer baseline replacement', () => {
     runtime.applyViewSettings({
       ...materialSettings,
       displayMode: 'wireframe',
+      edgeDisplayMode: 'on',
     })
 
     const wireframeMesh = runtime.partMeshes.get('part:display-mode-proof')
@@ -2842,7 +2871,53 @@ describe('Viewer baseline replacement', () => {
     expect(wireframeMesh?.geometry).toBe(firstGeometry)
     expect(wireframeMesh?.material).toBeInstanceOf(MeshStandardMaterial)
     expect(wireframeMesh?.material.color.getHexString()).toBe('ff0000')
-    expect(wireframeMesh?.material.wireframe).toBe(true)
+    expect(wireframeMesh?.material.wireframe).toBe(false)
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]?.visible)
+      .toBe(true)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'solid',
+      edgeDisplayMode: 'on',
+    })
+
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]?.visible)
+      .toBe(true)
+    expect(
+      (
+        runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]
+          ?.material as LineBasicMaterial | undefined
+      )?.depthTest,
+    ).toBe(false)
+    expect(runtime.partMeshes.get('part:display-mode-proof')?.material.wireframe).toBe(false)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'wireframe',
+      edgeDisplayMode: 'off',
+    })
+
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]?.visible)
+      .toBe(false)
+    expect(runtime.partMeshes.get('part:display-mode-proof')?.material.wireframe).toBe(false)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'rendered',
+      edgeDisplayMode: 'visibleEdgesOnly',
+    })
+
+    const edgesOnlyMesh = runtime.partMeshes.get('part:display-mode-proof')
+    const visibleEdgesOnlyOverlay =
+      runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]
+    expect(visibleEdgesOnlyOverlay?.visible).toBe(true)
+    expect((visibleEdgesOnlyOverlay?.material as LineBasicMaterial | undefined)?.depthTest).toBe(
+      true,
+    )
+    expect(edgesOnlyMesh?.material.wireframe).toBe(false)
+    expect(edgesOnlyMesh?.material.transparent).toBe(false)
+    expect(edgesOnlyMesh?.material.depthWrite).toBe(true)
+    expect(edgesOnlyMesh?.material.opacity).toBe(1)
 
     runtime.applyViewSettings(materialSettings)
 
@@ -2852,6 +2927,425 @@ describe('Viewer baseline replacement', () => {
     expect(restoredMesh?.material).toBeInstanceOf(MeshStandardMaterial)
     expect(restoredMesh?.material.color.getHexString()).toBe('ff0000')
     expect(restoredMesh?.material.wireframe).toBe(false)
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]?.visible)
+      .toBe(false)
+  })
+
+  it('uses semantic edge overlays instead of triangle material wireframe for topology-backed wireframe mode', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const topologyPreview = {
+      faces: [{ faceId: 'face:front', bodyId: 'body:1' }],
+      triangleFaceIds: ['face:front', 'face:front'],
+      edges: [
+        {
+          edgeId: 'edge:bottom',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            0, 0, 0,
+            1, 0, 0,
+          ],
+        },
+        {
+          edgeId: 'edge:right',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            1, 0, 0,
+            1, 1, 0,
+          ],
+        },
+        {
+          edgeId: 'edge:top',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            1, 1, 0,
+            0, 1, 0,
+          ],
+        },
+        {
+          edgeId: 'edge:left',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            0, 1, 0,
+            0, 0, 0,
+          ],
+        },
+      ],
+      points: [],
+    }
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      partMeshes: Map<
+        string,
+        {
+          geometry: object
+          material: {
+            wireframe: boolean
+          }
+        }
+      >
+      semanticEdgeOverlaysByPartKey: Map<string, LineSegments>
+      meshEdgeWireframeOverlaysByPartKey: Map<string, LineSegments[]>
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [
+          toViewerRenderablePart(
+            createTwoTriangleMeshArtifact('part:semantic-wireframe'),
+            'part:semantic-wireframe',
+            topologyPreview,
+          ),
+          toViewerRenderablePart(createTwoTriangleMeshArtifact('part:mesh-only'), 'part:mesh-only'),
+        ],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'wireframe',
+      edgeDisplayMode: 'on',
+    })
+
+    const semanticMesh = runtime.partMeshes.get('part:semantic-wireframe')
+    const meshOnly = runtime.partMeshes.get('part:mesh-only')
+    const semanticOverlay = runtime.semanticEdgeOverlaysByPartKey.get('part:semantic-wireframe')
+    const meshOnlyOverlay = runtime.meshEdgeWireframeOverlaysByPartKey.get('part:mesh-only')?.[0]
+
+    expect(semanticMesh?.material.wireframe).toBe(false)
+    expect(meshOnly?.material.wireframe).toBe(false)
+    expect(semanticOverlay).toBeInstanceOf(LineSegments)
+    expect(semanticOverlay?.visible).toBe(true)
+    expect(semanticOverlay?.geometry.getAttribute('position').count).toBe(8)
+    expect(runtime.semanticEdgeOverlaysByPartKey.has('part:mesh-only')).toBe(false)
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.has('part:semantic-wireframe')).toBe(false)
+    expect(meshOnlyOverlay).toBeInstanceOf(LineSegments)
+    expect(meshOnlyOverlay?.visible).toBe(true)
+    expect(meshOnlyOverlay?.geometry.getAttribute('position').count).toBe(8)
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'solid',
+    })
+
+    expect(runtime.partMeshes.get('part:semantic-wireframe')).toBe(semanticMesh)
+    expect(runtime.partMeshes.get('part:semantic-wireframe')?.geometry).toBe(semanticMesh?.geometry)
+    expect(semanticOverlay?.visible).toBe(false)
+    expect(meshOnlyOverlay?.visible).toBe(false)
+  })
+
+  it('returns topology point picks before edge and face picks when helpers overlap', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const topologyPreview = {
+      faces: [{ faceId: 'face:front', bodyId: 'body:1' }],
+      triangleFaceIds: ['face:front', 'face:front'],
+      edges: [
+        {
+          edgeId: 'edge:bottom',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            0, 0, 0,
+            1, 0, 0,
+          ],
+        },
+      ],
+      points: [
+        {
+          pointId: 'point:origin',
+          bodyId: 'body:1',
+          position: [0, 0, 0] as [number, number, number],
+        },
+      ],
+    }
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      partMeshes: Map<string, Mesh>
+      topologyEdgePickTargetsByPartKey: Map<string, LineSegments[]>
+      topologyPointPickTargetsByPartKey: Map<string, Points[]>
+      raycaster: {
+        intersectObjects: ReturnType<typeof vi.fn>
+      }
+      renderer: {
+        domElement: HTMLCanvasElement
+      }
+      pickWorkspaceSelection: (clientX: number, clientY: number) => unknown
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [
+          toViewerRenderablePart(
+            createTwoTriangleMeshArtifact('part:topology-pick'),
+            'part:topology-pick',
+            topologyPreview,
+          ),
+        ],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'wireframe',
+      edgeDisplayMode: 'on',
+    })
+
+    const mesh = runtime.partMeshes.get('part:topology-pick')
+    const edgeTarget = runtime.topologyEdgePickTargetsByPartKey.get('part:topology-pick')?.[0]
+    const pointTarget = runtime.topologyPointPickTargetsByPartKey.get('part:topology-pick')?.[0]
+    expect(mesh).toBeInstanceOf(Mesh)
+    expect(edgeTarget).toBeInstanceOf(LineSegments)
+    expect(pointTarget).toBeInstanceOf(Points)
+
+    runtime.renderer.domElement.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }))
+    runtime.raycaster.intersectObjects = vi.fn(() => [
+      { object: mesh, faceIndex: 0 },
+      { object: edgeTarget },
+      { object: pointTarget },
+    ])
+
+    expect(runtime.pickWorkspaceSelection(400, 300)).toEqual({
+      kind: 'part',
+      partKey: 'part:topology-pick',
+      pointId: 'point:origin',
+      topologyBodyId: 'body:1',
+    })
+  })
+
+  it('returns topology edge picks before face picks and highlights selected edges and points', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const topologyPreview = {
+      faces: [{ faceId: 'face:front', bodyId: 'body:1' }],
+      triangleFaceIds: ['face:front', 'face:front'],
+      edges: [
+        {
+          edgeId: 'edge:bottom',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            0, 0, 0,
+            1, 0, 0,
+          ],
+        },
+      ],
+      points: [
+        {
+          pointId: 'point:origin',
+          bodyId: 'body:1',
+          position: [0, 0, 0] as [number, number, number],
+        },
+      ],
+    }
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      partMeshes: Map<string, Mesh>
+      topologyEdgePickTargetsByPartKey: Map<string, LineSegments[]>
+      raycaster: {
+        intersectObjects: ReturnType<typeof vi.fn>
+      }
+      renderer: {
+        domElement: HTMLCanvasElement
+      }
+      pickWorkspaceSelection: (clientX: number, clientY: number) => unknown
+      setSelectedTopologyEntity: (entity: {
+        kind: 'edge' | 'point'
+        partKey: string
+        edgeId?: string
+        pointId?: string
+        bodyId: string
+      } | null) => void
+      selectedTopologyEntityOverlay: unknown
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [
+          toViewerRenderablePart(
+            createTwoTriangleMeshArtifact('part:topology-edge-pick'),
+            'part:topology-edge-pick',
+            topologyPreview,
+          ),
+        ],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'wireframe',
+      edgeDisplayMode: 'on',
+    })
+
+    const mesh = runtime.partMeshes.get('part:topology-edge-pick')
+    const edgeTarget = runtime.topologyEdgePickTargetsByPartKey.get('part:topology-edge-pick')?.[0]
+    expect(mesh).toBeInstanceOf(Mesh)
+    expect(edgeTarget).toBeInstanceOf(LineSegments)
+
+    runtime.renderer.domElement.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }))
+    runtime.raycaster.intersectObjects = vi.fn(() => [
+      { object: mesh, faceIndex: 0 },
+      { object: edgeTarget },
+    ])
+
+    expect(runtime.pickWorkspaceSelection(400, 300)).toEqual({
+      kind: 'part',
+      partKey: 'part:topology-edge-pick',
+      edgeId: 'edge:bottom',
+      topologyBodyId: 'body:1',
+    })
+
+    runtime.setSelectedTopologyEntity({
+      kind: 'edge',
+      partKey: 'part:topology-edge-pick',
+      edgeId: 'edge:bottom',
+      bodyId: 'body:1',
+    })
+    expect(runtime.selectedTopologyEntityOverlay).toBeInstanceOf(LineSegments)
+
+    runtime.setSelectedTopologyEntity({
+      kind: 'point',
+      partKey: 'part:topology-edge-pick',
+      pointId: 'point:origin',
+      bodyId: 'body:1',
+    })
+    expect(runtime.selectedTopologyEntityOverlay).toBeInstanceOf(Mesh)
   })
 
   it('keeps material mode on neutral inspection lighting when environment lighting changes', async () => {

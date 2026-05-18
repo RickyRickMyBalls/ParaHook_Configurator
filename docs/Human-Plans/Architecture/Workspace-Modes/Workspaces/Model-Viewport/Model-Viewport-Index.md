@@ -3,6 +3,20 @@
 ## Doc Header
 
 ### Doc History
+76. 2026-05-18 17:05: Corrected the `Model-Viewport-4 / Phase 6` shipped read in the dedicated future doc so `Visible edges only` is now the Fusion-style depth-tested edge overlay mode that keeps the current surface/fill style and hides blocked/back edges behind surfaces.
+75. 2026-05-18 16:53: Marked `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` shipped inside the dedicated future doc after Shift+D gained center edge controls, view settings gained persisted edge display mode, viewer edge overlays decoupled from fill mode, `Visible edges only` preserved child edge overlays through surface de-emphasis, and focused verification plus browser sanity proof passed.
+74. 2026-05-18 16:29: Tightened the `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` handoff in the dedicated future doc into an implementation-ready slice with live code ownership, view-setting persistence targets, `Shift+D` center edge-control behavior, legacy wireframe compatibility, visible-edges-only overlay-parent constraints, and focused verification scope.
+73. 2026-05-18 16:25:31: Added and prepped `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` inside the dedicated future doc, separating the existing radial display choices as surface fill mode from a new center edge-control group for `On`, `Off`, and `Visible edges only` while preserving selection highlights and deferring raw triangle debug wireframe, topology generation, snapping, measurement, inspector, and direct modeling.
+72. 2026-05-18 16:10:56: Marked `Model-Viewport-4 / Phase 5 - Mesh Edge Wireframe Fallback And Closeout` shipped inside the dedicated future doc after normal Wireframe gained extracted mesh-edge overlays for mesh-only parts, material triangle wireframe was suppressed when clean overlays exist, topology-backed semantic edge overlays stayed preferred, and focused viewer proof covered the two-triangle rectangle diagonal hiding behavior.
+71. 2026-05-18 16:04:45: Prepped `Model-Viewport-4 / Phase 5 - Mesh Edge Wireframe Fallback And Closeout` inside the dedicated future doc after screenshot review showed selected-object `EdgesGeometry` outlines already produce good extruded-rectangle edge reads while normal Wireframe still exposes triangle diagonals, locking the next implementation to extracted mesh-edge overlays for mesh-only wireframe fallback and leaving raw triangle wireframe to a later debug mode.
+70. 2026-05-18 15:36:35: Prepped `Model-Viewport-4 / Phase 4 - Edge And Point Selection Presentation` inside the dedicated future doc against the shipped topology face-selection state, semantic edge overlays, topology edge/point packets, workspace selection pick contract, and viewer tests, locking the next implementation to edge and point hit targets plus selected-entity highlights without snapping, measurement, transform, inspector, debug mesh mode, imported STEP extraction, or direct modeling.
+69. 2026-05-18 15:33:20: Marked `Model-Viewport-4 / Phase 3 - Semantic Wireframe Mode` shipped inside the dedicated future doc after the viewer began drawing topology edge polylines as semantic Wireframe overlays, suppressing triangle material wireframe for topology-backed parts, preserving mesh-only fallback wireframe behavior, and proving mode switching with focused viewer tests plus production build verification.
+68. 2026-05-18 15:25:08: Prepped `Model-Viewport-4 / Phase 3 - Semantic Wireframe Mode` inside the dedicated future doc against the live `Viewer` material wireframe path, topology edge packet, render-layer mesh creation, and display-mode tests, locking the next implementation to semantic edge overlays for topology-backed parts, triangle-wireframe suppression in normal Wireframe, mesh-only fallback, and no edge/point picking, debug mesh mode, inspector, snapping, measurement, or direct-modeling behavior.
+67. 2026-05-18 15:09: Marked `Model-Viewport-4 / Phase 2 - Face Selection From Triangle Hits` shipped inside the dedicated future doc after the viewer render layer began carrying topology previews, triangle raycast hits resolved to optional semantic face/body identity, selected semantic faces gained a whole-face overlay, mesh-only fallback selection stayed intact, and focused semantic-selection tests plus production build verification passed.
+66. 2026-05-18 14:52:56: Prepped `Model-Viewport-4 / Phase 2 - Face Selection From Triangle Hits` inside the dedicated future doc against the live viewer workspace selection raycast path, `WorkspaceSelectionPick`, `ViewerHost`, `ViewerRenderablePart`, and geometry result topology seams, locking the next implementation to optional face identity on part picks, selected-face state, whole-face highlight, and mesh-only fallback without semantic wireframe or direct-modeling behavior.
+65. 2026-05-18 14:40:31: Marked `Model-Viewport-4 / Phase 1 - Semantic Topology Display Packet Contract` shipped inside the dedicated future doc after the shared geometry result contract gained nullable topology previews, validation and clone support for semantic faces, triangle face ids, edge polylines, point positions, mesh-only fallback, focused shared tests, and production build verification.
+64. 2026-05-18 14:38:45: Prepped `Model-Viewport-4 / Phase 1 - Semantic Topology Display Packet Contract` inside the dedicated future doc against the live `geometryResult`, `ViewerHost`, viewport result selector, and `Viewer` seams, locking the first implementation to an additive topology display packet with validation, clone preservation, mesh-only fallback, and no viewer selection or wireframe runtime changes yet.
+63. 2026-05-18 12:13:58: Added the dedicated future doc `Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`, reserving the next model-viewport lane for triangle-backed but topology-honest face, edge, point, selection, and wireframe behavior so user-facing geometry can stop exposing raw tessellation as the main model.
 62. 2026-05-11 21:55: Marked `Model-Viewport-3 / Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` shipped inside the dedicated future doc after the viewer restored Material mode to PBR-capable inspection materials, added one neutral viewer-owned `HemisphereLight`, gated authored lights out of Material mode, preserved rendered/render-preview authored lighting, and added focused viewer proof for roughness/metalness readability without harsh shadows.
 61. 2026-05-11 21:50: Tightened `Model-Viewport-3 / Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` inside the dedicated future doc into an implementation-ready viewer slice around a PBR-capable material-mode inspection cache, one neutral `HemisphereLight`, authored-light gating for rendered/render-preview modes, preserved material-mode neutral grade/filter, and focused proof for roughness/metalness readability without harsh shadows.
 60. 2026-05-11 21:49: Added `Model-Viewport-3 / Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` inside the dedicated future doc as a follow-up to restore roughness and metallicness readability in `Material` mode through neutral fill/inspection lighting without bringing back harsh authored scene-light shadows or rendered scene polish.
@@ -127,6 +141,7 @@ The immediate dedicated follow-on docs for that stack are:
 The next later family follow-on reserved here is:
 - `Model-Viewport-2 - Primary Viewport Workspace Reassignment`
 - `Model-Viewport-3 - Display Mode Radial Menu And Render Preview`
+- `Model-Viewport-4 - Semantic Topology Display And Selection`
 
 The current `Model-Viewport-1` status is:
 - umbrella phase created
@@ -200,6 +215,7 @@ The next real `Model Viewport` work should center on:
 - the first authoritative-capable retained-result contract and placeholder boundary before real engine work widens
 - later primary-slot workspace reassignment so the user can switch the main `Model Viewport` to another workspace surface without the shell forcing one protected viewer to remain in place
 - later display-mode and render-preview presentation so the user can choose Solid, Wireframe, Material, Rendered, or progressive Render Preview without changing geometry/build truth
+- later semantic topology display so triangle-backed render geometry can still behave like meaningful faces, edges, and points in selection and wireframe
 
 ### Core Naming Decisions
 
@@ -327,6 +343,7 @@ Recommended early future phase themes:
 - authoritative geometry execution and export handoff
 - later primary viewport workspace reassignment after the protected-main-viewer rule is retired
 - later display-mode radial menu and progressive render-preview HUD after the core result-policy seams stay honest
+- later semantic topology display and selection so wireframe, face picks, edge picks, and point picks resolve to model meaning instead of raw triangle structure
 - later follow-ons after the first geometry-overhaul baseline proves itself
 
 ### Folder Structure
@@ -413,6 +430,15 @@ Current status:
 - `Phase 10 - Material Mode Lighting Separation` shipped there
 - `Phase 10.1 - Material Mode Neutral Fill Lighting Fix-Up` shipped there
 - reserved here so `Shift+D` display-mode selection, Solid/Wireframe/Material/Rendered modes, and a fifth progressive render-preview mode with HUD iteration progress have one honest planning home
+
+7. `Model-Viewport 4 - Semantic Topology Display And Selection`
+Reason:
+- the repo now needs one explicit model-viewport lane for keeping triangle-backed display geometry user-facing as meaningful faces, edges, and points instead of exposing raw tessellation as the main model
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+Current status:
+- planned there
+- reserved here so face selection, semantic edge overlays, proper wireframe, point display, and debug mesh wireframe have one honest planning home
 
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
 
@@ -581,6 +607,66 @@ Definition of done:
 - render-preview progress is planned as a HUD/status read with iteration or sample progress
 - the cleanup ladder adds Properties `Render` settings through ParaSliders and ParaSelects where practical
 - the phase stays separate from geometry result policy, build scheduling, authoritative geometry truth, and export ownership
+
+## [ ] Model-Viewport 4 - Semantic Topology Display And Selection
+
+### Summary
+
+#### Purpose:
+- keep triangle geometry as the practical viewport render substrate
+- make user-facing selection resolve to semantic faces, edges, and points
+- make normal wireframe show proper model edges rather than internal triangle diagonals
+- preserve raw triangle wireframe as a debug/developer mode instead of the default user read
+
+#### Current read:
+- `Model-Viewport-1.3` already established that final display can be derived from authoritative B-rep truth while still rendering display mesh
+- `Model-Viewport-3` already established display modes, including `Wireframe`, but user-facing wireframe still needs a semantic topology meaning
+- `Spaghetti-Editor 6` already separates fast draft mesh from authoritative B-rep output and leaves topology-inspection follow-ons to later docs
+- `Import/B-rep` already names retained topology display and selection for imported STEP as a companion lane
+- this phase should be the model-viewport owner for shared topology display behavior across graph-authored and imported geometry
+- `Phase 1 - Semantic Topology Display Packet Contract` is now shipped in the dedicated future doc as a shared-contract implementation slice before viewer selection or wireframe behavior changes
+- `Phase 2 - Face Selection From Triangle Hits` is now shipped in the dedicated future doc as the first topology-aware interaction slice over the existing workspace selection raycast path
+- `Phase 3 - Semantic Wireframe Mode` is now shipped in the dedicated future doc as the first display-mode slice that replaces normal triangle wireframe with topology edge overlays where edge topology exists
+- `Phase 4 - Edge And Point Selection Presentation` is now shipped in the dedicated future doc as the topology entity-selection slice for edge/point hit targets and selected-entity highlights
+- `Phase 5 - Mesh Edge Wireframe Fallback And Closeout` is now shipped in the dedicated future doc as the visual cleanup slice that replaces mesh-only material triangle wireframe with extracted mesh-edge overlays in normal Wireframe mode
+- `Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` is now shipped in the dedicated future doc as the UI/presentation split that lets the user choose surface fill mode and edge visibility mode separately
+
+### Questions
+
+#### [x] Question 1 - What should `Model-Viewport 4` own?
+
+##### Locked answer
+- semantic topology display and selection in the model viewport
+
+##### Why
+- triangles can remain the renderer-facing geometry, but the viewport should present and select the user's intended model surfaces, edges, and points
+
+#### [x] Question 2 - Should normal wireframe show triangle edges?
+
+##### Locked answer
+- no, normal wireframe should show semantic/model edges; raw triangle wireframe should be a debug mesh mode
+
+##### Why
+- internal tessellation edges make smooth or B-rep-derived surfaces read as broken mesh artifacts, while semantic edges preserve the CAD-like model meaning
+
+### Spec
+
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+
+Definition of done:
+- the family has one explicit later phase reserved for semantic topology display and selection
+- triangle hits can resolve to owning faces when semantic face metadata exists
+- normal wireframe can draw model edges without exposing internal triangle diagonals
+- edge and point overlays have a planned selection/highlight path
+- debug mesh wireframe remains available for raw tessellation inspection
+- the phase stays separate from direct modeling, snapping, measurement, imported STEP retention, and graph node-family B-rep widening
+- Phase 1 shipped by adding and proving the shared topology display packet contract before any runtime viewport selection or wireframe changes
+- Phase 2 shipped triangle-hit-to-semantic-face resolution, selected whole-face highlights, and current part/object selection fallback
+- Phase 3 shipped semantic edge overlays for topology-backed normal Wireframe while preserving mesh-only material-wireframe fallback
+- Phase 4 shipped edge and point hit targets plus selected-entity highlights while keeping snapping, measurement, inspector, transform, and direct-modeling behavior deferred
+- Phase 5 shipped extracted mesh-edge overlays for mesh-only normal Wireframe mode while deferring raw triangle inspection to a later debug mesh mode
+- Phase 6 shipped `Shift+D` center edge controls for `On`, `Off`, and `Visible edges only` while keeping the existing display wheel choices as surface fill modes
 
 ## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment
 

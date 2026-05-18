@@ -1,4 +1,4 @@
-import type { GeometryResultBundle } from './geometryResult'
+import type { GeometryResultBundle, GeometryTopologyPreview } from './geometryResult'
 
 export type BoxParams = {
   width: number
@@ -109,6 +109,7 @@ export type PartArtifact = BoxPartArtifact | MeshPartArtifact
 export type ViewerRenderablePart = {
   viewerKey: string
   artifact: PartArtifact
+  topologyPreview?: GeometryTopologyPreview | null
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -181,9 +182,11 @@ export const isPartArtifact = (value: unknown): value is PartArtifact => {
 export const toViewerRenderablePart = (
   artifact: PartArtifact,
   viewerKey: string = artifact.partKeyStr,
+  topologyPreview: GeometryTopologyPreview | null = null,
 ): ViewerRenderablePart => ({
   viewerKey,
   artifact,
+  topologyPreview,
 })
 
 export type CompiledBuildData = {

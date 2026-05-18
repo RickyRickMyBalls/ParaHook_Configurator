@@ -127,6 +127,7 @@ const createAcceptedGeometryResult = (options: {
   status: 'ok',
   bodies: {},
   meshPreview: null,
+  topologyPreview: null,
   diagnostics: [],
   trace: [],
   authoritativeHandle: null,
@@ -148,6 +149,7 @@ const createAcceptedAuthoritativeGeometryResult = (options: {
   status: 'ok',
   bodies: {},
   meshPreview: null,
+  topologyPreview: null,
   diagnostics: [],
   trace: [],
   authoritativeHandle: {

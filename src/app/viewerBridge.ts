@@ -171,6 +171,11 @@ export type ViewerRenderPreviewStatus =
       message?: string | null
     }
 
+export type ViewerSelectedTopologyEntity =
+  | { kind: 'face'; partKey: string; faceId: string; bodyId: string }
+  | { kind: 'edge'; partKey: string; edgeId: string; bodyId: string }
+  | { kind: 'point'; partKey: string; pointId: string; bodyId: string }
+
 export interface ViewerApi {
   isFlyModeActive?: () => boolean
   getFlyActivationMode?: () => FlyActivationMode
@@ -253,6 +258,10 @@ export interface ViewerApi {
   setReferenceTransformRotateSnapPreviewRadiusDeg: (radiusDeg: number) => void
   setReferenceTransformRotateSnapPreviewDelayMs: (delayMs: number) => void
   setSelectedPart: (partId: string | null) => void
+  setSelectedTopologyFace: (
+    face: { partKey: string; faceId: string; bodyId: string } | null,
+  ) => void
+  setSelectedTopologyEntity: (entity: ViewerSelectedTopologyEntity | null) => void
   setHighlightedPartKeys: (partIds: string[]) => void
   setHighlightedReferenceIds: (referenceIds: string[]) => void
   setReferenceTransformSession: (session: {

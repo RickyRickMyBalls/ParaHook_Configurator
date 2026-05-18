@@ -72,6 +72,292 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1940 -->
+
+### [1940] - 2026-05-18 17:05 - `Model-Viewport-4 - Phase 6.1 - Visible Edges Only Depth Semantics`
+
+HUMAN SUMMARY: ``Visible edges only now keeps the active viewport surface style intact and depth-tests the edge overlays so surfaces hide blocked/back edges, matching the intended Fusion-style visible-edge read. It no longer fades or removes filled surfaces.```
+
+#### Scope / Constraints Honored
+
+- Kept the change to the Phase 6 edge-display presentation semantics.
+- Preserved the existing `On` and `Off` edge modes.
+- Preserved the active Solid, Material, Rendered, Render Preview, or Wireframe surface mode when `Visible edges only` is selected.
+- Did not add new topology generation, raw triangle debug wireframe, snapping, measurement, inspector behavior, direct modeling, or result-mode policy changes.
+
+#### Summary of Implementation
+
+- Removed the surface de-emphasis behavior from `visibleEdgesOnly`.
+- Changed semantic and extracted mesh-edge overlays to use depth testing only in `visibleEdgesOnly`.
+- Kept normal edge `On` as x-ray-style overlay drawing over the current fill mode.
+- Updated viewer tests to prove `visibleEdgesOnly` keeps filled materials opaque while depth-testing edge overlays.
+
+#### Verification
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1939 -->
+
+### [1939] - 2026-05-18 16:53 - `Model-Viewport-4 - Phase 6 - Edge Visibility Controls In Shift-D Display Wheel`
+
+HUMAN SUMMARY: ``The Shift+D display wheel now has center edge controls for On, Off, and Visible edges only while keeping the outer Solid/Wireframe/Material/Rendered/Render Preview choices intact. Edge overlays can now draw over filled surfaces, turn off independently from selection highlights, or show an edges-only presentation without exposing raw triangle wireframe.```
+
+#### Scope / Constraints Honored
+
+- Kept the change to model-viewport presentation state and UI.
+- Preserved the existing outer Shift+D display mode choices.
+- Preserved legacy View Toolbar `Wireframe` compatibility by keeping that path mapped to a clean edge read.
+- Kept selected-part outlines and selected topology highlights independent from edge display visibility.
+- Did not add new topology generation, raw triangle debug wireframe, snapping, measurement, inspector behavior, direct modeling, or result-mode policy changes.
+
+#### Summary of Implementation
+
+- Added shared `ViewEdgeDisplayMode` state with `on`, `off`, and `visibleEdgesOnly` options, defaults, validation, and view-settings normalization.
+- Threaded edge display mode through UI prefs store and persistence so the setting survives view-policy merges without breaking `displayMode` / legacy `wireframe` synchronization.
+- Updated the viewer to show semantic or extracted mesh-edge overlays independently from surface fill mode.
+- Added a `Visible edges only` presentation that de-emphasizes mesh surfaces while preserving child edge overlay visibility.
+- Replaced the Shift+D wheel center label with three compact active-state edge controls.
+- Extended focused tests for settings normalization, menu behavior, radial UI state, viewer presentation, persistence readiness, and legacy toolbar compatibility.
+
+#### Verification
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts src/app/useViewerDisplayModeMenu.test.tsx`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "renders Shift\\+D center edge controls"`
+- `npm.cmd test -- src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- `npm.cmd run build`
+- Browser sanity check at `http://127.0.0.1:5173/ParaHook_Configurator/` confirmed Shift+D opens the display wheel and `Visible edges only` becomes active from the center control.
+- Full-file `npm.cmd test -- src/app/components/ViewerHost.test.tsx` was attempted with a longer timeout but did not finish before timeout; the new targeted ViewerHost case passed.
+
+<!-- ENTRY 1938 -->
+
+### [1938] - 2026-05-18 16:10 - `Model-Viewport-4 - Phase 5 - Mesh Edge Wireframe Fallback And Closeout`
+
+HUMAN SUMMARY: ``Normal Wireframe mode now uses extracted mesh-edge overlays for mesh-only viewport parts instead of turning on raw triangle material wireframe. Simple sketch/extrude-style rectangle meshes get clean boundary lines without the internal diagonal, while topology-backed parts still prefer semantic topology edges.```
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change to model-viewport Wireframe presentation.
+- Preserved semantic topology edge overlays for topology-backed geometry.
+- Kept selected-object outlines separate from display-mode wireframe overlays.
+- Did not add true sketch/extrude topology generation, inspector UI, snapping, measurement, transform handles, imported STEP topology extraction, direct modeling, or a user-facing raw triangle debug mode.
+
+#### Summary of Implementation
+
+- Added viewer-owned extracted mesh-edge Wireframe overlays for mesh-only part meshes using `EdgesGeometry`.
+- Suppressed normal material triangle wireframe when either semantic topology edges or extracted mesh-edge overlays are available.
+- Toggled extracted mesh-edge overlay visibility with Wireframe display mode.
+- Kept topology-backed parts on semantic edge overlays instead of adding mesh-derived fallback overlays.
+- Updated focused viewer display-mode tests so mesh-only Wireframe expects clean overlay lines and material `wireframe === false`.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Mesh-only parts in normal Wireframe mode now show extracted boundary/crease edges instead of raw triangle diagonals.
+- Two-triangle rectangle-style faces no longer show the coplanar internal diagonal in normal Wireframe mode.
+- Topology-backed parts continue to show semantic topology edge polylines in normal Wireframe mode.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts src/viewer/semanticTopologySelection.test.ts`
+- `npm.cmd test -- src/shared/buildTypes.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1937 -->
+
+### [1937] - 2026-05-18 15:48 - `Model-Viewport-4 - Phase 4 - Edge And Point Selection Presentation`
+
+HUMAN SUMMARY: ``Topology-backed viewport geometry can now select semantic edges and points in addition to whole semantic faces. Edge and point picks still select the owning part/object in the workspace, while the viewer keeps the more exact topology entity highlighted for future snapping, measurement, or inspector handoff.```
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change to topology-backed model-viewport picking and highlighting.
+- Preserved the existing selected-face compatibility path.
+- Kept workspace selection anchored to the owning part/object rather than adding edge or point workspace target types.
+- Did not add snapping, measurement, transform handles, direct modeling, imported STEP topology extraction, Properties/inspector panels, or raw triangle debug wireframe UI.
+
+#### Summary of Implementation
+
+- Added a widened `SelectedTopologyEntity` contract for face, edge, and point selection.
+- Added semantic edge-selection and point-marker geometry helpers.
+- Extended workspace part picks with optional `edgeId` and `pointId` topology identity.
+- Created viewer-owned topology edge and point pick helpers for topology-backed mesh parts.
+- Resolved topology click picks with point priority before edge priority before face/part fallback.
+- Added selected edge and selected point highlight overlays while keeping selected faces as translucent surface overlays.
+- Updated the Viewer Host selected-topology state so exact face/edge/point highlight identity stays separate from workspace part/object selection.
+- Added focused tests for edge/point helper picking, point-over-edge priority, selected edge/point highlights, and semantic helper geometry.
+
+#### Files Changed
+
+- `src/viewer/semanticTopologySelection.ts`
+- `src/viewer/semanticTopologySelection.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `src/viewer/workspaceSelectionWindow.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/viewerBridge.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Topology-backed Wireframe presentation now exposes edge and point helper targets.
+- Clicking an overlapping topology point/edge/face resolves to point first, edge second, and face/part fallback last.
+- Selected semantic edges and points receive distinct viewer overlays.
+- Mesh-only geometry keeps the earlier part/face fallback behavior.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/semanticTopologySelection.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/shared/buildTypes.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1936 -->
+
+### [1936] - 2026-05-18 15:33 - `Model-Viewport-4 - Phase 3 - Semantic Wireframe Mode`
+
+HUMAN SUMMARY: ``Normal Wireframe mode now uses semantic topology edge polylines for topology-backed viewport parts instead of exposing internal triangle diagonals. Mesh-only parts keep the old material-wireframe fallback until they have topology packets.```
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change to user-facing Wireframe display for topology-backed model-viewport parts.
+- Preserved mesh-only triangle-wireframe fallback behavior.
+- Did not add edge picking, point picking, debug mesh wireframe controls, inspector panels, snapping, measurement, imported STEP topology extraction, or direct modeling.
+
+#### Summary of Implementation
+
+- Added semantic edge overlay geometry creation from `topologyPreview.edges[].polyline`.
+- Created viewer-owned semantic edge overlays with topology-backed part meshes.
+- Toggled semantic edge overlays from the existing display-mode path.
+- Suppressed material triangle wireframe for topology-backed parts when semantic edge overlays are available.
+- Kept mesh-only parts on the existing material-wireframe behavior.
+- Added focused tests for semantic edge geometry and topology-backed versus mesh-only Wireframe behavior.
+
+#### Files Changed
+
+- `src/viewer/semanticTopologySelection.ts`
+- `src/viewer/semanticTopologySelection.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Topology-backed parts in normal Wireframe mode display supplied semantic edge polylines.
+- Internal triangle diagonals are hidden for topology-backed parts because their mesh material wireframe is suppressed.
+- Mesh-only parts still show the old triangle wireframe fallback.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/semanticTopologySelection.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/shared/buildTypes.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1935 -->
+
+### [1935] - 2026-05-18 15:09 - `Model-Viewport-4 - Phase 2 - Face Selection From Triangle Hits`
+
+HUMAN SUMMARY: ``The model viewport can now carry semantic topology into renderable parts, resolve triangle raycast hits back to owning face ids, and show a whole-face selection overlay for topology-backed mesh previews. Mesh-only parts still fall back to the existing part/object selection behavior.```
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change to semantic face selection over the existing triangle mesh render path.
+- Preserved existing part, object, reference, and environment-light selection fallback behavior when topology is missing.
+- Did not implement semantic wireframe, edge selection, point selection, snapping, measurement, inspector panels, or direct modeling.
+
+#### Summary of Implementation
+
+- Added optional `topologyPreview` carriage to `ViewerRenderablePart` and threaded retained geometry topology through the viewport result selector.
+- Extended workspace selection part picks with optional face identity and topology body identity.
+- Added viewer semantic-face hit resolution from Three.js `faceIndex` through `triangleFaceIds`.
+- Added selected semantic face state in `ViewerHost` and a viewer-owned whole-face highlight overlay that covers every triangle assigned to the selected face.
+- Added focused semantic topology selection helper tests for face resolution, mesh-only fallback, and selected-face highlight geometry.
+
+#### Files Changed
+
+- `src/shared/buildTypes.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/workspaceSelectionWindow.ts`
+- `src/viewer/semanticTopologySelection.ts`
+- `src/viewer/semanticTopologySelection.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking a triangle on a topology-backed model-viewport mesh now resolves to the owning semantic face when `topologyPreview.triangleFaceIds` supplies that mapping.
+- The selected semantic face is highlighted as a whole surface overlay instead of only exposing the individual triangle hit.
+- Mesh-only parts continue to select as parts with no semantic face overlay.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/semanticTopologySelection.test.ts src/shared/buildTypes.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx` was attempted twice but timed out after 2 minutes and 5 minutes without a result.
+
+<!-- ENTRY 1934 -->
+
+### [1934] - 2026-05-18 14:40 - `Model-Viewport-4 - Phase 1 - Semantic Topology Display Packet Contract`
+
+HUMAN SUMMARY: ``Model viewport geometry results can now carry an optional semantic topology preview beside the existing triangle mesh preview. The new shared contract preserves face ids, triangle-to-face ownership, semantic edge polylines, and point positions for later face/edge/point selection without changing current viewer selection or wireframe behavior.```
+
+#### Scope / Constraints Honored
+
+- Kept the implementation to the shared geometry-result contract and test fixtures.
+- Preserved current mesh-only geometry behavior with `topologyPreview: null` and backwards-tolerant validation for older payloads that omit the field.
+- Did not implement viewport face selection, semantic wireframe rendering, imported STEP topology extraction, snapping, measurement, or direct modeling.
+
+#### Summary of Implementation
+
+- Added semantic topology preview types for faces, triangle face ownership, edge polylines, and point positions.
+- Added nullable `topologyPreview` support to geometry result bundles.
+- Added topology validation and deep-clone preservation through the existing geometry result helper path.
+- Updated direct test fixtures that manually construct geometry result bundles to include explicit null topology.
+- Added focused shared-contract tests for valid topology, malformed topology rejection, clone isolation, and mesh-only fallback.
+
+#### Files Changed
+
+- `src/shared/geometryResult.ts`
+- `src/shared/geometryResult.test.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/spaghetti/store/sketchDraftRuntimeExclusion.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- No visible viewport behavior changed yet.
+- Shared geometry result bundles now normalize missing semantic topology to `topologyPreview: null` when created through the factory helpers.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/shared/geometryResult.test.ts`
+- `npm.cmd run build`
+
 <!-- ENTRY 1933 -->
 
 ### [1933] - 2026-05-18 11:29 - `Titlebar-1 - Follow-Up - Forgiving Split Workspace Type Submenu`

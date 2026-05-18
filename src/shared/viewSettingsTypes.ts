@@ -28,6 +28,7 @@ export type EnvironmentLookSnapshot = Pick<
 >
 export type ProjectionMode = 'perspective' | 'orthographic'
 export type ViewDisplayMode = 'solid' | 'wireframe' | 'material' | 'rendered' | 'renderPreview'
+export type ViewEdgeDisplayMode = 'on' | 'off' | 'visibleEdgesOnly'
 export type RenderPreviewNoiseCleanup = 'off' | 'low' | 'medium' | 'high'
 export type RenderPreviewGpuLoad = 'smooth' | 'balanced' | 'fast'
 export type RenderPreviewQualityPreset = 'fast' | 'balanced' | 'clean' | 'high'
@@ -36,12 +37,18 @@ export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
 export type AxisOverlayBackgroundMode = 'none' | 'blur'
 export type GroundMaterialPresetId = 'matte_dark' | 'matte_mid' | 'glossy_studio'
 export const DEFAULT_VIEW_DISPLAY_MODE: ViewDisplayMode = 'rendered'
+export const DEFAULT_VIEW_EDGE_DISPLAY_MODE: ViewEdgeDisplayMode = 'off'
 export const VIEW_DISPLAY_MODES: readonly ViewDisplayMode[] = [
   'solid',
   'wireframe',
   'material',
   'rendered',
   'renderPreview',
+]
+export const VIEW_EDGE_DISPLAY_MODES: readonly ViewEdgeDisplayMode[] = [
+  'on',
+  'off',
+  'visibleEdgesOnly',
 ]
 export const RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS: readonly RenderPreviewNoiseCleanup[] = [
   'off',
@@ -157,6 +164,7 @@ export type ViewSettings = {
   shadowsEnabled: boolean
   wireframe: boolean
   displayMode: ViewDisplayMode
+  edgeDisplayMode: ViewEdgeDisplayMode
   envPreset: EnvPreset
   environmentGrade: EnvironmentGradeSettings
   environmentSource: EnvironmentSourceSettings
@@ -251,6 +259,10 @@ const normalizeInteger = (
 export const isViewDisplayMode = (value: unknown): value is ViewDisplayMode =>
   typeof value === 'string' &&
   VIEW_DISPLAY_MODES.includes(value as ViewDisplayMode)
+
+export const isViewEdgeDisplayMode = (value: unknown): value is ViewEdgeDisplayMode =>
+  typeof value === 'string' &&
+  VIEW_EDGE_DISPLAY_MODES.includes(value as ViewEdgeDisplayMode)
 
 export const isRenderPreviewNoiseCleanup = (
   value: unknown,
@@ -400,6 +412,17 @@ const normalizeViewDisplayMode = (
   }
 
   return legacyWireframe === true ? 'wireframe' : DEFAULT_VIEW_DISPLAY_MODE
+}
+
+const normalizeViewEdgeDisplayMode = (
+  edgeDisplayMode: unknown,
+  displayMode: ViewDisplayMode,
+): ViewEdgeDisplayMode => {
+  if (isViewEdgeDisplayMode(edgeDisplayMode)) {
+    return edgeDisplayMode
+  }
+
+  return displayMode === 'wireframe' ? 'on' : DEFAULT_VIEW_EDGE_DISPLAY_MODE
 }
 
 const BASELINE_ENVIRONMENT_PRESET_LIGHTING: ViewSettings['lighting'] = {
@@ -823,10 +846,12 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
     definition.environmentGrade,
   )
   const displayMode = normalizeViewDisplayMode(settings.displayMode, settings.wireframe)
+  const edgeDisplayMode = normalizeViewEdgeDisplayMode(settings.edgeDisplayMode, displayMode)
   const normalizedView: ViewSettings = {
     ...DEFAULT_VIEW_SETTINGS,
     ...settings,
     displayMode,
+    edgeDisplayMode,
     wireframe: displayMode === 'wireframe',
     envPreset: settings.envPreset ?? DEFAULT_VIEW_SETTINGS.envPreset,
     environmentGrade: normalizedGrade,
@@ -936,6 +961,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
   shadowsEnabled: true,
   wireframe: false,
   displayMode: DEFAULT_VIEW_DISPLAY_MODE,
+  edgeDisplayMode: DEFAULT_VIEW_EDGE_DISPLAY_MODE,
   envPreset: 'baseline',
   environmentGrade: cloneEnvironmentGrade(DEFAULT_ENVIRONMENT_GRADE),
   environmentSource: cloneEnvironmentSource(

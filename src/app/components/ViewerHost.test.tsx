@@ -101,8 +101,16 @@ const createArtifact = (partKeyStr: string): PartArtifact => ({
 vi.mock('../viewerBridge', () => {
   const queuedCameraPoseByViewportId = new Map<string, unknown>()
   const latestCameraPoseByViewportId = new Map<string, unknown>()
+  const viewerByViewportId = new Map<string, unknown>()
   return {
-    setViewer: vi.fn(),
+    setViewer: vi.fn((viewportId: string, viewer: unknown) => {
+      if (viewer === null) {
+        viewerByViewportId.delete(viewportId)
+        return
+      }
+      viewerByViewportId.set(viewportId, viewer)
+    }),
+    getViewer: vi.fn((viewportId: string) => viewerByViewportId.get(viewportId) ?? null),
     queueViewerCameraPose: vi.fn((viewportId: string, pose: unknown) => {
       queuedCameraPoseByViewportId.set(viewportId, pose)
       latestCameraPoseByViewportId.set(viewportId, pose)
@@ -125,6 +133,9 @@ vi.mock('../../viewer/Viewer', () => ({
   Viewer: class MockViewer {
     public constructor(_container: HTMLElement) {}
     public dispose(): void {}
+    public isFlyModeActive(): boolean {
+      return false
+    }
     public setParts = (...args: unknown[]) => viewerSetParts(...args)
     public setViewportRenderLayers = (...args: unknown[]) => {
       viewerSetViewportRenderLayers(...args)
@@ -140,6 +151,8 @@ vi.mock('../../viewer/Viewer', () => ({
       )
     }
     public setSelectedPart(): void {}
+    public setSelectedTopologyFace(): void {}
+    public setSelectedTopologyEntity(): void {}
     public setHighlightedPartKeys = (...args: unknown[]) => viewerSetHighlightedPartKeys(...args)
     public setHighlightedReferenceIds = (...args: unknown[]) =>
       viewerSetHighlightedReferenceIds(...args)
@@ -272,7 +285,18 @@ vi.mock('../../viewer/Viewer', () => ({
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
 type WorkspaceSelectionPickPayload = {
-  picks: Array<{ kind: 'part'; partKey: string } | { kind: 'reference-item'; referenceId: string }>
+  picks: Array<
+    | {
+        kind: 'part'
+        partKey: string
+        faceId?: string
+        edgeId?: string
+        pointId?: string
+        topologyBodyId?: string
+      }
+    | { kind: 'reference-item'; referenceId: string }
+    | { kind: 'environment-light'; lightId: string }
+  >
   ctrlKey: boolean
 }
 
@@ -9510,5 +9534,52 @@ describe('ViewerHost reference loading', () => {
         locked: false,
       },
     ])
+  })
+
+  it('renders Shift+D center edge controls and updates the edge display mode', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useAppStore.getState().setActiveSurface('viewer')
+      useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-primary')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).not.toBeNull()
+
+    const visibleEdgesOnlyButton = container.querySelector(
+      'button[aria-label="Visible edges only"]',
+    ) as HTMLButtonElement | null
+    expect(visibleEdgesOnlyButton).not.toBeNull()
+
+    await act(async () => {
+      visibleEdgesOnlyButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).not.toBeNull()
+    expect(visibleEdgesOnlyButton?.getAttribute('aria-checked')).toBe('true')
   })
 })

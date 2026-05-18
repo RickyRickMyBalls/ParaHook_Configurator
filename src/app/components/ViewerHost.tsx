@@ -14,12 +14,13 @@ import {
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
-import type { ViewDisplayMode } from '../../shared/viewSettingsTypes'
+import type { ViewDisplayMode, ViewEdgeDisplayMode } from '../../shared/viewSettingsTypes'
 import { useViewerDisplayModeMenu } from '../useViewerDisplayModeMenu'
 import { useViewerCameraShortcuts } from '../useViewerCameraShortcuts'
 import { useRenderPreviewStatusStore } from '../store/renderPreviewStatusStore'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { Viewer, type ViewerViewportRenderLayers } from '../../viewer/Viewer'
+import type { SelectedTopologyEntity } from '../../viewer/semanticTopologySelection'
 import { buildReferenceObjectMaterialTargetKey } from '../../shared/materialTargetKeys'
 import type {
   BuildResultBundle,
@@ -318,6 +319,16 @@ const displayModeMenuOptions: Array<{
   { mode: 'renderPreview', label: 'Render Preview', shortLabel: 'PRV' },
 ]
 
+const edgeDisplayModeMenuOptions: Array<{
+  mode: ViewEdgeDisplayMode
+  label: string
+  shortLabel: string
+}> = [
+  { mode: 'on', label: 'Edges on', shortLabel: 'On' },
+  { mode: 'off', label: 'Edges off', shortLabel: 'Off' },
+  { mode: 'visibleEdgesOnly', label: 'Visible edges only', shortLabel: 'Only' },
+]
+
 const applyViewerRenderPreviewStatus = (
   viewportId: WorkspaceViewportId,
   status: ViewerRenderPreviewStatus,
@@ -365,9 +376,12 @@ export function ViewerHost(props: ViewerHostProps) {
   useViewerCameraShortcuts(viewportId)
   const displayModeMenu = useViewerDisplayModeMenu(viewportId)
   const displayMode = useUiPrefsStore((state) => state.view.displayMode)
+  const edgeDisplayMode = useUiPrefsStore((state) => state.view.edgeDisplayMode)
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
+  const [selectedTopologyEntity, setSelectedTopologyEntity] =
+    useState<SelectedTopologyEntity | null>(null)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
@@ -1283,6 +1297,18 @@ export function ViewerHost(props: ViewerHostProps) {
   }, [selectedPartKey])
 
   useEffect(() => {
+    if (
+      selectedTopologyEntity !== null &&
+      selectedTopologyEntity.partKey !== selectedPartKey
+    ) {
+      viewerRef.current?.setSelectedTopologyEntity(null)
+      setSelectedTopologyEntity(null)
+      return
+    }
+    viewerRef.current?.setSelectedTopologyEntity(selectedTopologyEntity)
+  }, [selectedPartKey, selectedTopologyEntity])
+
+  useEffect(() => {
     viewerRef.current?.setHighlightedPartKeys(highlightedPartKeys)
   }, [highlightedPartKeys])
 
@@ -1398,6 +1424,7 @@ export function ViewerHost(props: ViewerHostProps) {
           {
             target: WorkspaceSelectedTarget
             selectedPartKey: string | null
+            selectedTopologyEntity: SelectedTopologyEntity | null
           }
         >()
         for (const pick of picks) {
@@ -1409,6 +1436,7 @@ export function ViewerHost(props: ViewerHostProps) {
                     objectId: buildImportedReferenceRowId(pick.referenceId),
                   } satisfies WorkspaceSelectedTarget,
                   selectedPartKey: null,
+                  selectedTopologyEntity: null,
                 }
               : pick.kind === 'environment-light'
                 ? {
@@ -1417,8 +1445,34 @@ export function ViewerHost(props: ViewerHostProps) {
                       lightId: pick.lightId,
                     } satisfies WorkspaceSelectedTarget,
                     selectedPartKey: null,
+                    selectedTopologyEntity: null,
                   }
               : (() => {
+                  const pickedTopologyEntity =
+                    pick.topologyBodyId === undefined
+                      ? null
+                      : pick.pointId !== undefined
+                        ? ({
+                            kind: 'point',
+                            partKey: pick.partKey,
+                            pointId: pick.pointId,
+                            bodyId: pick.topologyBodyId,
+                          } satisfies SelectedTopologyEntity)
+                        : pick.edgeId !== undefined
+                          ? ({
+                              kind: 'edge',
+                              partKey: pick.partKey,
+                              edgeId: pick.edgeId,
+                              bodyId: pick.topologyBodyId,
+                            } satisfies SelectedTopologyEntity)
+                          : pick.faceId !== undefined
+                            ? ({
+                                kind: 'face',
+                                partKey: pick.partKey,
+                                faceId: pick.faceId,
+                                bodyId: pick.topologyBodyId,
+                              } satisfies SelectedTopologyEntity)
+                            : null
                   const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
                   if (objectRow !== undefined) {
                     return {
@@ -1427,6 +1481,7 @@ export function ViewerHost(props: ViewerHostProps) {
                         objectId: objectRow.rowId,
                       } satisfies WorkspaceSelectedTarget,
                       selectedPartKey: pick.partKey,
+                      selectedTopologyEntity: pickedTopologyEntity,
                     }
                   }
                   return {
@@ -1435,6 +1490,7 @@ export function ViewerHost(props: ViewerHostProps) {
                       partKey: pick.partKey,
                     } satisfies WorkspaceSelectedTarget,
                     selectedPartKey: pick.partKey,
+                    selectedTopologyEntity: pickedTopologyEntity,
                   }
                 })()
           const key = getWorkspaceTargetKey(entry.target)
@@ -1497,6 +1553,7 @@ export function ViewerHost(props: ViewerHostProps) {
       }
 
       if (selectionTargetEntries.length === 0) {
+        setSelectedTopologyEntity(null)
         clearWorkspaceTargetSelection(
           {
             setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
@@ -1516,6 +1573,7 @@ export function ViewerHost(props: ViewerHostProps) {
         selectionTargetEntries[0]!.target.kind === 'part'
       ) {
         const singlePartSelection = selectionTargetEntries[0]!
+        setSelectedTopologyEntity(singlePartSelection.selectedTopologyEntity)
         commitWorkspaceTargetSelection(
           {
             setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
@@ -1533,6 +1591,7 @@ export function ViewerHost(props: ViewerHostProps) {
 
       if (!ctrlKey) {
         const primarySelection = selectionTargetEntries.at(-1) ?? null
+        setSelectedTopologyEntity(primarySelection?.selectedTopologyEntity ?? null)
         commitExplicitSelection(
           selectionTargetEntries.map((entry) => entry.target),
           primarySelection?.target ?? null,
@@ -1570,6 +1629,7 @@ export function ViewerHost(props: ViewerHostProps) {
       }
 
       if (nextExplicitTargets.length === 0) {
+        setSelectedTopologyEntity(null)
         commitExplicitSelection([], null, lastToggledTarget, null)
         return
       }
@@ -1592,6 +1652,8 @@ export function ViewerHost(props: ViewerHostProps) {
             nextPrimaryTarget !== null &&
             getWorkspaceTargetKey(entry.target) === getWorkspaceTargetKey(nextPrimaryTarget),
         ) ?? null
+
+      setSelectedTopologyEntity(primarySelectionEntry?.selectedTopologyEntity ?? null)
 
       commitExplicitSelection(
         nextExplicitTargets,
@@ -2091,7 +2153,23 @@ export function ViewerHost(props: ViewerHostProps) {
             aria-label="Display mode"
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <div className="ViewportDisplayModeMenuCenter">Display</div>
+            <div className="ViewportDisplayModeMenuCenter" aria-label="Edge display mode">
+              {edgeDisplayModeMenuOptions.map((option) => (
+                <button
+                  key={option.mode}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={edgeDisplayMode === option.mode}
+                  aria-label={option.label}
+                  className={`ViewportDisplayModeMenuEdgeItem ${
+                    edgeDisplayMode === option.mode ? 'isActive' : ''
+                  }`}
+                  onClick={() => displayModeMenu.selectEdgeDisplayMode(option.mode)}
+                >
+                  {option.shortLabel}
+                </button>
+              ))}
+            </div>
             {displayModeMenuOptions.map((option, index) => (
               <button
                 key={option.mode}

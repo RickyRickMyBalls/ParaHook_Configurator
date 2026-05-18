@@ -349,7 +349,9 @@ const buildGeometryPreviewRenderVm = (options: {
 
   return {
     items: [],
-    viewerParts: [toViewerRenderablePart(artifact, viewerKey)],
+    viewerParts: [
+      toViewerRenderablePart(artifact, viewerKey, geometryResult.topologyPreview ?? null),
+    ],
   }
 }
 

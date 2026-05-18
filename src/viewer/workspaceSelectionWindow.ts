@@ -4,6 +4,10 @@ export type WorkspaceSelectionPick =
   | {
       kind: 'part'
       partKey: string
+      faceId?: string
+      edgeId?: string
+      pointId?: string
+      topologyBodyId?: string
     }
   | {
       kind: 'reference-item'

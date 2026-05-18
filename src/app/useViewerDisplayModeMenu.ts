@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ViewDisplayMode } from '../shared/viewSettingsTypes'
+import type { ViewDisplayMode, ViewEdgeDisplayMode } from '../shared/viewSettingsTypes'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
@@ -11,6 +11,7 @@ export type ViewerDisplayModeMenuState = {
   isOpen: boolean
   close: () => void
   selectDisplayMode: (mode: ViewDisplayMode) => void
+  selectEdgeDisplayMode: (mode: ViewEdgeDisplayMode) => void
 }
 
 export function useViewerDisplayModeMenu(
@@ -67,6 +68,9 @@ export function useViewerDisplayModeMenu(
     selectDisplayMode: (mode) => {
       useUiPrefsStore.getState().setViewKey('displayMode', mode)
       setIsOpen(false)
+    },
+    selectEdgeDisplayMode: (mode) => {
+      useUiPrefsStore.getState().setViewKey('edgeDisplayMode', mode)
     },
   }
 }

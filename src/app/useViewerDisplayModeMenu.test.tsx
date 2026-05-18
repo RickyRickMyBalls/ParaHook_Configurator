@@ -3,7 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { ViewDisplayMode } from '../shared/viewSettingsTypes'
+import type { ViewDisplayMode, ViewEdgeDisplayMode } from '../shared/viewSettingsTypes'
 import { useViewerDisplayModeMenu } from './useViewerDisplayModeMenu'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
@@ -20,6 +20,7 @@ const displayModeOptions: ViewDisplayMode[] = [
   'rendered',
   'renderPreview',
 ]
+const edgeDisplayModeOptions: ViewEdgeDisplayMode[] = ['on', 'off', 'visibleEdgesOnly']
 
 function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
   const menu = useViewerDisplayModeMenu(viewportId)
@@ -28,6 +29,11 @@ function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
     <div role="menu" aria-label="Display mode">
       {displayModeOptions.map((mode) => (
         <button key={mode} type="button" onClick={() => menu.selectDisplayMode(mode)}>
+          {mode}
+        </button>
+      ))}
+      {edgeDisplayModeOptions.map((mode) => (
+        <button key={mode} type="button" onClick={() => menu.selectEdgeDisplayMode(mode)}>
           {mode}
         </button>
       ))}
@@ -174,6 +180,34 @@ describe('useViewerDisplayModeMenu', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
+  })
+
+  it('selects an edge display mode without closing the display mode menu', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const visibleEdgesOnlyButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'visibleEdgesOnly',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      visibleEdgesOnlyButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).not.toBeNull()
   })
 
   it('closes with Escape without changing the current display mode', () => {

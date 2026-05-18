@@ -323,6 +323,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
     const normalizedPatch = { ...patch }
     if ('wireframe' in patch && !('displayMode' in patch)) {
       normalizedPatch.displayMode = patch.wireframe ? 'wireframe' : 'rendered'
+      normalizedPatch.edgeDisplayMode = patch.wireframe ? 'on' : 'off'
     }
     if (
       'displayMode' in patch &&
@@ -330,6 +331,9 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
       !('wireframe' in patch)
     ) {
       normalizedPatch.wireframe = patch.displayMode === 'wireframe'
+      if (patch.displayMode === 'wireframe' && !('edgeDisplayMode' in patch)) {
+        normalizedPatch.edgeDisplayMode = 'on'
+      }
     }
     set({ view: normalizeViewSettings({ ...get().view, ...normalizedPatch }) })
   },
@@ -337,9 +341,13 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
     const patch: Partial<ViewSettings> = { [key]: value }
     if (key === 'wireframe') {
       patch.displayMode = value ? 'wireframe' : 'rendered'
+      patch.edgeDisplayMode = value ? 'on' : 'off'
     }
     if (key === 'displayMode' && isViewDisplayMode(value)) {
       patch.wireframe = value === 'wireframe'
+      if (value === 'wireframe') {
+        patch.edgeDisplayMode = 'on'
+      }
     }
     set({ view: normalizeViewSettings({ ...get().view, ...patch }) })
   },
