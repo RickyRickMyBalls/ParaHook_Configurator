@@ -348,6 +348,30 @@ describe('SpaghettiPanel', () => {
     expect(focusPicker?.value).toBe('node-1')
   })
 
+  it('keeps long graph names inside the pinned split-pane picker lane', async () => {
+    currentSpaghettiState.graphDocumentsById['graph-document-1'] = {
+      ...currentSpaghettiState.graphDocumentsById['graph-document-1'],
+      name: 'Graph 1 With A Very Long Workspace Split Pane Label',
+    }
+
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    const focusRow = container?.querySelector('.SpaghettiFocusRow') as HTMLDivElement | null
+    const graphPickerCell = container?.querySelector(
+      '.SpaghettiFocusPickerCell--graph',
+    ) as HTMLDivElement | null
+    const graphPickerValue = graphPickerCell?.querySelector(
+      '.ParaSelectValue > span:first-child',
+    ) as HTMLSpanElement | null
+
+    expect(focusRow).not.toBeNull()
+    expect(graphPickerCell).not.toBeNull()
+    expect(graphPickerValue?.textContent).toBe(
+      'Graph 1 With A Very Long Workspace Split Pane Label',
+    )
+    expect(focusRow?.contains(graphPickerCell ?? null)).toBe(true)
+  })
+
   it('offers an add new graph shortcut in the pinned graph picker menu', async () => {
     ;({ container, root } = await renderSpaghettiPanel())
 

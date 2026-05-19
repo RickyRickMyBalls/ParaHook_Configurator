@@ -7,6 +7,7 @@ import type {
 } from 'react'
 import { PrimaryViewportLeftDock } from './PrimaryViewportLeftDock'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportFrame, type ViewportFrameHeaderDragOutPayload } from './ViewportFrame'
 import { ViewportOverlayModeTitlebarControls } from './ViewportOverlayModeTitlebarControls'
@@ -180,6 +181,18 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
   } = props
   const viewportChromeById = useWorkspaceStore((state) => state.viewportChromeById)
   const setViewportResultMode = useWorkspaceStore((state) => state.setViewportResultMode)
+  const editorViewportHeaderCollapsedById = useSpaghettiStore(
+    (state) => state.editorViewportHeaderCollapsedById,
+  )
+  const editorViewportCanvasToolbarVisibleById = useSpaghettiStore(
+    (state) => state.editorViewportCanvasToolbarVisibleById,
+  )
+  const editorViewportOverlayModeById = useSpaghettiStore(
+    (state) => state.editorViewportOverlayModeById,
+  )
+  const setEditorViewportPresentationMode = useSpaghettiStore(
+    (state) => state.setEditorViewportPresentationMode,
+  )
   const workspacePaneFilletRadiusPx = useUiPrefsStore((state) => state.workspacePaneFilletRadiusPx)
   const splitCornerHitAreaPx = Math.max(18, workspacePaneFilletRadiusPx)
   const isViewportSplit = viewportLayoutNodesById[viewportSlotRootNodeId]?.kind === 'split'
@@ -210,6 +223,30 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
       : undefined
     const showInlineCloseButton =
       isViewportSplit && closeViewportSlot !== undefined && slotActionEligibility.canClose
+    const isSpaghettiPaneOverlay =
+      slot.surfaceKind === 'spaghettiEditor' &&
+      editorViewportOverlayModeById[slot.surfaceInstanceId] === true
+    const isSpaghettiPaneCompact =
+      slot.surfaceKind === 'spaghettiEditor' &&
+      !isSpaghettiPaneOverlay &&
+      editorViewportHeaderCollapsedById[slot.surfaceInstanceId] === true &&
+      editorViewportCanvasToolbarVisibleById[slot.surfaceInstanceId] === false
+    const spaghettiPaneDensityLabel = isSpaghettiPaneCompact ? 'e' : '+'
+    const spaghettiPaneDensityTitle = isSpaghettiPaneCompact
+      ? 'Switch Spaghetti pane to full editor mode'
+      : 'Switch Spaghetti pane to compact editor mode'
+    const spaghettiPaneDensityMode = isSpaghettiPaneCompact ? 'expanded' : 'essentials'
+    const spaghettiPanePrimaryButtonLabel = isSpaghettiPaneOverlay ? 'O' : spaghettiPaneDensityLabel
+    const spaghettiPanePrimaryButtonTitle = isSpaghettiPaneOverlay
+      ? 'Spaghetti pane overlay mode'
+      : spaghettiPaneDensityTitle
+    const spaghettiPanePrimaryButtonClick = isSpaghettiPaneOverlay
+      ? undefined
+      : () =>
+          setEditorViewportPresentationMode(
+            slot.surfaceInstanceId,
+            spaghettiPaneDensityMode,
+          )
 
     return (
       <ViewportFrame
@@ -222,11 +259,25 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             ? () => onActivateSpaghettiSurface(slot.surfaceInstanceId)
             : undefined
         }
-        onPrimaryButtonClick={undefined}
-        primaryButtonLabel={undefined}
-        primaryButtonAriaLabel={undefined}
-        primaryButtonTitle={undefined}
-        primaryButtonExpanded={slot.surfaceKind === 'browser' ? !isBrowserCollapsed : undefined}
+        onPrimaryButtonClick={
+          slot.surfaceKind === 'spaghettiEditor' ? spaghettiPanePrimaryButtonClick : undefined
+        }
+        primaryButtonLabel={
+          slot.surfaceKind === 'spaghettiEditor' ? spaghettiPanePrimaryButtonLabel : undefined
+        }
+        primaryButtonAriaLabel={
+          slot.surfaceKind === 'spaghettiEditor' ? spaghettiPanePrimaryButtonTitle : undefined
+        }
+        primaryButtonTitle={
+          slot.surfaceKind === 'spaghettiEditor' ? spaghettiPanePrimaryButtonTitle : undefined
+        }
+        primaryButtonExpanded={
+          slot.surfaceKind === 'spaghettiEditor'
+            ? !isSpaghettiPaneCompact
+            : slot.surfaceKind === 'browser'
+              ? !isBrowserCollapsed
+              : undefined
+        }
         onRequestSurfaceKind={(nextSurfaceKind) =>
           onRequestViewportSlotSurfaceKind(slot.slotId, nextSurfaceKind)
         }

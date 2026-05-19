@@ -41,6 +41,7 @@
 
 .SpaghettiPanelPinnedRow {
   flex: 0 0 auto;
+  min-width: 0;
 }
 
 .SpaghettiWindowShell {
@@ -395,10 +396,12 @@
   background: var(--sp-window-toolbar-surface);
   padding: var(--sp-window-pad-y) var(--sp-window-pad-x);
   gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .SpaghettiFocusPickerCell {
-  flex: 1 1 0;
+  flex: 1 1 168px;
   min-width: 0;
 }
 
@@ -509,6 +512,7 @@
   user-select: text;
   pointer-events: auto;
   font-family: var(--sp-window-font-family);
+  min-width: 0;
 }
 
 .SpaghettiFloatingHandle--overlay {
@@ -544,7 +548,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 1 1 180px;
 }
 
 .SpaghettiFloatingHandleRow {
@@ -598,14 +602,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 0 0 auto;
+  flex: 1 1 188px;
   min-width: 0;
   justify-content: flex-start;
 }
 
 .SpaghettiGraphDocumentPicker {
-  flex: 0 0 auto;
-  min-width: 188px;
+  flex: 1 1 188px;
+  min-width: 0;
   max-width: min(360px, 38vw);
 }
 
@@ -1375,6 +1379,27 @@
   min-width: 0;
 }
 
+.SpaghettiFocusRow .ParaSelectContent {
+  min-width: 0;
+  gap: 8px;
+}
+
+.SpaghettiFocusRow .ParaSelectLabel {
+  flex: 0 0 auto;
+}
+
+.SpaghettiFocusRow .ParaSelectValue {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.SpaghettiFocusRow .ParaSelectValue > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .SpaghettiGraphDocumentSelect {
   width: 100%;
   min-width: 0;
@@ -1623,12 +1648,13 @@
 .SpaghettiCanvasToolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: var(--sp-window-gap);
   margin-bottom: var(--sp-window-gap);
   font-size: var(--sp-window-font-size);
   font-family: var(--sp-window-font-family);
+  min-width: 0;
 }
 
 .SpaghettiCanvasToolbar--modeOnly {
@@ -1641,19 +1667,59 @@
   gap: 6px;
   flex-wrap: wrap;
   font-family: var(--sp-window-font-family);
+  min-width: 0;
 }
 
 .SpaghettiCanvasCurveControl {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 168px;
+  min-width: 132px;
+  max-width: 260px;
   font-size: var(--sp-window-font-size);
   font-family: var(--sp-window-font-family);
   color: rgba(220, 228, 244, 0.9);
 }
 
+.SpaghettiCanvasCurveControl span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .SpaghettiCanvasCurveControl input[type='range'] {
-  width: 160px;
+  flex: 1 1 88px;
+  min-width: 72px;
+  width: auto;
+}
+
+.SpaghettiCanvasToolbar > button,
+.SpaghettiCanvasModeToggle > button {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.SpaghettiCanvasToolbar > button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.WorkspaceViewportSlotSurface--spaghetti .SpaghettiPanelRoot {
+  --sp-window-gap: min(8px, 2.4vw);
+}
+
+.WorkspaceViewportSlotSurface--spaghetti .SpaghettiFloatingHandle {
+  flex-wrap: wrap;
+}
+
+.WorkspaceViewportSlotSurface--spaghetti .SpaghettiFocusPickerCell {
+  flex-basis: clamp(140px, 48%, 240px);
+}
+
+.WorkspaceViewportSlotSurface--spaghetti .SpaghettiCanvasToolbar {
+  align-content: flex-start;
 }
 
 .SpaghettiCanvasRowMode,

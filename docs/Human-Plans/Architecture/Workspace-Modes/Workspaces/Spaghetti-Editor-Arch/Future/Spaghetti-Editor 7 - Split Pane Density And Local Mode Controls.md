@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+9. 2026-05-19 00:20:11: Added the `Spaghetti-Editor 7 / Phase 3` follow-up fix after the split-pane button correctly switched to `e` but the slotted editor body stayed expanded; `ViewportSurfaceRegistry` now forwards the editor viewport presentation flags into `SpaghettiPanel` so split-hosted essentials mode hides expanded panel chrome and canvas toolbar content.
+8. 2026-05-19 00:14:12: Implemented and closed `Spaghetti-Editor 7 / Phase 3 - Split Pane Local Minus Rule` by folding split-pane Spaghetti `e / +` density behavior onto the shared primary `ViewportFrame` button, removing the adjacent duplicate density supplement, preserving right-click viewport-type access, and keeping floating/windowed Spaghetti `- / e / + / O` behavior unchanged.
+7. 2026-05-19 00:08:47: Corrected the `Spaghetti-Editor 7 / Phase 3 - Split Pane Local Minus Rule` prep after the live screenshot showed two adjacent split-pane header buttons: the shared `ViewportFrameModeButton` still displays `-` beside the new Spaghetti `+` density button. Phase 3 is now locked to merge the split-pane Spaghetti `e / +` density action onto the shared primary header button, remove the extra Spaghetti density supplement button, preserve right-click viewport-type access, and keep floating/windowed `- / e / + / O` behavior unchanged.
+6. 2026-05-19 00:05:51: Prepped `Spaghetti-Editor 7 / Phase 3 - Split Pane Local Minus Rule` against the shipped Phase 2 split-pane header path and the live floating Spaghetti titlebar cycle, locking the next slice to prove split-hosted panes do not expose a Spaghetti-local `-`, preserve shared workspace close/remove ownership, and leave floating/windowed `- / e / + / O` behavior intact.
+5. 2026-05-19 00:01:35: Implemented and closed `Spaghetti-Editor 7 / Phase 2 - Split Pane e And + Mode Behavior` by adding a Spaghetti-only `ViewportFrame` header density control for split-hosted panes, wiring `+` to compact essentials and `e` to full editor restore through the existing editor viewport presentation state, preserving slotted placement and overlay separation, and adding focused tree/store/AppShell proof while leaving the local `-` policy for Phase 3.
+4. 2026-05-18 23:56:25: Prepped `Spaghetti-Editor 7 / Phase 2 - Split Pane e And + Mode Behavior` against the live workspace-frame header supplement seam, split-host Spaghetti registry path, Spaghetti presentation store, and console activation tests, locking the implementation to pane-local `e -> +` density controls in the shared `ViewportFrame` header without adding a second Spaghetti floating titlebar, changing overlay `O`, deciding the local `-` policy, or touching graph/node truth.
+3. 2026-05-18 23:46:59: Implemented and closed `Spaghetti-Editor 7 / Phase 1 - Split Pane Chrome Fit` with split-host fit targeting, shrink-safe Spaghetti focus row and floating-titlebar lanes, compact accessible canvas-toolbar labels, disabled toolbar readability, and focused panel/canvas/registry proof while leaving split-pane `e / +` behavior and the local `-` rule for later phases.
 2. 2026-05-18 15:41:11: Prepped `Spaghetti-Editor 7 / Phase 1 - Split Pane Chrome Fit` for implementation against the live split-slot wrapper, Spaghetti floating-handle titlebar lanes, graph-document picker CSS, and canvas-toolbar long-label controls, locking the first cut to responsive fit, truncation, wrapping, disabled-state readability, and focused host/layout proof without changing `e / +`, local `-`, node row-density, or workspace close behavior.
 1. 2026-05-18 15:31:57: Created this future plan doc after the split-workspace Spaghetti Editor screenshot showed overlapping titlebar text, crowded graph selectors, oversized canvas-toolbar labels, an unhelpful or non-working local `-` affordance, and the need to make `e` and `+` useful inside a dedicated split workspace pane.
 
@@ -80,6 +87,15 @@ Important architectural note:
 
 The cramped split-pane problem should not be solved by changing canonical graph truth or node row state. The fix should stay in shell presentation, responsive layout, and workspace-host behavior.
 
+Phase 2 live read after Phase 1:
+
+- `src/app/workspace/WorkspaceViewportTree.tsx` already feeds Browser and Model Viewer local controls into the shared `ViewportFrame` via `headerStartSupplement`.
+- `src/app/workspace/ViewportSurfaceRegistry.tsx` mounts split-hosted Spaghetti as `WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--spaghetti` with `data-spaghetti-split-pane-fit="true"` and `SpaghettiPanel`.
+- Split-hosted Spaghetti does not render through `SpaghettiWindowTitleBar`; that floating titlebar still belongs to the floating/windowed editor host.
+- `src/app/hosts/SpaghettiWindowHost.tsx` owns the existing floating `- / e / + / O` titlebar cycle and should not be mounted wholesale inside a workspace pane.
+- `src/app/spaghetti/store/useSpaghettiStore.ts` already owns `setEditorViewportPresentationMode(...)`, header collapse state, canvas-toolbar visibility, and overlay state.
+- Existing `src/app/AppShell.test.tsx` coverage proves split-host Spaghetti activation and console handoff from panel clicks and frame-header clicks; Phase 2 should preserve those handoff guarantees while adding only the local density control.
+
 ### Boundary Rules
 
 - Split-pane `e / +` is local editor presentation, not graph authored state.
@@ -112,41 +128,41 @@ The user should be able to split the workspace, put Spaghetti in one side, and i
 
 ### High Level Goals
 
-- [ ] `Spaghetti-SplitPane-HLG-1. When Spaghetti Editor is in a split workspace pane, the titlebar and graph selectors should not overlap or become too large.`
-- [ ] `Spaghetti-SplitPane-HLG-2. The split-pane editor should have useful local e and + modes.`
-- [ ] `Spaghetti-SplitPane-HLG-3. The local - button should not stay as a confusing or broken control when the editor already lives in a dedicated workspace pane.`
-- [ ] `Spaghetti-SplitPane-HLG-4. The canvas toolbar should fit narrow split panes without oversized labels or control collisions.`
+- [x] `Spaghetti-SplitPane-HLG-1. When Spaghetti Editor is in a split workspace pane, the titlebar and graph selectors should not overlap or become too large.`
+- [x] `Spaghetti-SplitPane-HLG-2. The split-pane editor should have useful local e and + modes.`
+- [x] `Spaghetti-SplitPane-HLG-3. The local - button should not stay as a confusing or broken control when the editor already lives in a dedicated workspace pane.`
+- [x] `Spaghetti-SplitPane-HLG-4. The canvas toolbar should fit narrow split panes without oversized labels or control collisions.`
 
 ### Codex Level Goals
 
 - [ ] CLG 1. Ground the split-pane fit problem in the live Spaghetti host, workspace frame, and canvas-toolbar seams.
-- [ ] CLG 2. Add responsive titlebar, selector, and toolbar layout rules without changing graph or node truth.
-- [ ] CLG 3. Implement split-host-aware `e / +` presentation behavior using existing editor presentation state.
-- [ ] CLG 4. Decide and implement the split-pane local `-` rule without duplicating workspace pane close ownership.
+- [x] CLG 2. Add responsive titlebar, selector, and toolbar layout rules without changing graph or node truth.
+- [x] CLG 3. Implement split-host-aware `e / +` presentation behavior using existing editor presentation state.
+- [x] CLG 4. Decide and implement the split-pane local `-` rule without duplicating workspace pane close ownership.
 - [ ] CLG 5. Verify the narrow-pane user experience with focused tests and a screenshot/manual check.
 
 ### `Spaghetti-Editor 7 / Phase 1`
 
-- [ ] Inspect current split-hosted Spaghetti titlebar and canvas-toolbar layout.
-- [ ] Fix text overflow and control collision in the top titlebar and graph selector row.
-- [ ] Fix lower canvas-toolbar wrapping, truncation, or icon/short-label behavior for narrow panes.
-- [ ] Keep the phase limited to chrome fit; leave `e / +` behavior and local `-` policy to Phases 2 and 3.
-- [ ] `HLG 1. When Spaghetti Editor is in a split workspace pane, the titlebar and graph selectors should not overlap or become too large.`
-- [ ] `HLG 4. The canvas toolbar should fit narrow split panes without oversized labels or control collisions.`
+- [x] Inspect current split-hosted Spaghetti titlebar and canvas-toolbar layout.
+- [x] Fix text overflow and control collision in the top titlebar and graph selector row.
+- [x] Fix lower canvas-toolbar wrapping, truncation, or icon/short-label behavior for narrow panes.
+- [x] Keep the phase limited to chrome fit; leave `e / +` behavior and local `-` policy to Phases 2 and 3.
+- [x] `HLG 1. When Spaghetti Editor is in a split workspace pane, the titlebar and graph selectors should not overlap or become too large.`
+- [x] `HLG 4. The canvas toolbar should fit narrow split panes without oversized labels or control collisions.`
 
 ### `Spaghetti-Editor 7 / Phase 2`
 
-- [ ] Make split-hosted `e` enter a compact local editor state that remains usable inside the pane.
-- [ ] Make split-hosted `+` restore full local editor content inside the same pane.
-- [ ] Keep `O` overlay behavior separate.
-- [ ] `HLG 2. The split-pane editor should have useful local e and + modes.`
+- [x] Make split-hosted `e` enter a compact local editor state that remains usable inside the pane.
+- [x] Make split-hosted `+` restore full local editor content inside the same pane.
+- [x] Keep `O` overlay behavior separate.
+- [x] `HLG 2. The split-pane editor should have useful local e and + modes.`
 
 ### `Spaghetti-Editor 7 / Phase 3`
 
-- [ ] Decide whether split-hosted local `-` should be hidden, disabled with explanation, or remapped to a real local compact state.
-- [ ] Keep workspace-pane close/remove behavior on the shared pane shell.
-- [ ] Add focused proof that the local `-` no longer appears broken in split panes.
-- [ ] `HLG 3. The local - button should not stay as a confusing or broken control when the editor already lives in a dedicated workspace pane.`
+- [x] Decide whether split-hosted local `-` should be hidden, disabled with explanation, or remapped to a real local compact state.
+- [x] Keep workspace-pane close/remove behavior on the shared pane shell.
+- [x] Add focused proof that the local `-` no longer appears broken in split panes.
+- [x] `HLG 3. The local - button should not stay as a confusing or broken control when the editor already lives in a dedicated workspace pane.`
 
 ### `Spaghetti-Editor 7 / Phase 4`
 
@@ -158,7 +174,7 @@ The user should be able to split the workspace, put Spaghetti in one side, and i
 - [ ] `HLG 3. The local - button should not stay as a confusing or broken control when the editor already lives in a dedicated workspace pane.`
 - [ ] `HLG 4. The canvas toolbar should fit narrow split panes without oversized labels or control collisions.`
 
-## [ ] `Spaghetti-Editor 7 / Phase 1` - `Split Pane Chrome Fit`
+## [x] `Spaghetti-Editor 7 / Phase 1` - `Split Pane Chrome Fit`
 
 ### Phase 1 Summary
 
@@ -291,7 +307,7 @@ Phase 1 is implementation-ready when the next code pass starts from:
 
 The next code pass should not include Phase 2 `e / +` behavior or Phase 3 local `-` policy unless Phase 1 exposes a tiny mechanical dependency that cannot be separated.
 
-## [ ] `Spaghetti-Editor 7 / Phase 2` - `Split Pane e And + Mode Behavior`
+## [x] `Spaghetti-Editor 7 / Phase 2` - `Split Pane e And + Mode Behavior`
 
 ### Phase 2 Summary
 
@@ -311,26 +327,75 @@ Make `e` and `+` useful as local density controls when Spaghetti Editor is alrea
 - local `-` decision
 - overlay ownership
 - shared workspace pane controls
+- mounting the full Spaghetti floating titlebar inside a workspace pane
+- Browser presentation controls or Model Viewer result-mode controls
 
 ### Phase 2 Implementation Spec
 
+#### Current Live Read
+
+The split-host path is:
+- `WorkspaceViewportTree`
+- `ViewportFrame`
+- `ViewportSurfaceRegistry`
+- `SpaghettiPanel`
+
+The shared frame already has the right local-control seam:
+- Browser uses `headerStartSupplement` and `ViewportFrameHeaderControlButton` for its pane-local presentation button.
+- Model Viewer also uses the frame-header supplement lane for viewport-local mode controls.
+- Spaghetti should use the same shared frame seam instead of adding a second Spaghetti floating titlebar inside the pane.
+
+The split-pane Spaghetti control should be narrow and explicit:
+- full pane state shows `+` as the visible control and switches to compact `e`
+- compact pane state shows `e` as the visible control and restores full `+`
+- titles and aria labels should spell out the real action, such as switching the Spaghetti pane to compact editor mode or full editor mode
+- overlay `O` remains separate from this lane
+- the local `-` policy remains out of scope for Phase 2
+
+The implementation must preserve slotted placement. It must not move the editor into floating, collapsed, maximized, separate-window, meatball, or overlay placement while cycling `e / +`.
+
+#### First Pass Decisions
+
+- Implement the visible split-pane `e / +` control in `WorkspaceViewportTree.tsx` through the existing `headerStartSupplement` path.
+- Derive the current split-pane density from `editorViewportHeaderCollapsedById`, `editorViewportCanvasToolbarVisibleById`, and `editorViewportOverlayModeById`.
+- Prefer the existing `setEditorViewportPresentationMode(editorViewportId, 'essentials' | 'expanded')` store action if it preserves slotted/workspace placement; narrow the store behavior only if the live code tries to collapse, float, maximize, or otherwise re-place a split-hosted pane.
+- Use only the visible `e` and `+` control labels for this phase.
+- Use `ViewportFrameHeaderControlButton` so Spaghetti follows the shared workspace header control shape.
+- Do not render or reuse `SpaghettiWindowTitleBar` inside split panes.
+- Compact mode should hide/collapse local editor chrome enough to improve density and hide the canvas toolbar, while full mode restores the normal editor content and canvas toolbar.
+- Preserve split-host activation and console handoff behavior when the pane header or editor body is clicked.
+
 #### Exact First Code Cut
 
-1. Read the current `setEditorViewportPresentationMode(...)` behavior for split-hosted surfaces.
-2. Make `essentials` collapse local Spaghetti editor chrome enough for a narrow split pane while keeping the canvas usable.
-3. Make `expanded` restore full local editor content inside the same workspace pane.
-4. Keep the active `editorViewportId`, `graphDocumentId`, and console focus handoff stable while switching modes.
-5. Add focused tests for split-hosted `e -> +` and `+ -> e` transitions.
+1. Re-read the slotted path through `WorkspaceViewportTree`, `ViewportFrame`, `ViewportSurfaceRegistry`, and `SpaghettiPanel`.
+2. Add a Spaghetti-only `headerStartSupplement` when a viewport slot is hosting `surfaceKind === 'spaghettiEditor'`.
+3. Derive whether the slotted editor is currently compact or full from the editor viewport presentation state.
+4. When full, make the header button show `+` and call the essentials transition for that same `editorViewportId`.
+5. When compact, make the header button show `e` and call the expanded transition for that same `editorViewportId`.
+6. Verify the store transition preserves slotted/workspace placement and does not route through floating, collapsed, maximized, separate-window, meatball, or overlay behavior.
+7. Leave overlay `O` behavior on its existing viewport overlay path.
+8. Leave the local `-` decision untouched for Phase 3.
+9. Add focused proof that the control toggles pane-local density, preserves graph binding, and preserves split-host console activation/handoff.
 
 #### Likely Files
 
-- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
 - `src/app/spaghetti/store/useSpaghettiStore.ts`
 - `src/app/workspace/ViewportSurfaceRegistry.tsx`
 - `src/app/panels/SpaghettiPanel.tsx`
-- `src/app/hosts/SpaghettiWindowHost.test.tsx`
 - `src/app/spaghetti/store/useSpaghettiStore.test.ts`
 - `src/app/AppShell.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+
+Only touch `src/app/hosts/SpaghettiWindowHost.tsx` if a tiny shared label or presentation helper is genuinely needed. Do not move the floating titlebar into the split-pane render path.
+
+#### No-Widening Rule
+
+Do not decide the local `-` policy in Phase 2.
+
+Do not change Browser or Model Viewer local presentation controls.
+
+Do not change overlay `O` ownership, graph-document truth, node row-density, workspace close behavior, or split-tree mutation behavior.
 
 #### Verification Shape
 
@@ -338,8 +403,48 @@ Make `e` and `+` useful as local density controls when Spaghetti Editor is alrea
 - `+` restores the full editor body in the same pane
 - mode switching does not unbind the editor from its graph
 - `O` remains a separate overlay mode and does not get triggered by `e`
+- split-hosted Spaghetti remains mounted through `.WorkspaceViewportSlotSurface--spaghetti`
+- console focus and handoff still target the clicked split-hosted Spaghetti editor
 
-## [ ] `Spaghetti-Editor 7 / Phase 3` - `Split Pane Local Minus Rule`
+#### Prep Status
+
+Phase 2 is implementation-ready when the next code pass starts from:
+- the shared `ViewportFrame` header supplement seam
+- the existing editor viewport presentation store state
+- slotted placement preservation as a hard invariant
+- focused `WorkspaceViewportTree`, store, and `AppShell` proof
+
+#### Implementation Result
+
+Phase 2 shipped on 2026-05-19.
+
+Landed behavior:
+- split-hosted Spaghetti panes now render a pane-local density button in the shared `ViewportFrame` header
+- full panes show `+` and switch the same editor viewport into compact essentials mode
+- compact panes show `e` and restore the same editor viewport to full editor mode
+- overlay `O` remains separate and does not render through this split-pane density lane
+- the floating Spaghetti titlebar is not mounted inside split panes
+- slotted/split placement stays preserved while header collapse and canvas-toolbar visibility toggle
+
+Files changed:
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Verification:
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx -t "split-host Spaghetti e and plus"`
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "setEditorViewportPresentationMode"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+  - `WorkspaceViewportTree.test.tsx` passed
+  - `useSpaghettiStore.test.ts` still has two unrelated existing OutputPreview normalization expectation failures around newly present `publicationMode` fields
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-host spaghetti"`
+- `npm.cmd run build`
+
+## [x] `Spaghetti-Editor 7 / Phase 3` - `Split Pane Local Minus Rule`
 
 ### Phase 3 Summary
 
@@ -349,7 +454,7 @@ Decide and implement the split-pane rule for the local Spaghetti `-` control so 
 
 #### Owns
 
-- split-hosted local `-` visibility or behavior
+- split-hosted local `-` visibility policy
 - avoiding duplicated workspace pane close/remove ownership
 - tests proving the chosen rule is stable
 
@@ -358,40 +463,148 @@ Decide and implement the split-pane rule for the local Spaghetti `-` control so 
 - workspace pane `x` close control
 - split tree mutation behavior
 - Browser presentation controls
+- floating/windowed Spaghetti `- / e / + / O` behavior
+- remapping split-pane `-` to a new local collapsed body mode
+- changing the Phase 2 split-pane `e / +` density control
+- overlay `O` ownership
+- graph, node, or canvas authored state
+
+#### Current Live Read
+
+After Phase 2, split-hosted Spaghetti panes are rendered through:
+- `WorkspaceViewportTree`
+- `ViewportFrame`
+- `ViewportSurfaceRegistry`
+- `SpaghettiPanel`
+
+The live screenshot shows the split-pane header currently exposes two adjacent small buttons:
+- the shared `ViewportFrameModeButton`, which still displays `-`
+- the Spaghetti-only `ViewportFrameHeaderControlButton`, which displays `+` or `e` for local density
+
+That is visually confusing because it reads like two Spaghetti presentation buttons. The left `-` is technically the shared viewport type/menu button, not the floating Spaghetti collapse button, but the user-facing result is still the same ambiguity Phase 3 is supposed to remove.
+
+The split-hosted pane still does not render:
+- `SpaghettiWindowTitleBar`
+- `.SpaghettiWindowAction--collapse`
+
+The floating/windowed editor still owns the real Spaghetti titlebar cycle in `src/app/hosts/SpaghettiWindowHost.tsx`:
+- `SpaghettiWindowTitleBar` renders `.SpaghettiWindowAction--collapse`
+- expanded mode shows `+` with `Minimize editor`
+- collapsed mode shows `-` with `Switch editor to essentials mode`
+- essentials mode shows `e` with `Switch editor to full window mode`
+- overlay mode hides that titlebar and remains separate
+
+This means the honest split-pane local `-` rule is to remove the apparent two-button mode cluster: the split-pane Spaghetti `e / +` density action should move onto the shared primary header button, replacing the visible `-`, while the viewport-type menu remains available through the existing right-click/context-menu path.
+
+#### First Pass Decision
+
+Use the preferred option as the Phase 3 implementation rule:
+- split-hosted Spaghetti panes should show one local density button, not two adjacent mode-looking buttons
+- the shared `ViewportFrameModeButton` should become the visible Spaghetti `e / +` density control for split-hosted Spaghetti panes
+- the separate Phase 2 `ViewportFrameHeaderControlButton` supplement should be removed for split-hosted Spaghetti panes
+- right-click/context-menu viewport-type access on the shared button should remain available
+- pane close/remove stays on `ViewportFrame` eligibility and inline/menu close paths
+- floating and meatball/windowed Spaghetti titlebar behavior remains unchanged
 
 ### Phase 3 Implementation Spec
 
 #### Decision Options
 
-Preferred option:
-- hide the local Spaghetti `-` control in split panes if it only means floating-window collapse.
+Selected option:
+- combine the split-pane Spaghetti density affordance into the shared primary header button so split panes show `+` or `e`, not a misleading shared `-` beside a second density button.
 
-Acceptable option:
+Rejected fallback:
 - disable it with an accessible explanation if hiding would create control jitter or a confusing mode gap.
 
-Only use this option if it is genuinely useful:
+Rejected widening:
 - map it to a real local collapsed Spaghetti body inside the split pane, without removing the pane or duplicating workspace close behavior.
 
 #### Exact First Code Cut
 
-1. Decide which option matches the live host behavior after Phases 1 and 2.
-2. Implement the selected rule in the Spaghetti presentation control render path.
-3. Preserve shared workspace pane close/remove behavior in `ViewportFrame` and workspace store.
-4. Add focused tests proving the split-hosted local `-` no longer appears as a broken action.
+1. Re-read the Phase 2 split-host Spaghetti path in `WorkspaceViewportTree`.
+2. Move the Spaghetti split-pane density click from `headerStartSupplement` to `ViewportFrame` primary-button props for `surfaceKind === 'spaghettiEditor'`.
+3. Set the primary button label/title/aria for split-hosted Spaghetti to the same `+` or `e` density action used by Phase 2.
+4. Remove the separate Spaghetti `ViewportFrameHeaderControlButton` supplement so only one local density button appears.
+5. Preserve the shared right-click/context-menu viewport-type path on the primary button.
+6. Assert that split-hosted Spaghetti panes render no `.SpaghettiWindowAction--collapse` and no visible `-` mode-looking button.
+7. Assert that eligible split-pane close/remove still comes from the shared `ViewportFrame` inline/menu controls, not Spaghetti-local controls.
+8. Assert that floating/windowed Spaghetti still renders and cycles the existing `- / e / +` titlebar behavior.
 
 #### Likely Files
 
 - `src/app/hosts/SpaghettiWindowHost.tsx`
-- `src/app/workspace/ViewportFrame.tsx`
-- `src/app/workspace/ViewportSurfaceRegistry.tsx`
-- `src/app/hosts/SpaghettiWindowHost.test.tsx`
-- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+Only touch `src/app/workspace/ViewportFrame.tsx` if shared close/remove proof reveals the pane shell is missing a test seam.
+
+Do not touch `src/app/workspace/ViewportSurfaceRegistry.tsx` unless a leaked floating titlebar is actually coming from the registry path.
+
+#### No-Widening Rule
+
+Do not add a new collapsed split-pane Spaghetti mode.
+
+Do not make the shared viewport type `-` button become a Spaghetti-local collapse button.
+
+Do not change Browser's `- / e / +` presentation cycle.
+
+Do not change floating Spaghetti titlebar semantics.
 
 #### Verification Shape
 
 - split-pane Spaghetti no longer shows a confusing or broken local `-`
+- split-pane Spaghetti no longer shows two adjacent mode-looking buttons
+- split-pane Spaghetti uses one primary `+` or `e` density button in the shared frame header
 - workspace-level close/remove remains available through the shared shell where eligible
 - floating or non-split Spaghetti presentation behavior is not regressed
+- split-pane Spaghetti `e / +` behavior from Phase 2 still works
+- no overlay `O` behavior is changed
+
+#### Prep Status
+
+Phase 3 is implementation-ready when the next code pass starts from:
+- a one-button split-pane policy that folds Spaghetti `e / +` density onto the shared primary header button
+- `WorkspaceViewportTree` assertions for no visible split-pane `-`, no duplicate density supplement, and `e / +` primary-button behavior
+- `AppShell` or titlebar assertions for floating `- / e / +` continuity
+- shared `ViewportFrame` close/remove ownership left intact
+
+#### Implementation Result
+
+Phase 3 shipped on 2026-05-19.
+
+Landed behavior:
+- split-pane Spaghetti now uses the shared primary `ViewportFrameModeButton` for its local `e / +` density action
+- the adjacent Phase 2 `ViewportFrameHeaderControlButton` density supplement is no longer rendered for Spaghetti panes
+- the visible split-pane header no longer reads as `[-] [+]`
+- right-click on the primary header button still opens the viewport type picker
+- floating/windowed Spaghetti keeps its existing `- / e / + / O` titlebar cycle
+
+Files changed:
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+Verification:
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx -t "primary frame button for split-host Spaghetti"`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "moves the spaghetti first button"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-host spaghetti"`
+- `npm.cmd run build`
+
+Follow-up fix on 2026-05-19:
+- split-hosted `SpaghettiPanel` now receives the same editor viewport presentation flags used by the header button
+- `e` mode now actually renders the panel body in essentials mode instead of only changing the header button label
+- focused proof was added in `ViewportSurfaceRegistry.test.tsx`
+
+Follow-up verification:
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx -t "split-host Spaghetti essentials"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx -t "primary frame button for split-host Spaghetti"`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-host spaghetti"`
+- `npm.cmd run build`
 
 ## [ ] `Spaghetti-Editor 7 / Phase 4` - `Narrow Pane Visual Proof And Closeout`
 

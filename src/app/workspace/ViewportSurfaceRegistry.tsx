@@ -51,8 +51,21 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
   const editorViewport = useSpaghettiStore((state) =>
     selectEditorViewportById(state, surfaceInstanceId),
   )
+  const editorViewportHeaderCollapsed = useSpaghettiStore(
+    (state) => state.editorViewportHeaderCollapsedById[surfaceInstanceId] ?? false,
+  )
+  const editorViewportCanvasToolbarVisible = useSpaghettiStore(
+    (state) => state.editorViewportCanvasToolbarVisibleById[surfaceInstanceId] ?? true,
+  )
+  const editorViewportOverlayMode = useSpaghettiStore(
+    (state) => state.editorViewportOverlayModeById[surfaceInstanceId] ?? false,
+  )
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const renderFamily = getWorkspaceSurfaceRenderFamily(surfaceKind)
+  const isSpaghettiEssentials =
+    editorViewportOverlayMode === false &&
+    editorViewportHeaderCollapsed &&
+    !editorViewportCanvasToolbarVisible
 
   if (renderFamily === 'browser') {
     return (
@@ -89,6 +102,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
       <div
         className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--spaghetti"
         data-workspace-slot-id={slotId}
+        data-spaghetti-split-pane-fit="true"
         data-workspace-surface-instance-id={surfaceInstanceId}
       >
         {editorViewport !== null ? (
@@ -96,6 +110,9 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
             editorViewportId={editorViewport.editorViewportId}
             onActivateEditorContext={onActivateSpaghettiSurface}
             isWindowSettingsOpen={spaghettiWindowSettingsOpen}
+            isEssentials={isSpaghettiEssentials}
+            isHeaderCollapsed={editorViewportHeaderCollapsed}
+            isCanvasToolbarVisible={editorViewportCanvasToolbarVisible}
           />
         ) : (
           <div className="WorkspaceViewportSlotPlaceholder">

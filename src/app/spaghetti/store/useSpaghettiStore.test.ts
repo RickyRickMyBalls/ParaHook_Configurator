@@ -3399,6 +3399,32 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.editorViewportOverlayModeById[viewportId ?? '']).toBe(false)
   })
 
+  it('setEditorViewportPresentationMode preserves split view placement while toggling pane density', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'split view')
+    useSpaghettiStore.getState().setEditorViewportPresentationMode(viewportId ?? '', 'essentials')
+
+    let state = useSpaghettiStore.getState()
+    let viewport = selectActiveEditorViewport(state)
+
+    expect(viewport?.windowMode).toBe('split view')
+    expect(state.editorViewportHeaderCollapsedById[viewportId ?? '']).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[viewportId ?? '']).toBe(false)
+    expect(state.editorViewportOverlayModeById[viewportId ?? '']).toBe(false)
+
+    useSpaghettiStore.getState().setEditorViewportPresentationMode(viewportId ?? '', 'expanded')
+
+    state = useSpaghettiStore.getState()
+    viewport = selectActiveEditorViewport(state)
+
+    expect(viewport?.windowMode).toBe('split view')
+    expect(state.editorViewportHeaderCollapsedById[viewportId ?? '']).toBe(false)
+    expect(state.editorViewportCanvasToolbarVisibleById[viewportId ?? '']).toBe(true)
+    expect(state.editorViewportOverlayModeById[viewportId ?? '']).toBe(false)
+  })
+
   it('setEditorViewportPresentationMode routes overlay through the maximized shell lane', () => {
     const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
     expect(viewportId).not.toBeNull()

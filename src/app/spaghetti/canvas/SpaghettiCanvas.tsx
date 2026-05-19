@@ -2705,27 +2705,38 @@ export function SpaghettiCanvas({
           <button type="button" onClick={cycleNewNodeSpawnMode}>
             Spawn: {newNodeSpawnMode}
           </button>
-          <button type="button" onClick={handleDeleteSelectedEdge} disabled={selectedEdgeId === null}>
-            Delete Selected Edge
+          <button
+            type="button"
+            onClick={handleDeleteSelectedEdge}
+            disabled={selectedEdgeId === null}
+            aria-label="Delete selected edge"
+            title="Delete selected edge"
+          >
+            Delete Edge
           </button>
           <button
             type="button"
             onClick={handleFlipSelectedWaypointSide1}
             disabled={selectedWaypoint === null}
+            aria-label="Flip tangent side 1"
+            title="Flip tangent side 1"
           >
-            Flip Tangent Side 1
+            Flip S1
           </button>
           <button
             type="button"
             onClick={handleFlipSelectedWaypointSide2}
             disabled={selectedWaypoint === null}
+            aria-label="Flip tangent side 2"
+            title="Flip tangent side 2"
           >
-            Flip Tangent Side 2
+            Flip S2
           </button>
           <label className="SpaghettiCanvasCurveControl">
-            <span>Wire Curve: {wireCurviness}</span>
+            <span title={`Wire Curve: ${wireCurviness}`}>Wire: {wireCurviness}</span>
             <input
               type="range"
+              aria-label="Wire Curve"
               min={0}
               max={100}
               step={1}

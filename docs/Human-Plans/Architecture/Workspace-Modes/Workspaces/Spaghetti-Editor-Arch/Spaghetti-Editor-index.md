@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-05-19 00:20:11: Added the `Spaghetti-Editor 7 / Phase 3` follow-up fix after the split-pane button changed to `e` without making the slotted editor body render essentials mode; `ViewportSurfaceRegistry` now forwards editor viewport presentation flags into `SpaghettiPanel` so split-hosted essentials mode hides expanded panel chrome and canvas-toolbar content.
+29. 2026-05-19 00:14:12: Marked `Spaghetti-Editor 7 / Phase 3 - Split Pane Local Minus Rule` shipped after split-pane Spaghetti `e / +` density behavior moved onto the shared primary `ViewportFrame` button, removing the adjacent duplicate density supplement while preserving right-click viewport-type access and floating/windowed Spaghetti `- / e / + / O` behavior.
+28. 2026-05-19 00:08:47: Corrected the `Spaghetti-Editor 7 / Phase 3` handoff after the live split-pane screenshot showed the shared `ViewportFrameModeButton` `-` sitting beside the Spaghetti `+` density button; the next slice now explicitly folds Spaghetti split-pane `e / +` density onto the shared primary header button, removes the duplicate density supplement, preserves right-click viewport-type access, and leaves floating/windowed `- / e / + / O` behavior unchanged.
+27. 2026-05-19 00:05:51: Prepped `Spaghetti-Editor 7 / Phase 3 - Split Pane Local Minus Rule` against the shipped Phase 2 split-pane header lane and the live floating Spaghetti titlebar cycle, locking the next slice to prove split-hosted panes intentionally expose no Spaghetti-local `-`, keep only the pane-local `e / +` density control, preserve shared `ViewportFrame` close/remove ownership, and leave floating `- / e / + / O` behavior unchanged.
+26. 2026-05-19 00:01:35: Marked `Spaghetti-Editor 7 / Phase 2 - Split Pane e And + Mode Behavior` shipped after split-hosted Spaghetti panes gained a shared `ViewportFrame` header density control that cycles `+` to compact essentials and `e` back to full editor mode through existing editor viewport presentation state while preserving slotted placement, overlay separation, and the deferred local `-` policy.
+25. 2026-05-18 23:56:25: Prepped `Spaghetti-Editor 7 / Phase 2 - Split Pane e And + Mode Behavior` against the live `WorkspaceViewportTree` header supplement seam, split-host Spaghetti registry path, presentation store, and console activation tests, locking the next slice to pane-local `e / +` controls in the shared `ViewportFrame` header without mounting the floating Spaghetti titlebar, changing overlay `O`, or deciding the local `-` policy.
+24. 2026-05-18 23:46:59: Marked `Spaghetti-Editor 7 / Phase 1 - Split Pane Chrome Fit` shipped after the split Spaghetti surface gained narrow-pane fit targeting, graph/focus picker truncation discipline, compact accessible canvas-toolbar labels, disabled toolbar readability, and focused panel/canvas/registry proof without changing split-pane `e / +` behavior or the local `-` rule.
 23. 2026-05-18 15:41:11: Prepped `Spaghetti-Editor 7 / Phase 1 - Split Pane Chrome Fit` in the standalone future doc, grounding the first implementation cut in the split Spaghetti slot wrapper, floating-handle titlebar lanes, graph-document picker CSS, and canvas-toolbar long-label controls while keeping `e / +`, local `-`, node row-density, and shared workspace close behavior out of Phase 1.
 22. 2026-05-18 15:31:57: Added `Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls` as the next split-hosted Spaghetti Editor cleanup plan, covering crowded titlebar and graph-selector fit, narrow canvas-toolbar readability, useful split-pane `e / +` behavior, and an explicit local `-` rule that does not duplicate shared workspace pane close ownership.
 21. 2026-05-17 14:57:56: Added `Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline` as the clean workspace-level plan for fast live draft meshes, separate authoritative B-rep generation, Auto draft-to-final swapping, and authoritative-only export truth for Spaghetti-authored geometry.
@@ -158,10 +165,11 @@ Current read:
 #### `Spaghetti-Editor 7` Next Slice
 
 Current read:
-- split-hosted Spaghetti Editor still needs a dedicated density cleanup after the screenshot showed overlapping titlebar text, crowded graph selectors, and canvas-toolbar controls that are too wide for a narrow split pane
-- `Phase 1 - Split Pane Chrome Fit` is now implementation-ready and should start with responsive fit only: split-host targeting, titlebar lane shrink/truncation, graph picker width discipline, canvas toolbar wrap/compression, and focused proof
-- this follow-on should make split-pane `e` and `+` useful as local editor density controls
-- this follow-on should decide whether the local Spaghetti `-` control should be hidden, disabled, or given a real pane-local meaning when shared workspace close/remove behavior already belongs to the workspace shell
+- `Phase 1 - Split Pane Chrome Fit` is now shipped with responsive split-host fit targeting, shrink-safe title/focus picker lanes, compact accessible canvas-toolbar labels, disabled toolbar readability, and focused panel/canvas/registry proof
+- `Phase 2 - Split Pane e And + Mode Behavior` is now shipped with a Spaghetti-only shared `ViewportFrame` header-start control that uses existing editor viewport presentation state to cycle `+` into compact essentials and `e` back to full editor mode without mounting the floating Spaghetti titlebar inside the pane
+- `Phase 3 - Split Pane Local Minus Rule` is now shipped with Spaghetti split-pane `e / +` density folded onto the shared primary header button, the duplicate density supplement removed, right-click viewport-type access preserved, and floating Spaghetti `- / e / + / O` behavior unchanged
+- the Phase 3 follow-up now forwards split-hosted editor viewport presentation flags into `SpaghettiPanel`, so `e` mode changes the slotted panel body to essentials mode instead of only changing the header button label
+- `Phase 4 - Narrow Pane Visual Proof And Closeout` remains as the visual/manual verification and final closeout slice
 - this work belongs to the Spaghetti Editor shell rather than node-family behavior, because it changes editor hosting and presentation fit, not graph-authored truth
 
 #### [~] `Nodes`
@@ -515,7 +523,7 @@ Initial phase breakdown:
 - `Spaghetti-Editor 6 - Phase 5 - Authoritative Export Handoff Completion`
 - `Spaghetti-Editor 6 - Phase 6 - Mesh-Truth Leak Cleanup And HLG Closeout`
 
-### [ ] Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls
+### [~] Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls
 
 Standalone phase doc:
 - `Future/Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls.md`
@@ -538,7 +546,7 @@ Short read:
 - keep workspace close/remove behavior owned by the shared workspace shell
 
 Initial phase breakdown:
-- `Spaghetti-Editor 7 - Phase 1 - Split Pane Chrome Fit`
-- `Spaghetti-Editor 7 - Phase 2 - Split Pane e And + Mode Behavior`
-- `Spaghetti-Editor 7 - Phase 3 - Split Pane Local Minus Rule`
+- `[x] Spaghetti-Editor 7 - Phase 1 - Split Pane Chrome Fit`
+- `[x] Spaghetti-Editor 7 - Phase 2 - Split Pane e And + Mode Behavior`
+- `[x] Spaghetti-Editor 7 - Phase 3 - Split Pane Local Minus Rule`
 - `Spaghetti-Editor 7 - Phase 4 - Narrow Pane Visual Proof And Closeout`

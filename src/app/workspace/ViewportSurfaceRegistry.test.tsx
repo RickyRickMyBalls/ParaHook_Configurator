@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useAppStore } from '../store/useAppStore'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 
@@ -38,6 +39,7 @@ describe('ViewportSurfaceRegistry', () => {
   beforeEach(() => {
     editHistoryStore.clear()
     useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     window.localStorage.clear()
   })
@@ -115,6 +117,72 @@ describe('ViewportSurfaceRegistry', () => {
 
     expect(catalogSurface).not.toBeNull()
     expect(catalogSurface?.textContent).toContain('Catalog Results')
+  })
+
+  it('marks split-hosted Spaghetti surfaces with the narrow-pane fit contract', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ViewportSurfaceRegistry
+          slotId="workspace-slot-spaghetti"
+          surfaceKind="spaghettiEditor"
+          surfaceInstanceId="spaghetti-workspace-slot"
+          onActivateSpaghettiSurface={vi.fn()}
+        />,
+      )
+    })
+
+    const spaghettiSurface = container?.querySelector(
+      '.WorkspaceViewportSlotSurface--spaghetti[data-workspace-surface-instance-id="spaghetti-workspace-slot"]',
+    ) as HTMLDivElement | null
+
+    expect(spaghettiSurface).not.toBeNull()
+    expect(spaghettiSurface?.getAttribute('data-spaghetti-split-pane-fit')).toBe('true')
+    expect(spaghettiSurface?.textContent).toContain('No editor surface is bound')
+  })
+
+  it('forwards split-host Spaghetti essentials presentation state into the panel body', async () => {
+    const editorViewportId = useSpaghettiStore
+      .getState()
+      .openGraphDocumentInViewport('graph-document-1')
+
+    if (editorViewportId === null) {
+      throw new Error('Expected an editor viewport id for split-host Spaghetti essentials test.')
+    }
+
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportPresentationMode(editorViewportId, 'essentials')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ViewportSurfaceRegistry
+          slotId="workspace-slot-spaghetti"
+          surfaceKind="spaghettiEditor"
+          surfaceInstanceId={editorViewportId}
+          onActivateSpaghettiSurface={vi.fn()}
+        />,
+      )
+    })
+
+    const spaghettiSurface = container?.querySelector(
+      `.WorkspaceViewportSlotSurface--spaghetti[data-workspace-surface-instance-id="${editorViewportId}"]`,
+    ) as HTMLDivElement | null
+    const panelRoot = spaghettiSurface?.querySelector('.SpaghettiPanelRoot') as HTMLElement | null
+    const canvasWrap = spaghettiSurface?.querySelector('.SpaghettiPanelCanvasWrap') as HTMLElement | null
+
+    expect(panelRoot?.className).toContain('isEssentials')
+    expect(canvasWrap?.className).toContain('isEssentials')
+    expect(spaghettiSurface?.querySelector('.SpaghettiPanelHeaderShell')).toBeNull()
+    expect(spaghettiSurface?.textContent).not.toContain('Part Nodes')
+    expect(spaghettiSurface?.textContent).not.toContain('Delete Edge')
   })
 
   it('renders home page through the canonical workspace surface registry branch', async () => {

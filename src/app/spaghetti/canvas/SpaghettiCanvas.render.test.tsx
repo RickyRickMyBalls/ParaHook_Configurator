@@ -243,6 +243,54 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     })
   })
 
+  it('keeps compact canvas toolbar actions accessible in narrow split panes', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [],
+      edges: [],
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <div className="WorkspaceViewportSlotSurface--spaghetti">
+          <SpaghettiCanvas
+            editorViewportId={editorViewportId ?? ''}
+            graphDocumentId="graph-document-1"
+            viewMode="expanded"
+            onSetViewMode={() => {
+              // no-op for test
+            }}
+          />
+        </div>,
+      )
+    })
+
+    const toolbar = container?.querySelector('.SpaghettiCanvasToolbar') as HTMLElement | null
+    const deleteEdgeButton = toolbar?.querySelector(
+      'button[aria-label="Delete selected edge"]',
+    ) as HTMLButtonElement | null
+    const flipSide1Button = toolbar?.querySelector(
+      'button[aria-label="Flip tangent side 1"]',
+    ) as HTMLButtonElement | null
+    const flipSide2Button = toolbar?.querySelector(
+      'button[aria-label="Flip tangent side 2"]',
+    ) as HTMLButtonElement | null
+    const wireCurveSlider = toolbar?.querySelector(
+      'input[aria-label="Wire Curve"]',
+    ) as HTMLInputElement | null
+
+    expect(toolbar).not.toBeNull()
+    expect(deleteEdgeButton?.textContent).toBe('Delete Edge')
+    expect(deleteEdgeButton?.disabled).toBe(true)
+    expect(flipSide1Button?.textContent).toBe('Flip S1')
+    expect(flipSide1Button?.disabled).toBe(true)
+    expect(flipSide2Button?.textContent).toBe('Flip S2')
+    expect(flipSide2Button?.disabled).toBe(true)
+    expect(wireCurveSlider).not.toBeNull()
+  })
+
   it('restores a remembered graph viewport instead of overwriting it with an open-time fit request', async () => {
     useSpaghettiStore.getState().setGraph({
       schemaVersion: 1,

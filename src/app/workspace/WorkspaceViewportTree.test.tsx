@@ -486,6 +486,95 @@ describe('WorkspaceViewportTree', () => {
     ).toBe('draft')
   })
 
+  it('uses the primary frame button for split-host Spaghetti e and plus density controls', async () => {
+    const spaghettiState = useSpaghettiStore.getState()
+    const editorViewportId =
+      spaghettiState.activeEditorViewportId ||
+      Object.keys(spaghettiState.editorViewportsById)[0] ||
+      spaghettiState.openGraphDocumentInViewport('graph-document-1')
+
+    if (editorViewportId === null) {
+      throw new Error('Expected an editor viewport for the split-host Spaghetti density test.')
+    }
+
+    await act(async () => {
+      useSpaghettiStore.getState().setEditorViewportPresentationMode(editorViewportId, 'expanded')
+    })
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'spaghettiEditor',
+        surfaceInstanceId: editorViewportId,
+      })
+    })
+
+    const originalWindowMode =
+      useSpaghettiStore.getState().editorViewportsById[editorViewportId]?.windowMode
+
+    await renderWorkspaceTree()
+
+    const spaghettiFrame = container?.querySelector(
+      `.ViewportFrame[data-workspace-surface-kind="spaghettiEditor"][data-workspace-slot-id]:has(.ViewportSurfaceRegistryMock[data-workspace-surface-instance-id="${editorViewportId}"])`,
+    ) as HTMLDivElement | null
+    const queryDensityButton = () =>
+      spaghettiFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(spaghettiFrame).not.toBeNull()
+    expect(spaghettiFrame?.querySelector('.SpaghettiFloatingHandle')).toBeNull()
+    expect(spaghettiFrame?.querySelector('.ViewportFrameHeaderControlButton')).toBeNull()
+
+    let densityButton = queryDensityButton()
+
+    expect(densityButton?.textContent).toBe('+')
+    expect(densityButton?.getAttribute('aria-label')).toBe(
+      'Switch Spaghetti pane to compact editor mode',
+    )
+    expect(densityButton?.getAttribute('aria-expanded')).toBe('true')
+
+    await act(async () => {
+      densityButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    let state = useSpaghettiStore.getState()
+
+    expect(state.editorViewportHeaderCollapsedById[editorViewportId]).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[editorViewportId]).toBe(false)
+    expect(state.editorViewportOverlayModeById[editorViewportId]).toBe(false)
+    expect(state.editorViewportsById[editorViewportId]?.windowMode).toBe(originalWindowMode)
+
+    densityButton = queryDensityButton()
+
+    expect(densityButton?.textContent).toBe('e')
+    expect(densityButton?.getAttribute('aria-label')).toBe(
+      'Switch Spaghetti pane to full editor mode',
+    )
+    expect(densityButton?.getAttribute('aria-expanded')).toBe('false')
+
+    await act(async () => {
+      densityButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    state = useSpaghettiStore.getState()
+
+    expect(state.editorViewportHeaderCollapsedById[editorViewportId]).toBe(false)
+    expect(state.editorViewportCanvasToolbarVisibleById[editorViewportId]).toBe(true)
+    expect(state.editorViewportOverlayModeById[editorViewportId]).toBe(false)
+    expect(state.editorViewportsById[editorViewportId]?.windowMode).toBe(originalWindowMode)
+
+    await act(async () => {
+      densityButton?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const typePickerActiveButton = Array.from(
+      spaghettiFrame?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Spaghetti Editor') as
+      | HTMLButtonElement
+      | undefined
+
+    expect(typePickerActiveButton).toBeDefined()
+    expect(typePickerActiveButton?.classList.contains('isActive')).toBe(true)
+  })
+
   it('does not expose a popout button for a slotted catalog surface while catalog popout is deferred', async () => {
     let catalogSlotId: string | null = null
 
