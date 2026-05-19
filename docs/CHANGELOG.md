@@ -72,6 +72,39 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1953 -->
+
+### [1953] - 2026-05-19 00:27 - `OO - Phase 13 - Remove Vendored Replicad Artifacts`
+
+HUMAN SUMMARY: ``Removed the tracked Replicad package copy and `replicad-0.23.0.tgz` tarball from the repo now that ParaHook's live source and root dependency graph no longer use Replicad. This keeps Replicad as planning/history context only, while the current geometry/export path remains owned by ParaHook's OpenCascade/OCCT seams.``
+
+#### Scope / Constraints Honored
+- Removed only the vendored Replicad artifact files.
+- Left source code, root dependencies, and architecture/planning references intact.
+- Preserved the existing ESLint restriction that keeps `replicad` out of `src/geometry`.
+
+#### Summary of Implementation
+- Deleted the tracked `package/` Replicad metadata/readme/license files.
+- Deleted the tracked `replicad-0.23.0.tgz` archive.
+- Removed the ignored local `package/dist/` unpacked Replicad build output from the working tree.
+
+#### Files Changed
+- Deleted `package/LICENSE`
+- Deleted `package/README.md`
+- Deleted `package/package.json`
+- Deleted `replicad-0.23.0.tgz`
+- Updated `docs/CHANGELOG.md`
+- Updated `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No runtime behavior changes.
+- The repo no longer carries a vendored Replicad package copy or archive.
+
+#### Verification Steps
+- Ran `git rm -r package replicad-0.23.0.tgz`.
+- Confirmed the ignored unpacked `package/` directory was removed from the working tree.
+- Checked that the root `package.json` and lockfile were already free of a `replicad` dependency before removal.
+
 <!-- ENTRY 1952 -->
 
 ### [1952] - 2026-05-19 00:20 - `Spaghetti-Editor 7 - Phase 3 Follow-Up - Split Pane Essentials Body`
