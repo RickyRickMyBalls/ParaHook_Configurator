@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+23. 2026-05-18 23:00:44: Followed up on `Model-Viewport-4 / Phase 9` after user review showed rectangle edge selection still did not work in the normal preview path, fixing the selector bridge so retained `topologyPreview` is projected onto visible artifact-preview renderables for matching part-level and body-level sketch-extrude artifacts.
+22. 2026-05-18 22:49:42: Implemented and closed `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` by generating semantic topology packets for simple capped graph-authored sketch extrudes, carrying topology through draft and authoritative geometry bundles, proving rectangle extrudes emit six faces, twelve edges, eight points, and twelve triangle face ids, and preserving mesh-only fallback for uncapped walls and aggregate profile extrusions.
+21. 2026-05-18 22:31:44: Prepped `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` for implementation after reading the live `featureStackRuntime`, `cadKernelAdapter`, authoritative bundle, and viewport selector seams, locking the first cut to simple capped polygon extrudes, per-shape topology generation beside `extrudeMesh`, merged topology offsetting, authoritative result carry-through, rectangle-extrude proof, and no Phase 8/Shift+D/imported STEP/snapping/measurement/inspector/direct-modeling widening.
+20. 2026-05-18 22:19:02: Added `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` as the follow-up after confirming Phase 8 can only show semantic point, edge, face, and body highlights when graph-authored sketch/extrude results emit `topologyPreview`, locking the next slice to producer-side topology packets for simple sketch extrudes without changing viewport highlight behavior, Shift+D edge controls, imported STEP topology extraction, snapping, measurement, inspector panels, or direct modeling.
+19. 2026-05-18 22:02: Implemented and closed `Model-Viewport-4 / Phase 8 - Hover And Selection Highlight Hierarchy` by adding owner-backed viewport highlight settings, Settings `Viewport` highlight controls, white/light hover overlays for topology points, edges, and faces, blue selected topology overlays, double-click topology promotion to whole-body blue tint, deterministic overlay stacking, and focused proof for settings ownership, viewer overlays, and ViewerHost double-click promotion.
+18. 2026-05-18 21:22: Added and prepped `Model-Viewport-4 / Phase 8 - Hover And Selection Highlight Hierarchy` from the Fusion-style screenshots and user rules, locking point/edge/surface hover to white highlight, point/edge/surface click selection to blue highlight, double-click sub-entity promotion to whole-body blue highlight, and a new Settings section for owner-backed highlight color/glow controls without adding topology generation, direct modeling, snapping, measurement, inspector, or raw triangle debug scope.
+17. 2026-05-18 20:44: Implemented and closed `Model-Viewport-4 / Phase 7 - Edge Display Visual Correctness And Polish` by separating normal display-edge materials from selected outlines, preserving Fusion-style depth-tested `Visible edges only`, keeping `On` as the x-ray edge read, reducing mesh-only cylinder fallback seams with a thresholded extracted-edge overlay, and adding focused viewer proof for edge mode hierarchy, selected-outline independence, semantic-edge precedence, rectangle diagonal hiding, and cylinder-like fallback cleanliness.
+16. 2026-05-18 20:31: Added and prepped `Model-Viewport-4 / Phase 7 - Edge Display Visual Correctness And Polish` as the next implementation-ready follow-up after Phase 6, focusing on Fusion-style visible-edge depth reads, edge color/opacity hierarchy, semantic-versus-extracted edge noise, cylinder/curved-surface cleanliness, manual screenshot acceptance, and focused viewer proof without changing topology generation or the Shift+D control contract.
 15. 2026-05-18 17:05: Corrected `Model-Viewport-4 / Phase 6` visible-edge semantics after user clarification so `Visible edges only` now means keep the current surface/fill mode and depth-test edge overlays so blocked/back edges are hidden by surfaces, rather than fading or removing filled surfaces.
 14. 2026-05-18 16:53: Implemented and closed `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` by adding shared edge display mode state, UI prefs persistence, independent viewer edge-overlay visibility, `Visible edges only` surface de-emphasis without hiding child edge overlays, center Shift+D edge controls, focused tests, production build verification, and browser sanity proof.
 13. 2026-05-18 16:29: Tightened `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` into an implementation-ready slice after a live read of the display menu hook, view settings normalization, UI prefs wireframe compatibility, toolbar seam, and viewer edge overlay ownership, locking the transitional fill/edge split, center edge-control behavior, visible-edges-only parent-mesh rule, persistence targets, and focused verification scope.
@@ -159,6 +167,7 @@ But this should not be the normal user-facing wireframe mode.
 - [ ] `Model-Viewport-4-HLG-3. Wireframe mode should show proper model edges instead of all triangle edges.`
 - [ ] `Model-Viewport-4-HLG-4. Raw triangle wireframe should remain available only as a debug/developer mesh view.`
 - [ ] `Model-Viewport-4-HLG-5. The topology display contract should support both graph-authored authoritative geometry and later retained imported B-rep geometry.`
+- [ ] `Model-Viewport-4-HLG-6. Hover, selection, and whole-body promotion should have a clear CAD-style visual hierarchy with owner-backed styling settings.`
 
 #### `Model-Viewport-4 / Phase 1`
 
@@ -228,6 +237,52 @@ But this should not be the normal user-facing wireframe mode.
 - [x] Preserve selected-object, selected-face, selected-edge, and selected-point highlights independently from the edge visibility toggle.
 - [x] Keep this phase out of new topology generation, raw triangle debug wireframe, snapping, measurement, inspector, and direct modeling.
 - [x] `HLG 3. Wireframe mode should show proper model edges instead of all triangle edges.`
+
+#### `Model-Viewport-4 / Phase 7`
+
+- [x] Tune the visual read of edge modes after Phase 6 so `On`, `Off`, and `Visible edges only` are clearly distinct.
+- [x] Make `Visible edges only` match the Fusion-style read: current surface/fill mode stays visible, while blocked/back edges are hidden by surfaces.
+- [x] Confirm `On` remains useful as an x-ray/through-surface edge overlay when the user wants all display edges visible.
+- [x] Tune normal display-edge color, opacity, depth behavior, and render order so it is separate from selected-object outlines and selected topology highlights.
+- [x] Reduce or explicitly document noisy extracted mesh edges on cylinder/curved mesh-only surfaces until true semantic topology exists.
+- [x] Add focused proof around semantic topology edges versus extracted mesh-edge fallback in `On` and `Visible edges only`.
+- [x] Add one manual/screenshot acceptance checklist for rectangle extrudes, stacked/overlapping blocks, and cylinder-like parts.
+- [x] Keep this phase out of new topology generation, new Shift+D controls, raw triangle debug wireframe, snapping, measurement, inspector, and direct modeling.
+- [x] `HLG 3. Wireframe mode should show proper model edges instead of all triangle edges.`
+
+#### `Model-Viewport-4 / Phase 8`
+
+- [x] Add hover state for topology points, edges, and faces/surfaces.
+- [x] Point hover should show a small white/light highlight with a subtle halo/readable rim.
+- [x] Point click selection should show a blue selected point highlight.
+- [x] Edge hover should show a white/light edge highlight above normal display edges.
+- [x] Edge click selection should show a blue selected edge highlight.
+- [x] Surface hover should show a white/light face highlight with a readable border.
+- [x] Surface click selection should show a blue selected surface highlight.
+- [x] Double-clicking a point, edge, or surface should promote selection to the owning body and blue-highlight the whole body.
+- [x] Add a Settings section for viewport highlight colors/glow/intensity values while keeping the meaning of those settings owned by the model-viewport/view-settings contract.
+- [x] Define stacking priority so hover highlights render above selected surface/body tint, selected edge/point render above selected surface, and normal display edges stay below interaction highlights.
+- [x] Keep this phase out of new topology generation, imported STEP topology extraction, raw triangle debug wireframe, snapping, measurement, inspector/detail panels, direct modeling, and editing commands.
+- [x] `HLG 1. Triangle geometry can remain the render geometry, but the user should see and select meaningful surfaces, edges, and points.`
+- [x] `HLG 6. Hover, selection, and whole-body promotion should have a clear CAD-style visual hierarchy with owner-backed styling settings.`
+
+#### `Model-Viewport-4 / Phase 9`
+
+- [x] Emit `topologyPreview` for graph-authored sketch/extrude geometry where the profile and extrusion can be mapped deterministically.
+- [x] Start with simple closed sketch profiles such as rectangles and other single-loop polygonal profiles.
+- [x] Assign semantic face ids for the front cap, back cap, and each side face.
+- [x] Fill `triangleFaceIds` so every display triangle from the extruded mesh resolves to the owning semantic face.
+- [x] Emit semantic edge polylines for cap perimeter edges and vertical/side extrusion edges.
+- [x] Emit semantic point positions for extruded profile vertices.
+- [x] Preserve mesh-only fallback by keeping topology `null` when a sketch/extrude case cannot yet be mapped honestly.
+- [x] Prove that sketch > extrude rectangle faces hover/select as whole faces, not individual triangles.
+- [x] Prove that sketch > extrude rectangle edges and points can use the Phase 8 hover/selection highlight system.
+- [x] Keep this phase out of imported STEP topology extraction, curved B-rep naming stability, raw triangle debug wireframe, snapping, measurement, inspector/detail panels, direct modeling, and editing commands.
+- [x] `HLG 1. Triangle geometry can remain the render geometry, but the user should see and select meaningful surfaces, edges, and points.`
+- [x] `HLG 2. Selecting one triangle on a logical surface should select the whole owning face or surface.`
+- [x] `HLG 3. Wireframe mode should show proper model edges instead of all triangle edges.`
+- [x] `HLG 5. The topology display contract should support both graph-authored authoritative geometry and later retained imported B-rep geometry.`
+- [x] `HLG 6. Hover, selection, and whole-body promotion should have a clear CAD-style visual hierarchy with owner-backed styling settings.`
 
 ## [x] `Model-Viewport-4 / Phase 1` - `Semantic Topology Display Packet Contract`
 
@@ -910,3 +965,516 @@ Verification:
 - `npm.cmd run build`
 - Browser sanity check confirmed Shift+D opens the display wheel and `Visible edges only` becomes active from the center edge-control group.
 - Full-file `npm.cmd test -- src/app/components/ViewerHost.test.tsx` was attempted with a longer timeout but did not finish before timeout; the new targeted ViewerHost case passed.
+
+## [x] `Model-Viewport-4 / Phase 7` - `Edge Display Visual Correctness And Polish`
+
+### Phase 7 Summary
+
+Polish the edge-display modes that Phase 6 exposed so they read like a CAD viewport instead of a debug overlay.
+
+The user-facing target is:
+- `Off`
+  - no normal display edge overlays
+  - selection outlines and selected topology highlights still show
+- `On`
+  - visible model/display edges draw over the active surface/fill mode
+  - this can remain an x-ray-style read where useful
+- `Visible edges only`
+  - keep the current surface/fill mode
+  - draw only edges that are visible from the camera because surfaces block hidden/back edges
+  - behave like the Fusion-style screenshot the user provided
+
+Current status:
+- shipped
+
+Current implementation-read:
+- `src/shared/viewSettingsTypes.ts`
+  - now owns `ViewEdgeDisplayMode` and persisted `edgeDisplayMode`.
+- `src/app/components/ViewerHost.tsx`
+  - now renders the Shift+D center edge controls.
+  - Phase 7 should not add or rename these controls.
+- `src/viewer/Viewer.ts`
+  - semantic and extracted mesh-edge overlays now toggle independently from fill mode.
+  - `Visible edges only` currently uses depth-tested line materials.
+  - normal `On` currently keeps the through-surface/x-ray edge read.
+  - semantic edge overlays and extracted mesh-edge fallback both use line geometry but need a clearer visual hierarchy against selected-object outlines and selected topology highlights.
+- `src/viewer/Viewer.test.ts`
+  - already proves the core mode toggles.
+  - Phase 7 should add focused visual-behavior proof without trying to encode screenshot aesthetics in unit tests.
+
+Phase 7 should be a visual correctness and polish pass. It should not reinterpret the control model again.
+
+### Phase 7 Implementation Spec
+
+Must lock:
+- `Visible edges only` means depth-tested display edges over the current fill mode, not transparent surfaces and not an edges-only viewport style.
+- `On` means show display edges over the current fill mode and may continue to draw through surfaces.
+- `Off` means hide normal display edge overlays while preserving:
+  - selected part/object outlines
+  - selected face highlights
+  - selected edge highlights
+  - selected point highlights
+- semantic topology edges remain preferred over extracted mesh-edge fallback when topology exists.
+- extracted mesh-edge fallback remains a visual fallback, not true B-rep topology.
+
+Visual hierarchy rules:
+- normal display edges should be quieter than selected outlines.
+- selected object outlines should remain readable over normal edge display.
+- selected topology edge and point highlights should remain stronger than normal display edges.
+- `Visible edges only` should look like a surface-aware edge read, not like raw triangle wireframe.
+- cylinder/curved-surface mesh-only fallback should avoid looking like full tessellation debug mode where possible; if the current `EdgesGeometry` threshold cannot solve that cleanly in this phase, document the remaining limitation and hand it to true semantic topology generation.
+
+Focused implementation targets:
+- inspect and tune `LineBasicMaterial` values for:
+  - semantic edge overlays
+  - extracted mesh-edge fallback overlays
+  - selected-part outlines
+  - selected topology edge/point highlights
+- inspect `EdgesGeometry` creation for mesh-only fallback and decide whether a threshold angle or helper option can reduce curve/cylinder noise without reintroducing hidden rectangle diagonals.
+- keep all mode switches rebuild-free unless a threshold change requires overlay recreation during render-layer setup.
+- keep overlay depth behavior explicit:
+  - `On`: x-ray/through-surface display edges
+  - `Visible edges only`: depth-tested visible display edges
+
+Focused tests for:
+- `Visible edges only` keeps filled materials unchanged while edge overlay materials are depth-tested.
+- `On` keeps edge overlay materials non-depth-tested where that is the intended x-ray read.
+- `Off` hides normal display edge overlays without hiding selected outlines.
+- topology-backed parts continue to prefer semantic edge overlays.
+- mesh-only fallback does not show simple rectangle diagonals.
+
+Manual acceptance:
+- sketch rectangle extrude:
+  - no internal triangle diagonals in normal user-facing edge display
+  - `Visible edges only` hides back/blocked edges behind the face
+- overlapping/stacked rectangles:
+  - foreground surfaces block background edges in `Visible edges only`
+  - `On` still makes all display edges easy to inspect
+- cylinder-like mesh:
+  - edge display should not feel like raw triangle debug mode
+  - any remaining mesh-only curve noise is documented as a topology-generation follow-up, not silently treated as solved
+- selected object:
+  - selected outline remains visually stronger than normal edge display
+- selected edge/point:
+  - selected topology entity remains visually stronger than normal display edges
+
+Definition of done:
+- Phase 6's three edge controls have a polished visual read.
+- `Visible edges only` behaves like a surface-aware visible-edge mode.
+- normal edge display, selected outlines, and selected topology highlights are visually distinct.
+- mesh-only fallback limitations are honest and documented.
+- tests cover the mode semantics that can be unit-tested, and manual acceptance records the screenshot-level checks.
+
+### Phase 7 Implementation Notes
+
+Shipped changes:
+- normal display-edge overlays now use dedicated display-edge colors and opacities instead of reusing the selected-object outline blue.
+- `On` keeps non-depth-tested x-ray display edges over the current fill mode.
+- `Visible edges only` keeps the current material/solid/rendered fill mode and depth-tests display edge overlays so surfaces hide blocked/back edges.
+- `Off` hides normal display edge overlays while leaving selected-object outlines and selected topology entity highlights independent.
+- mesh-only fallback edge overlays now use a thresholded `EdgesGeometry` extraction to suppress low-angle cylinder-like tessellation seams while preserving hard silhouette/cap rings.
+
+Focused proof added:
+- material/fill presentation stays unchanged in `Visible edges only`.
+- x-ray `On` and depth-tested `Visible edges only` apply different edge material presentation.
+- selected outlines remain visible when display edges are off.
+- topology-backed parts still prefer semantic edge overlays over extracted mesh fallback.
+- two-triangle rectangle meshes do not show the internal diagonal as a normal edge overlay.
+- cylinder-like mesh fallback preserves top/bottom silhouette rings while suppressing side tessellation seams.
+
+Verification:
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- Browser sanity check at `http://127.0.0.1:5173/ParaHook_Configurator/` confirmed the local app loads and exposes the Model Viewport shell.
+
+Manual acceptance read:
+- rectangle extrudes should show clean perimeter/model edges rather than triangle diagonals.
+- overlapping blocks in `Visible edges only` should hide back/blocked edges behind foreground surfaces.
+- `On` remains the inspection mode for through-surface edge visibility.
+- cylinder-like mesh-only parts should look less like raw triangle debug wireframe, though true curved-edge topology remains a later topology-generation/import-retention owner.
+
+Recommended implementation order:
+1. Audit the current edge/selection line material constants and render orders in `src/viewer/Viewer.ts`.
+2. Add or adjust focused `Viewer.test.ts` assertions around edge material depth behavior and selected-outline independence.
+3. Tune normal edge overlay materials for `On` and `Visible edges only`.
+4. Inspect mesh-only `EdgesGeometry` options/threshold behavior for rectangle and cylinder-like cases.
+5. Run focused viewer tests and production build.
+6. Do a manual/browser screenshot check for the rectangle, overlap, and cylinder-like reads.
+7. Update this phase doc with implementation notes and any honest limitations.
+
+Explicit non-goals:
+- no new topology packet fields
+- no true sketch/extrude topology generation
+- no imported STEP topology extraction
+- no new Shift+D controls or labels
+- no raw triangle debug mesh mode
+- no snapping, measurement, inspector, transform handles, or direct modeling
+
+## [x] `Model-Viewport-4 / Phase 8` - `Hover And Selection Highlight Hierarchy`
+
+### Phase 8 Summary
+
+Build the Fusion-style hover and selection visual language for topology entities and whole bodies.
+
+The user-provided examples lock this visual target:
+- point hover:
+  - small white/light point marker
+  - subtle halo or rim so it reads on dark surfaces
+- point selected:
+  - blue point marker
+- edge hover:
+  - white/light thickened edge highlight
+  - drawn above normal display edges
+- edge selected:
+  - blue edge highlight
+  - still readable against the active surface material
+- surface hover:
+  - light/white surface highlight
+  - readable border without becoming selected-blue
+- surface selected:
+  - blue selected face/surface fill
+  - readable light border
+- body selected:
+  - whole body receives a blue selected-body tint
+  - model edges remain readable enough to see the form
+
+User rules locked for implementation:
+- when a user hovers over a point, white-highlight the point.
+- when a user clicks a point, blue-highlight the point.
+- when a user hovers over an edge, white-highlight the edge.
+- when a user clicks an edge, blue-highlight the edge.
+- when a user hovers over a surface, white-highlight the surface.
+- when a user clicks a surface, blue-highlight the surface.
+- when a user double-clicks an edge, surface, or point, blue-highlight the entire body.
+- all highlight colors and glow/intensity values should become a new section in Settings.
+
+Current status:
+- shipped
+
+Current implementation-read:
+- `src/viewer/Viewer.ts`
+  - already creates topology edge and point pick targets from `topologyPreview`.
+  - already stores one `selectedTopologyEntity` and draws selected face, edge, and point overlays.
+  - selected face currently uses the active outline blue with partial opacity.
+  - selected edge and point currently use earlier hard-coded warm colors and should move to the new blue selected styling.
+  - object/part selected outlines are currently separate from selected topology overlays.
+  - pointer events already route through viewer-owned picking seams, but there is not yet a durable hover topology entity state for point/edge/surface highlight.
+- `src/app/components/ViewerHost.tsx`
+  - receives `WorkspaceSelectionPick` entries and turns picked topology identity into `SelectedTopologyEntity`.
+  - owns the app-side bridge between viewer picks, selected part key, and selected topology entity.
+  - Phase 8 likely needs a double-click promotion route that turns a picked topology entity into the owning body/object/part selection.
+- `src/shared/viewSettingsTypes.ts`
+  - already owns persisted view/presentation settings.
+  - Phase 8 should add a nested highlight-style owner here unless implementation finds a narrower existing presentation-settings owner.
+- `src/app/store/uiPrefsStore.ts` and `src/app/store/uiPrefsPersistence.ts`
+  - already carry view settings and persistence policy.
+  - Phase 8 should thread highlight styling through the same owner-backed view-settings path.
+- `src/app/workspace/SettingsSurface.tsx`
+  - already has a `Viewport` settings section.
+  - Phase 8 should add a dedicated viewport highlight/settings group or subsection for colors/glow without making Settings the owner of the setting meaning.
+
+### Phase 8 Implementation Spec
+
+Must lock:
+- one hover topology entity state in the viewer or viewer bridge with:
+  - point identity
+  - edge identity
+  - face/surface identity
+  - part/body identity
+- hover styling:
+  - point hover is white/light
+  - edge hover is white/light
+  - surface hover is white/light
+- selected styling:
+  - point selected is blue
+  - edge selected is blue
+  - surface selected is blue
+  - body selected is blue whole-body tint/outline
+- double-click behavior:
+  - double-click point promotes to body selection
+  - double-click edge promotes to body selection
+  - double-click face/surface promotes to body selection
+  - single-click behavior remains sub-entity selection where topology identity exists
+- Settings exposure:
+  - add a new Settings section/group for viewport highlight styling
+  - expose at least the default hover color, selected color, and body-selected color as owner-backed read/write controls if implementation scope allows
+  - include glow/intensity values in the settings contract even if the first runtime pass maps them to practical opacity/size/thickness values rather than post-processing glow
+- defaults:
+  - hover color should default to a light/white read
+  - selected color should default to blue
+  - body selected color should default to a softer whole-body blue tint
+  - surface hover opacity should be lower than surface selected opacity
+  - selected edge/point overlays should render stronger than normal display edges
+- stacking priority:
+  - hovered point/edge renders above selected surface/body tint
+  - selected point/edge renders above selected surface/body tint
+  - surface hover renders above normal material but below point/edge hover
+  - selected surface renders above normal material but below selected point/edge
+  - selected body tint should not erase readable model edges
+  - normal display edges remain below hover and selected topology highlights
+
+Suggested Settings contract shape:
+
+```ts
+type ViewHighlightSettings = {
+  hoverColor: string
+  selectedColor: string
+  bodySelectedColor: string
+  hoverGlow: number
+  selectedGlow: number
+  pointHoverSize: number
+  pointSelectedSize: number
+  edgeHoverThickness: number
+  edgeSelectedThickness: number
+  surfaceHoverOpacity: number
+  surfaceSelectedOpacity: number
+  bodySelectedOpacity: number
+}
+```
+
+Implementation can adjust exact names after reading local patterns, but the owner should remain under the viewport/view-settings presentation contract.
+
+Focused implementation targets:
+- add highlight settings defaults, validation/normalization, clone support, and persistence carry-through.
+- add Settings `Viewport` highlight controls/read rows for color and glow/intensity settings.
+- add viewer hover-pick state and overlay refresh methods for hovered topology entity.
+- update selected topology overlay colors from older hard-coded warm colors to blue defaults from highlight settings.
+- add body-selection promotion on double-click from topology picks.
+- keep existing click selection and multi-selection behavior intact unless the double-click promotion explicitly replaces the click action.
+
+Focused tests for:
+- default highlight settings normalize safely.
+- persisted highlight settings carry through view-settings persistence.
+- Settings renders the new viewport highlight group/section and writes through the owner-backed view-settings path.
+- point hover creates a light/white point overlay.
+- point selection creates a blue point overlay.
+- edge hover creates a light/white edge overlay.
+- edge selection creates a blue edge overlay.
+- face/surface hover creates a light/white surface overlay.
+- face/surface selection creates a blue surface overlay.
+- double-clicking a topology point/edge/face promotes selection to the owning body/part while clearing or superseding sub-entity selection as needed.
+- hover overlays clear when the pointer leaves the model or no valid topology target is under the cursor.
+
+Manual acceptance:
+- match the Fusion-style screenshots:
+  - white point hover
+  - blue point selected
+  - white edge hover
+  - blue edge selected
+  - white/gray surface hover
+  - blue surface selected
+  - whole-body light blue selection after double-click promotion
+- verify hover and selected reads over:
+  - Solid
+  - Material
+  - Rendered
+  - visible-edges-only edge display
+- verify normal display edges remain readable but subordinate to hover/selection highlights.
+
+Definition of done:
+- point, edge, and surface hover have a white/light visual read.
+- point, edge, and surface click selection have a blue visual read.
+- double-clicking any topology sub-entity promotes to whole-body blue highlight.
+- Settings exposes a viewport highlight styling section/group backed by the real view-settings owner.
+- highlight stacking is deterministic and documented.
+- focused tests cover settings ownership, hover/selection overlays, and double-click promotion.
+
+Recommended implementation order:
+1. Add `ViewHighlightSettings` defaults and normalization in `src/shared/viewSettingsTypes.ts`.
+2. Carry highlight settings through UI prefs persistence.
+3. Add Settings `Viewport` highlight read/write controls.
+4. Add viewer hover topology entity state and hover overlay refresh methods.
+5. Retune selected face/edge/point overlays to use the new blue selected defaults.
+6. Add double-click topology promotion to body/part selection.
+7. Add focused unit tests and viewer tests.
+8. Run focused tests, production build, and browser/manual screenshot sanity.
+
+Explicit non-goals:
+- no new topology packet generation
+- no imported STEP topology extraction
+- no direct modeling or topology editing
+- no snapping, measurement, or transform-handle behavior
+- no topology inspector/detail panel
+- no new raw triangle debug display mode
+- no change to the Phase 6 edge-display controls
+
+### Phase 8 Implementation Notes
+
+Implementation result:
+- `ViewSettings.highlights` now owns normalized hover, selected, and whole-body highlight colors plus glow, point size, edge thickness, and face/body opacity values.
+- Settings `Viewport` now exposes the highlight color and intensity controls while leaving the meaning of those values with the model-viewport/view-settings contract.
+- `Viewer` now tracks hovered topology entities separately from selected topology entities and draws white/light hover overlays for points, edges, and faces.
+- selected point, edge, and face overlays now read from the blue selected highlight settings instead of the earlier hard-coded warm colors.
+- double-clicking a topology point, edge, or face routes through the workspace selection pick contract with `doubleClick: true`, clearing the sub-entity selection and promoting the selected part/body overlay.
+- whole-body selection now draws a soft blue body tint when a part is selected without a selected topology sub-entity.
+
+Verification:
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "promotes double-clicked topology picks"`
+- `npm.cmd run build`
+- `git diff --check`
+- Full `npm.cmd test -- src/app/components/ViewerHost.test.tsx` was attempted twice and timed out without returning output; the focused double-click regression passed.
+
+## [x] `Model-Viewport-4 / Phase 9` - `Sketch Extrude Topology Preview Generation`
+
+### Phase 9 Summary
+
+Make graph-authored sketch > extrude results produce the semantic topology packet that the viewport already knows how to consume.
+
+Phase 8 shipped the hover/selection language, but that language only works on real topology entities when the visible geometry includes `topologyPreview`. The current sketch/extrude result path can still display clean fallback edges, but it does not yet provide semantic faces, edges, and points for a rectangle extrude to behave like a CAD body in hover and click selection.
+
+Current status:
+- shipped
+
+Current implementation-read:
+- `src/shared/geometryResult.ts`
+  - already defines `GeometryTopologyPreview`, `faces`, `triangleFaceIds`, `edges`, and `points`.
+  - already validates and clones topology packets when provided.
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+  - already forwards `geometryResult.topologyPreview ?? null` into `toViewerRenderablePart(...)`.
+  - no new viewer bridge is needed if the result producer starts filling the packet.
+- `src/viewer/Viewer.ts`
+  - already consumes topology previews for semantic face hit resolution, semantic edge overlays, edge/point pick targets, hover highlights, selected topology highlights, and double-click body promotion.
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+  - currently creates authoritative geometry result bundles from `preview.bodies`, `preview.mergedMesh`, diagnostics, trace, and authoritative handle.
+  - it does not currently pass `topologyPreview`, so authoritative sketch/extrude geometry remains mesh-only from the viewport topology perspective.
+- `src/worker/products/foothook/buildFoothook.ts`
+  - currently creates draft geometry result bundles without `topologyPreview`, so draft/fallback geometry remains mesh-only.
+- `src/worker/cad/featureStackRuntime.ts`
+  - owns the live feature-stack preview path.
+  - `runSketch(...)` stores resolved profile wires after `wireFromLoop(...)` normalizes profiles counter-clockwise and removes closing duplicate vertices.
+  - `runExtrude(...)` resolves sketch/profile selection, chooses one-side/two-sides/symmetric start/end depth, creates one or more extruded `Shape3D` values, stores bodies, and returns a merged preview through `mergeBodies(...)`.
+  - `ExecuteFeatureStackResult` currently returns bodies, merged mesh, diagnostics, and trace, but no topology packet.
+- `src/worker/cad/cadKernelAdapter.ts`
+  - owns the simple mesh creation order for graph-native extrudes.
+  - `extrudeMesh(...)` creates bottom-loop vertices first, top-loop vertices second.
+  - capped extrudes emit bottom cap triangles first, top cap triangles second, then two side triangles per profile segment.
+  - this ordering is the strongest first seam for building `triangleFaceIds` deterministically.
+  - `mergeMeshPacks(...)` appends meshes in order and offsets vertex indices, so merged topology needs matching triangle/id and vertex-position offset rules.
+- `src/worker/cad/cadTypes.ts`
+  - `MeshPack` currently carries only `vertices` and `indices`.
+  - Phase 9 may either add an internal topology-bearing shape/mesh result beside `MeshPack`, or add a helper that returns `{ mesh, topology }` without exposing topology through the generic mesh type.
+- `src/worker/cad/featureStackRuntime.test.ts`
+  - already has rectangle extrude fixtures and `executeFeatureStack(...)` tests, making it the best first place for six-face/twelve-edge/eight-point proof.
+
+### Phase 9 Implementation Spec
+
+Must lock:
+- one producer-side topology construction seam for graph-authored sketch/extrude geometry.
+- first supported shape:
+  - capped polygonal extrudes from a single closed profile loop.
+  - rectangle extrudes must be covered.
+  - arbitrary simple polygon loops may be supported if the implementation follows the same deterministic loop/triangle ordering without extra risk.
+- unsupported first-pass cases:
+  - uncapped `Walls` extrudes may remain mesh-only.
+  - aggregate extrusions from multiple profiles may remain mesh-only unless the implementation can merge topology honestly in the same pass.
+  - invalid profiles, duplicate ids, or ambiguous profile results must stay mesh-only/null topology.
+- topology generation for simple closed sketch profiles where the mesh construction can map triangles to:
+  - front cap face
+  - back cap face
+  - one side face per profile segment
+- deterministic ids scoped to the result:
+  - body id should match the emitted geometry body id.
+  - face ids should include enough profile/feature/body context to stay stable within the current result.
+  - edge ids should identify cap perimeter and side/vertical edges.
+  - point ids should identify extruded profile vertices.
+- `triangleFaceIds` should line up with the emitted merged mesh triangle order, or the implementation must add the mapping at the per-body mesh stage before merge.
+- edge polylines should use the same coordinate space as the emitted preview mesh.
+- point positions should use the same coordinate space as the emitted preview mesh.
+- cap/side ordering should follow the live `extrudeMesh(...)` order unless the implementation explicitly changes and proves that order:
+  - bottom cap triangles: `n - 2`
+  - top cap triangles: `n - 2`
+  - side triangles: `2 * n`
+  - total triangles for capped polygon loop: `(n - 2) * 2 + 2 * n`
+  - rectangle total: `12` triangles, with `2` bottom cap, `2` top cap, and `8` side triangles.
+- a rectangle extrude should produce:
+  - `6` faces.
+  - `12` edges.
+  - `8` points.
+  - `12` `triangleFaceIds`.
+- honest fallback:
+  - unsupported profile shapes should keep `topologyPreview: null`.
+  - invalid or ambiguous topology should not be invented.
+  - mesh display should keep working even when topology cannot be emitted.
+
+Focused implementation targets:
+- add a worker/cad helper that derives topology from the same loop, plane, plane transform, depth, body id, feature id, and part key used to create the extrude mesh.
+- prefer building topology beside `extrudeMesh(...)` or immediately after it while the loop vertex count and triangle order are still local and obvious.
+- add a small topology merge helper if more than one supported shape can contribute to the final merged mesh.
+- thread the produced topology into `createDraftGeometryResultBundle(...)` and/or `createAuthoritativeGeometryResultBundle(...)` through the result-building seam.
+- extend `ExecuteFeatureStackResult` with `topologyPreview: GeometryTopologyPreview | null`.
+- pass `preview.topologyPreview` into the authoritative result bundle in `src/worker/authoritative/buildAuthoritativeGeometry.ts`.
+- if a draft feature-stack result path also uses `executeFeatureStack(...)`, pass the same topology into its draft result bundle.
+- add focused tests for a rectangle sketch extrude:
+  - six semantic faces.
+  - twelve semantic edges.
+  - eight semantic points.
+  - `triangleFaceIds` maps cap and side triangles to the expected face ids.
+  - viewport renderable part receives non-null topology.
+- add one viewer or selector integration proof that rectangle extrude face picking resolves to a semantic face id instead of plain part-only selection.
+- keep the implementation localized to worker/cad topology production and result-bundle carry-through unless a test reveals a real selector/viewer contract gap.
+
+Manual acceptance:
+- draw a rectangle in Sketch and extrude it.
+- hover one rectangle face and confirm the whole face highlights white/light.
+- click one rectangle face and confirm the whole face highlights blue.
+- hover/click a rectangle edge and confirm the whole edge highlights.
+- hover/click a rectangle corner point and confirm the point highlights.
+- double-click a face, edge, or point and confirm the whole extruded body receives the body selected tint.
+- confirm normal display/wireframe edges still do not expose the internal triangle diagonal.
+
+Definition of done:
+- a simple sketch > extrude rectangle produces semantic topology in the result bundle.
+- the existing viewport hover/selection system can operate on that rectangle's faces, edges, and points.
+- unsupported sketch/extrude cases remain honest mesh-only results instead of fake topology.
+- focused tests prove producer topology, result forwarding, and at least one viewport-facing semantic pick path.
+- authoritative bundle creation carries the produced topology instead of dropping it.
+
+Recommended implementation order:
+1. Add internal topology construction for capped polygon extrudes in the worker/cad layer.
+2. Extend `ExecuteFeatureStackResult` with nullable `topologyPreview`.
+3. Merge topology in the same deterministic order as `mergeBodies(...)` / `mergeMeshPacks(...)`.
+4. Thread topology through authoritative and any draft feature-stack result bundle creation.
+5. Add `featureStackRuntime.test.ts` proof for rectangle topology counts, ids, and `triangleFaceIds`.
+6. Add selector proof that the viewport render part receives topology from a geometry result.
+7. Add focused viewer semantic-pick proof only if producer/selector proof does not exercise the viewport contract enough.
+8. Run focused worker/cad, authoritative, selector, viewer, and build verification.
+
+Likely verification:
+- `npm.cmd test -- src/worker/cad/featureStackRuntime.test.ts`
+- `npm.cmd test -- src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+- `git diff --check`
+
+### Phase 9 Implementation Notes
+
+Implementation result:
+- `executeFeatureStack(...)` now returns a nullable `topologyPreview` sidecar beside `mergedMesh`.
+- simple capped graph-authored sketch extrudes now derive semantic faces, triangle face ownership, edge polylines, and point positions from the same projected profile loop and extrusion depth used by the preview mesh.
+- rectangle extrudes now produce six faces, twelve edges, eight points, and twelve triangle face ids in the same bottom-cap, top-cap, then side-triangle order as the mesh.
+- merged topology follows the same sorted body order as merged mesh previews, with unsupported bodies contributing `null` triangle ownership instead of invented topology.
+- uncapped `Walls` extrudes and aggregate multi-profile extrusions remain honest mesh-only results.
+- draft foothook feature-stack bundles and authoritative geometry bundles now carry the produced topology preview through to viewport selector renderable parts.
+- the artifact-preview selector path now projects retained topology onto matching visible preview artifacts, covering the normal Auto/draft path where the viewport may render `PartArtifact` previews instead of the retained geometry-result preview directly.
+
+Verification:
+- `npm.cmd test -- src/worker/cad/featureStackRuntime.test.ts`
+- `npm.cmd test -- src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+Explicit non-goals:
+- no changes to Phase 8 highlight styling or Settings controls.
+- no new Shift+D edge controls.
+- no imported STEP topology extraction.
+- no global cross-rebuild B-rep naming stability promise.
+- no curved-surface analytic topology naming beyond what the current simple sketch/extrude producer can map honestly.
+- no raw triangle debug display mode.
+- no snapping, measurement, inspector/detail panel, direct modeling, or topology editing commands.

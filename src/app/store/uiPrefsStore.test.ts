@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_ENVIRONMENT_GRADE,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
+  DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
   DEFAULT_VIEW_DISPLAY_MODE,
   DEFAULT_VIEW_EDGE_DISPLAY_MODE,
   DEFAULT_VIEW_SETTINGS,
@@ -376,6 +377,42 @@ describe('uiPrefsStore environment source state', () => {
       renderScale: 1,
       noiseCleanup: 'low',
       gpuLoad: 'balanced',
+    })
+  })
+
+  it('normalizes viewport highlight settings through the generic view-setting path', () => {
+    expect(useUiPrefsStore.getState().view.highlights).toEqual(DEFAULT_VIEW_HIGHLIGHT_SETTINGS)
+
+    useUiPrefsStore.getState().setViewKey('highlights', {
+      ...DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
+      hoverColor: '#FFFFFF',
+      selectedColor: 'blue',
+      bodySelectedColor: '#123ABC',
+      hoverGlow: 2,
+      selectedGlow: -1,
+      pointHoverSize: 1,
+      pointSelectedSize: 0,
+      edgeHoverThickness: 10,
+      edgeSelectedThickness: 0,
+      surfaceHoverOpacity: 2,
+      surfaceSelectedOpacity: 0,
+      bodySelectedOpacity: 2,
+    })
+
+    expect(useUiPrefsStore.getState().view.highlights).toEqual({
+      ...DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
+      hoverColor: '#ffffff',
+      selectedColor: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.selectedColor,
+      bodySelectedColor: '#123abc',
+      hoverGlow: 1,
+      selectedGlow: 0,
+      pointHoverSize: 0.2,
+      pointSelectedSize: 0.02,
+      edgeHoverThickness: 6,
+      edgeSelectedThickness: 0.5,
+      surfaceHoverOpacity: 0.9,
+      surfaceSelectedOpacity: 0.05,
+      bodySelectedOpacity: 0.85,
     })
   })
 

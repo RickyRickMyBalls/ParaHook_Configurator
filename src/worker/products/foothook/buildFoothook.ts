@@ -90,6 +90,7 @@ export const runFoothookFeatureStack = (
     request: options.request,
     bodies,
     meshPreview,
+    topologyPreview: execution.topologyPreview,
     diagnostics,
     trace,
   })

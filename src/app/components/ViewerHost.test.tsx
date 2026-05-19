@@ -70,6 +70,7 @@ let viewerSetParts: ReturnType<typeof vi.fn>
 let viewerSetViewportRenderLayers: ReturnType<typeof vi.fn>
 let viewerSetHighlightedPartKeys: ReturnType<typeof vi.fn>
 let viewerSetHighlightedReferenceIds: ReturnType<typeof vi.fn>
+let viewerSetSelectedTopologyEntity: ReturnType<typeof vi.fn>
 let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickPlaneSelect: ReturnType<typeof vi.fn>
 let viewerSetOnSketchPlanePickTransformChange: ReturnType<typeof vi.fn>
@@ -152,7 +153,7 @@ vi.mock('../../viewer/Viewer', () => ({
     }
     public setSelectedPart(): void {}
     public setSelectedTopologyFace(): void {}
-    public setSelectedTopologyEntity(): void {}
+    public setSelectedTopologyEntity = (...args: unknown[]) => viewerSetSelectedTopologyEntity(...args)
     public setHighlightedPartKeys = (...args: unknown[]) => viewerSetHighlightedPartKeys(...args)
     public setHighlightedReferenceIds = (...args: unknown[]) =>
       viewerSetHighlightedReferenceIds(...args)
@@ -298,6 +299,7 @@ type WorkspaceSelectionPickPayload = {
     | { kind: 'environment-light'; lightId: string }
   >
   ctrlKey: boolean
+  doubleClick?: boolean
 }
 
 class MockWorker {
@@ -595,6 +597,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetViewportRenderLayers = vi.fn()
     viewerSetHighlightedPartKeys = vi.fn()
     viewerSetHighlightedReferenceIds = vi.fn()
+    viewerSetSelectedTopologyEntity = vi.fn()
     viewerSetSketchPlanePickOverlay = vi.fn()
     viewerSetOnSketchPlanePickPlaneSelect = vi.fn()
     viewerSetOnSketchPlanePickTransformChange = vi.fn()
@@ -8883,6 +8886,77 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
     expect(useAppStore.getState().selectedPartKey).toBeNull()
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('surface-clear')
+  })
+
+  it('promotes double-clicked topology picks to whole-body selection', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    await seedViewportObjectSelectionGraph([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+        label: 'Object 1',
+      },
+    ])
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
+      | ((event: WorkspaceSelectionPickPayload) => void)
+      | null
+
+    await act(async () => {
+      workspaceSelectionPickHandler?.({
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+            edgeId: 'edge:top',
+            topologyBodyId: 'body:1',
+          },
+        ],
+        ctrlKey: false,
+      })
+    })
+
+    expect(viewerSetSelectedTopologyEntity).toHaveBeenLastCalledWith({
+      kind: 'edge',
+      partKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+      edgeId: 'edge:top',
+      bodyId: 'body:1',
+    })
+
+    await act(async () => {
+      workspaceSelectionPickHandler?.({
+        picks: [
+          {
+            kind: 'part',
+            partKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+            edgeId: 'edge:top',
+            topologyBodyId: 'body:1',
+          },
+        ],
+        ctrlKey: false,
+        doubleClick: true,
+      })
+    })
+
+    expect(viewerSetSelectedTopologyEntity).toHaveBeenLastCalledWith(null)
+    expect(useAppStore.getState().selectedPartKey).toBe(
+      'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+    )
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'object',
+      objectId: 'project-object:project-file-1:graph-document-1:output-object-1',
+    })
   })
 
   it('commits viewport marquee batches as explicit multi-selection across picked objects', async () => {

@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+84. 2026-05-18 23:00:44: Followed up on `Model-Viewport-4 / Phase 9` by preserving retained topology through the artifact-preview selector path, so the normal Auto/draft viewport renderable can carry rectangle sketch-extrude edge, face, and point topology instead of dropping back to mesh-only selection.
+83. 2026-05-18 22:49:42: Marked `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` shipped inside the dedicated future doc after graph-authored capped sketch extrudes began emitting semantic topology previews, draft and authoritative geometry bundles carried the topology forward, and focused rectangle topology, selector forwarding, viewer, and build verification passed.
+82. 2026-05-18 22:31:44: Prepped `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` inside the dedicated future doc after reading the live worker/cad extrude mesh order, feature-stack result seam, authoritative bundle handoff, and viewport selector forwarding path, locking the next implementation to simple capped polygon extrude topology packets and focused rectangle-extrude verification.
+81. 2026-05-18 22:19:02: Added `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` inside the dedicated future doc as the follow-up for sketch > extrude objects, locking the next lane to producer-side `topologyPreview` packets for simple graph-authored extrudes so Phase 8 hover, selection, and whole-body promotion can work on real faces, edges, and points.
+80. 2026-05-18 22:02: Marked `Model-Viewport-4 / Phase 8 - Hover And Selection Highlight Hierarchy` shipped inside the dedicated future doc after viewport highlight settings, Settings `Viewport` highlight controls, white topology hover overlays, blue selected topology overlays, and double-click whole-body promotion landed with focused verification.
+79. 2026-05-18 21:22: Added and prepped `Model-Viewport-4 / Phase 8 - Hover And Selection Highlight Hierarchy` inside the dedicated future doc from the Fusion-style screenshots, locking white hover highlights, blue selected point/edge/surface highlights, double-click body-selection promotion, highlight stacking priority, and Settings-exposed viewport highlight color/glow controls backed by the view-settings owner.
+78. 2026-05-18 20:44: Marked `Model-Viewport-4 / Phase 7 - Edge Display Visual Correctness And Polish` shipped inside the dedicated future doc after display-edge overlays gained separate non-selection styling, `Visible edges only` preserved the active surface/fill mode with depth-tested edge hiding, `On` stayed as x-ray edge display, selected outlines stayed independent from edge visibility, and mesh-only cylinder fallback seams were reduced with focused viewer proof.
+77. 2026-05-18 20:31: Added and prepped `Model-Viewport-4 / Phase 7 - Edge Display Visual Correctness And Polish` inside the dedicated future doc as the next edge-display follow-up, locking it to Fusion-style visible-edge depth behavior, edge visual hierarchy, semantic-versus-extracted fallback polish, cylinder/curved mesh noise review, focused viewer proof, and manual screenshot acceptance.
 76. 2026-05-18 17:05: Corrected the `Model-Viewport-4 / Phase 6` shipped read in the dedicated future doc so `Visible edges only` is now the Fusion-style depth-tested edge overlay mode that keeps the current surface/fill style and hides blocked/back edges behind surfaces.
 75. 2026-05-18 16:53: Marked `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` shipped inside the dedicated future doc after Shift+D gained center edge controls, view settings gained persisted edge display mode, viewer edge overlays decoupled from fill mode, `Visible edges only` preserved child edge overlays through surface de-emphasis, and focused verification plus browser sanity proof passed.
 74. 2026-05-18 16:29: Tightened the `Model-Viewport-4 / Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` handoff in the dedicated future doc into an implementation-ready slice with live code ownership, view-setting persistence targets, `Shift+D` center edge-control behavior, legacy wireframe compatibility, visible-edges-only overlay-parent constraints, and focused verification scope.
@@ -630,6 +638,9 @@ Definition of done:
 - `Phase 4 - Edge And Point Selection Presentation` is now shipped in the dedicated future doc as the topology entity-selection slice for edge/point hit targets and selected-entity highlights
 - `Phase 5 - Mesh Edge Wireframe Fallback And Closeout` is now shipped in the dedicated future doc as the visual cleanup slice that replaces mesh-only material triangle wireframe with extracted mesh-edge overlays in normal Wireframe mode
 - `Phase 6 - Edge Visibility Controls In Shift-D Display Wheel` is now shipped in the dedicated future doc as the UI/presentation split that lets the user choose surface fill mode and edge visibility mode separately
+- `Phase 7 - Edge Display Visual Correctness And Polish` is now shipped in the dedicated future doc as the visual correctness pass for Fusion-style visible edges, edge hierarchy, and mesh-only fallback noise reduction
+- `Phase 8 - Hover And Selection Highlight Hierarchy` is now shipped in the dedicated future doc as the Fusion-style interaction-highlight pass for white hover, blue selection, double-click body promotion, and Settings-backed highlight style controls
+- `Phase 9 - Sketch Extrude Topology Preview Generation` is now prepped in the dedicated future doc as the producer-side follow-up for making simple sketch > extrude geometry emit topology packets that the shipped viewport highlight and selection system can consume
 
 ### Questions
 
@@ -667,6 +678,9 @@ Definition of done:
 - Phase 4 shipped edge and point hit targets plus selected-entity highlights while keeping snapping, measurement, inspector, transform, and direct-modeling behavior deferred
 - Phase 5 shipped extracted mesh-edge overlays for mesh-only normal Wireframe mode while deferring raw triangle inspection to a later debug mesh mode
 - Phase 6 shipped `Shift+D` center edge controls for `On`, `Off`, and `Visible edges only` while keeping the existing display wheel choices as surface fill modes
+- Phase 7 shipped edge-display visual correctness polish, including depth-tested visible edges, selected-highlight separation, and mesh-only cylinder/curve noise reduction
+- Phase 8 shipped Fusion-style hover and selection highlight hierarchy, including Settings-backed highlight colors/glow, white hover, blue sub-entity selection, and double-click whole-body selection promotion
+- Phase 9 is now prepped to make simple graph-authored sketch > extrude results emit semantic topology packets so rectangle extrudes can hover/select faces, edges, and points through the shipped viewport system
 
 ## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment
 

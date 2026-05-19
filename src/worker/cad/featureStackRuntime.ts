@@ -2,7 +2,9 @@ import {
   createDefaultSketchPlaneTransform,
   type SketchPlaneTransform,
 } from '../../shared/sketchTypes'
+import { projectSketchPointToWorld } from '../../shared/sketchPlaneFrame'
 import { tessellateProfileLoop } from '../../app/spaghetti/compiler/runtimeTessellation'
+import type { GeometryTopologyPreview } from '../../shared/geometryResult'
 import {
   isGeometryRequestPayload,
   type GeometryRequestExtrudeOp,
@@ -63,30 +65,177 @@ type RuntimeContext = {
   sketches: Map<string, SketchRuntime>
   profiles: Map<string, Wire>
   bodies: Map<string, Shape3D>
+  topologyByBodyKey: Map<string, GeometryTopologyPreview>
   bodyTrace: RuntimeTraceBody[]
 }
 
 export type ExecuteFeatureStackResult = {
   bodies: Record<string, Shape3D>
   mergedMesh: MeshPack | null
+  topologyPreview: GeometryTopologyPreview | null
   diagnostics: RuntimeDiagnostic[]
   bodyTrace: RuntimeTraceBody[]
 }
 
 export const isFeatureStackIRPayload = isGeometryRequestPayload
 
+const getSortedBodyEntries = (
+  bodies: ReadonlyMap<string, Shape3D>,
+): Array<[string, Shape3D]> =>
+  [...bodies.entries()].sort(
+    (a, b) =>
+      compareSpaghettiSourcePartKeys(a[1].partKey, b[1].partKey) ||
+      a[1].bodyId.localeCompare(b[1].bodyId),
+  )
+
 const mergeBodies = (bodies: ReadonlyMap<string, Shape3D>): MeshPack | null => {
   if (bodies.size === 0) {
     return null
   }
-  const meshes = [...bodies.entries()]
-    .sort(
-      (a, b) =>
-        compareSpaghettiSourcePartKeys(a[1].partKey, b[1].partKey) ||
-        a[1].bodyId.localeCompare(b[1].bodyId),
-    )
-    .map(([, shape]) => shape.mesh)
+  const meshes = getSortedBodyEntries(bodies).map(([, shape]) => shape.mesh)
   return mergeMeshPacks(meshes)
+}
+
+const mergeBodyTopologies = (
+  bodies: ReadonlyMap<string, Shape3D>,
+  topologyByBodyKey: ReadonlyMap<string, GeometryTopologyPreview>,
+): GeometryTopologyPreview | null => {
+  if (bodies.size === 0 || topologyByBodyKey.size === 0) {
+    return null
+  }
+  const merged: GeometryTopologyPreview = {
+    faces: [],
+    triangleFaceIds: [],
+    edges: [],
+    points: [],
+  }
+  for (const [bodyKey, shape] of getSortedBodyEntries(bodies)) {
+    const triangleCount = shape.mesh.indices.length / 3
+    const topologyPreview = topologyByBodyKey.get(bodyKey)
+    if (topologyPreview === undefined || topologyPreview.triangleFaceIds.length !== triangleCount) {
+      merged.triangleFaceIds.push(...Array<string | null>(triangleCount).fill(null))
+      continue
+    }
+    merged.faces.push(...topologyPreview.faces)
+    merged.triangleFaceIds.push(...topologyPreview.triangleFaceIds)
+    merged.edges.push(...topologyPreview.edges)
+    merged.points.push(...topologyPreview.points)
+  }
+  return merged.faces.length > 0 || merged.edges.length > 0 || merged.points.length > 0
+    ? merged
+    : null
+}
+
+const toPolyline = (
+  start: readonly [number, number, number],
+  end: readonly [number, number, number],
+): number[] => [start[0], start[1], start[2], end[0], end[1], end[2]]
+
+const buildExtrudeTopologyPreview = (options: {
+  wire: Wire
+  plane: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
+  depth: number
+  bodyId: string
+  featureId: string
+  partKey: string
+}): GeometryTopologyPreview | null => {
+  const loop = options.wire.vertices
+  const count = loop.length
+  if (count < 3 || !Number.isFinite(options.depth) || options.depth <= 0) {
+    return null
+  }
+
+  const bottomPoints = loop.map((point) => {
+    const worldPoint = projectSketchPointToWorld(
+      options.plane,
+      options.planeTransform,
+      point,
+      0,
+    )
+    return [worldPoint.x, worldPoint.y, worldPoint.z] as [number, number, number]
+  })
+  const topPoints = loop.map((point) => {
+    const worldPoint = projectSketchPointToWorld(
+      options.plane,
+      options.planeTransform,
+      point,
+      options.depth,
+    )
+    return [worldPoint.x, worldPoint.y, worldPoint.z] as [number, number, number]
+  })
+
+  const idBase = `${options.partKey}:${options.featureId}:${options.bodyId}`
+  const bottomFaceId = `${idBase}:face:bottom`
+  const topFaceId = `${idBase}:face:top`
+  const sideFaceIds = loop.map((_, index) => `${idBase}:face:side:${index}`)
+  const triangleFaceIds = [
+    ...Array<string | null>(count - 2).fill(bottomFaceId),
+    ...Array<string | null>(count - 2).fill(topFaceId),
+    ...sideFaceIds.flatMap((faceId) => [faceId, faceId]),
+  ]
+
+  return {
+    faces: [
+      {
+        faceId: bottomFaceId,
+        bodyId: options.bodyId,
+        label: 'Bottom cap',
+      },
+      {
+        faceId: topFaceId,
+        bodyId: options.bodyId,
+        label: 'Top cap',
+      },
+      ...sideFaceIds.map((faceId, index) => ({
+        faceId,
+        bodyId: options.bodyId,
+        label: `Side ${index + 1}`,
+      })),
+    ],
+    triangleFaceIds,
+    edges: loop.flatMap((_, index) => {
+      const next = (index + 1) % count
+      const previous = (index - 1 + count) % count
+      return [
+        {
+          edgeId: `${idBase}:edge:bottom:${index}`,
+          bodyId: options.bodyId,
+          faceIds: [bottomFaceId, sideFaceIds[index]],
+          polyline: toPolyline(bottomPoints[index], bottomPoints[next]),
+          label: `Bottom edge ${index + 1}`,
+        },
+        {
+          edgeId: `${idBase}:edge:top:${index}`,
+          bodyId: options.bodyId,
+          faceIds: [topFaceId, sideFaceIds[index]],
+          polyline: toPolyline(topPoints[index], topPoints[next]),
+          label: `Top edge ${index + 1}`,
+        },
+        {
+          edgeId: `${idBase}:edge:vertical:${index}`,
+          bodyId: options.bodyId,
+          faceIds: [sideFaceIds[previous], sideFaceIds[index]],
+          polyline: toPolyline(bottomPoints[index], topPoints[index]),
+          label: `Vertical edge ${index + 1}`,
+        },
+      ]
+    }),
+    points: [
+      ...bottomPoints.map((position, index) => ({
+        pointId: `${idBase}:point:bottom:${index}`,
+        bodyId: options.bodyId,
+        position,
+        label: `Bottom point ${index + 1}`,
+      })),
+      ...topPoints.map((position, index) => ({
+        pointId: `${idBase}:point:top:${index}`,
+        bodyId: options.bodyId,
+        position,
+        label: `Top point ${index + 1}`,
+      })),
+    ],
+  }
 }
 
 const pushDiagnostic = (
@@ -370,6 +519,7 @@ const runExtrude = (
       return executionIndex
     }
     const capped = feature.extrudeType !== 'Walls'
+    const topologyCandidates: GeometryTopologyPreview[] = []
     const shapes = selection.targets.map((target) => {
       const face = faceFromWire(target.wire)
       const sketchPlane = feature.plane ?? target.plane ?? 'XY'
@@ -391,6 +541,20 @@ const runExtrude = (
                 (basePlaneTransform?.offsetMm ??
                   createDefaultSketchPlaneTransform().offsetMm) - startDepthResolved,
             }
+      const topologyPreview = capped
+        ? buildExtrudeTopologyPreview({
+            wire: target.wire,
+            plane: sketchPlane,
+            planeTransform: sketchPlaneTransform,
+            depth: extrusionDepthResolved,
+            bodyId,
+            featureId: feature.featureId,
+            partKey,
+          })
+        : null
+      if (topologyPreview !== null) {
+        topologyCandidates.push(topologyPreview)
+      }
       return sketchPlane === 'XY'
         ? extrudeFaceAlongZ(
             face,
@@ -430,6 +594,9 @@ const runExtrude = (
             mesh: mergeMeshPacks(shapes.map((candidate) => candidate.mesh)),
           }
     context.bodies.set(bodyKey, shape)
+    if (shapes.length === 1 && topologyCandidates.length === 1) {
+      context.topologyByBodyKey.set(bodyKey, topologyCandidates[0])
+    }
     context.bodyTrace.push({
       bodyKey,
       bodyId,
@@ -457,6 +624,7 @@ export const executeFeatureStack = (partsIR: FeatureStackIRPayload): ExecuteFeat
     sketches: new Map(),
     profiles: new Map(),
     bodies: new Map(),
+    topologyByBodyKey: new Map(),
     bodyTrace: [],
   }
   const diagnostics: RuntimeDiagnostic[] = []
@@ -467,6 +635,7 @@ export const executeFeatureStack = (partsIR: FeatureStackIRPayload): ExecuteFeat
       sketches: new Map(),
       profiles: new Map(),
       bodies: context.bodies,
+      topologyByBodyKey: context.topologyByBodyKey,
       bodyTrace: context.bodyTrace,
     }
     const operations = partsIR.parts[partKey] ?? []
@@ -496,6 +665,7 @@ export const executeFeatureStack = (partsIR: FeatureStackIRPayload): ExecuteFeat
   return {
     bodies: Object.fromEntries(sortedBodies),
     mergedMesh: mergeBodies(context.bodies),
+    topologyPreview: mergeBodyTopologies(context.bodies, context.topologyByBodyKey),
     diagnostics,
     bodyTrace: [...context.bodyTrace].sort(
       (a, b) =>

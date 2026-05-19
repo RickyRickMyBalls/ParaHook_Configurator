@@ -156,6 +156,21 @@ export type RenderPreviewSettings = {
   gpuLoad: RenderPreviewGpuLoad
 }
 
+export type ViewHighlightSettings = {
+  hoverColor: string
+  selectedColor: string
+  bodySelectedColor: string
+  hoverGlow: number
+  selectedGlow: number
+  pointHoverSize: number
+  pointSelectedSize: number
+  edgeHoverThickness: number
+  edgeSelectedThickness: number
+  surfaceHoverOpacity: number
+  surfaceSelectedOpacity: number
+  bodySelectedOpacity: number
+}
+
 export type ViewSettings = {
   projectionMode: ProjectionMode
   orbitEnabled: boolean
@@ -170,6 +185,7 @@ export type ViewSettings = {
   environmentSource: EnvironmentSourceSettings
   ground: GroundSettings
   renderPreview: RenderPreviewSettings
+  highlights: ViewHighlightSettings
   axisOverlayEnabled: boolean
   axisOverlayStyle: AxisOverlayStyleSettings
   lighting: {
@@ -281,6 +297,75 @@ export const DEFAULT_RENDER_PREVIEW_SETTINGS: RenderPreviewSettings = {
   noiseCleanup: DEFAULT_RENDER_PREVIEW_NOISE_CLEANUP,
   gpuLoad: DEFAULT_RENDER_PREVIEW_GPU_LOAD,
 }
+
+const normalizeHexColor = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value.toLowerCase() : fallback
+
+export const DEFAULT_VIEW_HIGHLIGHT_SETTINGS: ViewHighlightSettings = {
+  hoverColor: '#f5f7fb',
+  selectedColor: '#2f80ff',
+  bodySelectedColor: '#8fb3df',
+  hoverGlow: 0.45,
+  selectedGlow: 0.6,
+  pointHoverSize: 0.06,
+  pointSelectedSize: 0.07,
+  edgeHoverThickness: 1.4,
+  edgeSelectedThickness: 1.7,
+  surfaceHoverOpacity: 0.26,
+  surfaceSelectedOpacity: 0.58,
+  bodySelectedOpacity: 0.42,
+}
+
+export const normalizeViewHighlightSettings = (
+  settings: Partial<ViewHighlightSettings> | undefined,
+  fallback: ViewHighlightSettings = DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
+): ViewHighlightSettings => ({
+  hoverColor: normalizeHexColor(settings?.hoverColor, fallback.hoverColor),
+  selectedColor: normalizeHexColor(settings?.selectedColor, fallback.selectedColor),
+  bodySelectedColor: normalizeHexColor(
+    settings?.bodySelectedColor,
+    fallback.bodySelectedColor,
+  ),
+  hoverGlow: normalizeNumber(settings?.hoverGlow, fallback.hoverGlow, 0, 1),
+  selectedGlow: normalizeNumber(settings?.selectedGlow, fallback.selectedGlow, 0, 1),
+  pointHoverSize: normalizeNumber(settings?.pointHoverSize, fallback.pointHoverSize, 0.02, 0.2),
+  pointSelectedSize: normalizeNumber(
+    settings?.pointSelectedSize,
+    fallback.pointSelectedSize,
+    0.02,
+    0.2,
+  ),
+  edgeHoverThickness: normalizeNumber(
+    settings?.edgeHoverThickness,
+    fallback.edgeHoverThickness,
+    0.5,
+    6,
+  ),
+  edgeSelectedThickness: normalizeNumber(
+    settings?.edgeSelectedThickness,
+    fallback.edgeSelectedThickness,
+    0.5,
+    6,
+  ),
+  surfaceHoverOpacity: normalizeNumber(
+    settings?.surfaceHoverOpacity,
+    fallback.surfaceHoverOpacity,
+    0.05,
+    0.9,
+  ),
+  surfaceSelectedOpacity: normalizeNumber(
+    settings?.surfaceSelectedOpacity,
+    fallback.surfaceSelectedOpacity,
+    0.05,
+    0.95,
+  ),
+  bodySelectedOpacity: normalizeNumber(
+    settings?.bodySelectedOpacity,
+    fallback.bodySelectedOpacity,
+    0.05,
+    0.85,
+  ),
+})
 
 export type RenderPreviewQualityPresetDefinition = {
   id: RenderPreviewQualityPreset
@@ -864,6 +949,7 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
         ? { ...DEFAULT_VIEW_SETTINGS.ground }
         : { ...settings.ground },
     renderPreview: normalizeRenderPreviewSettings(settings.renderPreview),
+    highlights: normalizeViewHighlightSettings(settings.highlights),
     axisOverlayStyle:
       settings.axisOverlayStyle === undefined
         ? { ...DEFAULT_VIEW_SETTINGS.axisOverlayStyle }
@@ -973,6 +1059,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
     materialPresetId: 'matte_mid',
   },
   renderPreview: DEFAULT_RENDER_PREVIEW_SETTINGS,
+  highlights: DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
   axisOverlayEnabled: true,
   axisOverlayStyle: DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS,
   lighting: cloneLightingSettings(BASELINE_ENVIRONMENT_PRESET_LIGHTING),

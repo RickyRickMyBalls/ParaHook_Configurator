@@ -1008,6 +1008,21 @@ describe('buildAuthoritativeGeometry', () => {
       }),
     )
     expect(result.authoritativeGeometryResult?.meshPreview).not.toBeNull()
+    expect(result.authoritativeGeometryResult?.topologyPreview).toEqual(
+      expect.objectContaining({
+        faces: expect.arrayContaining([
+          expect.objectContaining({
+            faceId: 'cube:cube-extrude-1:cube-body-1:face:bottom',
+            bodyId: 'cube-body-1',
+          }),
+        ]),
+        triangleFaceIds: expect.arrayContaining([
+          'cube:cube-extrude-1:cube-body-1:face:bottom',
+          'cube:cube-extrude-1:cube-body-1:face:top',
+          'cube:cube-extrude-1:cube-body-1:face:side:0',
+        ]),
+      }),
+    )
     expect(Object.keys(result.authoritativeGeometryResult?.bodies ?? {})).toEqual([
       'cube:cube-body-1',
     ])

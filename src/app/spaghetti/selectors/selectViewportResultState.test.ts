@@ -7,6 +7,7 @@ import {
 import {
   createAuthoritativeGeometryResultBundle,
   createDraftGeometryResultBundle,
+  type GeometryTopologyPreview,
 } from '../../../shared/geometryResult'
 import type { GraphPreviewPreparation } from '../previewPreparation'
 import { resolveWorkspaceViewportResultModeBehavior } from '../../workspace/workspaceViewportResultMode'
@@ -49,6 +50,82 @@ const createArtifact = (partKeyStr: string): PartArtifact => ({
   partKeyStr,
   partKey: { id: partKeyStr, instance: null },
   params: { width: 10, length: 20, height: 5 },
+})
+
+const createMeshArtifact = (
+  partKeyStr: string,
+): Extract<PartArtifact, { kind: 'mesh' }> => ({
+  id: `artifact:${partKeyStr}`,
+  kind: 'mesh',
+  label: partKeyStr,
+  partKeyStr,
+  partKey: { id: partKeyStr, instance: null },
+  mesh: {
+    vertices: [
+      0, 0, 0,
+      10, 0, 0,
+      10, 5, 0,
+      0, 5, 0,
+      0, 0, 3,
+      10, 0, 3,
+      10, 5, 3,
+      0, 5, 3,
+    ],
+    indices: [
+      0, 2, 1,
+      0, 3, 2,
+      4, 5, 6,
+      4, 6, 7,
+      0, 1, 5,
+      0, 5, 4,
+      1, 2, 6,
+      1, 6, 5,
+      2, 3, 7,
+      2, 7, 6,
+      3, 0, 4,
+      3, 4, 7,
+    ],
+  },
+})
+
+const createRectangleTopologyPreview = (): GeometryTopologyPreview => ({
+  faces: [
+    { faceId: 'face:bottom', bodyId: 'body-a' },
+    { faceId: 'face:top', bodyId: 'body-a' },
+    { faceId: 'face:side:0', bodyId: 'body-a' },
+    { faceId: 'face:side:1', bodyId: 'body-a' },
+    { faceId: 'face:side:2', bodyId: 'body-a' },
+    { faceId: 'face:side:3', bodyId: 'body-a' },
+  ],
+  triangleFaceIds: [
+    'face:bottom',
+    'face:bottom',
+    'face:top',
+    'face:top',
+    'face:side:0',
+    'face:side:0',
+    'face:side:1',
+    'face:side:1',
+    'face:side:2',
+    'face:side:2',
+    'face:side:3',
+    'face:side:3',
+  ],
+  edges: [
+    {
+      edgeId: 'edge:bottom:0',
+      bodyId: 'body-a',
+      faceIds: ['face:bottom', 'face:side:0'],
+      polyline: [0, 0, 0, 10, 0, 0],
+    },
+  ],
+  points: [
+    {
+      pointId: 'point:bottom:0',
+      bodyId: 'body-a',
+      position: [0, 0, 0],
+    },
+  ],
 })
 
 const createPhase5SelectorScene = () => {
@@ -317,6 +394,123 @@ describe('selectViewportResultState', () => {
       expect.objectContaining({
         viewerKey: outputPreviewBaseplateViewerKey,
         artifact,
+      }),
+    ])
+  })
+
+  it('forwards geometry topology previews to viewport renderable parts', () => {
+    const topologyPreview = createRectangleTopologyPreview()
+    const geometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-topology',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          10, 0, 0,
+          10, 5, 0,
+          0, 5, 0,
+          0, 0, 3,
+          10, 0, 3,
+          10, 5, 3,
+          0, 5, 3,
+        ],
+        indices: [
+          0, 2, 1,
+          0, 3, 2,
+          4, 5, 6,
+          4, 6, 7,
+          0, 1, 5,
+          0, 5, 4,
+          1, 2, 6,
+          1, 6, 5,
+          2, 3, 7,
+          2, 7, 6,
+          3, 0, 4,
+          3, 4, 7,
+        ],
+      },
+      topologyPreview,
+      diagnostics: [],
+      trace: [],
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'draft',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('draft'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: geometryResult,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: geometryResult,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation: null,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        topologyPreview,
+      }),
+    ])
+  })
+
+  it('preserves retained topology when artifact preview is the visible draft path', () => {
+    const topologyPreview = createRectangleTopologyPreview()
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const geometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-artifact-topology',
+        partKeys: ['baseplate'],
+      },
+      bodies: {
+        'baseplate:body-a': {
+          kind: 'extrusion',
+          bodyId: 'body-a',
+          featureId: 'extrude-1',
+          op: 'extrude',
+          partKey: 'baseplate',
+          mesh: createMeshArtifact('baseplate').mesh,
+        },
+      },
+      meshPreview: createMeshArtifact('baseplate').mesh,
+      topologyPreview,
+      diagnostics: [],
+      trace: [],
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: geometryResult,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: geometryResult,
+      acceptedPreviewBuildOutputs: [createMeshArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state.visibleSourceKind).toBe('artifact-preview')
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: outputPreviewBaseplateViewerKey,
+        topologyPreview,
       }),
     ])
   })

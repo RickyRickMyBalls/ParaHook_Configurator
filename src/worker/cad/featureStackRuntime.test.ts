@@ -351,6 +351,50 @@ describe('executeFeatureStack', () => {
     expect(result.diagnostics).toEqual([])
   })
 
+  it('emits semantic topology for a simple capped rectangle extrude', () => {
+    const result = executeFeatureStack(basePayload())
+
+    expect(result.topologyPreview).not.toBeNull()
+    expect(result.topologyPreview?.faces).toHaveLength(6)
+    expect(result.topologyPreview?.edges).toHaveLength(12)
+    expect(result.topologyPreview?.points).toHaveLength(8)
+    expect(result.topologyPreview?.triangleFaceIds).toHaveLength(12)
+
+    const faceIds = result.topologyPreview?.faces.map((face) => face.faceId) ?? []
+    expect(faceIds).toEqual([
+      'baseplate:extrude-1:body-a:face:bottom',
+      'baseplate:extrude-1:body-a:face:top',
+      'baseplate:extrude-1:body-a:face:side:0',
+      'baseplate:extrude-1:body-a:face:side:1',
+      'baseplate:extrude-1:body-a:face:side:2',
+      'baseplate:extrude-1:body-a:face:side:3',
+    ])
+    expect(result.topologyPreview?.triangleFaceIds).toEqual([
+      'baseplate:extrude-1:body-a:face:bottom',
+      'baseplate:extrude-1:body-a:face:bottom',
+      'baseplate:extrude-1:body-a:face:top',
+      'baseplate:extrude-1:body-a:face:top',
+      'baseplate:extrude-1:body-a:face:side:0',
+      'baseplate:extrude-1:body-a:face:side:0',
+      'baseplate:extrude-1:body-a:face:side:1',
+      'baseplate:extrude-1:body-a:face:side:1',
+      'baseplate:extrude-1:body-a:face:side:2',
+      'baseplate:extrude-1:body-a:face:side:2',
+      'baseplate:extrude-1:body-a:face:side:3',
+      'baseplate:extrude-1:body-a:face:side:3',
+    ])
+    expect(result.topologyPreview?.points.map((point) => point.position)).toEqual([
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 5, 0],
+      [0, 5, 0],
+      [0, 0, 3],
+      [10, 0, 3],
+      [10, 5, 3],
+      [0, 5, 3],
+    ])
+  })
+
   it('supports multiple profile extrudes', () => {
     const payload = basePayload()
     payload.parts.baseplate[0] = {
@@ -377,6 +421,25 @@ describe('executeFeatureStack', () => {
 
     const result = executeFeatureStack(payload)
     expect(Object.keys(result.bodies)).toEqual(['baseplate:body-a', 'baseplate:body-b'])
+  })
+
+  it('keeps uncapped wall extrudes mesh-only without semantic topology', () => {
+    const payload = basePayload()
+    payload.parts.baseplate[1] = {
+      op: 'extrude',
+      featureId: 'extrude-walls',
+      profileRef: profileRef('sketch-1', 'prof-a'),
+      ...defaultExtrudeFields,
+      extrudeType: 'Walls',
+      depthResolved: 3,
+      bodyId: 'body-walls',
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(Object.keys(result.bodies)).toEqual(['baseplate:body-walls'])
+    expect(result.mergedMesh?.indices.length).toBe(24)
+    expect(result.topologyPreview).toBeNull()
   })
 
   it('executes aggregate sketch-profile selection as one merged body result', () => {
@@ -415,6 +478,7 @@ describe('executeFeatureStack', () => {
     expect(Object.keys(result.bodies)).toEqual(['baseplate:body-aggregate'])
     expect(result.bodies['baseplate:body-aggregate']?.kind).toBe('aggregate_extrusion')
     expect(result.bodies['baseplate:body-aggregate']?.mesh.vertices.length).toBe(48)
+    expect(result.topologyPreview).toBeNull()
     expect(result.diagnostics).toEqual([])
     expect(result.bodyTrace).toEqual([
       expect.objectContaining({

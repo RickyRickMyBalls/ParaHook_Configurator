@@ -72,6 +72,333 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1948 -->
+
+### [1948] - 2026-05-18 23:30 - `Model-Viewport-4 - Phase 9.5 - Topology Subselection Zoom Framing`
+
+HUMAN SUMMARY: ``Zoom Object now frames the selected topology sub-entity when a face, edge, or point is selected instead of zooming to the whole owning part. Clearing the topology sub-selection preserves the existing whole-part zoom behavior.``
+
+#### Scope / Constraints Honored
+
+- Kept the change in viewer framing behavior.
+- Preserved the app-level selected part target contract, so existing `F` and Zoom Object paths can keep calling the same viewer method.
+- Left selection semantics, topology generation, edge display controls, imported STEP topology extraction, snapping, measurement, inspector behavior, and direct modeling out of scope.
+
+#### Summary of Implementation
+
+- Added selected topology entity frame bounds for points, edges, and faces.
+- Made `frameSelected(partKey)` prefer the active topology sub-selection bounds when the selected topology entity belongs to the requested part.
+- Kept whole-part `frameObject` behavior as the fallback when no topology sub-selection is active or topology bounds cannot be resolved.
+- Added viewer regression coverage for selected edge, point, and face zoom bounds plus whole-part fallback.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Zoom Object / frame selected now zooms to a selected semantic edge, point, or face.
+- Whole-part zoom still works when the part itself is selected without a topology sub-selection.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1947 -->
+
+### [1947] - 2026-05-18 23:25 - `Model-Viewport-4 - Phase 9.4 - Highlight-Key Topology Subselection Suppression`
+
+HUMAN SUMMARY: ``Topology edge and point selection now suppresses the selected part's highlighted outline even when ViewerHost also sends that part through the highlighted-part path. Only the selected edge or point should show as selected.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix in viewer presentation state.
+- Preserved whole-part highlighting for normal part, object, assembly, and component selections.
+- Preserved selected edge and selected point overlays while suppressing only the owning part outline for topology sub-selection.
+
+#### Summary of Implementation
+
+- Updated viewer selection styling so highlighted part keys do not show an outline for the part that owns the active topology sub-selection.
+- Expanded the viewer regression to include the real selected-part plus highlighted-part-key update path.
+- Verified both edge and point topology sub-selection keep the whole-part outline hidden.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Selecting a semantic edge no longer leaves the whole-part highlighted outline visible through the highlighted-part path.
+- Selecting a semantic point also keeps only the point selected.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1946 -->
+
+### [1946] - 2026-05-18 23:20 - `Model-Viewport-4 - Phase 9.3 - Topology Subselection Outline Suppression`
+
+HUMAN SUMMARY: ``Selecting a topology edge now suppresses the whole-part selection outline, so only the clicked edge receives the selected-edge highlight. Whole-part selection still shows the body outline when no topology sub-entity is selected.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix in viewer selection presentation state.
+- Preserved topology pick identity, semantic edge display overlays, and whole-part selection behavior.
+- Left edge display controls, topology generation, imported STEP extraction, snapping, measurement, inspector behavior, and direct modeling out of scope.
+
+#### Summary of Implementation
+
+- Updated viewer selection styling so part outlines are visible for whole-part selection only when no selected topology entity is active.
+- Refreshed selection outline visibility when selected topology entity state changes.
+- Expanded the viewer regression test to match the real click flow: selected part first, then selected topology edge, proving the whole-part outline hides while the selected edge overlay remains.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking a semantic edge no longer turns the whole part outline blue.
+- Clearing the topology sub-selection restores normal whole-part outline/body selection behavior.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1945 -->
+
+### [1945] - 2026-05-18 23:13 - `Model-Viewport-4 - Phase 9.2 - Passive Semantic Edge Selection Color`
+
+HUMAN SUMMARY: ``Semantic edge selection now leaves the rest of the model's displayed topology edges in the passive black edge treatment instead of making every edge look highlighted while one edge is selected. The selected or hovered edge still uses the configured highlight color.``
+
+#### Scope / Constraints Honored
+
+- Kept the change in viewer presentation only.
+- Preserved semantic topology generation, pick identity, and selected edge overlay behavior.
+- Left edge display controls, imported STEP topology extraction, direct modeling, snapping, measurement, and inspector behavior out of scope.
+
+#### Summary of Implementation
+
+- Changed semantic edge overlay presentation so passive topology-backed display edges use the black visible-edge color in both standard edge-on and visible-edge-only modes.
+- Kept mesh-only x-ray fallback overlays on the existing blue treatment.
+- Added viewer regression coverage proving a selected semantic edge remains highlighted while the passive semantic edge overlay stays black.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Selecting a semantic edge no longer makes all displayed topology edges look highlighted.
+- The selected or hovered semantic edge still renders with the configured highlight color.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/viewer/semanticTopologySelection.test.ts`
+
+<!-- ENTRY 1944 -->
+
+### [1944] - 2026-05-18 23:00 - `Model-Viewport-4 - Phase 9.1 - Artifact Preview Topology Carry-Through`
+
+HUMAN SUMMARY: ``The normal artifact-preview path now preserves retained sketch-extrude topology, fixing the gap where a rectangle extrude could produce face, edge, and point topology but still render in the viewport without selectable semantic edges.``
+
+#### Scope / Constraints Honored
+
+- Kept the correction inside the viewport result selector bridge between retained geometry results and visible preview artifacts.
+- Preserved the existing topology producer, viewer picking, and Phase 8 highlight behavior.
+- Left imported STEP topology extraction, direct modeling, snapping, measurement, inspector panels, and raw triangle debug display out of scope.
+
+#### Summary of Implementation
+
+- Added selector-side topology projection from retained geometry results onto visible preview `PartArtifact` renderables.
+- Matched both part-level artifacts such as `baseplate` and body-level artifacts such as `baseplate:body-a` to retained geometry bodies.
+- Rebuilt artifact-local topology slices from the retained result's sorted body triangle ranges so artifact previews carry the right face, edge, and point packets.
+- Added regression coverage for the user-visible artifact-preview path retaining topology from an accepted draft geometry result.
+
+#### Files Changed
+
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Rectangle sketch-extrude topology now reaches the visible artifact-preview render path, allowing existing edge/face/point hover and selection to work there.
+- Artifact previews without matching retained topology continue to render as mesh-only previews.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1943 -->
+
+### [1943] - 2026-05-18 22:49 - `Model-Viewport-4 - Phase 9 - Sketch Extrude Topology Preview Generation`
+
+HUMAN SUMMARY: ``Simple capped graph-authored sketch extrudes now emit semantic topology previews, so rectangle extrudes carry real face, edge, and point identity into the existing viewport hover and selection system. Draft and authoritative geometry bundles now preserve that topology while unsupported walls and aggregate profile extrusions remain honest mesh-only results.``
+
+#### Scope / Constraints Honored
+
+- Kept topology generation producer-side in the worker/CAD feature-stack runtime.
+- Preserved triangle mesh rendering and the existing Phase 8 viewport highlight behavior.
+- Kept uncapped `Walls` extrudes and aggregate multi-profile extrusions mesh-only instead of inventing ambiguous topology.
+- Left Shift+D controls, imported STEP topology extraction, raw triangle debug display, snapping, measurement, inspector panels, direct modeling, and topology editing out of scope.
+
+#### Summary of Implementation
+
+- Added a feature-stack topology sidecar keyed by body key and returned it as `ExecuteFeatureStackResult.topologyPreview` beside `mergedMesh`.
+- Generated deterministic semantic faces, triangle face ids, edge polylines, and point positions for simple capped polygon extrudes from the same projected profile loop and depth used by the preview mesh.
+- Merged topology in the same sorted body order as merged mesh previews, using `null` triangle ownership for unsupported bodies.
+- Threaded produced topology through draft foothook feature-stack result bundles and authoritative geometry result bundles.
+- Added focused rectangle topology, unsupported fallback, authoritative carry-through, selector forwarding, and viewer regression coverage.
+
+#### Files Changed
+
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `src/worker/products/foothook/buildFoothook.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Simple capped sketch extrude rectangles now carry six semantic faces, twelve edges, eight points, and twelve triangle face ids.
+- The viewport result selector now receives non-null topology from geometry results when the producer emits it.
+- Authoritative geometry previews preserve the topology produced by the draft feature-stack execution path.
+- Unsupported topology cases remain visible as mesh previews without semantic topology.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/worker/cad/featureStackRuntime.test.ts`
+- `npm.cmd test -- src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 1942 -->
+
+### [1942] - 2026-05-18 22:02 - `Model-Viewport-4 - Phase 8 - Hover And Selection Highlight Hierarchy`
+
+HUMAN SUMMARY: ``Topology hover and selection now use a Fusion-style hierarchy: hover reads white/light, selected points/edges/faces read blue, and double-clicking a topology sub-entity promotes to a whole-body blue tint. The highlight colors and intensity values now live in owner-backed viewport settings and are exposed in the Settings `Viewport` section.``
+
+#### Scope / Constraints Honored
+
+- Kept triangle mesh rendering as the viewport substrate while improving semantic topology interaction presentation.
+- Kept Settings as the projection/control surface, with highlight meaning and persistence owned by the viewport view-settings contract.
+- Left topology generation, imported STEP topology extraction, raw triangle debug mode, snapping, measurement, inspector/detail panels, direct modeling, and editing commands out of scope.
+
+#### Summary of Implementation
+
+- Added normalized `ViewSettings.highlights` defaults for hover, selected, and body-selected colors plus glow, point size, edge thickness, and face/body opacity values.
+- Persisted highlight settings through the existing UI prefs view-settings policy.
+- Added Settings `Viewport` highlight controls and read rows for highlight colors and intensity values.
+- Added viewer hover topology state and hover overlays for points, edges, and faces.
+- Retuned selected topology point, edge, and face overlays to use the blue selected highlight settings.
+- Added double-click topology promotion through `WorkspaceSelectionPickEvent.doubleClick` so sub-entity double-click selection promotes to whole-body selection.
+- Added a whole-body selected overlay when a part is selected without a selected topology sub-entity.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `src/viewer/workspaceSelectionWindow.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Settings/Settings-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Hovering topology points, edges, and surfaces now draws white/light interaction overlays.
+- Clicking topology points, edges, and surfaces now draws blue selected overlays from the viewport highlight settings.
+- Double-clicking a topology point, edge, or surface promotes the selection to the owning body/part and draws a soft whole-body selected tint.
+- Settings now exposes viewport highlight colors and intensity controls in the `Viewport` section.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "promotes double-clicked topology picks"`
+- `npm.cmd run build`
+- `git diff --check`
+- Full `npm.cmd test -- src/app/components/ViewerHost.test.tsx` was attempted twice and timed out without returning output.
+
+<!-- ENTRY 1941 -->
+
+### [1941] - 2026-05-18 20:44 - `Model-Viewport-4 - Phase 7 - Edge Display Visual Correctness And Polish`
+
+HUMAN SUMMARY: ``Display edges now read as viewport edges instead of selected-object highlights: `On` stays as an x-ray edge overlay, `Visible edges only` keeps the current fill mode while hiding blocked edges behind surfaces, and `Off` leaves selected outlines intact. Mesh-only cylinder-like fallback edges also suppress low-angle tessellation seams while preserving hard silhouette rings.```
+
+#### Scope / Constraints Honored
+
+- Kept the work scoped to model-viewport edge overlay presentation and focused viewer proof.
+- Preserved the Phase 6 Shift+D control contract and did not add or rename edge controls.
+- Preserved semantic topology edge precedence over mesh-derived edge fallback.
+- Preserved selected-object outlines and selected topology edge/point highlights independently from normal display-edge visibility.
+- Did not add topology generation, raw triangle debug wireframe, snapping, measurement, inspector behavior, direct modeling, or result-mode policy changes.
+
+#### Summary of Implementation
+
+- Added dedicated display-edge colors and opacity constants separate from the active selected-object outline color.
+- Updated semantic and mesh fallback edge overlays so `On` uses non-depth-tested x-ray presentation and `Visible edges only` uses depth-tested surface-aware presentation.
+- Changed mesh-only fallback edge extraction to use a thresholded `EdgesGeometry` overlay so cylinder-like low-angle side tessellation seams are reduced.
+- Added focused viewer tests for visible-edge material preservation, x-ray versus depth-tested edge presentation, selected-outline independence when display edges are off, semantic edge precedence, rectangle diagonal hiding, and cylinder-like fallback seam reduction.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Normal display edges are visually quieter than selected outlines.
+- `Visible edges only` no longer changes the current surface/fill mode; it depth-tests the edge overlay against the current surfaces.
+- Mesh-only rounded/cylinder-like fallback edge overlays show fewer tessellation seams where adjacent faces are below the fallback threshold.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+- Browser sanity check at `http://127.0.0.1:5173/ParaHook_Configurator/` confirmed the local app loads and exposes the Model Viewport shell.
+
 <!-- ENTRY 1940 -->
 
 ### [1940] - 2026-05-18 17:05 - `Model-Viewport-4 - Phase 6.1 - Visible Edges Only Depth Semantics`

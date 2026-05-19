@@ -503,6 +503,7 @@ export const buildAuthoritativeGeometry = async (
         request: options.request,
         bodies: preview.bodies,
         meshPreview: preview.mergedMesh,
+        topologyPreview: preview.topologyPreview,
         diagnostics: preview.diagnostics,
         trace: preview.bodyTrace,
         authoritativeHandle,

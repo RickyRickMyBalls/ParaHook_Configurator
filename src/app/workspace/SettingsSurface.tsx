@@ -21,6 +21,11 @@ import {
 } from '../shortcutCustomPresetModel'
 import { useShortcutPreferencesStore } from '../shortcutPreferencesStore'
 import {
+  DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
+  normalizeViewHighlightSettings,
+  type ViewHighlightSettings,
+} from '../../shared/viewSettingsTypes'
+import {
   defaultSpaghettiWindowAppearance,
   spaghettiWindowSliderBounds,
   type SpaghettiWindowAppearance,
@@ -189,6 +194,8 @@ const formatConsoleInputPriorityMode = (value: ConsoleInputPriorityMode): string
 const formatProjectionMode = (value: string): string =>
   value === 'orthographic' ? 'Orthographic' : 'Perspective'
 
+const formatPercent = (value: number): string => `${Math.round(value * 100)}%`
+
 const formatBrowserPresentationMode = (value: string): string =>
   value === 'collapsed'
     ? 'Collapsed'
@@ -297,6 +304,7 @@ const buildSettingsRows = (options: {
   leftDockWidth: number
   projectionMode: string
   axisOverlayEnabled: boolean
+  highlights: ViewHighlightSettings
   browserPresentationMode: string
   browserIsFloating: boolean
   browserIsViewportSplit: boolean
@@ -398,6 +406,41 @@ const buildSettingsRows = (options: {
     sectionIds: ['viewport'],
   },
   {
+    id: 'highlight-hover-color',
+    label: 'Highlight hover color',
+    value: options.highlights.hoverColor,
+    description: 'Color used when hovering topology points, edges, and surfaces.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'highlight-selected-color',
+    label: 'Highlight selected color',
+    value: options.highlights.selectedColor,
+    description: 'Color used for selected topology points, edges, and surfaces.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'highlight-body-selected-color',
+    label: 'Body selected color',
+    value: options.highlights.bodySelectedColor,
+    description: 'Tint color used when topology double-click promotes selection to the whole body.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'highlight-hover-glow',
+    label: 'Hover glow',
+    value: formatPercent(options.highlights.hoverGlow),
+    description: 'Controls the strength of hover highlight emphasis.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'highlight-selected-glow',
+    label: 'Selected glow',
+    value: formatPercent(options.highlights.selectedGlow),
+    description: 'Controls the strength of selected highlight emphasis.',
+    sectionIds: ['viewport'],
+  },
+  {
     id: 'browser-presentation',
     label: 'Browser presentation',
     value: formatBrowserPresentationMode(options.browserPresentationMode),
@@ -493,6 +536,8 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
   const leftDockWidth = useWorkspaceStore((state) => state.leftDockWidth)
   const projectionMode = useUiPrefsStore((state) => state.view.projectionMode)
   const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
+  const highlights = useUiPrefsStore((state) => state.view.highlights)
+  const setViewKey = useUiPrefsStore((state) => state.setViewKey)
   const browserPresentationMode = useWorkspaceStore(
     (state) => state.browserShell.presentationMode,
   )
@@ -526,6 +571,10 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
     setSpaghettiWindowAppearanceDefaultsWithHistory(defaultSpaghettiWindowAppearance)
   }
 
+  const updateHighlightSettings = (patch: Partial<ViewHighlightSettings>) => {
+    setViewKey('highlights', normalizeViewHighlightSettings({ ...highlights, ...patch }))
+  }
+
   const settingsRows = useMemo(
     () =>
       buildSettingsRows({
@@ -542,6 +591,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
         workspaceNestedResizeKeepsFarPane,
         projectionMode,
         axisOverlayEnabled,
+        highlights,
         browserPresentationMode,
         browserIsFloating,
         browserIsViewportSplit,
@@ -554,6 +604,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
       consoleInputPriorityMode,
       dashboardPersistence,
       environmentPersistence,
+      highlights,
       leftDockWidth,
       notepadPersistence,
       projectionMode,
@@ -1067,6 +1118,154 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           )}
                         </section>
                       ))}
+                    </div>
+                    <div className="SettingsSurfaceRowList" role="list">
+                      {rows.map((row) => (
+                        <article
+                          key={row.id}
+                          className="SettingsSurfaceRowCard"
+                          role="listitem"
+                          data-settings-row-id={row.id}
+                        >
+                          <div className="SettingsSurfaceRowCopy">
+                            <strong>{row.label}</strong>
+                            <p>{row.description}</p>
+                          </div>
+                          <div className="SettingsSurfaceRowValue" aria-label={`${row.label} value`}>
+                            {row.value}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </>
+                ) : section.id === 'viewport' ? (
+                  <>
+                    <div className="SettingsSurfaceEditorPanel">
+                      <div className="SettingsSurfaceEditorActions">
+                        <button
+                          type="button"
+                          className="SettingsSurfaceEditorResetButton"
+                          onClick={() => updateHighlightSettings(DEFAULT_VIEW_HIGHLIGHT_SETTINGS)}
+                        >
+                          Reset highlights
+                        </button>
+                      </div>
+                      <div className="SettingsSurfaceEditorGrid">
+                        <div className="SettingsSurfaceEditorField">
+                          <label className="HomePageSurfaceStoragePolicyToggle">
+                            <span>Hover color</span>
+                            <input
+                              type="color"
+                              aria-label="Viewport highlight hover color"
+                              value={highlights.hoverColor}
+                              onChange={(event) =>
+                                updateHighlightSettings({ hoverColor: event.target.value })
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <label className="HomePageSurfaceStoragePolicyToggle">
+                            <span>Selected color</span>
+                            <input
+                              type="color"
+                              aria-label="Viewport highlight selected color"
+                              value={highlights.selectedColor}
+                              onChange={(event) =>
+                                updateHighlightSettings({ selectedColor: event.target.value })
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <label className="HomePageSurfaceStoragePolicyToggle">
+                            <span>Body selected color</span>
+                            <input
+                              type="color"
+                              aria-label="Viewport highlight body selected color"
+                              value={highlights.bodySelectedColor}
+                              onChange={(event) =>
+                                updateHighlightSettings({ bodySelectedColor: event.target.value })
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Hover glow"
+                            value={highlights.hoverGlow}
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            clampMin={0}
+                            clampMax={1}
+                            formatValue={formatPercent}
+                            onChange={(nextValue) =>
+                              updateHighlightSettings({ hoverGlow: nextValue })
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Selected glow"
+                            value={highlights.selectedGlow}
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            clampMin={0}
+                            clampMax={1}
+                            formatValue={formatPercent}
+                            onChange={(nextValue) =>
+                              updateHighlightSettings({ selectedGlow: nextValue })
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Surface hover opacity"
+                            value={highlights.surfaceHoverOpacity}
+                            min={0.05}
+                            max={0.9}
+                            step={0.01}
+                            clampMin={0.05}
+                            clampMax={0.9}
+                            formatValue={formatPercent}
+                            onChange={(nextValue) =>
+                              updateHighlightSettings({ surfaceHoverOpacity: nextValue })
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Surface selected opacity"
+                            value={highlights.surfaceSelectedOpacity}
+                            min={0.05}
+                            max={0.95}
+                            step={0.01}
+                            clampMin={0.05}
+                            clampMax={0.95}
+                            formatValue={formatPercent}
+                            onChange={(nextValue) =>
+                              updateHighlightSettings({ surfaceSelectedOpacity: nextValue })
+                            }
+                          />
+                        </div>
+                        <div className="SettingsSurfaceEditorField">
+                          <ParaSlider
+                            label="Body selected opacity"
+                            value={highlights.bodySelectedOpacity}
+                            min={0.05}
+                            max={0.85}
+                            step={0.01}
+                            clampMin={0.05}
+                            clampMax={0.85}
+                            formatValue={formatPercent}
+                            onChange={(nextValue) =>
+                              updateHighlightSettings({ bodySelectedOpacity: nextValue })
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div className="SettingsSurfaceRowList" role="list">
                       {rows.map((row) => (

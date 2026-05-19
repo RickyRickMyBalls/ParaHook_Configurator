@@ -4,7 +4,12 @@ import {
   type PartArtifact,
   type ViewerRenderablePart,
 } from '../../../shared/buildTypes'
-import type { GeometryMesh, GeometryResultBundle } from '../../../shared/geometryResult'
+import { compareSpaghettiSourcePartKeys } from '../../../shared/buildStatsKeys'
+import type {
+  GeometryMesh,
+  GeometryResultBundle,
+  GeometryTopologyPreview,
+} from '../../../shared/geometryResult'
 import {
   hasExplicitSolidBodyMemberPublication,
   type GraphPreviewPreparation,
@@ -269,6 +274,7 @@ const buildArtifactPreviewRenderVm = (options: {
   previewPreparation: GraphPreviewPreparation | null
   artifactBuildOutputs: readonly PartArtifact[]
   acceptedPreviewBuildBundle: BuildResultBundle | null
+  geometryResult: GeometryResultBundle | null
   viewerTargetGraphDocumentId: string | null
 }): PreviewRenderVm => {
   if (options.previewPreparation === null) {
@@ -286,8 +292,12 @@ const buildArtifactPreviewRenderVm = (options: {
     options.acceptedPreviewBuildBundle,
     'rebuiltOnly',
   )
-  if (previewVm.viewerParts.length > 0) {
-    return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
+  const topologyAwarePreviewVm = attachTopologyToPreviewRenderVm(
+    previewVm,
+    options.geometryResult,
+  )
+  if (topologyAwarePreviewVm.viewerParts.length > 0) {
+    return qualifyPreviewRenderVm(topologyAwarePreviewVm, options.viewerTargetGraphDocumentId)
   }
   if (options.useProjectDraftPreview && options.activeDraftProjectViewerParts.length > 0) {
     return {
@@ -295,13 +305,14 @@ const buildArtifactPreviewRenderVm = (options: {
       viewerParts: [...options.activeDraftProjectViewerParts],
     }
   }
-  return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
+  return qualifyPreviewRenderVm(topologyAwarePreviewVm, options.viewerTargetGraphDocumentId)
 }
 
 const buildPublishedAuthoritativeRenderVm = (options: {
   previewPreparation: GraphPreviewPreparation | null
   artifactBuildOutputs: readonly PartArtifact[]
   acceptedPreviewBuildBundle: BuildResultBundle | null
+  geometryResult: GeometryResultBundle | null
   viewerTargetGraphDocumentId: string | null
 }): PreviewRenderVm => {
   if (options.previewPreparation === null || options.acceptedPreviewBuildBundle === null) {
@@ -312,13 +323,115 @@ const buildPublishedAuthoritativeRenderVm = (options: {
     [...options.artifactBuildOutputs],
     options.acceptedPreviewBuildBundle,
   )
-  return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
+  return qualifyPreviewRenderVm(
+    attachTopologyToPreviewRenderVm(previewVm, options.geometryResult),
+    options.viewerTargetGraphDocumentId,
+  )
 }
 
 const cloneGeometryMesh = (mesh: GeometryMesh): GeometryMesh => ({
   vertices: [...mesh.vertices],
   indices: [...mesh.indices],
 })
+
+const getSortedGeometryBodyEntries = (
+  geometryResult: GeometryResultBundle,
+): Array<[string, GeometryResultBundle['bodies'][string]]> =>
+  Object.entries(geometryResult.bodies).sort(
+    ([leftKey, leftBody], [rightKey, rightBody]) =>
+      compareSpaghettiSourcePartKeys(leftBody.partKey, rightBody.partKey) ||
+      leftBody.bodyId.localeCompare(rightBody.bodyId) ||
+      leftBody.featureId.localeCompare(rightBody.featureId) ||
+      leftKey.localeCompare(rightKey),
+  )
+
+const resolveTopologyForArtifact = (
+  geometryResult: GeometryResultBundle | null,
+  artifact: PartArtifact,
+): GeometryTopologyPreview | null => {
+  const topologyPreview = geometryResult?.topologyPreview
+  if (geometryResult === null || topologyPreview === null || topologyPreview === undefined) {
+    return null
+  }
+
+  const matchingBodyTriangleRanges: Array<{
+    bodyId: string
+    start: number
+    end: number
+  }> = []
+  let triangleOffset = 0
+  for (const [, body] of getSortedGeometryBodyEntries(geometryResult)) {
+    const triangleCount = body.mesh.indices.length / 3
+    const matchesArtifact =
+      artifact.partKeyStr === body.partKey || artifact.partKeyStr === `${body.partKey}:${body.bodyId}`
+    if (matchesArtifact) {
+      matchingBodyTriangleRanges.push({
+        bodyId: body.bodyId,
+        start: triangleOffset,
+        end: triangleOffset + triangleCount,
+      })
+    }
+    triangleOffset += triangleCount
+  }
+
+  if (matchingBodyTriangleRanges.length === 0) {
+    return null
+  }
+
+  const bodyIds = new Set(matchingBodyTriangleRanges.map((range) => range.bodyId))
+  const triangleFaceIds = matchingBodyTriangleRanges.flatMap((range) =>
+    topologyPreview.triangleFaceIds.slice(range.start, range.end),
+  )
+  const faces = topologyPreview.faces.filter((face) => bodyIds.has(face.bodyId))
+  const faceIds = new Set(faces.map((face) => face.faceId))
+
+  return {
+    faces,
+    triangleFaceIds,
+    edges: topologyPreview.edges.filter(
+      (edge) => bodyIds.has(edge.bodyId) && edge.faceIds.every((faceId) => faceIds.has(faceId)),
+    ),
+    points: topologyPreview.points.filter((point) => bodyIds.has(point.bodyId)),
+  }
+}
+
+const attachTopologyToPreviewRenderVm = (
+  previewVm: PreviewRenderVm,
+  geometryResult: GeometryResultBundle | null,
+): PreviewRenderVm => {
+  if (geometryResult?.topologyPreview === null || geometryResult?.topologyPreview === undefined) {
+    return previewVm
+  }
+  const viewerPartByKey = new Map<string, ViewerRenderablePart>()
+  const items = previewVm.items.map((item) => {
+    if (item.viewerPart === null) {
+      return item
+    }
+    const topologyPreview = resolveTopologyForArtifact(geometryResult, item.viewerPart.artifact)
+    const viewerPart = {
+      ...item.viewerPart,
+      topologyPreview,
+    }
+    viewerPartByKey.set(viewerPart.viewerKey, viewerPart)
+    return {
+      ...item,
+      viewerPart,
+    }
+  })
+  return {
+    items,
+    viewerParts: previewVm.viewerParts.map((viewerPart) => {
+      const existing = viewerPartByKey.get(viewerPart.viewerKey)
+      if (existing !== undefined) {
+        return existing
+      }
+      return {
+        ...viewerPart,
+        topologyPreview: resolveTopologyForArtifact(geometryResult, viewerPart.artifact),
+      }
+    }),
+  }
+}
 
 const buildGeometryPreviewRenderVm = (options: {
   geometryResult: GeometryResultBundle | null
@@ -1138,12 +1251,14 @@ export const selectViewportResultState = (
     previewPreparation: options.previewPreparation,
     artifactBuildOutputs,
     acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
+    geometryResult: draftGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
   const publishedAuthoritativeRenderVm = buildPublishedAuthoritativeRenderVm({
     previewPreparation: options.previewPreparation,
     artifactBuildOutputs,
     acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
+    geometryResult: finalGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
   const authoritativeGeometryRenderVm = buildAuthoritativeRenderVm({

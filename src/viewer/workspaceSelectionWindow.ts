@@ -21,6 +21,7 @@ export type WorkspaceSelectionPick =
 export type WorkspaceSelectionPickEvent = {
   picks: WorkspaceSelectionPick[]
   ctrlKey: boolean
+  doubleClick?: boolean
 }
 
 export type WorkspaceSelectionWindowMode = 'window' | 'crossing'

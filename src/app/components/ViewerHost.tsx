@@ -1415,7 +1415,7 @@ export function ViewerHost(props: ViewerHostProps) {
     viewer.setOnGeometrySketchCancelDraft(() => {
       useSpaghettiStore.getState().cancelGeometrySketchDrawDraft()
     })
-    viewer.setOnWorkspaceSelectionPick(({ picks, ctrlKey }) => {
+    viewer.setOnWorkspaceSelectionPick(({ picks, ctrlKey, doubleClick = false }) => {
       const appState = useAppStore.getState()
       appState.setActiveSurface('viewer')
       const selectionTargetEntries = (() => {
@@ -1473,6 +1473,7 @@ export function ViewerHost(props: ViewerHostProps) {
                                 bodyId: pick.topologyBodyId,
                               } satisfies SelectedTopologyEntity)
                             : null
+                  const selectedTopologyEntity = doubleClick ? null : pickedTopologyEntity
                   const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
                   if (objectRow !== undefined) {
                     return {
@@ -1481,7 +1482,7 @@ export function ViewerHost(props: ViewerHostProps) {
                         objectId: objectRow.rowId,
                       } satisfies WorkspaceSelectedTarget,
                       selectedPartKey: pick.partKey,
-                      selectedTopologyEntity: pickedTopologyEntity,
+                      selectedTopologyEntity,
                     }
                   }
                   return {
@@ -1490,7 +1491,7 @@ export function ViewerHost(props: ViewerHostProps) {
                       partKey: pick.partKey,
                     } satisfies WorkspaceSelectedTarget,
                     selectedPartKey: pick.partKey,
-                    selectedTopologyEntity: pickedTopologyEntity,
+                    selectedTopologyEntity,
                   }
                 })()
           const key = getWorkspaceTargetKey(entry.target)

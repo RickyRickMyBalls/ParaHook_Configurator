@@ -166,6 +166,52 @@ describe('SettingsSurface', () => {
     expect(container?.textContent).toContain('Text size')
   })
 
+  it('renders viewport highlight controls and resets them through the Viewport section', async () => {
+    useUiPrefsStore.getState().setViewKey('highlights', {
+      ...DEFAULT_VIEW_SETTINGS.highlights,
+      hoverColor: '#000000',
+    })
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="viewport"
+        />,
+      )
+    })
+
+    const content = container?.querySelector('[aria-label="Settings content"]') as HTMLElement | null
+    const hoverColorInput = container?.querySelector(
+      'input[aria-label="Viewport highlight hover color"]',
+    ) as HTMLInputElement | null
+    const selectedColorInput = container?.querySelector(
+      'input[aria-label="Viewport highlight selected color"]',
+    ) as HTMLInputElement | null
+    const resetButton = container?.querySelector(
+      '.SettingsSurfaceEditorResetButton',
+    ) as HTMLButtonElement | null
+
+    expect(content?.textContent).toContain('Viewport')
+    expect(content?.textContent).toContain('Reset highlights')
+    expect(content?.textContent).toContain('Highlight hover color')
+    expect(content?.textContent).toContain('Surface selected opacity')
+    expect(hoverColorInput).not.toBeNull()
+    expect(hoverColorInput?.value).toBe('#000000')
+    expect(selectedColorInput).not.toBeNull()
+    expect(resetButton).not.toBeNull()
+
+    await act(async () => {
+      resetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useUiPrefsStore.getState().view.highlights).toEqual(DEFAULT_VIEW_SETTINGS.highlights)
+  })
+
   it('keeps Console input priority out of the General section', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)

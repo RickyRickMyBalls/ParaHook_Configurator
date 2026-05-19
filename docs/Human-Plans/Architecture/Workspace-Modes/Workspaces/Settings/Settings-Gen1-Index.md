@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+24. 2026-05-18 22:02: Marked the cross-family `Model-Viewport-4 / Phase 8` Settings handoff shipped after the Settings `Viewport` section gained owner-backed highlight color and intensity controls while the model-viewport/view-settings contract kept ownership of the highlight meaning and runtime behavior.
+23. 2026-05-18 21:22: Added a cross-family planning note that `Model-Viewport-4 / Phase 8 - Hover And Selection Highlight Hierarchy` may add a Settings `Viewport` highlight styling group while keeping highlight meaning and persistence owned by the model-viewport/view-settings contract instead of making Settings the hidden owner.
 22. 2026-05-17 12:29:14: Marked `Settings-3 / Phase 7 - Staged Console Input Priority Tree` complete after the future doc recorded the visible staged `Settings > KeyBindings > ConsoleInput > On/Off` path, direct Root `ConsoleInput` shortcut, owner-backed preference mutation, flat command retirement, focused verification, and no shortcut-routing or Settings UI widening.
 21. 2026-05-17 11:57:57: Prepped `Settings-3 / Phase 7 - Staged Console Input Priority Tree` in the family phase doc with concrete staged scope/action ids, direct Root `ConsoleInput` behavior, owner-backed mutation rules, flat-command retirement guidance, and focused verification expectations.
 20. 2026-05-13 10:09:18: Added `Settings-3 / Phase 7 - Staged Console Input Priority Tree` to the family ladder so the next input-priority command pass uses the visible no-space staged path `Root > Settings > KeyBindings > ConsoleInput > On/Off` plus direct Root `ConsoleInput` entry instead of the earlier flat space-separated command shape.
@@ -143,6 +145,7 @@ Important planning rule:
 - use a matching standalone `Future/` family phase doc for Codex-sized implementation phases and implementation specs
 - do not start runtime implementation from this index alone
 - keep shared workspace pane fillet radius as a Settings-owned workspace visual preference instead of hard-coding it inside the `Workspace 9` shell
+- cross-family owner-backed controls may be implemented from the owning family doc when the setting meaning clearly belongs elsewhere; `Model-Viewport-4 / Phase 8` shipped a Settings `Viewport` highlight styling group while the model-viewport/view-settings contract owns the highlight values and behavior
 
 ## Vision
 
