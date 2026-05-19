@@ -3,6 +3,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ROOT_PROMPT_TEXT } from './consolePromptText'
+import { getConsoleRootChoiceLabels } from './stagedNavigation'
 import { useConsoleStore } from './useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -100,6 +102,108 @@ describe('ConsoleBar', () => {
         (node) => node.textContent,
       ),
     ).toEqual(['B'])
+  })
+
+  it('renders Sketch Plane feature assist with the full scoped breadcrumb', async () => {
+    useConsoleStore.setState({
+      featureAssistDescriptor: {
+        label: 'Sketch Plane',
+        breadcrumb: ['Graph', 'Sketch', 'Sketch Plane'],
+        prefill: 'XY',
+        choices: [
+          { canonicalToken: 'XY', aliases: [], label: 'XY' },
+          { canonicalToken: 'XZ', aliases: [], label: 'XZ' },
+          { canonicalToken: 'YZ', aliases: [], label: 'YZ' },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Graph > Sketch > Sketch Plane > Choose next')
+    expect(summaryText).not.toContain('Root')
+  })
+
+  it('renders Sketch Draw feature assist as scoped mode ahead of root staged summary', async () => {
+    useConsoleStore.setState({
+      featureAssistDescriptor: {
+        label: 'Sketch Draw',
+        breadcrumb: ['Graph', 'Sketch', 'Sketch Draw'],
+        prefill: 'Line',
+        choices: [
+          { canonicalToken: 'LINE', aliases: ['L'], label: 'Line' },
+          { canonicalToken: 'RECTANGLE', aliases: ['REC'], label: 'Rectangle' },
+          { canonicalToken: 'X', aliases: [], label: 'X' },
+        ],
+      },
+      stagedNavigationSession: {
+        scopeId: 'root',
+        breadcrumb: ['Root'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+        },
+        validChoices: [
+          {
+            label: 'Graph',
+            aliases: ['G'],
+            canonicalToken: 'GRAPH',
+            kind: 'scope',
+          },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Graph > Sketch > Sketch Draw > Choose next')
+    expect(summaryText).toContain('Line')
+    expect(summaryText).not.toContain('Root')
+  })
+
+  it('renders status-style Sketch Draw assist with scoped breadcrumb and no empty brackets', async () => {
+    useConsoleStore.setState({
+      featureAssistDescriptor: {
+        label: 'Sketch Draw',
+        breadcrumb: ['Graph', 'Sketch', 'Sketch Draw', 'L', 'P1', 'Vec(1.5,-2.25)'],
+        prefill: null,
+        choices: [],
+        summaryLeadText: ' > Waiting for point',
+        summaryMode: 'status',
+      },
+      stagedChoiceIndex: null,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Graph > Sketch > Sketch Draw > L > P1 > Vec(1.5,-2.25)')
+    expect(summaryText).toContain('Waiting for point')
+    expect(summaryText).not.toContain('Root')
+    expect(summaryText).not.toContain('[]')
   })
 
   it('uses workspace-modes one-letter aliases by default and promotes only collisions', async () => {
@@ -414,7 +518,7 @@ describe('ConsoleBar', () => {
           sequence: 1,
           createdAtMs: 1,
           timestampLabel: '00:00:01',
-          text: 'Root > Choose next [Graph, References, Workspace Modes, Camera, Radio, Zoom, Pan, Orbit]',
+          text: ROOT_PROMPT_TEXT,
           layer: 'Commands',
           commandLineKind: null,
           source: 'console',
@@ -434,6 +538,12 @@ describe('ConsoleBar', () => {
 
     await act(async () => {
       root?.render(<ConsoleBar />)
+    })
+
+    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Root > Choose next')
+    getConsoleRootChoiceLabels().forEach((label) => {
+      expect(summaryText).toContain(label)
     })
 
     const choices = Array.from(

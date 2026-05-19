@@ -1583,6 +1583,15 @@ export function ConsoleDock({
 
     const spaghettiState = useSpaghettiStore.getState()
     const appState = useAppStore.getState()
+    if (spaghettiState.extrudeCommandSession !== null) {
+      if (hasNewExplicitWorkspaceHandoff && consoleWorkspaceContextHandoff !== null) {
+        lastHandledConsoleWorkspaceContextHandoffSeqRef.current = consoleWorkspaceContextHandoff.seq
+      }
+      if (hasNewLegacyContextSync && consoleContextSyncRequest !== null) {
+        lastHandledConsoleContextSyncSeqRef.current = consoleContextSyncRequest.seq
+      }
+      return
+    }
     let isForcedRootSync = false
     let isExplicitWorkspaceHandoff = false
     let resolvedTarget:
@@ -1688,6 +1697,9 @@ export function ConsoleDock({
     }
 
     const currentSession = useConsoleStore.getState().stagedNavigationSession
+    if (useSpaghettiStore.getState().extrudeCommandSession !== null) {
+      return
+    }
     if (
       spaghettiState.geometrySketchSession?.mode === 'draw' &&
       isSketchDrawLocalStagedScope(currentSession) &&

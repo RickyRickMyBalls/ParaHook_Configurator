@@ -651,6 +651,142 @@ describe('ViewerHost reference loading', () => {
     globalThis.Worker = originalWorker
   })
 
+  it('keeps the Extrude command toolbar hidden when no Extrude session is active', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(container.querySelector('[aria-label="Extrude command toolbar"]')).toBeNull()
+  })
+
+  it('renders the Extrude command toolbar from the active session owner', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'console-root',
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const toolbar = container.querySelector('[aria-label="Extrude command toolbar"]')
+    const okButton = container.querySelector('[aria-label="Confirm Extrude"]') as
+      | HTMLButtonElement
+      | null
+    const cancelButton = container.querySelector('[aria-label="Cancel Extrude"]') as
+      | HTMLButtonElement
+      | null
+
+    expect(toolbar).not.toBeNull()
+    expect(toolbar?.textContent).toContain('Extrude')
+    expect(toolbar?.textContent).toContain('Select Profiles')
+    expect(toolbar?.textContent).toContain('0 selected')
+    expect(toolbar?.textContent).toContain('10')
+    expect(toolbar?.textContent).toContain('New Body')
+    expect(okButton?.disabled).toBe(true)
+    expect(cancelButton?.disabled).toBe(false)
+  })
+
+  it('renders the Extrude command toolbar depth state from selected profile sources', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-toolbar',
+        selectedProfileSources: [
+          {
+            nodeId: 'node-sketch-1',
+            portId: 'sketch-profile:profile-a',
+          },
+          {
+            nodeId: 'node-sketch-1',
+            portId: 'sketch-profile:profile-b',
+          },
+        ],
+        depth: 25,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const toolbar = container.querySelector('[aria-label="Extrude command toolbar"]')
+    const okButton = container.querySelector('[aria-label="Confirm Extrude"]') as
+      | HTMLButtonElement
+      | null
+
+    expect(toolbar?.getAttribute('data-extrude-command-step')).toBe('depth')
+    expect(toolbar?.textContent).toContain('Depth')
+    expect(toolbar?.textContent).toContain('2 selected')
+    expect(toolbar?.textContent).toContain('25')
+    expect(okButton?.disabled).toBe(false)
+  })
+
+  it('cancels the Extrude command toolbar without mutating the graph', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {},
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'console-root',
+      })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      const cancelButton = container?.querySelector('[aria-label="Cancel Extrude"]') as
+        | HTMLButtonElement
+        | null
+      cancelButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(container.querySelector('[aria-label="Extrude command toolbar"]')).toBeNull()
+  })
+
   it('promotes a visible reference from loading to loaded after the async viewer load resolves', async () => {
     const load = deferred<void>()
     viewerEnsureReferenceLoaded.mockReturnValue(load.promise)

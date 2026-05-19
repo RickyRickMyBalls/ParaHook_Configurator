@@ -11,6 +11,7 @@ import type {
   ConsoleStagedNavigationChoice,
   ConsoleStagedNavigationSession,
 } from './stagedNavigation'
+import { getConsoleRootChoiceLabels } from './stagedNavigation'
 
 const createChoice = (
   canonicalToken: string,
@@ -42,6 +43,15 @@ describe('consolePromptText', () => {
     expect(formatStagedBreadcrumb(['Graph', 'Sketch'])).toBe('Graph > Sketch')
     expect(buildRootPromptText()).toBe(ROOT_PROMPT_TEXT)
     expect(buildRootPromptText(['One', 'Two'])).toBe('Root > Choose next [One, Two]')
+  })
+
+  it('keeps fallback root prompt labels aligned with the staged root choices', () => {
+    const rootLabels = getConsoleRootChoiceLabels()
+
+    expect(ROOT_PROMPT_TEXT).toBe(buildRootPromptText(rootLabels))
+    rootLabels.forEach((label) => {
+      expect(ROOT_PROMPT_TEXT).toContain(label)
+    })
   })
 
   it('builds staged prompt text for normal and snap-value scopes', () => {

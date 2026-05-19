@@ -4,6 +4,7 @@ import {
   createConsoleRootSession,
   createConsoleStagedNavigationContext,
   createSketchDrawRootSession,
+  getConsoleRootChoiceLabels,
   submitConsoleStagedNavigationToken,
   type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
@@ -32,6 +33,14 @@ describe('stagedNavigation', () => {
       'PAN',
       'ORBIT',
     ])
+  })
+
+  it('keeps visible root labels equal to staged root callability labels', () => {
+    const rootSession = createConsoleRootSession()
+
+    expect(getConsoleRootChoiceLabels()).toEqual(
+      rootSession.validChoices.map((choice) => choice.label),
+    )
   })
 
   it('advances from the explicit root session into graph, camera, radio, and hide scopes', () => {
@@ -119,6 +128,20 @@ describe('stagedNavigation', () => {
     ])
 
     const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'extrude', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'extrude.root',
+      breadcrumb: ['Extrude'],
+    })
+  })
+
+  it('executes E as the root Extrude command shortcut', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'e', context)
 
     expect(result).toMatchObject({
       kind: 'execute',

@@ -19,7 +19,7 @@ export type InputRoutingOwner =
 export type InputRoutingDecision = 'handle' | 'defer-native' | 'ignore'
 
 export type EditHistoryShortcutAction = 'undo' | 'redo'
-export type ViewportCommandShortcutAction = 'sketch'
+export type ViewportCommandShortcutAction = 'sketch' | 'extrude'
 
 export type ConsoleInputPriorityMode = 'console-first' | 'shortcuts-first'
 
@@ -137,6 +137,18 @@ const isViewerDisplayModeShortcut = (event: KeyboardLikeEvent): boolean =>
 const isViewportSketchCommandShortcut = (event: KeyboardLikeEvent): boolean =>
   event.code === 'KeyS' &&
   event.shiftKey !== true &&
+  !event.ctrlKey &&
+  !event.altKey &&
+  !event.metaKey
+
+const isViewportExtrudeCommandShortcut = (
+  event: KeyboardLikeEvent,
+  consoleInputPriorityMode: ConsoleInputPriorityMode,
+): boolean =>
+  event.code === 'KeyE' &&
+  (consoleInputPriorityMode === 'shortcuts-first'
+    ? event.shiftKey !== true
+    : event.shiftKey === true) &&
   !event.ctrlKey &&
   !event.altKey &&
   !event.metaKey
@@ -364,13 +376,15 @@ export const routeKeyboardInput = ({
   if (
     viewportCommandShortcutsEnabled &&
     !viewportCommandShortcutsBlocked &&
-    consoleInputPriorityMode === 'shortcuts-first' &&
-    isViewportSketchCommandShortcut(event)
+    ((consoleInputPriorityMode === 'shortcuts-first' && isViewportSketchCommandShortcut(event)) ||
+      isViewportExtrudeCommandShortcut(event, consoleInputPriorityMode))
   ) {
     return {
       owner: 'viewport-command',
       decision: 'handle',
-      viewportCommandAction: 'sketch',
+      viewportCommandAction: isViewportExtrudeCommandShortcut(event, consoleInputPriorityMode)
+        ? 'extrude'
+        : 'sketch',
     }
   }
 

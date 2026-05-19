@@ -3,6 +3,7 @@ import type {
   ConsoleStagedNavigationChoice,
   ConsoleStagedNavigationSession,
 } from './stagedNavigation'
+import { getConsoleRootChoiceLabels } from './stagedNavigation'
 
 export const formatStagedBreadcrumb = (breadcrumb: string[]): string => breadcrumb.join(' > ')
 
@@ -167,19 +168,7 @@ export const buildConsolePromptSessionText = (
 }
 
 export const buildRootPromptText = (
-  choices: string[] = [
-    'Graph',
-    'Content',
-    'References',
-    'Hide',
-    'Unhide All',
-    'Workspace Modes',
-    'Camera',
-    'Radio',
-    'Zoom',
-    'Pan',
-    'Orbit',
-  ],
+  choices: string[] = getConsoleRootChoiceLabels(),
 ): string =>
   `Root > Choose next [${choices.join(', ')}]`
 

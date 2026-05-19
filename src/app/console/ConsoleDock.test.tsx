@@ -11,6 +11,7 @@ import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { defaultPrimaryViewportSlotId } from '../workspace/workspaceShellTypes'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
+import { getConsoleRootChoiceLabels } from './stagedNavigation'
 import { useConsoleStore } from './useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -129,6 +130,14 @@ describe('ConsoleDock', () => {
     viewportArea.appendChild(primarySlot)
     document.body.appendChild(viewportArea)
     return { viewportArea, primarySlot }
+  }
+
+  const expectFullRootSummary = () => {
+    const summaryText = container?.querySelector('.ConsoleBarSummary')?.textContent ?? ''
+    expect(summaryText).toContain('Root > Choose next')
+    getConsoleRootChoiceLabels().forEach((label) => {
+      expect(summaryText).toContain(label)
+    })
   }
 
   it('renders the collapsed console row and expands into the panel', async () => {
@@ -6144,6 +6153,162 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude cancelled'),
     ).toBe(true)
+  })
+
+  it('starts root Extrude from the E console shortcut', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('e')
+    })
+
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'selectProfiles',
+      entryPoint: 'console-root',
+      validation: 'needsProfiles',
+    })
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Extrude > Select Profiles',
+    )
+  })
+
+  it('starts root Extrude from the viewport Shift+E shortcut', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('console-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+    })
+
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'E',
+          code: 'KeyE',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+    await act(async () => {})
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'selectProfiles',
+      entryPoint: 'console-root',
+      validation: 'needsProfiles',
+    })
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Extrude', 'Select Profiles'],
+    })
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> E')).toBe(false)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Extrude > Select Profiles',
+    )
+  })
+
+  it('starts root Extrude from the viewport plain E shortcut in Shortcuts-first mode', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+    })
+
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'e',
+          code: 'KeyE',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+    await act(async () => {})
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'selectProfiles',
+      entryPoint: 'console-root',
+      validation: 'needsProfiles',
+    })
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Extrude', 'Select Profiles'],
+    })
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> e')).toBe(false)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Extrude > Select Profiles',
+    )
   })
 
   it('routes the next Console token through active Extrude profile selection before root parsing', async () => {
@@ -13607,15 +13772,7 @@ describe('ConsoleDock', () => {
           (entry) => entry.text.startsWith('Root > Choose next ['),
         ),
     ).toHaveLength(1)
-    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
-    expect(summaryText).toContain('Root > Choose next')
-    expect(summaryText).toContain('Graph')
-    expect(summaryText).toContain('References')
-    expect(summaryText).toContain('Camera')
-    expect(summaryText).toContain('Radio')
-    expect(summaryText).toContain('Zoom')
-    expect(summaryText).toContain('Pan')
-    expect(summaryText).toContain('Orbit')
+    expectFullRootSummary()
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
     ).toBe(false)
@@ -13628,15 +13785,27 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
       useAppStore.getState().setWorkspaceSelectedTarget({
-        kind: 'reference-item',
-        referenceId: 'footpad:pubpad-full-assembly',
+        kind: 'graph-node',
+        graphDocumentId: 'graph-document-1',
+        nodeId: 'node-sketch-1',
       })
       useAppStore.getState().setActiveSurface('browser')
       useAppStore.getState().requestConsoleContextSync('target-selection')
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
 
     await act(async () => {
       useAppStore.getState().setActiveSurface('viewer')
@@ -13664,15 +13833,7 @@ describe('ConsoleDock', () => {
     })
 
     expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
-    const summaryText = container.querySelector('.ConsoleBarSummary')?.textContent ?? ''
-    expect(summaryText).toContain('Root > Choose next')
-    expect(summaryText).toContain('Graph')
-    expect(summaryText).toContain('References')
-    expect(summaryText).toContain('Camera')
-    expect(summaryText).toContain('Radio')
-    expect(summaryText).toContain('Zoom')
-    expect(summaryText).toContain('Pan')
-    expect(summaryText).toContain('Orbit')
+    expectFullRootSummary()
   })
 
   it('does not replay a stale root sync after g enters graph scope', async () => {

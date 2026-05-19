@@ -567,7 +567,8 @@ export function useConsoleInteraction(
       consoleState.featureAssistDescriptor !== null ||
       consoleState.inputText.trim().length > 0 ||
       spaghettiState.sketchPlanePickSession !== null ||
-      spaghettiState.geometrySketchSession?.mode === 'draw'
+      spaghettiState.geometrySketchSession?.mode === 'draw' ||
+      spaghettiState.extrudeCommandSession !== null
     ) {
       return
     }
@@ -1826,6 +1827,7 @@ export function useConsoleInteraction(
       pushCommandHistory(options.logUserInput)
     }
 
+    rootGuidedOptOutRef.current = true
     clearStagedNavigationSession()
     useConsoleStore.getState().clearConsolePromptSession()
     setFeatureAssistDescriptor(null)
@@ -1875,6 +1877,7 @@ export function useConsoleInteraction(
     requestRadioBurst,
     resolveConsoleActionContext,
     setFeatureAssistDescriptor,
+    rootGuidedOptOutRef,
   ])
 
   const startRootExtrudeCommand = useCallback((options: {
@@ -5579,6 +5582,18 @@ export function useConsoleInteraction(
         })
         return
       }
+      if (routing.owner === 'viewport-command' && routing.viewportCommandAction === 'extrude') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        startRootExtrudeCommand({
+          commandIdentity: resolveConsoleRadioCommandIdentity({
+            kind: 'stagedExecute',
+            activeScopeId: null,
+            actionId: 'extrude.root',
+          }),
+        })
+        return
+      }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -5770,6 +5785,18 @@ export function useConsoleInteraction(
           }),
           entryPoint: 'viewport-shortcut',
           logUserInput: event.key,
+        })
+        return
+      }
+      if (routing.owner === 'viewport-command' && routing.viewportCommandAction === 'extrude') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        startRootExtrudeCommand({
+          commandIdentity: resolveConsoleRadioCommandIdentity({
+            kind: 'stagedExecute',
+            activeScopeId: null,
+            actionId: 'extrude.root',
+          }),
         })
         return
       }
@@ -6066,6 +6093,41 @@ export function useConsoleInteraction(
     enterGuidedRootSession,
     featureAssistDescriptor,
     rootGuidedOptOutRef,
+    stagedNavigationSession,
+  ])
+
+  useEffect(() => {
+    const consoleState = useConsoleStore.getState()
+    const spaghettiState = useSpaghettiStore.getState()
+    const activeExtrudeSession = spaghettiState.extrudeCommandSession
+    if (activeExtrudeSession === null) {
+      return
+    }
+
+    const expectedBreadcrumb =
+      activeExtrudeSession.activeStep === 'depth'
+        ? ['Extrude', 'Select Profiles', 'Depth']
+        : ['Extrude', 'Select Profiles']
+    const activeBreadcrumb = consoleState.featureAssistDescriptor?.breadcrumb ?? null
+    const hasExpectedAssist =
+      activeBreadcrumb !== null &&
+      activeBreadcrumb.length === expectedBreadcrumb.length &&
+      activeBreadcrumb.every((segment, index) => segment === expectedBreadcrumb[index])
+    if (hasExpectedAssist) {
+      return
+    }
+
+    useConsoleStore.getState().clearStagedNavigationSession()
+    setFeatureAssistDescriptor(
+      activeExtrudeSession.activeStep === 'depth'
+        ? buildExtrudeDepthAssistDescriptor()
+        : buildExtrudeSelectProfilesAssistDescriptor(
+            listExtrudeProfileConsoleChoices(spaghettiState.graph.nodes),
+          ),
+    )
+  }, [
+    featureAssistDescriptor,
+    setFeatureAssistDescriptor,
     stagedNavigationSession,
   ])
 

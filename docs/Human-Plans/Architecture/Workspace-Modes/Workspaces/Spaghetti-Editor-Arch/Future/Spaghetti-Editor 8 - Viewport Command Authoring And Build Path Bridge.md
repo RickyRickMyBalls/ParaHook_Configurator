@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-05-19 19:01:25: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell` by mounting a compact `ViewerHost` Extrude toolbar over the shared `extrudeCommandSession`, displaying step, selected count, depth, operation, and blocked/ready state, wiring Cancel to clear only transient session state, and proving render/cancel behavior leaves graph nodes and edges unchanged while profile picking, preview, and OK commit remain deferred.
+29. 2026-05-19 18:54:59: Prepped `Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell` for implementation by grounding it in the shipped `extrudeCommandSession` owner, `ViewerHost` overlay seam, Console active-session projection, and focused ViewerHost/ConsoleDock proof, narrowing the next code cut to a visible read-only-plus-cancel toolbar shell with no profile picking, preview, graph commit, or local duplicate command state.
 28. 2026-05-19 12:36:07: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.3 - Viewport Shortcut Modal Guarding` by adding an idle-only viewport command shortcut guard to shared input routing, passing active command/session ownership from Console into the route context, preserving root-level idle viewport `S`, and proving active Extrude profile selection blocks viewport `S` from starting Sketch.
 27. 2026-05-19 12:28:13: Prepped `Spaghetti-Editor 8 / Phase 3.3 - Viewport Shortcut Modal Guarding` for implementation by grounding it in the live `routeKeyboardInput(...)` `viewport-command` branch, the `routeConsoleGlobalKey(...)` context builder, and the docked/popout global key handlers, narrowing the slice to an idle-command-state guard for viewport `S` while sketch plane pick, sketch draw/review, staged Console, reference transform, or active Extrude sessions own input.
 26. 2026-05-19 11:00:21: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.2A - Extrude Select Profiles Console Prompt` by routing the next Console token through the active `Extrude > Select Profiles` session before root parsing, adding pure graph-sketch profile Console choices, resolving exact/alias profile tokens into transient selected profile sources, moving resolved sessions to `Depth`, and preserving no graph mutation plus the no-duplicate-Extrude-command rule.
@@ -607,8 +609,8 @@ Verification targets:
 
 Acceptance read:
 - [x] a user can start `Extrude` from the root command path
-- [ ] the model viewport shows an Extrude toolbar/session while extrusion is active
-- [ ] Console/session state can represent the staged command tree `Extrude > Select Profiles > Depth`
+- [x] the model viewport shows an Extrude toolbar/session while extrusion is active
+- [x] Console/session state can represent the staged command tree `Extrude > Select Profiles > Depth`
 - [ ] individual sketch profiles can be selected and counted
 - [ ] shift-click can select all compatible profiles from the picked sketch
 - [ ] selected profiles reveal an extrusion preview/depth step with a drag handle or equivalent first-pass handle state
@@ -645,7 +647,7 @@ Extrude
 - `Phase 3.1` - shipped atomic Extrude graph commit repair
 - `Phase 3.2` - create a real Extrude session owner and Console-visible command tree
 - `Phase 3.3` - guard viewport command shortcuts against active modal owners
-- `Phase 3.4` - mount the model-viewport Extrude toolbar shell
+- `Phase 3.4` - shipped model-viewport Extrude toolbar shell
 - `Phase 3.5` - add profile picking, selected count, and preview state
 - `Phase 3.6` - commit/cancel proof and Phase 3 closeout
 
@@ -1273,13 +1275,15 @@ The shipped slice added:
 
 This remains intentionally shortcut-guard-only. It does not add new shortcuts, shortcut rebinding, toolbar UI, profile picking, preview, drag handles, or graph commit behavior.
 
-## [ ] `Spaghetti-Editor 8 / Phase 3.4` - `Model Viewport Extrude Toolbar Shell`
+## [x] `Spaghetti-Editor 8 / Phase 3.4` - `Model Viewport Extrude Toolbar Shell`
 
 ### Phase 3.4 Summary
 
 Mount the first visible model-viewport Extrude toolbar shell over the real session owner from Phase 3.2.
 
 The toolbar should make the command state visible without committing graph truth by itself.
+
+Current status: shipped. The model viewport now shows a compact Extrude toolbar while `extrudeCommandSession` is active, reading the shared session owner for command step, selected profile count, depth, operation, and blocked/ready state without creating toolbar-local command truth.
 
 ### Phase 3.4 Implementation Spec
 
@@ -1292,51 +1296,147 @@ Give users the visible command surface promised by root `Extrude`:
 - default operation read
 - OK and Cancel controls
 
-#### Presents / Dispatches
+#### Owns
 
 - visible toolbar shell while an Extrude session is active
-- visible `Select Profiles` versus `Depth` state read from the session owner
-- selected count display, initially `0 selected`, read from the session owner
-- distance value display/input that dispatches changes to the session owner
-- disabled/enabled visual state for `OK` read from session validation
-- active `Cancel` control that dispatches cancellation to the session owner
+- session-derived `Select Profiles` versus `Depth` display
+- selected profile count display from `selectedProfileSources.length`
+- depth display from the session's `depth`
+- operation read from the session's `operationMode`, with first-pass wording such as `New Body`
+- disabled `OK` visual state while validation is `needsProfiles`
+- active `Cancel` control wired to the existing session cancel action
+- focused tests that prove rendering and cancellation do not mutate graph nodes or edges
 
 #### Does Not Own
 
 - profile hit-testing
+- selected profile toggling
 - live extrusion preview
+- depth editing if the session owner does not yet expose a dedicated setter
 - commit behavior
+- shortcut routing
+- Console profile-token routing
 - final toolbar styling polish beyond usable first-pass fit
+
+#### Current Live Read
+
+Live files and seams:
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+  - owns `ExtrudeCommandSession`
+  - exposes `activeStep`, `selectedProfileSources`, `depth`, `operationMode`, `validation`, and `commandPath`
+  - moves from `selectProfiles` to `depth` when selected profile sources exist
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - owns `extrudeCommandSession`
+  - already exposes start, cancel, and selected-profile-source update actions
+  - should remain the toolbar's command-state source for this phase
+- `src/app/console/useConsoleInteraction.ts`
+  - starts root Extrude from Console and viewport shortcuts
+  - projects active Extrude assist descriptors back into Console
+  - already cancels active Extrude sessions from Escape
+- `src/app/console/ConsoleDock.test.tsx`
+  - proves root `Extrude`, Console root `E`, viewport `Shift+E`, viewport plain `E` in Shortcuts-first, active profile prompt routing, and no graph mutation on session start
+  - can remain the command-entry proof while `ViewerHost` owns the visible toolbar proof
+- `src/app/components/ViewerHost.tsx`
+  - is the nearest model-viewport overlay host
+  - already renders viewport-local overlays and display-mode UI above the canvas layer
+  - already reads from `useSpaghettiStore` for sketch plane and sketch draw viewport state
+- `src/app/components/ViewerHost.test.tsx`
+  - already has a broad jsdom harness for rendering `ViewerHost` against store state
+  - is the right first target for toolbar mount/cancel/no-mutation proof
+
+#### First Pass Decisions
+
+- Put the first toolbar shell in the model viewport host path, not Console.
+- Read all toolbar state from `useSpaghettiStore.getState().extrudeCommandSession` or equivalent selectors.
+- Keep the toolbar compact and anchored as a viewport overlay, not inside a card-heavy panel.
+- Use explicit test hooks or accessible labels for the shell, selected count, depth, `OK`, and `Cancel`.
+- Leave `OK` disabled in this slice unless the current session validation is already `readyForDepth`; do not wire it to graph commit yet.
+- If depth editing needs a store setter that does not exist, either add a narrow transient session setter with focused tests or display depth read-only and record editing as Phase 3.5/3.6 follow-up. Do not create local-only depth truth.
+- `Cancel` should call the existing cancel action and should not author a command summary or graph mutation in this phase.
 
 #### Exact First Code Cut
 
-- render the toolbar in the model viewport only while the Extrude session is active
-- connect the toolbar to the session owner, not to a local component-only state source
-- show the first command-step read from the session tree, even if the first visual version is compact
-- make `Cancel` clear the session and leave graph nodes/edges unchanged
-- keep `OK` disabled until Phase 3.5/3.6 supplies selected profiles
-- add focused render and cancel tests
+- Add a small viewport Extrude toolbar component or local `ViewerHost` overlay section.
+- Render it only when `extrudeCommandSession !== null`.
+- Display:
+  - `Extrude`
+  - current step label: `Select Profiles` or `Depth`
+  - selected count: `0 selected`, `1 selected`, or `N selected`
+  - depth value from the session, initially the current default `10`
+  - operation read: `New Body`
+  - `OK`
+  - `Cancel`
+- Wire `Cancel` to `useSpaghettiStore.getState().cancelExtrudeCommandSession()`.
+- Keep `OK` disabled when `session.validation === 'needsProfiles'`.
+- If the shell receives a pre-seeded ready session, allow the visual state to show `Depth`, selected count, and non-disabled readiness if that is already present in `validation`, but do not execute commit.
+- Keep graph nodes, edges, and params unchanged on render and cancel.
+- Add focused tests for:
+  - no toolbar when no Extrude session exists
+  - toolbar appears after a seeded active Extrude session
+  - `selectProfiles` state shows `0 selected`, default depth, `New Body`, disabled `OK`, and active `Cancel`
+  - pre-seeded selected profile sources render `Depth` and the correct selected count
+  - clicking `Cancel` clears the session and leaves the graph unchanged
 
 #### Likely Files
 
 - `src/app/components/ViewerHost.tsx` or the nearest model-viewport overlay host
-- new Extrude toolbar component/helper if local patterns support it
-- the session owner from Phase 3.2
-- focused viewport/component tests
+- optional new `src/app/components/ExtrudeCommandToolbar.tsx` or local helper if `ViewerHost.tsx` should stay smaller
+- optional CSS beside the existing viewport overlay styles if the shell needs scoped styling
+- `src/app/components/ViewerHost.test.tsx`
+- optional `src/app/spaghetti/commands/extrudeCommandSession.test.ts` only if a new transient depth setter is added
+- `src/app/console/ConsoleDock.test.tsx` only if the implementation needs to prove root/shortcut entry creates the shell through the full docked flow
 - this future doc
 - `docs/CHANGELOG.md`
 - `docs/Doc-Log.md`
 
 #### No-Widening Rule
 
-Do not implement profile picking, preview geometry, or graph commit in this phase.
+Do not implement profile picking, selected-profile hit testing, shift-click selection, preview geometry, depth drag handles, toolbar `OK` commit, Build Path projection changes, or graph mutation in this phase.
+
+Do not create a second toolbar-local copy of command state. The toolbar may have local DOM/input state only if it is immediately synchronized to a session-owner action; otherwise display session state read-only.
+
+#### Implementation Risks
+
+- `ViewerHost.tsx` is already large, so the toolbar should be small and easy to extract if the markup grows.
+- Broad `ViewerHost.test.tsx` can be expensive; keep the new tests focused and query by accessible labels or stable data attributes.
+- If `OK` visually enables for pre-seeded ready sessions, the button must still not commit until Phase 3.6 owns commit behavior.
+- Console active assist and viewport toolbar should both reflect the same session state, but neither should become the durable command truth.
+
+#### Checklist
+
+- [x] Render a viewport toolbar only for active Extrude sessions.
+- [x] Show `Select Profiles` and `Depth` from the session owner.
+- [x] Show selected profile count from `selectedProfileSources`.
+- [x] Show depth and operation from the session owner.
+- [x] Keep `OK` blocked when profiles are missing.
+- [x] Make `Cancel` clear only transient session state.
+- [x] Prove render and cancel do not mutate graph nodes or edges.
 
 #### Verification Shape
 
 ```powershell
-npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "Extrude"
+npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude"
+npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts root Extrude|routes the next Console token through active Extrude"
 npm.cmd run build
 ```
+
+#### Done Shape
+
+Phase 3.4 is done when starting or seeding an Extrude session makes the model viewport show a compact Extrude toolbar backed by `extrudeCommandSession`, Cancel clears that transient session without graph mutation, and the user can see the command step, selected count, depth, operation, and blocked/ready status before Phase 3.5 adds real profile picking.
+
+### Phase 3.4 Runtime Note
+
+The shipped slice mounts the toolbar in `src/app/components/ViewerHost.tsx` and styles it through `src/app/theme/surfaces/viewport-overlay.css`.
+
+Runtime behavior:
+- active Extrude sessions render an `Extrude` viewport toolbar over the canvas
+- the toolbar reads `Select Profiles` versus `Depth`, selected profile count, depth, operation, and validation directly from `extrudeCommandSession`
+- `OK` is visibly blocked while validation is `needsProfiles`
+- seeded ready sessions can show the depth step and enabled visual readiness, but `OK` still does not commit graph truth in this phase
+- `Cancel` calls the existing session cancel action and clears only transient session state
+- rendering and cancellation leave graph nodes and edges unchanged
+
+Focused proof landed in `src/app/components/ViewerHost.test.tsx`, with Console entry/session regression proof still covered by `src/app/console/ConsoleDock.test.tsx`. Phase 3.5 now owns real viewport profile picking, selected-profile updates from hit testing, and preview-ready depth state.
 
 ## [ ] `Spaghetti-Editor 8 / Phase 3.5` - `Profile Picking Count And Preview State`
 

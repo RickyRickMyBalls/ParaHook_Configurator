@@ -977,6 +977,50 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Console-first viewport Shift+E to the root Extrude command shortcut', () => {
+    const result = routeKeyboardInput({
+      event: { key: 'E', code: 'KeyE', shiftKey: true, target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'extrude',
+    })
+  })
+
+  it('routes Shortcuts-first viewport plain E to the root Extrude command shortcut', () => {
+    const result = routeKeyboardInput({
+      event: { key: 'e', code: 'KeyE', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'extrude',
+    })
+  })
+
+  it('keeps Shortcuts-first viewport Shift+E out of the root Extrude shortcut', () => {
+    const result = routeKeyboardInput({
+      event: { key: 'E', code: 'KeyE', shiftKey: true, target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
   it('keeps viewport Sketch shortcut idle-only while command sessions own input', () => {
     const baseRequest = {
       event: { key: 's', code: 'KeyS', target: null },
@@ -1024,6 +1068,39 @@ describe('routeKeyboardInput', () => {
     })).toEqual({
       owner: 'reference-transform',
       decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      viewportCommandModalOwnerActive: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
+  it('keeps viewport Extrude shortcut idle-only while command sessions own input', () => {
+    const baseRequest = {
+      event: { key: 'e', code: 'KeyE', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first' as const,
+    }
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      sketchPlanePickStage: 'pick',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      geometrySketchMode: 'draw',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
     })
 
     expect(routeKeyboardInput({

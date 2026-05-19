@@ -79,6 +79,7 @@ import {
   selectViewportResultState,
   type ViewportLayerRecipe,
 } from '../spaghetti/selectors/selectViewportResultState'
+import type { ExtrudeCommandSession } from '../spaghetti/commands/extrudeCommandSession'
 import { buildViewportResultSelectorOptions } from './buildViewportResultSelectorOptions'
 import {
   evaluateReferenceTimelineChannelValue,
@@ -329,6 +330,79 @@ const edgeDisplayModeMenuOptions: Array<{
   { mode: 'visibleEdgesOnly', label: 'Visible edges only', shortLabel: 'Only' },
 ]
 
+const formatExtrudeCommandStepLabel = (step: ExtrudeCommandSession['activeStep']): string =>
+  step === 'depth' ? 'Depth' : 'Select Profiles'
+
+const formatExtrudeOperationModeLabel = (
+  operationMode: ExtrudeCommandSession['operationMode'],
+): string => (operationMode === 'newBody' ? 'New Body' : operationMode)
+
+const formatExtrudeSelectedProfileCount = (
+  selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
+): string => {
+  const count = selectedProfileSources.length
+  return `${count} ${count === 1 ? 'selected' : 'selected'}`
+}
+
+const ExtrudeCommandToolbar = ({
+  onCancel,
+  session,
+}: {
+  onCancel: () => void
+  session: ExtrudeCommandSession
+}) => {
+  const okDisabled = session.validation === 'needsProfiles'
+
+  return (
+    <section
+      className="ViewportExtrudeCommandToolbar"
+      aria-label="Extrude command toolbar"
+      data-extrude-command-step={session.activeStep}
+    >
+      <div className="ViewportExtrudeCommandToolbarHeader">
+        <span className="ViewportExtrudeCommandToolbarTitle">Extrude</span>
+        <span className="ViewportExtrudeCommandToolbarStep">
+          {formatExtrudeCommandStepLabel(session.activeStep)}
+        </span>
+      </div>
+      <dl className="ViewportExtrudeCommandToolbarStats">
+        <div>
+          <dt>Profiles</dt>
+          <dd data-testid="extrude-command-selected-count">
+            {formatExtrudeSelectedProfileCount(session.selectedProfileSources)}
+          </dd>
+        </div>
+        <div>
+          <dt>Distance</dt>
+          <dd data-testid="extrude-command-depth">{session.depth}</dd>
+        </div>
+        <div>
+          <dt>Operation</dt>
+          <dd>{formatExtrudeOperationModeLabel(session.operationMode)}</dd>
+        </div>
+      </dl>
+      <div className="ViewportExtrudeCommandToolbarActions">
+        <button
+          type="button"
+          className="ViewportExtrudeCommandToolbarButton"
+          disabled={okDisabled}
+          aria-label="Confirm Extrude"
+        >
+          OK
+        </button>
+        <button
+          type="button"
+          className="ViewportExtrudeCommandToolbarButton"
+          aria-label="Cancel Extrude"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </div>
+    </section>
+  )
+}
+
 const applyViewerRenderPreviewStatus = (
   viewportId: WorkspaceViewportId,
   status: ViewerRenderPreviewStatus,
@@ -486,6 +560,10 @@ export function ViewerHost(props: ViewerHostProps) {
   )
   const sketchDrawPlinePointSymbolType = useUiPrefsStore(
     (state) => state.sketchDrawPlinePointSymbolType,
+  )
+  const extrudeCommandSession = useSpaghettiStore((state) => state.extrudeCommandSession)
+  const cancelExtrudeCommandSession = useSpaghettiStore(
+    (state) => state.cancelExtrudeCommandSession,
   )
   const activeGeometrySketchNode = useSpaghettiStore((state) => {
     const nodeId = state.geometrySketchSession?.nodeId
@@ -2142,6 +2220,12 @@ export function ViewerHost(props: ViewerHostProps) {
   return (
     <div className="ViewportRoot">
       <div className="ViewportCanvasLayer" ref={mountRef} />
+      {extrudeCommandSession !== null ? (
+        <ExtrudeCommandToolbar
+          session={extrudeCommandSession}
+          onCancel={cancelExtrudeCommandSession}
+        />
+      ) : null}
       {displayModeMenu.isOpen ? (
         <div
           className="ViewportDisplayModeMenuBackdrop"

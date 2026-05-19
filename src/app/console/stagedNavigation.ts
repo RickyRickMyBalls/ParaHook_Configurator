@@ -436,7 +436,7 @@ const ROOT_NEW_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
 
 const ROOT_EXTRUDE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'EXTRUDE',
-  aliases: [],
+  aliases: ['E'],
   label: 'Extrude',
   kind: 'action',
 }
@@ -1297,6 +1297,10 @@ const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_PAN_CHOICE,
   ROOT_ORBIT_CHOICE,
 ]
+
+// Current no-filter Root contract: displayed root labels mirror staged root choices.
+export const getConsoleRootChoiceLabels = (): string[] =>
+  buildRootChoices().map((choice) => choice.label)
 
 const createWorkspaceViewportChoice = (
   viewportId: string,

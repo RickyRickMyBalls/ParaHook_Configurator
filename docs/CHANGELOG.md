@@ -72,6 +72,281 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1972 -->
+
+### [1972] - 2026-05-19 19:01 - `Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell`
+
+HUMAN SUMMARY: ``Mounted the first model-viewport Extrude toolbar over the shared `extrudeCommandSession`. It now shows command step, selected profile count, depth, operation, and blocked/ready state, and Cancel clears only transient session state without graph mutation.``
+
+#### Scope / Constraints Honored
+
+- Kept the toolbar as a read-state shell over the existing session owner instead of introducing duplicate viewport-local command truth.
+- Left profile hit testing, selected-profile toggling, live preview, depth drag handles, and `OK` graph commit to later Phase 3 slices.
+- Preserved the no-graph-mutation boundary for toolbar render and Cancel.
+
+#### Summary of Implementation
+
+- Added a compact Extrude command toolbar in the model viewport host.
+- Rendered the toolbar only while `extrudeCommandSession` is active.
+- Displayed `Select Profiles` versus `Depth`, selected count, depth, operation, and validation-derived blocked/ready state from the session.
+- Wired Cancel to the existing transient Extrude session cancel action.
+- Added focused ViewerHost tests for hidden state, active shell render, pre-seeded depth state, and cancel without graph mutation.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Active Extrude sessions now show a viewport toolbar with session-derived command state.
+- Missing-profile sessions keep `OK` disabled.
+- Pre-seeded ready sessions can show the depth step and enabled visual readiness, but `OK` still does not commit graph truth in this phase.
+- Clicking Cancel removes the active Extrude session without changing graph nodes or edges.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude" --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts root Extrude|routes the next Console token through active Extrude" --reporter verbose`
+- `npm.cmd run build`
+
+<!-- ENTRY 1971 -->
+
+### [1971] - 2026-05-19 18:52 - `Spaghetti-Editor 8 - Extrude Input Priority Shortcut Repair`
+
+HUMAN SUMMARY: ``Corrected the Extrude viewport shortcut split so Console-first mode uses `Shift+E`, while Shortcuts-first mode uses plain `E`. The shared routing and ConsoleDock shortcut proof now match the intended input-priority behavior without changing the underlying Extrude command session.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing root Extrude command session as the only runtime destination for the shortcut.
+- Preserved idle-only command ownership guards for sketch plane, sketch draw, active Extrude, and other modal owners.
+- Left Console root text entry behavior intact so plain `E` remains ordinary Console capture in Console-first mode.
+
+#### Summary of Implementation
+
+- Made the viewport Extrude shortcut resolver depend on Console input priority mode.
+- Routed Console-first `Shift+E` to the root Extrude command shortcut.
+- Routed Shortcuts-first plain `E` to the same root Extrude command shortcut.
+- Added focused routing proof that Shortcuts-first `Shift+E` no longer claims Extrude.
+- Updated ConsoleDock shortcut proof for both input-priority modes.
+
+#### Files Changed
+
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- In Console-first mode, pressing `Shift+E` in the viewport starts Extrude.
+- In Shortcuts-first mode, pressing plain `E` in the viewport starts Extrude.
+- In Shortcuts-first mode, `Shift+E` is no longer treated as the Extrude shortcut.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/inputRouting.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts root Extrude" --reporter verbose`
+
+<!-- ENTRY 1970 -->
+
+### [1970] - 2026-05-19 17:53 - `Spaghetti-Editor 8 - Extrude Shortcut Entry Repair`
+
+HUMAN SUMMARY: ``Added `E` as the Console root shortcut for the existing Extrude command and added `Shift+E` as the viewport shortcut into the same transient Extrude session. The shortcut path now preserves `Extrude > Select Profiles` Console ownership instead of letting Root handoff repaint over the active command prompt.``
+
+#### Scope / Constraints Honored
+
+- Kept one canonical Extrude command path: Root `Extrude`, Console `E`, and viewport `Shift+E` all enter the existing root Extrude transient session instead of creating duplicate Extrude commands.
+- Kept viewport command shortcuts idle-only so active sketch plane, sketch draw, Extrude, staged Console, prompt, or transform owners continue to block viewport shortcut capture.
+- Preserved the no-graph-mutation session-start rule for Extrude; shortcut entry starts profile selection only.
+
+#### Summary of Implementation
+
+- Added `E` as an alias for the existing root `Extrude` staged-navigation action.
+- Routed `Shift+E` through the viewport command shortcut owner as the `extrude` action.
+- Wired docked and popout global key handlers so viewport `Shift+E` starts the existing root Extrude command session.
+- Guarded Console root/context rehydration while an Extrude session is active and re-projects the active Extrude assist descriptor if Root handoff tries to repaint over it.
+
+#### Files Changed
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Typing `E` at Console Root now starts Extrude exactly like typing `Extrude`.
+- Pressing `Shift+E` in the model viewport when shortcut-first input is active now starts Extrude and leaves Console asking for sketch profile selection.
+- Active Extrude sessions now own the Console prompt over stale Root/display handoff sync.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/inputRouting.test.ts src/app/console/stagedNavigation.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts root Extrude" --reporter verbose`
+
+<!-- ENTRY 1969 -->
+
+### [1969] - 2026-05-19 13:35 - `Console-2 - Phase 4 - Viewport Handoff Regression Proof And Closeout`
+
+HUMAN SUMMARY: ``Closed Console-2 with focused proof that fallback Root rendering and viewer handoff paths keep showing the full canonical Root command list. The work tightens tests only; it does not change runtime Console behavior.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 4 limited to fallback Root prompt rendering, viewer `surface-clear` handoff proof, and Console-2 closeout.
+- Did not redesign active-surface routing, viewport shortcut priority, viewer selection semantics, sketch/extrude execution, or feature-assist ownership.
+- Preserved the current no-filter Root rule and the scoped-assist behavior proven in earlier phases.
+
+#### Summary of Implementation
+
+- Updated the ConsoleBar fallback prompt test to use `ROOT_PROMPT_TEXT` instead of a shorter hand-authored Root prompt.
+- Added canonical Root label assertions so fallback summary rendering must include every `getConsoleRootChoiceLabels()` label.
+- Tightened ConsoleDock viewer `surface-clear` tests so Root handoff summaries must include every canonical Root label.
+- Updated the second empty viewport handoff test to seed through a live graph-sketch selected context before proving Escape plus another viewer clear still leaves the full Root prompt visible.
+- Marked `Console-2 / Phase 4` shipped and closed `Console-2` in the Console planning docs.
+
+#### Files Changed
+
+- `src/app/console/ConsoleBar.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console-2 - Canonical Root Display And Callability.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior changed. The shipped work adds regression proof and closeout documentation for the canonical full-Root display contract.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx -t "keeps root alias hints|shows root availability when viewer surface-clear happens while already at root|keeps the full root prompt after viewer deselect"`
+- `npm.cmd exec -- vitest run src/app/console/consolePromptText.test.ts src/app/console/stagedNavigation.test.ts`
+- The full `npm.cmd exec -- vitest run src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx` command was also attempted; `ConsoleBar.test.tsx` passed, while the broad `ConsoleDock.test.tsx` suite still has unrelated failures outside the Phase 4 root-display slice.
+
+<!-- ENTRY 1968 -->
+
+### [1968] - 2026-05-19 13:20 - `Console-2 - Phase 3 - Root Callability Display Guardrails`
+
+HUMAN SUMMARY: ``Shipped the Console-2 Phase 3 guardrails for the current no-filter Root. Root prompt display is now tested against the exported Root label list, and the exported label list is tested against staged Root callability labels so future filtering work has to be intentional.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3 limited to display/callability guardrail coverage.
+- Did not add filtering, categories, user preferences, compact Root UI, or command execution changes.
+- Preserved the current rule that every root-callable command stays visible in Root.
+
+#### Summary of Implementation
+
+- Updated the fallback root prompt test to prove every `getConsoleRootChoiceLabels()` label appears in `ROOT_PROMPT_TEXT`.
+- Added staged-navigation parity proof that `getConsoleRootChoiceLabels()` exactly matches `createConsoleRootSession().validChoices` labels.
+- Added a short code comment beside `getConsoleRootChoiceLabels()` documenting the current no-filter Root contract.
+- Marked `Console-2 / Phase 3` shipped in the Console planning docs.
+
+#### Files Changed
+
+- `src/app/console/consolePromptText.test.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console-2 - Canonical Root Display And Callability.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior changed. The shipped work adds regression proof for the existing all-visible Root display/callability contract.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/consolePromptText.test.ts src/app/console/stagedNavigation.test.ts`
+
+<!-- ENTRY 1967 -->
+
+### [1967] - 2026-05-19 13:09 - `Console-2 - Phase 2 - Scoped Mode Labeling And Priority Proof`
+
+HUMAN SUMMARY: ``Shipped the scoped-summary proof for Console-2 Phase 2. The visible ConsoleBar summary is now guarded by focused tests showing Sketch Plane and Sketch Draw feature assist render as scoped `Graph > Sketch > ...` modes, even when feature assist has priority over a root staged session.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 2 limited to scoped summary regression coverage.
+- Did not change runtime command execution, aliases, root callability, feature-assist ownership, transcript history, or filtering behavior.
+- Preserved the existing ConsoleBar summary priority after proving it already renders scoped breadcrumbs correctly.
+
+#### Summary of Implementation
+
+- Added ConsoleBar tests proving Sketch Plane feature assist renders the full `Graph > Sketch > Sketch Plane` breadcrumb.
+- Added ConsoleBar tests proving Sketch Draw feature assist renders the full `Graph > Sketch > Sketch Draw` breadcrumb and does not appear as Root.
+- Added priority coverage proving feature assist can override a root staged session while keeping the scoped command breadcrumb.
+- Added status-style assist coverage proving active Sketch Draw status breadcrumbs render without empty choice brackets.
+- Marked `Console-2 / Phase 2` shipped in the Console planning docs.
+
+#### Files Changed
+
+- `src/app/console/ConsoleBar.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console-2 - Canonical Root Display And Callability.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior changed. The shipped work adds regression proof for existing scoped ConsoleBar summary behavior.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/ConsoleBar.test.tsx`
+
+<!-- ENTRY 1966 -->
+
+### [1966] - 2026-05-19 13:00 - `Console-2 - Phase 1 - Root Prompt Source Unification`
+
+HUMAN SUMMARY: ``Shipped the first Console-2 root repair. Fallback Root prompt text now derives from the same staged root choices as the live command surface, so newer root-callable commands like `Sketch`, `New Sketch`, `Extrude`, `Settings`, and `ConsoleInput` cannot disappear from fallback Root display through a stale hard-coded list.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 1 limited to root prompt display-source unification and focused tests.
+- Did not change root command execution, aliases, scoped feature assist, command ownership, or filtering behavior.
+- Preserved the current canonical root label order from staged navigation.
+- Kept custom `buildRootPromptText([...])` formatting behavior intact for non-root/test callers.
+
+#### Summary of Implementation
+
+- Exported `getConsoleRootChoiceLabels()` from staged navigation so fallback prompt text can read the same root labels used by `createConsoleRootSession().validChoices`.
+- Updated `ROOT_PROMPT_TEXT` to derive from canonical staged root labels instead of a separate hard-coded fallback list.
+- Added prompt-text tests proving fallback Root text stays aligned with staged root labels and includes the newer root-callable command labels.
+- Marked `Console-2 / Phase 1` shipped in the Console planning docs.
+
+#### Files Changed
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/consolePromptText.ts`
+- `src/app/console/consolePromptText.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console-2 - Canonical Root Display And Callability.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Fallback Root prompt display now shows every current staged root label, including the commands added after the older fallback list was written.
+- Adding a root choice to staged navigation now also updates fallback Root display through the shared label export.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/consolePromptText.test.ts src/app/console/stagedNavigation.test.ts`
+
 <!-- ENTRY 1965 -->
 
 ### [1965] - 2026-05-19 12:36 - `Spaghetti-Editor 8 - Phase 3.3 - Viewport Shortcut Modal Guarding`

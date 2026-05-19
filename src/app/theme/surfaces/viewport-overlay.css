@@ -2925,6 +2925,144 @@
   color: rgba(255, 158, 158, calc(var(--overlay-tool-text-alpha, 1) * 0.96));
 }
 
+.ViewportExtrudeCommandToolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 46px;
+  z-index: 47;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    'header actions'
+    'stats actions';
+  align-items: center;
+  gap: 8px 12px;
+  width: min(520px, calc(100% - 32px));
+  padding: 10px 12px;
+  border: 1px solid rgba(143, 167, 220, 0.32);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(25, 30, 43, 0.95), rgba(13, 16, 24, 0.97));
+  color: rgba(234, 240, 255, 0.92);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  pointer-events: auto;
+}
+
+.ViewportExtrudeCommandToolbarHeader {
+  grid-area: header;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 10px;
+}
+
+.ViewportExtrudeCommandToolbarTitle {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ViewportExtrudeCommandToolbarStep {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(177, 215, 255, 0.9);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ViewportExtrudeCommandToolbarStats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.ViewportExtrudeCommandToolbarStats > div {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid rgba(135, 159, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(11, 14, 22, 0.68);
+}
+
+.ViewportExtrudeCommandToolbarStats dt,
+.ViewportExtrudeCommandToolbarStats dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ViewportExtrudeCommandToolbarStats dt {
+  color: rgba(180, 190, 214, 0.72);
+  font-weight: 700;
+}
+
+.ViewportExtrudeCommandToolbarStats dd {
+  color: rgba(247, 250, 255, 0.94);
+  font-weight: 800;
+}
+
+.ViewportExtrudeCommandToolbarActions {
+  grid-area: actions;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ViewportExtrudeCommandToolbarButton {
+  min-width: 64px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(135, 159, 220, 0.28);
+  border-radius: 6px;
+  background: rgba(14, 17, 25, 0.78);
+  color: rgba(232, 238, 252, 0.9);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ViewportExtrudeCommandToolbarButton:hover:not(:disabled),
+.ViewportExtrudeCommandToolbarButton:focus-visible:not(:disabled) {
+  border-color: rgba(151, 181, 255, 0.7);
+  color: #f8fbff;
+  outline: none;
+}
+
+.ViewportExtrudeCommandToolbarButton:disabled {
+  opacity: 0.46;
+}
+
+@media (max-width: 560px) {
+  .ViewportExtrudeCommandToolbar {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'header'
+      'stats'
+      'actions';
+    align-items: stretch;
+  }
+
+  .ViewportExtrudeCommandToolbarActions {
+    justify-content: stretch;
+  }
+
+  .ViewportExtrudeCommandToolbarButton {
+    flex: 1;
+  }
+}
+
 .ViewportDisplayModeMenuBackdrop {
   position: absolute;
   inset: 0;
