@@ -72,6 +72,526 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1965 -->
+
+### [1965] - 2026-05-19 12:36 - `Spaghetti-Editor 8 - Phase 3.3 - Viewport Shortcut Modal Guarding`
+
+HUMAN SUMMARY: ``Shipped the viewport command shortcut guard for Phase 3.3. Viewport `S` still starts Sketch when the command surface is idle, but active command/session owners like Extrude profile selection now block the shortcut so it cannot create a second command while another flow owns input.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3.3 limited to shared input routing and focused Console regression coverage.
+- Did not add new shortcuts, shortcut rebinding, toolbar UI, profile picking, preview rendering, depth handles, graph commit, or Build Path behavior.
+- Preserved root-level idle viewport `S` behavior in Shortcuts-first mode.
+- Kept command ownership with the current session owners instead of adding a duplicate shortcut owner.
+
+#### Summary of Implementation
+
+- Added `viewportCommandModalOwnerActive` to the shared input-routing request so callers can block viewport command shortcuts when a non-routing-local command owner is active.
+- Blocked viewport command shortcuts when sketch plane pick, sketch draw/review, reference transform, or explicit modal command ownership is active.
+- Updated Console global routing context to mark viewport command shortcuts blocked while sketch plane pick, sketch draw/review, active Extrude sessions, non-root staged navigation, Console prompts, or reference/content transform entry sessions own input.
+- Preserved the root staged Console surface as idle for viewport command purposes so the existing viewport `S` shortcut still starts Sketch when nothing deeper owns input.
+- Added focused pure routing and ConsoleDock regression tests.
+
+#### Files Changed
+
+- `src/app/inputRouting.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Viewport `S` no longer starts root Sketch while an active Extrude session owns profile selection.
+- Viewport command shortcuts are now guarded behind an idle command state for sketch plane pick, sketch draw/review, reference/content transform entry, non-root staged Console, and Console prompt sessions.
+- Root-level idle viewport `S` continues to create or reuse Sketch and open sketch plane pick in Shortcuts-first mode.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/inputRouting.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "viewport S|Extrude"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1964 -->
+
+### [1964] - 2026-05-19 11:00 - `Spaghetti-Editor 8 - Phase 3.2A - Extrude Select Profiles Console Prompt`
+
+HUMAN SUMMARY: ``Shipped the missing Console conversation step for root `extrude`. After `extrude`, the next Console token is now interpreted as `Extrude > Select Profiles`, can resolve existing sketch profile choices into transient session selection, and moves to `Depth` without creating duplicate Extrude command ownership or mutating graph truth.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3.2A limited to Console prompt routing, text profile token resolution, diagnostics, and transient session updates.
+- Did not add model-viewport profile hit-testing, shift-click selection, toolbar controls, depth drag handles, extrusion preview rendering, OK graph commit, or Build Path projection.
+- Preserved the no-duplicate-Extrude-command rule: root `Extrude` remains a shortcut into the shared Extrude session and later canonical graph-authoring path.
+
+#### Summary of Implementation
+
+- Added pure Extrude profile Console choices and token resolution over existing derived `Geometry/Sketch` profile member ports.
+- Changed root `Extrude` startup to show an active `Extrude > Select Profiles` prompt that can surface current sketch profile choices.
+- Routed Console submissions through an active `extrudeCommandSession.activeStep === 'selectProfiles'` before generic root command parsing.
+- On a resolved profile token, updated `selectedProfileSources` through the shared Spaghetti session action and advanced the session to `Depth`.
+- Added unresolved, ambiguous, and no-profile diagnostics that keep the active Extrude session alive without graph mutation.
+- Added focused tests for profile prompt interception, successful text profile selection, and pure token-resolution behavior.
+
+#### Files Changed
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/commands/extrudeCommandSession.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Submitting root Console `extrude` now leaves Console in an active profile-selection prompt instead of a passive waiting status.
+- While that Extrude profile step is active, the next typed token is consumed as profile selection and does not fall through to unrelated root commands like `help`.
+- A valid text profile choice such as `Profile 1` selects the matching transient sketch profile source and advances the shared session to `Extrude > Depth`.
+- Missing, unknown, or ambiguous profile tokens produce diagnostics and preserve the active profile-selection session.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/spaghetti/commands/extrudeCommandSession.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "Extrude"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1963 -->
+
+### [1963] - 2026-05-19 10:35 - `Spaghetti-Editor 8 - Phase 3.2 Follow-Up - Root Extrude Visible Waiting State`
+
+HUMAN SUMMARY: ``Repaired the first root Extrude session feedback so typing `extrude` no longer looks like nothing happened. The Console now clears the submitted token and shows `Extrude > Select Profiles` with a waiting-for-profiles status while preserving the no-graph-mutation session start.``
+
+#### Scope / Constraints Honored
+
+- Kept the follow-up limited to visible Console feedback for the already-shipped Phase 3.2 session.
+- Did not add toolbar UI, profile picking, drag handles, preview rendering, graph commit, or Build Path projection.
+- Kept the transient session owner in Spaghetti store and left the toolbar as a later reader/dispatcher.
+
+#### Summary of Implementation
+
+- Updated root Console `Extrude` handling to set a status-mode feature assist descriptor for `Extrude > Select Profiles`.
+- Cleared the submitted `extrude` input token after the command starts so the bar visibly changes state.
+- Cleared the status descriptor when Escape cancels the active Extrude session.
+- Extended the ConsoleDock root Extrude test to prove the visible summary and cleared input.
+
+#### Files Changed
+
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Submitting root Console `extrude` now shows `Extrude > Select Profiles` and `Waiting for sketch profiles` in the Console summary.
+- The submitted input clears after the session starts.
+- Escape cancellation clears the visible Extrude waiting summary along with the transient session.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts root Extrude"`
+- `npm.cmd exec -- vitest run src/app/spaghetti/commands/extrudeCommandSession.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1962 -->
+
+### [1962] - 2026-05-19 10:15 - `Spaghetti-Editor 8 - Phase 3.2 - Real Extrude Session Owner And Command Tree`
+
+HUMAN SUMMARY: ``Shipped the first real root Extrude command session. Console `extrude` now creates shared transient session state for `Extrude > Select Profiles > Depth`, exposes toolbar-readable state through Spaghetti store, and Escape cancels the command without mutating graph nodes or edges.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3.2 limited to transient command-session ownership, Console command-path projection, cancellation, and focused transition proof.
+- Did not add profile hit-testing, shift-click profile selection, depth drag handle UI, extrusion preview rendering, graph commit, automatic node placement call sites, or Build Path projection.
+- Kept the toolbar as a future reader/dispatcher over session state rather than an owner of command truth.
+- Preserved Spaghetti graph truth by leaving start and cancel as no-mutation session operations.
+
+#### Summary of Implementation
+
+- Added the pure `extrudeCommandSession` helper with the first `ExtrudeCommandSession` shape, default depth, `New Body` operation mode, validation state, and `Extrude > Select Profiles > Depth` command path.
+- Added `extrudeCommandSession` state and start/cancel/profile-source transition actions to `useSpaghettiStore`.
+- Changed root Console `Extrude` handling to create the shared session, log the staged command path, and keep the existing missing-graph diagnostic behavior.
+- Added Escape handling for active Extrude command sessions so cancellation clears transient session state without graph mutation.
+- Added focused tests for the pure session transition and Console root `extrude` no-mutation start/cancel behavior.
+
+#### Files Changed
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/commands/extrudeCommandSession.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Root Console `extrude` now creates a shared active Extrude command session instead of only appending a prompt.
+- The active session starts at `selectProfiles`, validates as `needsProfiles`, and exposes `Extrude > Select Profiles > Depth` for later toolbar and viewport consumers.
+- Escape clears the active Extrude command session and reports cancellation while leaving graph nodes and edges unchanged.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/spaghetti/commands/extrudeCommandSession.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "Extrude"`
+- `npm.cmd exec -- vitest run src/app/console/stagedNavigation.test.ts -t "Extrude"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1961 -->
+
+### [1961] - 2026-05-19 09:41 - `Spaghetti-Editor 8 - Phase 3.1 - Atomic Extrude Graph Commit Repair`
+
+HUMAN SUMMARY: ``Shipped the Extrude graph-authoring atomicity repair. `authorExtrudeGraphCommand` now builds a preflighted Extrude command plan and calls one atomic commit boundary, so create-node and profile-wire failures can return cancelled summaries without the helper owning partial node or wire mutation.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3.1 limited to the shared Extrude graph-authoring seam and focused tests.
+- Did not build the real Extrude session owner, model-viewport toolbar, profile picker, depth drag handle, node-placement call site, or Build Path UI.
+- Preserved the committed summary fields that Phase 4 Build Path projection consumes.
+- Kept durable graph truth in the graph/store commit boundary instead of the toolbar, Console prompt, or viewport session.
+
+#### Summary of Implementation
+
+- Added `ExtrudeGraphCommandPlan` and related commit result types to describe create/reuse target intent, selected profile sources, graph document id, and the `ExtrusionProfile` target port.
+- Changed `authorExtrudeGraphCommand` to call one `commitExtrudeGraphPlan(...)` callback instead of separate `createExtrudeNode(...)` and `addProfileEdge(...)` callbacks.
+- Preserved committed Extrude results for created nodes, reused nodes, selected profile sources, added edge ids, and Build Path-ready committed summaries.
+- Added focused cancellation proof for missing graph/profile preconditions, create-node failure, and profile-wire failure through the atomic boundary.
+- Updated Spaghetti 8 planning docs to mark Phase 3.1 shipped and clarified that the later toolbar presents and dispatches session state rather than owning modeling truth.
+
+#### Files Changed
+
+- `src/app/console/graphCommandAuthoring.ts`
+- `src/app/console/graphCommandAuthoring.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Extrude command graph authoring now has one atomic commit boundary for node creation/reuse plus selected profile wires.
+- Cancelled create-node and profile-wire failures are reported before `authorExtrudeGraphCommand` owns any partial graph mutation.
+- Existing Build Path projection behavior remains compatible with the preserved committed summary shape.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/graphCommandAuthoring.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/buildPathProjection.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1960 -->
+
+### [1960] - 2026-05-19 08:47 - `Spaghetti-Editor 8 - Phase 5 - Background Node Layout And Arrangement Modes`
+
+HUMAN SUMMARY: ``Shipped the first command-created node placement contract. Spaghetti now has a pure planner that can propose downstream, bridge, stacked-repeat, and fallback positions for background-authored nodes while preserving existing positioned nodes and avoiding graph semantic mutation.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5 to a pure planner and focused tests.
+- Did not wire the planner into command creation call sites yet.
+- Did not implement arrangement-mode UI, a full graph-layout engine, Build Path-driven layout, or a new persisted layout layer.
+- Preserved existing stored node positions instead of silently rearranging user/manual layout.
+- Kept graph semantics, nodes, and edges unchanged by the planner.
+
+#### Summary of Implementation
+
+- Added `commandNodePlacement` under the Spaghetti layout area.
+- Added placement reasons for downstream, bridge, stacked-repeat, and fallback-lane placement.
+- Supported explicit upstream/target anchors and edge-inferred anchors.
+- Added deterministic vertical stacking so repeated command-created nodes do not overlap.
+- Added focused tests for downstream `Sketch -> Extrude` placement, bridge insertion, repeated-node stacking, fallback placement, existing-position preservation, and edge-inferred bridge placement.
+- Updated Spaghetti 8 planning docs to mark Phase 5 shipped while keeping call-site integration and later arrangement modes separate.
+
+#### Files Changed
+
+- `src/app/spaghetti/layout/commandNodePlacement.ts`
+- `src/app/spaghetti/layout/commandNodePlacement.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Command-created nodes now have a tested placement-planning contract available for later command call sites.
+- The planner can propose readable positions without mutating graph truth or moving already positioned nodes.
+- Later arrangement-mode work can build on the same placement reasons and spacing behavior.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/spaghetti/layout/commandNodePlacement.test.ts`
+- `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1959 -->
+
+### [1959] - 2026-05-19 08:41 - `Spaghetti-Editor 8 - Phase 4 - Build Path Projection Handoff`
+
+HUMAN SUMMARY: ``Shipped the Spaghetti-side Build Path projection contract. Committed Sketch and Extrude graph-command summaries can now become Build Path-ready records that preserve graph ids and mutation summaries, while cancelled commands are skipped and timeline UI, worker checkpoints, replay, restore, and branch behavior stay out of scope.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 4 to a pure projection helper over accepted graph-command summaries.
+- Did not implement the Build Path workspace UI, timeline rows, scrubbing, restore, branch, compare, worker history storage, checkpoints, replay, cache handles, or geometry persistence.
+- Preserved graph truth as the source by copying graph ids and mutation summaries only, not node params, wires, geometry, or viewport state.
+- Kept friendly row labels as presentation hints instead of identity or command truth.
+
+#### Summary of Implementation
+
+- Added `buildPathProjection` as a focused projection owner for Build Path-ready command records.
+- Projected committed summaries into records with explicit graph document id, command family, entry point, row label, graph mutation summary, affected graph ids, optional output ids, and build result state.
+- Made cancelled command summaries project to `null` so transient/cancelled viewport sessions do not become Build Path history rows.
+- Added focused tests for created Sketch, reused Sketch, Extrude with profile wires, cancelled-command skip behavior, explicit graph document ids, graph id preservation, and optional build-result linkage.
+- Updated Spaghetti 8 and Build Path planning docs to mark the projection contract shipped while keeping Build Path UI and worker history primitives deferred.
+
+#### Files Changed
+
+- `src/app/console/buildPathProjection.ts`
+- `src/app/console/buildPathProjection.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/Human-Plans/Architecture/Build-Path/build-path-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Accepted graph-command summaries now have a stable Build Path projection shape.
+- Cancelled command summaries are explicitly excluded from Build Path projection.
+- Later Build Path phases can consume command-family, entry-point, graph-id, mutation-summary, output-link, and build-result-state data without reverse-engineering viewport state or diffing live graph state.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/buildPathProjection.test.ts src/app/console/commandCommitContract.test.ts src/app/console/graphCommandAuthoring.test.ts`
+
+<!-- ENTRY 1958 -->
+
+### [1958] - 2026-05-19 08:32 - `Spaghetti-Editor 8 - Phase 3 - Root Extrude Command And Authoring Core`
+
+HUMAN SUMMARY: ``Shipped the first Phase 3 Extrude slice. Root `Extrude` now starts from the command root without creating graph truth, and the shared graph-command authoring owner can commit selected sketch-profile contributors into a created or reused `Geometry/Extrude` node through the existing profile wire contract.``
+
+#### Scope / Constraints Honored
+
+- Kept this slice focused on root command entry, no-mutation command start, and shared graph-authoring behavior.
+- Did not mount the full model-viewport Extrude toolbar, selected-count UI, distance editor, profile hover/pick surface, live preview handle, Build Path rows, or automatic node arrangement.
+- Reused the existing `ExtrusionProfile` graph input contract instead of creating a separate viewport-only profile storage model.
+- Preserved the shipped Sketch command behavior and shared authoring seam.
+
+#### Summary of Implementation
+
+- Added root `Extrude` to staged navigation and canonical radio command identity.
+- Added `startRootExtrudeCommand` in the console interaction owner so root `extrude` starts a transient session prompt without creating nodes, wires, or durable params.
+- Extended `graphCommandAuthoring` with `authorExtrudeGraphCommand`.
+- Added focused Extrude authoring tests for creating an Extrude node, reusing a selected Extrude node, wiring multiple selected profile contributors, and cancelling before mutation when graph context or selected profiles are missing.
+- Updated the Spaghetti 8 planning docs to mark Phase 3 as partially shipped and keep the visible viewport toolbar/profile picker as the next continuation.
+
+#### Files Changed
+
+- `src/app/console/graphCommandAuthoring.ts`
+- `src/app/console/graphCommandAuthoring.test.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `extrude` is now a root staged command.
+- Starting root `Extrude` reports an active Extrude session prompt and leaves graph truth untouched until a later commit path supplies selected sketch-profile contributors.
+- Extrude graph-authoring now has a shared commit/cancel result shape for later viewport toolbar and Build Path handoff work.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/graphCommandAuthoring.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts`
+- `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1957 -->
+
+### [1957] - 2026-05-19 08:20 - `Spaghetti-Editor 8 - Phase 2 - Shared Command To Graph Authoring Seam`
+
+HUMAN SUMMARY: ``Shipped the first shared graph-command authoring owner for viewport-first commands. Root `Sketch`, root `New Sketch`, and viewport `S` now use a shared Sketch graph-authoring seam for node reuse, forced fresh creation, committed summaries, and cancelled no-mutation results instead of keeping that topology decision inside the console hook.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 2 limited to extracting the existing Sketch graph-authoring behavior.
+- Did not implement root `Extrude`, the Extrude viewport toolbar, profile picking, distance preview, Build Path rows, or node arrangement.
+- Preserved the existing visible behavior for console root `sketch`, console root `new sketch`, and viewport `S`.
+- Kept console UI ownership, sketch-plane prompt setup, radio behavior, and command history in the console interaction layer.
+
+#### Summary of Implementation
+
+- Added `graphCommandAuthoring` as the shared owner for Sketch graph command authoring.
+- Moved selected-sketch reuse, first-sketch fallback reuse, forced-fresh `New Sketch`, sketch creation failure, and missing-graph cancellation into the shared owner.
+- Returned Phase 1 command commit summaries from the shared owner for created, reused, and cancelled Sketch results.
+- Refactored `useConsoleInteraction` so `startRootSketchCommand` calls the shared authoring owner before handling console entries and sketch plane startup.
+- Added focused tests for selected reuse, first-sketch reuse, creation, forced fresh creation, missing graph cancellation, and creation-failed cancellation.
+
+#### Files Changed
+
+- `src/app/console/graphCommandAuthoring.ts`
+- `src/app/console/graphCommandAuthoring.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Sketch graph-authoring decisions now live behind a shared command owner instead of directly in the console hook.
+- Console root and viewport shortcut Sketch starts now consume the same node reuse/create/cancel result shape.
+- Missing graph and sketch creation failure now have explicit cancelled command-summary outcomes for later viewport command sessions.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/graphCommandAuthoring.test.ts src/app/console/commandCommitContract.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts New Sketch from the root console command|starts Sketch from the root console command|starts Sketch from the viewport S shortcut"`
+- `npm.cmd exec -- vitest run src/app/console/stagedNavigation.test.ts src/app/inputRouting.test.ts`
+- `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1956 -->
+
+### [1956] - 2026-05-19 08:09 - `Spaghetti-Editor 8 - Phase 1 - Viewport Command Commit Contract`
+
+HUMAN SUMMARY: ``Shipped the first command lifecycle contract for viewport-first graph authoring. The app now has a shared commit-summary contract for preview/session/commit/cancel boundaries, and the existing root `Sketch`, root `New Sketch`, and viewport `S` paths use it without changing their visible Sketch behavior.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 1 limited to the command-commit guardrail.
+- Did not implement the Extrude toolbar, Build Path rows, or node arrangement modes.
+- Preserved existing root Sketch/New Sketch behavior and the viewport `S` shortcut behavior.
+- Kept graph truth as node and wire mutation, not a command transcript store.
+
+#### Summary of Implementation
+
+- Added a shared command commit contract module with lifecycle states, command entry points, committed summaries, and cancelled summaries.
+- Reserved durable graph mutation for the `readyToCommit` lifecycle transition.
+- Routed root Sketch/New Sketch graph commits through the contract summary shape.
+- Tagged viewport `S` starts as `viewport-shortcut` entry points for the upcoming root Extrude work.
+- Added focused tests for mutation-state boundaries, committed summaries, and cancelled no-mutation summaries.
+
+#### Files Changed
+
+- `src/app/console/commandCommitContract.ts`
+- `src/app/console/commandCommitContract.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Root Sketch command commits now produce a durable command-summary shape after the graph sketch node is created or reused.
+- Viewport `S` starts are distinguished from console-root starts in the shared command contract.
+- Cancelled command summaries now have an explicit no-durable-graph-mutation shape for future viewport sessions.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/commandCommitContract.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts New Sketch from the root console command|starts Sketch from the root console command|starts Sketch from the viewport S shortcut"`
+- `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1955 -->
+
+### [1955] - 2026-05-19 01:00 - `Spaghetti-Editor 8 - Phase 2 - Root Sketch Command Entry`
+
+HUMAN SUMMARY: ``Added `Sketch` and `New Sketch` as root commands so viewport-first authoring can create graph sketches without first entering the Spaghetti graph command tree. Console `sketch` reuses or creates a sketch, console `new sketch` always creates a fresh `Geometry/Sketch` node, and the viewport `S` shortcut still routes through the same sketch-start path.``
+
+#### Scope / Constraints Honored
+
+- Kept the first command proof limited to `Sketch` and the forced-fresh `New Sketch` variant.
+- Preserved existing graph-scoped `Graph > Sketch` behavior and the sketch draw/plane staged command tree.
+- Kept console-first typing behavior intact so plain `s` still enters console text when that input priority is active.
+
+#### Summary of Implementation
+
+- Added root `Sketch` and `New Sketch` staged commands with canonical radio identities.
+- Routed viewport `S` through a new viewport-command keyboard owner when the model viewport is active and shortcuts-first input priority is enabled.
+- Reused the existing sketch node creation and sketch plane intent path so the command authors normal Spaghetti graph truth before opening plane selection.
+- Added focused tests for root console `sketch`, root console `new sketch`, viewport `S`, staged navigation, input routing, and radio identity.
+
+#### Files Changed
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/inputRouting.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/inputRouting.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Submitting `sketch` from the console root starts Sketch directly instead of requiring `Graph > Sketch`.
+- Submitting `new sketch` from the console root creates a fresh sketch node even when another sketch already exists.
+- Pressing `S` in the active model viewport starts Sketch when console input priority is `Shortcuts first`.
+- If no sketch node exists in the active graph document, the command creates one before entering sketch plane pick.
+
+#### Verification Steps
+
+- `npm.cmd exec tsc -- --noEmit`
+- `npm.cmd exec vitest run src/app/console/stagedNavigation.test.ts src/app/console/stagedNavigation.workspaceModes.test.ts src/app/inputRouting.test.ts src/app/console/radioCommandIdentity.test.ts`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts New Sketch from the root console command|starts Sketch from the root console command"`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "starts Sketch from the viewport S shortcut"`
+
+<!-- ENTRY 1954 -->
+
+### [1954] - 2026-05-19 00:34 - `Spaghetti-Editor 7 - Phase 4 - Narrow Pane Visual Proof And Closeout`
+
+HUMAN SUMMARY: ``Closed `Spaghetti-Editor 7` with a proof-only pass over the split-pane Spaghetti density work. The focused checks confirm the one-button `+ / e` control, essentials body rendering, split-host fit targeting, compact toolbar behavior, and AppShell handoff all still hold without needing more runtime changes.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 4 to closeout verification and documentation.
+- Did not add new controls, modes, layout concepts, graph truth, node row-density, overlay `O` behavior, floating/windowed titlebar behavior, Browser controls, Model Viewer controls, or workspace split/close semantics.
+- Used existing DOM-level proof for the narrow-pane requirements instead of adding a screenshot-only harness.
+
+#### Summary of Implementation
+
+- Re-ran the focused split-host fit, `e / +`, essentials-body, panel/canvas, and AppShell regression checks.
+- Confirmed production build still succeeds after the shipped Phase 1 through Phase 3 work.
+- Marked the `Spaghetti-Editor 7` Phase 4 doc and umbrella index as shipped with no immediate follow-on required.
+
+#### Files Changed
+
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No runtime behavior changes.
+- `Spaghetti-Editor 7` is now closed as a shipped split-pane density and local-mode cleanup family.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx -t "marks split-hosted Spaghetti surfaces"`
+- `npm.cmd test -- --run src/app/workspace/WorkspaceViewportTree.test.tsx -t "primary frame button for split-host Spaghetti"`
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx -t "split-host Spaghetti essentials"`
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "split-host spaghetti"`
+- `npm.cmd run build`
+
 <!-- ENTRY 1953 -->
 
 ### [1953] - 2026-05-19 00:27 - `OO - Phase 13 - Remove Vendored Replicad Artifacts`

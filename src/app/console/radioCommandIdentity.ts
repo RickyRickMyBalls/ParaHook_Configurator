@@ -864,6 +864,12 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Graph', 'Open')
     case 'graph.build':
       return buildIdentity('Console', 'Graph', 'Build')
+    case 'sketch.root':
+      return buildIdentity('Console', 'Root', 'Sketch')
+    case 'sketch.new':
+      return buildIdentity('Console', 'Root', 'NewSketch')
+    case 'extrude.root':
+      return buildIdentity('Console', 'Root', 'Extrude')
     case 'sketch.plane':
       return buildIdentity('Console', 'Graph', 'Sketch', 'Plane')
     case 'sketch.draw':

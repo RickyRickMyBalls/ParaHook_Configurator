@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-05-19 08:41:03: Updated the relationship to `Spaghetti-Editor 8 / Phase 4 - Build Path Projection Handoff` after the projection helper shipped, noting that Build Path now has a pure Spaghetti-side committed-command projection record to build on while UI, worker history storage, checkpoint/replay, restore, branch, and scrub behavior remain later family phases.
+4. 2026-05-19 08:35:53: Updated the relationship to `Spaghetti-Editor 8 / Phase 4 - Build Path Projection Handoff`, clarifying that the near-term Spaghetti-side slice should only project accepted graph-command summaries into Build Path-ready records while leaving Build Path UI, worker history storage, checkpoint/replay, restore, branch, and scrub behavior to later Build Path and Worker phases.
+3. 2026-05-19 00:36:42: Added the relationship to `Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge`, clarifying that viewport, console, shortcut, and toolbar command commits should first author normal graph nodes and wires before Build Path presents those accepted graph commits as history rows.
 2. 2026-04-13 14:49: Updated this `Build Path` family index to point at the new `Build-Path_Vision.md` north-star doc so the umbrella entrypoint now distinguishes the stable core concept from the phase-ordering and ownership-planning material
 1. 2026-04-10 00:00: Created this `Build Path` family index to organize the first architecture and phase planning for timeline-style CAD command history, cached scrubbing, worker-owned diff/checkpoint foundations, and workspace-mode UX phases
 
@@ -58,6 +61,31 @@ That means the feature has to be planned across at least two architecture famili
   - restore, compare, and branch interactions
 
 This doc exists so `Build Path` can be planned as its own cross-cutting family instead of being fragmented across worker-only notes or workspace-only notes.
+
+### Relationship To Viewport Command Authoring
+
+The Spaghetti editor owns the graph-authoring side of viewport-first CAD command work.
+
+See:
+- `../Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+
+That plan captures the command side:
+- user operates from model viewport, console, shortcuts, or toolbar
+- accepted commands create/update normal Spaghetti nodes, params, and wires
+- automatic graph work is visible in the Spaghetti editor
+
+Build Path should consume the accepted graph command summaries later as a history projection.
+
+Near-term handoff:
+- `Spaghetti-Editor 8 / Phase 4` shipped the small Spaghetti-side projection contract that turns accepted graph-command summaries into Build Path-ready records
+- that projection preserves graph ids, mutation summaries, command family, and entry point
+- cancelled or transient command sessions do not become Build Path rows
+- friendly row labels are presentation hints only, not a new source of command truth
+
+Hard rule:
+- Build Path rows should be derived from graph-authored command commits
+- Build Path should not become the owner of separate node params, wires, or geometry truth
+- Build Path workspace UI, worker history storage, checkpoint/replay, restore, branch, and scrub behavior remain later Build Path/Worker family phases
 
 ### Scope
 

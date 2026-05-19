@@ -260,6 +260,30 @@ describe('radioCommandIdentity', () => {
     expect(
       resolveConsoleRadioCommandIdentity({
         kind: 'stagedExecute',
+        activeScopeId: null,
+        actionId: 'sketch.root',
+      }),
+    ).toBe('Console.Root.Sketch')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: null,
+        actionId: 'sketch.new',
+      }),
+    ).toBe('Console.Root.NewSketch')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: null,
+        actionId: 'extrude.root',
+      }),
+    ).toBe('Console.Root.Extrude')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
         activeScopeId: 'graphSketchSelected',
         actionId: 'node.delete',
       }),

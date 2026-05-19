@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { SketchFeature } from '../spaghetti/features/featureTypes'
 import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
@@ -14,6 +15,28 @@ import { useConsoleStore } from './useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
+
+const rectangleSketchFeature = (): SketchFeature => ({
+  type: 'sketch',
+  featureId: 'sketch-1',
+  plane: 'XY',
+  components: [
+    {
+      rowId: 'row-rect-1',
+      componentId: 'rect-1',
+      type: 'rectangle',
+      a: { kind: 'lit', x: 0, y: 0 },
+      b: { kind: 'lit', x: 20, y: 10 },
+    },
+  ],
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
 
@@ -5786,6 +5809,144 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
+  it('starts Sketch from the root console command by creating a sketch node and opening plane pick', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('sketch')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const sketchNodes = useSpaghettiStore
+      .getState()
+      .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
+
+    expect(sketchNodes).toHaveLength(1)
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: sketchNodes[0]?.nodeId,
+      stage: 'pick',
+    })
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSketchSelected')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Sketch'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Created sketch_[1]'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Sketch Plane > [XY, XZ, YZ]'),
+    ).toBe(true)
+  })
+
+  it('starts New Sketch from the root console command by forcing a fresh sketch node', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-existing',
+            type: 'Geometry/Sketch',
+            params: getDefaultNodeParams('Geometry/Sketch'),
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('new sketch')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const sketchNodes = useSpaghettiStore
+      .getState()
+      .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
+    const newSketchNode = sketchNodes.find((node) => node.nodeId !== 'node-sketch-existing')
+
+    expect(sketchNodes).toHaveLength(2)
+    expect(newSketchNode).toBeDefined()
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: newSketchNode?.nodeId,
+      stage: 'pick',
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'New Sketch'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Created sketch_[2]'),
+    ).toBe(true)
+  })
+
+  it('starts Sketch from the viewport S shortcut by creating a sketch node and opening plane pick', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [],
+        edges: [],
+      })
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 's',
+          code: 'KeyS',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const sketchNodes = useSpaghettiStore
+      .getState()
+      .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
+
+    expect(sketchNodes).toHaveLength(1)
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: sketchNodes[0]?.nodeId,
+      stage: 'pick',
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === '> s'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Sketch Plane > [XY, XZ, YZ]'),
+    ).toBe(true)
+  })
+
   it('creates a sketch node when graph sketch scope is empty and continues into that sketch', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -5908,6 +6069,232 @@ describe('ConsoleDock', () => {
     ).toBe(true)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude > Choose next [Delete, Back]'),
+    ).toBe(true)
+  })
+
+  it('starts root Extrude as a transient command session without mutating the graph', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('extrude')
+    })
+
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const session = useSpaghettiStore.getState().extrudeCommandSession
+    expect(session).toMatchObject({
+      commandFamily: 'Extrude',
+      lifecycleState: 'previewing',
+      activeStep: 'selectProfiles',
+      entryPoint: 'console-root',
+      selectedProfileSources: [],
+      validation: 'needsProfiles',
+      operationMode: 'newBody',
+      depth: 10,
+    })
+    expect(session?.commandPath).toEqual(['Extrude', 'Select Profiles', 'Depth'])
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      label: 'Extrude',
+      breadcrumb: ['Extrude', 'Select Profiles'],
+      summaryLeadText: ' > Select a sketch profile',
+    })
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Extrude > Select Profiles',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select a sketch profile',
+    )
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude')).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Extrude > Select Profiles > Depth'),
+    ).toBe(true)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useConsoleStore.getState().featureAssistDescriptor).toBeNull()
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude cancelled'),
+    ).toBe(true)
+  })
+
+  it('routes the next Console token through active Extrude profile selection before root parsing', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('extrude')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('help')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'selectProfiles',
+      selectedProfileSources: [],
+      validation: 'needsProfiles',
+    })
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Extrude has no sketch profiles available to select.'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.startsWith('Commands: help,')),
+    ).toBe(false)
+  })
+
+  it('keeps viewport S from starting Sketch while Extrude owns profile selection', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('extrude')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 's',
+          code: 'KeyS',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toBeNull()
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'selectProfiles',
+      validation: 'needsProfiles',
+    })
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> s')).toBe(false)
+  })
+
+  it('selects a Console profile token into the transient Extrude session without graph mutation', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('extrude')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Profile 1')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const session = useSpaghettiStore.getState().extrudeCommandSession
+    expect(session).toMatchObject({
+      activeStep: 'depth',
+      validation: 'readyForDepth',
+    })
+    expect(session?.selectedProfileSources).toHaveLength(1)
+    expect(session?.selectedProfileSources[0]?.nodeId).toBe('node-sketch-1')
+    expect(session?.selectedProfileSources[0]?.portId).toMatch(/^SketchProfile:/)
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Extrude', 'Depth'],
+      summaryLeadText: ' > Enter depth',
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude > Depth'),
     ).toBe(true)
   })
 

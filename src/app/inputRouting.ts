@@ -6,6 +6,7 @@ export type InputRoutingOwner =
   | 'viewer-fly'
   | 'viewer-display-mode'
   | 'viewer-camera-shortcuts'
+  | 'viewport-command'
   | 'console-entry'
   | 'sketch-plane'
   | 'sketch-draw'
@@ -18,6 +19,7 @@ export type InputRoutingOwner =
 export type InputRoutingDecision = 'handle' | 'defer-native' | 'ignore'
 
 export type EditHistoryShortcutAction = 'undo' | 'redo'
+export type ViewportCommandShortcutAction = 'sketch'
 
 export type ConsoleInputPriorityMode = 'console-first' | 'shortcuts-first'
 
@@ -40,6 +42,8 @@ export type InputRoutingRequest = {
   viewerFlyActive?: boolean
   viewerDisplayModeShortcutsEnabled?: boolean
   viewerCameraShortcutsEnabled?: boolean
+  viewportCommandShortcutsEnabled?: boolean
+  viewportCommandModalOwnerActive?: boolean
   sketchPlanePickStage?: 'pick' | 'adjust' | null
   geometrySketchMode?: 'draw' | 'review' | null
   selectedReferenceDeleteAvailable?: boolean
@@ -56,6 +60,7 @@ export type InputRoutingResult = {
   owner: InputRoutingOwner
   decision: InputRoutingDecision
   editHistoryAction?: EditHistoryShortcutAction
+  viewportCommandAction?: ViewportCommandShortcutAction
   sketchDrawAction?: EditHistoryShortcutAction
 }
 
@@ -129,6 +134,13 @@ const isViewerDisplayModeShortcut = (event: KeyboardLikeEvent): boolean =>
   !event.altKey &&
   !event.metaKey
 
+const isViewportSketchCommandShortcut = (event: KeyboardLikeEvent): boolean =>
+  event.code === 'KeyS' &&
+  event.shiftKey !== true &&
+  !event.ctrlKey &&
+  !event.altKey &&
+  !event.metaKey
+
 const isUndoShortcut = (event: KeyboardLikeEvent): boolean => {
   const key = event.key.toLowerCase()
   const modifierPressed = event.ctrlKey === true || event.metaKey === true
@@ -179,6 +191,8 @@ export const routeKeyboardInput = ({
   viewerFlyActive = false,
   viewerDisplayModeShortcutsEnabled = false,
   viewerCameraShortcutsEnabled = false,
+  viewportCommandShortcutsEnabled = false,
+  viewportCommandModalOwnerActive = false,
   sketchPlanePickStage = null,
   geometrySketchMode = null,
   selectedReferenceDeleteAvailable = false,
@@ -338,6 +352,25 @@ export const routeKeyboardInput = ({
     return {
       owner: 'viewer-camera-shortcuts',
       decision: 'handle',
+    }
+  }
+
+  const viewportCommandShortcutsBlocked =
+    viewportCommandModalOwnerActive ||
+    sketchPlanePickStage !== null ||
+    geometrySketchMode !== null ||
+    referenceTransformActive
+
+  if (
+    viewportCommandShortcutsEnabled &&
+    !viewportCommandShortcutsBlocked &&
+    consoleInputPriorityMode === 'shortcuts-first' &&
+    isViewportSketchCommandShortcut(event)
+  ) {
+    return {
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'sketch',
     }
   }
 

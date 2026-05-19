@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+25. 2026-05-19 08:20:51: Added `Settings-3 / Phase 8 - Lowercase Console Commands And Highlighted Shortcut Input` to the open Settings lane so lowercase typed command language, uppercase highlighted-choice shortcut input, conflict-safe visible hints, and Settings Key Bindings readout alignment can be planned without creating a second Console command owner.
 24. 2026-05-18 22:02: Marked the cross-family `Model-Viewport-4 / Phase 8` Settings handoff shipped after the Settings `Viewport` section gained owner-backed highlight color and intensity controls while the model-viewport/view-settings contract kept ownership of the highlight meaning and runtime behavior.
 23. 2026-05-18 21:22: Added a cross-family planning note that `Model-Viewport-4 / Phase 8 - Hover And Selection Highlight Hierarchy` may add a Settings `Viewport` highlight styling group while keeping highlight meaning and persistence owned by the model-viewport/view-settings contract instead of making Settings the hidden owner.
 22. 2026-05-17 12:29:14: Marked `Settings-3 / Phase 7 - Staged Console Input Priority Tree` complete after the future doc recorded the visible staged `Settings > KeyBindings > ConsoleInput > On/Off` path, direct Root `ConsoleInput` shortcut, owner-backed preference mutation, flat command retirement, focused verification, and no shortcut-routing or Settings UI widening.
@@ -138,6 +139,7 @@ It should collect focused Settings additions that the user wants to implement on
 - `Phase 5` - shortcut priority hardening and handoff
 - `Phase 6` - Console input-priority command
 - `Phase 7` - staged Console input-priority tree
+- `Phase 8` - lowercase Console commands and highlighted shortcut input
 - later phases - user-added Settings controls, grouped only when a narrower owner family is not justified yet
 
 Important planning rule:
@@ -163,6 +165,7 @@ The healthy Generation 1 read is:
 - settings values should stay owned by their real systems, with the workspace acting as the navigation and projection surface
 - shortcut visibility should be grouped by mode or surface context instead of scattered across separate menus or notes
 - miscellaneous Settings additions should be phaseable one at a time while still naming the real owner system for each setting
+- Console shortcut cleanup should keep lowercase command text and uppercase highlighted-choice shortcuts as two inputs into the same owner-backed Console choice model instead of creating another command layer
 
 Important boundary rule:
 - if a question is about the broad `Settings` purpose, use `Settings-Vision.md`
@@ -254,6 +257,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Use `Settings-3 / Phase 5` to harden priority and record the key-binding handoff.
 - [x] Use `Settings-3 / Phase 6` to expose the same input-priority preference through a typed Console command.
 - [x] Use `Settings-3 / Phase 7` to move Console input-priority control into the visible no-space staged Console tree.
+- [ ] Use `Settings-3 / Phase 8` to plan lowercase typed Console command text, uppercase highlighted-choice shortcut input, conflict-safe visible hints, and Settings Key Bindings readout alignment.
 - [x] Keep the Console input-priority setting owned by the Console/input-routing preference seam, with Settings only projecting and changing that preference.
 - [ ] Leave later `Settings-3` phases open for user-added controls instead of pretending this index already knows every random Settings item.
 - [ ] Keep each later phase small enough for one Codex implementation pass.
@@ -412,6 +416,7 @@ This phase exists so Settings can keep growing without forcing every small prefe
 - each control still names its real owner system
 - Settings remains the projection and editing surface, not the hidden owner
 - later `Settings-2` key-binding work can benefit from shortcut-friendly preferences without being blocked by them
+- Console shortcut cleanup can be planned beside Key Bindings readout work while Console still owns command parsing and staged choice resolution
 
 ### HLG / CLG Coverage
 
@@ -430,6 +435,7 @@ This phase exists so Settings can keep growing without forcing every small prefe
 - an open planning lane for small Settings additions
 - owner-backed toggle and control requests that do not yet justify a narrower family
 - the first planned Console input-priority mode setting
+- the next planned lowercase-command and uppercase-highlighted-shortcut cleanup
 - one-by-one implementation phase routing for user-added Settings controls
 
 ### Does Not Own
@@ -438,16 +444,23 @@ This phase exists so Settings can keep growing without forcing every small prefe
 - changing shortcut behavior without naming the input-routing or feature owner seam
 - turning Settings into the source of truth for values owned by Console, workspace, viewport, Browser, or other systems
 - bundling many unrelated Settings controls into one implementation pass
+- turning highlighted shortcut input into a second runtime command system
 
 ### Planning Read
 
-`Settings-3 / Phase 1` should start with the Console input-priority setting.
+`Settings-3` started with the Console input-priority setting.
 
-The user-facing behavior should be:
+The first user-facing behavior was:
 - Console-first mode keeps the current quick-console behavior where normal printable keys can enter the Console after workspace interaction
 - Console-first mode makes letter shortcuts use `Shift+letter`, such as `Shift+Z` for `Zoom object`
 - Shortcuts-first mode lets the model viewport and other surfaces keep ordinary letters available for shortcuts, such as plain `Z`
 - Shortcuts-first mode uses `C` as the deliberate Console entry key before free typing enters the Console
+
+The next planned behavior is:
+- lowercase full command text becomes the normal typed Console command language
+- uppercase input chooses one of the highlighted visible command shortcuts
+- highlighted shortcuts resolve through the same staged Console choice model as full command text
+- Settings Key Bindings explains the rule without owning command parsing or duplicating the Console choice registry
 
 The implementation plan should stay honest:
 - store the preference in the existing UI/settings preference owner area
@@ -456,3 +469,4 @@ The implementation plan should stay honest:
 - keep editable fields native
 - keep higher-priority tool, camera, and viewport shortcuts ahead of Console capture
 - add focused tests for Console-first plain typing, Console-first `Shift+letter` shortcuts, Shortcuts-first plain-letter shortcuts, Shortcuts-first `C` Console entry, editable fields, and shortcut priority
+- for Phase 8, lock the choice contract first, then implement uppercase shortcut matching and Settings readout as one narrow follow-on

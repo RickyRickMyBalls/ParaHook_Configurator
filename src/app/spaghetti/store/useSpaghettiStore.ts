@@ -195,6 +195,12 @@ import {
   createGeometrySketchComponentEditActions,
 } from './sketch/geometrySketchComponentEditActions'
 import {
+  createExtrudeCommandSession,
+  setExtrudeCommandSessionProfileSources,
+  type CreateExtrudeCommandSessionOptions,
+  type ExtrudeCommandSession,
+} from '../commands/extrudeCommandSession'
+import {
   selectActiveGraph,
   selectActiveGraphCompileResult,
   selectActiveGraphDocument,
@@ -514,6 +520,7 @@ export type SpaghettiStoreState = {
   connectionDrag: ConnectionDragState | null
   sketchPlanePickSession: SketchPlanePickSession | null
   geometrySketchSession: GeometrySketchSession | null
+  extrudeCommandSession: ExtrudeCommandSession | null
   geometrySketchHistoryScrub: GeometrySketchHistoryScrubState | null
   geometrySketchLocalHistoryByTargetId: Record<string, GeometrySketchLocalHistoryState>
   uiMessage: CanvasUiMessage | null
@@ -649,6 +656,13 @@ export type SpaghettiStoreState = {
   moveGeometrySketchComponentDown: (nodeId: string, rowId: string) => void
   removeGeometrySketchComponent: (nodeId: string, rowId: string) => void
   setGeometrySketchSelectedProfile: (nodeId: string, profileId: string | null) => void
+  startExtrudeCommandSession: (
+    options: CreateExtrudeCommandSessionOptions,
+  ) => ExtrudeCommandSession
+  cancelExtrudeCommandSession: () => void
+  setExtrudeCommandSelectedProfileSources: (
+    selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
+  ) => void
   setUiMessage: (message: CanvasUiMessage | null) => void
   clearUiMessage: () => void
   createGraphDocument: (graph?: SpaghettiGraph, name?: string) => string
@@ -4104,6 +4118,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
   connectionDrag: null,
   sketchPlanePickSession: null,
   geometrySketchSession: null,
+  extrudeCommandSession: null,
   geometrySketchHistoryScrub: null,
   geometrySketchLocalHistoryByTargetId: {},
   uiMessage: null,
@@ -4137,6 +4152,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
           nextGraph,
           state.geometrySketchSession,
         ),
+        extrudeCommandSession: null,
         geometrySketchHistoryScrub: null,
         geometrySketchLocalHistoryByTargetId: {},
         edgeWaypoints: {},
@@ -4784,6 +4800,28 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         nextPromptRef.current.lastUsedTool,
       )
     }
+  },
+  startExtrudeCommandSession: (options) => {
+    const session = createExtrudeCommandSession(options)
+    set({ extrudeCommandSession: session })
+    return session
+  },
+  cancelExtrudeCommandSession: () => {
+    set({ extrudeCommandSession: null })
+  },
+  setExtrudeCommandSelectedProfileSources: (selectedProfileSources) => {
+    set((state) => {
+      if (state.extrudeCommandSession === null) {
+        return state
+      }
+
+      return {
+        extrudeCommandSession: setExtrudeCommandSessionProfileSources(
+          state.extrudeCommandSession,
+          selectedProfileSources,
+        ),
+      }
+    })
   },
   setUiMessage: (uiMessage) => {
     set({ uiMessage })

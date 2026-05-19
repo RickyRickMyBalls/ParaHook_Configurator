@@ -33,11 +33,15 @@ describe('stagedNavigation workspace modes', () => {
     expect(result.breadcrumb).toEqual(['Root'])
     expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'SKETCH',
+      'NEW_SKETCH',
       'CONTENT',
       'REFERENCES',
       'HIDE',
       'UNHIDEALL',
       'WORKSPACEMODES',
+      'SETTINGS',
+      'CONSOLEINPUT',
       'CAMERA',
       'RADIO',
       'ZOOM',

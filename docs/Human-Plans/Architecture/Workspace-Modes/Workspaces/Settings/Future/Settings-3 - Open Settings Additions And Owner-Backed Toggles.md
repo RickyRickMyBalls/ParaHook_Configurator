@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-05-19 08:20:51: Added `Settings-3 / Phase 8 - Lowercase Console Commands And Highlighted Shortcut Input` as the next planning slice for separating lowercase typed command language from uppercase highlighted-choice shortcut input, keeping shortcuts as an input convenience over the staged Console choice model and routing the visible readout back through Settings Key Bindings without creating a second command owner.
 17. 2026-05-17 12:29:14: Implemented and closed `Settings-3 / Phase 7 - Staged Console Input Priority Tree` by adding the visible staged `Root > Settings > KeyBindings > ConsoleInput > On/Off` path, direct Root `ConsoleInput` shortcut, owner-backed preference mutation, flat command retirement, focused staged-navigation, identity, parser, and ConsoleDock coverage, and build verification.
 16. 2026-05-17 11:57:57: Prepped `Settings-3 / Phase 7 - Staged Console Input Priority Tree` for implementation by locking the staged scope/action ids, direct Root shortcut behavior, local alias boundary, flat-command retirement rule, owner-backed mutation seam, and focused staged-navigation plus ConsoleDock verification targets.
 15. 2026-05-13 10:09:18: Added `Settings-3 / Phase 7 - Staged Console Input Priority Tree` as the corrective follow-up to move Console input-priority control into the visible no-space staged Console tree at `Root > Settings > KeyBindings > ConsoleInput > On/Off`, while also allowing `ConsoleInput` to be called directly from Root.
@@ -57,9 +58,11 @@ The first implementation ladder should stay narrow:
 5. harden priority, editable-field, and future key-bindings boundaries
 6. expose a small typed Console command for changing the same setting
 7. replace the flat command lane with a visible no-space staged Console tree path
+8. define the next Console/Settings shortcut cleanup where lowercase command text is the normal typed language and uppercase input selects highlighted visible choices
 
 Important planning rule:
 - Settings projects and changes the preference, but the Console/input-routing owner decides what the preference means at runtime
+- highlighted shortcuts must resolve to the same staged Console choices as full command text, not to a second command owner
 
 ### Scope
 
@@ -71,6 +74,8 @@ This phase owns:
 - focused proof that plain letters become shortcuts only in Shortcuts-first mode
 - the typed Console command that changes the same owner-backed input-priority preference
 - the staged Console-tree correction for the command path
+- the next lowercase-command and uppercase-highlighted-shortcut rule for Console input
+- the Settings Key Bindings/readout alignment for that rule
 
 This phase does not own:
 - full key-binding editing
@@ -80,6 +85,7 @@ This phase does not own:
 - unrelated Settings controls that should become later `Settings-3` phases
 - a separate Console-only copy of the input-priority setting
 - freeform multi-token commands for the input-priority setting
+- a broad Console grammar rewrite beyond the highlighted-choice shortcut cleanup
 
 ### Current Planning Read
 
@@ -97,6 +103,7 @@ The healthy future read is:
 - the user can use the staged `ConsoleInput > On/Off` command path from the Console to change the same setting without opening Settings
 - the healthier command path is a visible staged tree with no-space tokens: `Root > Settings > KeyBindings > ConsoleInput > On/Off`
 - `ConsoleInput` should also be callable directly from Root as a shortcut into the same `ConsoleInput` staged session
+- the next shortcut cleanup should make lowercase typed command text the user-facing command language while uppercase tokens choose highlighted commands from the current visible choice set
 
 ### Ownership Boundary
 
@@ -123,6 +130,17 @@ Console must not:
 - bypass the history-aware preference mutation seam
 - change input routing semantics while handling the command
 - require space-separated command submissions for this setting
+- treat uppercase highlighted shortcuts as a parallel runtime command system
+
+Settings Key Bindings may:
+- explain the lowercase command versus uppercase highlighted shortcut rule
+- show the current input-priority mode and staged command shortcut behavior
+- project shortcut hints from the same Console choice/read model
+
+Settings Key Bindings must not:
+- become the owner of Console command parsing
+- duplicate staged Console choices into a local Settings-only registry
+- pretend highlighted shortcut letters are globally valid outside the active Console choice set
 
 ## Vision
 
@@ -135,6 +153,7 @@ What must stay true:
 - each setting names its real owner
 - one small Settings request can become one small implementation phase
 - Console input priority and shortcut routing become easier to reason about before later key-binding work expands
+- lowercase command language and uppercase highlighted-choice shortcuts are legible in Settings before shortcut customization grows
 
 ## Wishlist Organization
 
@@ -240,6 +259,23 @@ What must stay true:
 - [x] `Settings-Gen1-HLG-8`
 - [x] Settings-Gen1-CLG-3.
 - [x] Settings-Gen1-CLG-7.
+
+### `Settings-3 / Phase 8`
+
+- [ ] Define the user-facing Console input grammar split:
+  - lowercase full command text is the normal typed command language
+  - uppercase input is reserved for selecting the highlighted shortcut from the current visible choices
+- [ ] Keep uppercase highlighted shortcuts as an input convenience over staged Console choices, not a second command owner.
+- [ ] Add a deterministic shortcut-hint rule for visible choices, including conflict handling when two choices want the same letter.
+- [ ] Preserve Console-first and Shortcuts-first input-priority behavior from Phases 1 through 7.
+- [ ] Route the Settings Key Bindings/readout surface to explain the lowercase command versus uppercase highlighted shortcut rule.
+- [ ] Leave runtime implementation for one later code slice after the choice contract and readout boundary are locked.
+- [ ] `Settings-Gen1-HLG-6`
+- [ ] `Settings-Gen1-HLG-7`
+- [ ] `Settings-Gen1-HLG-8`
+- [ ] Settings-Gen1-CLG-3.
+- [ ] Settings-Gen1-CLG-6.
+- [ ] Settings-Gen1-CLG-7.
 
 ## [x] `Settings-3 / Phase 1` - `Console Capture Owner Audit`
 
@@ -1250,3 +1286,125 @@ Implemented behavior:
 - `npm.cmd test -- src/app/console/consoleCommandParser.test.ts src/app/console/stagedNavigation.test.ts src/app/console/radioCommandIdentity.test.ts`
 - `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "staged ConsoleInput command tree"`
 - `npm.cmd run build`
+
+## [ ] `Settings-3 / Phase 8` - `Lowercase Console Commands And Highlighted Shortcut Input`
+
+### Phase 8 Summary
+
+Plan the next Console/Settings shortcut cleanup around one simple rule:
+- lowercase text is the normal typed Console command language
+- uppercase text chooses the highlighted shortcut from the current visible command choices
+
+The goal is to make Console input feel fast without letting shortcuts become a second command system. A highlighted shortcut should always resolve to the same staged Console choice that a full command phrase would choose.
+
+### Phase 8 Implementation Spec
+
+#### Purpose
+
+Lock the command-choice contract before runtime implementation begins.
+
+This phase should give the next code pass a clear answer to:
+- how visible choices expose lowercase command text and uppercase shortcut hints
+- how uppercase shortcut input resolves through staged navigation
+- how conflicts are handled when choices compete for the same shortcut
+- how Settings Key Bindings should describe the rule without owning it
+
+#### Owns
+
+- lowercase command text rule for Console choice input
+- uppercase highlighted-choice shortcut rule
+- shortcut-hint conflict policy for one visible choice set
+- Settings Key Bindings/readout alignment for the rule
+- no-runtime-change planning for the next implementation slice
+
+#### Does Not Own
+
+- full shortcut rebinding
+- global keyboard shortcut customization
+- broad Console command-language redesign
+- changing the owner-backed behavior behind any command
+- making Settings the owner of staged Console choices
+- adding new command families just to prove the rule
+
+#### Current Live Read
+
+The live Console already has staged choices with labels, aliases, canonical tokens, and visible highlighted alias hints in the collapsed Console summary.
+
+The current shape still mixes concerns:
+- many canonical tokens are uppercase internal ids
+- aliases can act like command shortcuts
+- visible highlights are already useful, but the user-facing rule is not yet cleanly separated from full command text
+- Settings Key Bindings can show shortcut behavior, but it should stay downstream from the Console/input-routing owners
+
+The desired next read is:
+- full command text is lowercase from the user's perspective, such as `workspace modes`, `camera`, or `graph`
+- uppercase input such as `G`, `WM`, or another highlighted token selects one of the currently visible choices
+- if two visible choices want the same shortcut, the choice contract must choose a deterministic longer or clearer hint instead of accepting ambiguity
+- shortcuts only apply inside the current visible Console choice set
+- Settings can explain the rule and show the current mode, but Console owns parsing and staged choice resolution
+
+#### First Pass Decisions
+
+1. Treat lowercase command phrases and uppercase highlighted shortcuts as two inputs into the same staged choice resolver.
+2. Keep canonical internal tokens free to remain implementation ids; do not expose their casing as the user-facing command rule.
+3. Prefer one-letter highlighted shortcuts when unique in the current choice set.
+4. Prefer compact multi-letter hints such as `WM` when one-letter hints would collide.
+5. Do not allow ambiguous uppercase input to silently choose the first matching command.
+6. Keep highlighted shortcuts local to the active visible choices.
+7. Keep Console-first and Shortcuts-first input-priority behavior unchanged while defining this rule.
+8. Use Settings Key Bindings as the readout and explanation surface, not the owner of shortcut resolution.
+
+#### Exact First Code Cut
+
+The later implementation pass should:
+- add or normalize a choice contract field for user-facing lowercase command phrase
+- add or normalize a choice contract field for the highlighted shortcut hint
+- update staged choice matching so lowercase command phrases and uppercase shortcut hints both resolve to the same `ConsoleStagedNavigationChoice`
+- reject or diagnose ambiguous uppercase shortcut input
+- keep existing aliases working only where they remain intentional compatibility paths
+- update the Console summary highlight rendering to read from the same shortcut-hint contract
+- update Settings Key Bindings or the nearest shortcut read model so the lowercase/uppercase rule is visible without duplicating Console choice data
+- add focused staged-navigation and Console input-priority tests
+
+#### Likely Files
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/shortcutInventoryReadModel.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+
+#### No-Widening Rule
+
+- do not add full shortcut rebinding
+- do not change camera, sketch, transform, or viewport command behavior
+- do not make uppercase shortcuts global outside the active Console choice set
+- do not add a new command registry if the staged choice model can carry the contract
+- do not remove compatibility aliases until the replacement behavior and tests are stable
+- do not change Console-first versus Shortcuts-first routing semantics in this phase
+
+#### Acceptance Read
+
+Phase 8 is ready for implementation when the next code pass can prove:
+- lowercase command phrases choose the same staged choice as the existing visible command
+- uppercase highlighted shortcuts choose only visible active choices
+- ambiguous uppercase shortcuts are diagnosed or prevented by deterministic hint generation
+- visible Console highlights come from the same contract used by shortcut matching
+- Settings Key Bindings explains the mode without owning command parsing
+- Console-first and Shortcuts-first behavior from Phases 1 through 7 remains unchanged
+
+#### Verification Shape
+
+Planned focused verification:
+
+```powershell
+npm.cmd test -- src/app/console/stagedNavigation.test.ts src/app/console/ConsoleBar.test.tsx
+npm.cmd test -- src/app/shortcutInventoryReadModel.test.ts src/app/workspace/SettingsSurface.test.tsx
+npm.cmd run build
+```
+
+If the first code cut only changes the staged choice resolver and not Settings rendering, run the nearest focused Console tests and record Settings readout as deferred follow-on proof.

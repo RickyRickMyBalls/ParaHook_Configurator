@@ -131,6 +131,13 @@ import {
   submitConsoleStagedNavigationToken,
   type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
+import type { GraphCommandEntryPoint } from './commandCommitContract'
+import { authorSketchGraphCommand } from './graphCommandAuthoring'
+import {
+  listExtrudeProfileConsoleChoices,
+  resolveExtrudeProfileConsoleToken,
+  type ExtrudeProfileConsoleChoice,
+} from '../spaghetti/commands/extrudeCommandSession'
 import type { ConsoleAssistDescriptor, ConsoleWindowMode } from './consoleTypes'
 import {
   appendConsoleEntry,
@@ -200,6 +207,33 @@ type GetActiveFeatureAssistDescriptorArgs = {
   referenceWorkspace: AppState['referenceWorkspace']
   stagedNavigationSession: ConsoleStagedNavigationSession | null
 }
+
+const buildExtrudeSelectProfilesAssistDescriptor = (
+  choices: readonly ExtrudeProfileConsoleChoice[],
+): ConsoleAssistDescriptor => ({
+  label: 'Extrude',
+  breadcrumb: ['Extrude', 'Select Profiles'],
+  choices: choices.map((choice) => ({
+    canonicalToken: choice.label,
+    aliases: choice.aliases,
+    label: choice.label,
+  })),
+  prefill: null,
+  summaryLeadText: ' > Select a sketch profile',
+})
+
+const buildExtrudeDepthAssistDescriptor = (): ConsoleAssistDescriptor => ({
+  label: 'Extrude',
+  breadcrumb: ['Extrude', 'Depth'],
+  choices: [],
+  prefill: null,
+  summaryLeadText: ' > Enter depth',
+  summaryMode: 'status',
+})
+
+const formatExtrudeProfileChoicesForDiagnostic = (
+  choices: readonly ExtrudeProfileConsoleChoice[],
+): string => choices.map((choice) => choice.label).join(', ')
 
 type UseConsoleInteractionOptions = {
   windowMode: ConsoleWindowMode
@@ -915,6 +949,19 @@ export function useConsoleInteraction(
     const hiddenReferenceRestoreAvailable = appState.referenceWorkspace.importedReferenceOrder.some(
       (referenceId) => (appState.referenceWorkspace.visibilityById[referenceId] ?? false) === false,
     )
+    const referenceTransformActive =
+      appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
+      appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true
+    const stagedNavigationOwnsInput =
+      consoleState.stagedNavigationSession !== null &&
+      consoleState.stagedNavigationSession.scopeId !== 'root'
+    const viewportCommandModalOwnerActive =
+      spaghettiState.sketchPlanePickSession !== null ||
+      spaghettiState.geometrySketchSession !== null ||
+      spaghettiState.extrudeCommandSession !== null ||
+      stagedNavigationOwnsInput ||
+      consoleState.consolePromptSession !== null ||
+      referenceTransformActive
     return routeKeyboardInput({
       event,
       editHistoryCanUndo: editHistoryStore.canUndo(),
@@ -934,6 +981,9 @@ export function useConsoleInteraction(
       viewerFlyActive: getViewer()?.isFlyModeActive?.() === true,
       viewerCameraShortcutsEnabled:
         appState.workspaceSelection.activeSurface === 'viewer' && getViewer() !== null,
+      viewportCommandShortcutsEnabled:
+        appState.workspaceSelection.activeSurface === 'viewer' && getViewer() !== null,
+      viewportCommandModalOwnerActive,
       sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
       geometrySketchMode:
         consoleState.featureAssistDescriptor !== null
@@ -942,9 +992,7 @@ export function useConsoleInteraction(
       selectedReferenceDeleteAvailable,
       selectedReferenceHideAvailable,
       hiddenReferenceRestoreAvailable,
-      referenceTransformActive:
-        appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
-        appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true,
+      referenceTransformActive,
       stagedConsoleActive:
         consoleState.stagedNavigationSession !== null ||
         consoleState.consolePromptSession !== null ||
@@ -1505,6 +1553,19 @@ export function useConsoleInteraction(
     if (stepActiveConsolePromptSessionBack()) {
       return
     }
+    const extrudeCommandSession = useSpaghettiStore.getState().extrudeCommandSession
+    if (extrudeCommandSession !== null) {
+      appendEscUserEntry()
+      useSpaghettiStore.getState().cancelExtrudeCommandSession()
+      setFeatureAssistDescriptor(null)
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: 'Extrude cancelled',
+        source: 'console',
+        severity: 'info',
+      })
+      return
+    }
     const activeSession = useConsoleStore.getState().stagedNavigationSession
     const appState = useAppStore.getState()
     const activeReferenceSession = appState.referenceWorkspace.activeReferenceTransformSession
@@ -1612,6 +1673,7 @@ export function useConsoleInteraction(
     exitActiveContentObjectTransformShell,
     exitActiveReferenceTransformShell,
     setStagedNavigationSession,
+    setFeatureAssistDescriptor,
     stepActiveConsolePromptSessionBack,
     stepActiveStagedNavigationSessionOneLevel,
   ])
@@ -1706,6 +1768,179 @@ export function useConsoleInteraction(
   }, [
     createActiveContentObjectTransformRootSession,
     setStagedNavigationSession,
+  ])
+
+  const startRootSketchCommand = useCallback((options: {
+    commandIdentity?: string | null
+    entryPoint?: GraphCommandEntryPoint
+    forceNew?: boolean
+    logUserInput?: string
+  }): boolean => {
+    const consoleActionContext = resolveConsoleActionContext()
+    const entryPoint = options.entryPoint ?? 'console-root'
+    const graphDocument =
+      consoleActionContext.graphDocumentId === null
+        ? null
+        : selectGraphDocumentById(
+            useSpaghettiStore.getState(),
+            consoleActionContext.graphDocumentId,
+          )
+    const sketchCommandResult = authorSketchGraphCommand({
+      graphDocumentId: consoleActionContext.graphDocumentId,
+      selectedNodeId: consoleActionContext.selectedNodeId,
+      graphNodes: graphDocument?.graph.nodes ?? [],
+      entryPoint,
+      forceNew: options.forceNew,
+      createSketchNode: (graphDocumentId) =>
+        createMissingGraphNodeInGraphDocument(graphDocumentId, 'Geometry/Sketch', 'sketch'),
+    })
+
+    if (sketchCommandResult.kind === 'cancelled') {
+      if (options.logUserInput !== undefined) {
+        appendConsoleEntry({
+          layer: 'Commands',
+          commandLineKind: 'user',
+          text: `> ${options.logUserInput}`,
+        })
+        pushCommandHistory(options.logUserInput)
+      }
+      appendConsoleEntry({
+        layer: 'Diagnostics',
+        text:
+          sketchCommandResult.reason === 'missing-graph-document'
+            ? 'Sketch needs an active graph document.'
+            : 'Sketch could not create or find a sketch node.',
+        source: 'console',
+        severity: 'warn',
+      })
+      return false
+    }
+    const { createdNode, graphDocumentId, sketchNodeId } = sketchCommandResult
+
+    if (options.logUserInput !== undefined) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        commandLineKind: 'user',
+        text: `> ${options.logUserInput}`,
+      })
+      pushCommandHistory(options.logUserInput)
+    }
+
+    clearStagedNavigationSession()
+    useConsoleStore.getState().clearConsolePromptSession()
+    setFeatureAssistDescriptor(null)
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: options.forceNew === true ? 'New Sketch' : 'Sketch',
+      source: 'console',
+      severity: 'info',
+    })
+    if (createdNode !== null) {
+      appendConsoleEntry({
+        layer: 'App',
+        text: `Created ${createdNode.nodeLabel}`,
+        source: 'console',
+        severity: 'info',
+      })
+    }
+    startSketchPlaneIntent(
+      buildWorkspaceIntentDepsFromStoreState(),
+      graphDocumentId,
+      sketchNodeId,
+    )
+    clearStagedNavigationSession()
+    const sketchPlaneDescriptor = getActiveFeatureAssistDescriptor({
+      sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
+      geometrySketchSession: useSpaghettiStore.getState().geometrySketchSession,
+      referenceWorkspace: useAppStore.getState().referenceWorkspace,
+      stagedNavigationSession: useConsoleStore.getState().stagedNavigationSession,
+    })
+    if (sketchPlaneDescriptor !== null) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        text: buildFeatureAssistPromptText(sketchPlaneDescriptor),
+        source: 'console',
+        severity: 'info',
+      })
+    }
+    requestRadioBurst(options.commandIdentity, 'enter')
+    return true
+  }, [
+    buildFeatureAssistPromptText,
+    buildWorkspaceIntentDepsFromStoreState,
+    clearStagedNavigationSession,
+    createMissingGraphNodeInGraphDocument,
+    getActiveFeatureAssistDescriptor,
+    pushCommandHistory,
+    requestRadioBurst,
+    resolveConsoleActionContext,
+    setFeatureAssistDescriptor,
+  ])
+
+  const startRootExtrudeCommand = useCallback((options: {
+    commandIdentity?: string | null
+    logUserInput?: string
+  }): boolean => {
+    const consoleActionContext = resolveConsoleActionContext()
+
+    if (options.logUserInput !== undefined) {
+      appendConsoleEntry({
+        layer: 'Commands',
+        commandLineKind: 'user',
+        text: `> ${options.logUserInput}`,
+      })
+      pushCommandHistory(options.logUserInput)
+    }
+
+    if (consoleActionContext.graphDocumentId === null) {
+      appendConsoleEntry({
+        layer: 'Diagnostics',
+        text: 'Extrude needs an active graph document.',
+        source: 'console',
+        severity: 'warn',
+      })
+      return false
+    }
+
+    clearStagedNavigationSession()
+    useConsoleStore.getState().clearConsolePromptSession()
+    setFeatureAssistDescriptor(null)
+    const session = useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: consoleActionContext.graphDocumentId,
+      entryPoint: 'console-root',
+    })
+    setFeatureAssistDescriptor(
+      buildExtrudeSelectProfilesAssistDescriptor(
+        listExtrudeProfileConsoleChoices(useSpaghettiStore.getState().graph.nodes),
+      ),
+    )
+    useConsoleStore.getState().setInputText('')
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: 'Extrude',
+      source: 'console',
+      severity: 'info',
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: session.commandPath.join(' > '),
+      source: 'console',
+      severity: 'info',
+    })
+    appendConsoleEntry({
+      layer: 'Commands',
+      text: 'Extrude session: select sketch profiles in the model viewport.',
+      source: 'console',
+      severity: 'info',
+    })
+    requestRadioBurst(options.commandIdentity, 'enter')
+    return true
+  }, [
+    clearStagedNavigationSession,
+    pushCommandHistory,
+    requestRadioBurst,
+    resolveConsoleActionContext,
+    setFeatureAssistDescriptor,
   ])
 
   const handleSubmitCommand = useCallback(
@@ -1873,6 +2108,71 @@ export function useConsoleInteraction(
             activePromptSession.returnSession,
             activePromptSession.returnSession.validChoices,
           ),
+          source: 'console',
+          severity: 'info',
+        })
+        return
+      }
+
+      const activeExtrudeSession = spaghettiState.extrudeCommandSession
+      if (activeExtrudeSession?.activeStep === 'selectProfiles') {
+        const rawToken = inputText.trim()
+        const choices = listExtrudeProfileConsoleChoices(spaghettiState.graph.nodes)
+        const resolvedProfile = resolveExtrudeProfileConsoleToken(choices, rawToken)
+
+        appendConsoleEntry({
+          layer: 'Commands',
+          commandLineKind: 'user',
+          text: `> ${rawToken}`,
+        })
+        if (rawToken.length > 0) {
+          pushCommandHistory(rawToken)
+        }
+
+        if (resolvedProfile.kind === 'resolved') {
+          useSpaghettiStore
+            .getState()
+            .setExtrudeCommandSelectedProfileSources([
+              resolvedProfile.choice.profileSource,
+            ])
+          setFeatureAssistDescriptor(buildExtrudeDepthAssistDescriptor())
+          useConsoleStore.getState().setInputText('')
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: `Selected ${resolvedProfile.choice.label}`,
+            source: 'console',
+            severity: 'info',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: 'Extrude > Depth',
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+
+        setFeatureAssistDescriptor(buildExtrudeSelectProfilesAssistDescriptor(choices))
+        useConsoleStore.getState().setInputText(rawToken)
+
+        const diagnosticText =
+          resolvedProfile.kind === 'no-profiles'
+            ? 'Extrude has no sketch profiles available to select.'
+            : resolvedProfile.kind === 'ambiguous'
+              ? `Extrude profile selection is ambiguous: ${formatExtrudeProfileChoicesForDiagnostic(
+                  resolvedProfile.choices,
+                )}`
+              : `Extrude profile not found: ${rawToken}`
+
+        appendConsoleEntry({
+          layer: 'Diagnostics',
+          text: diagnosticText,
+          source: 'console',
+          severity: 'warn',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: 'Extrude > Select Profiles',
           source: 'console',
           severity: 'info',
         })
@@ -2542,6 +2842,18 @@ export function useConsoleInteraction(
               stagedResult,
             })
           ) {
+            return
+          }
+          if (stagedResult.actionId === 'sketch.root') {
+            startRootSketchCommand({ commandIdentity })
+            return
+          }
+          if (stagedResult.actionId === 'sketch.new') {
+            startRootSketchCommand({ commandIdentity, forceNew: true })
+            return
+          }
+          if (stagedResult.actionId === 'extrude.root') {
+            startRootExtrudeCommand({ commandIdentity })
             return
           }
           if (
@@ -5178,6 +5490,8 @@ export function useConsoleInteraction(
       resolveSelectionSetForZoom,
       setConsolePromptSession,
       setStagedNavigationSession,
+      startRootExtrudeCommand,
+      startRootSketchCommand,
       trackRadioCommandIdentity,
       transitionReferenceTransformAxisPrompt,
     ],
@@ -5229,6 +5543,15 @@ export function useConsoleInteraction(
         handleEscCancelCommand()
         return
       }
+      if (
+        event.key === 'Escape' &&
+        useSpaghettiStore.getState().extrudeCommandSession !== null
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        handleEscCancelCommand()
+        return
+      }
       const routing = routeConsoleGlobalKey(event)
       if (routing.owner === 'viewer-fly') {
         return
@@ -5240,6 +5563,20 @@ export function useConsoleInteraction(
         event.preventDefault()
         event.stopImmediatePropagation()
         focusMainConsoleInput()
+        return
+      }
+      if (routing.owner === 'viewport-command' && routing.viewportCommandAction === 'sketch') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        startRootSketchCommand({
+          commandIdentity: resolveConsoleRadioCommandIdentity({
+            kind: 'stagedExecute',
+            activeScopeId: null,
+            actionId: 'sketch.root',
+          }),
+          entryPoint: 'viewport-shortcut',
+          logUserInput: event.key,
+        })
         return
       }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {
@@ -5360,6 +5697,7 @@ export function useConsoleInteraction(
     primeSketchDrawStagedRootForTyping,
     routeConsoleGlobalKey,
     seedInputText,
+    startRootSketchCommand,
     stagedNavigationSession,
     suppressAutoCaptureRef,
     treatSpaceAsSubmit,
@@ -5419,6 +5757,20 @@ export function useConsoleInteraction(
         event.preventDefault()
         event.stopImmediatePropagation()
         focusPopoutConsoleInput()
+        return
+      }
+      if (routing.owner === 'viewport-command' && routing.viewportCommandAction === 'sketch') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        startRootSketchCommand({
+          commandIdentity: resolveConsoleRadioCommandIdentity({
+            kind: 'stagedExecute',
+            activeScopeId: null,
+            actionId: 'sketch.root',
+          }),
+          entryPoint: 'viewport-shortcut',
+          logUserInput: event.key,
+        })
         return
       }
       if (routing.owner === 'reference-selection' && event.key === 'Delete') {
@@ -5540,6 +5892,7 @@ export function useConsoleInteraction(
     primeSketchDrawStagedRootForTyping,
     routeConsoleGlobalKey,
     seedInputText,
+    startRootSketchCommand,
     stagedNavigationSession,
     suppressAutoCaptureRef,
     treatSpaceAsSubmit,

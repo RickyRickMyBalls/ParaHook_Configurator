@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-05-19 09:03:46: Prepped `Console-2 / Phase 1` in the Future doc as the implementation-ready root prompt source-unification slice, choosing a staged-navigation-owned root display label export, focused prompt/root alignment tests, and no command filtering or execution changes.
+9. 2026-05-19 09:00:17: Added `Console-2` as the follow-on canonical root display correction phase, preserving the rule that all root-callable commands stay visible for now while planning one root display source, scoped-mode labeling, callability/display guardrails, and viewport handoff proof in a standalone Future doc.
 8. 2026-04-19 23:07:45: Accepted `Console-1 / Phase 5` and closed `Console-1` / `Console-Gen1` after catalog expansion proof, optional Dashboard runtime coverage, and the five-phase HLG/CLG ladder satisfied all Generation 1 goals without requiring a follow-up phase.
 7. 2026-04-19 22:59:25: Accepted `Console-1 / Phase 4` coverage after Workspace Modes target identity carried slotted and detached host states through one shared model, then advanced the routing read to make `Console-1 / Phase 5` the next worker-ready surface catalog expansion proof and generation closeout slice.
 6. 2026-04-19 22:49:29: Accepted `Console-1 / Phase 3` coverage after runtime Workspace Modes actions were guarded by shared eligibility before owner-backed execution, then advanced the routing read to make `Console-1 / Phase 4` the next worker-ready unified host-state identity slice.
@@ -41,6 +43,7 @@ Use this folder like this:
   - active Generation 1 planning index
   - current HLG, CLG, wishlist organization, and family-phase routing surface
   - summary and boundary home for `Console-1`
+  - follow-on correction routing for `Console-2`
 - `Future/`
   - standalone implementation-ready `Console` Family Phase Docs
 - `Shipped/`
@@ -65,6 +68,11 @@ Current legal family-phase ladder:
   - `[x] Console-1 / Phase 3` - owner-backed runtime action execution and diagnostics
   - `[x] Console-1 / Phase 4` - unified surface identity across host states
   - `[x] Console-1 / Phase 5` - surface catalog expansion proof and generation closeout
+- `Console-2` - canonical root display and callability
+  - `[ ] Console-2 / Phase 1` - root prompt source unification
+  - `[ ] Console-2 / Phase 2` - scoped mode labeling and priority proof
+  - `[ ] Console-2 / Phase 3` - root callability/display guardrails
+  - `[ ] Console-2 / Phase 4` - viewport handoff regression proof and closeout
 
 Important planning rule:
 - use this index to choose and bound the next `Console-N` family phase
@@ -89,6 +97,7 @@ Boundary rules:
 - if the question is broad Console purpose, use `Console-Vision.md`
 - if the question is current Generation 1 family-phase order, use this index
 - if the question is exact implementation steps, use the standalone `Future/` family phase doc
+- `Console-1` remains closed; `Console-2` is a follow-on correction for the root-command display model discovered after viewport-first command authoring work.
 
 ## Wishlist Organization
 
@@ -103,6 +112,10 @@ This index repeats the Generation 1 HLG so family phases can show precise covera
 - [x] `Console-Gen1-HLG-4. Slotted, floating, detached, and popped-out surfaces should remain one workspace model, not separate Console concepts.`
 - [x] `Console-Gen1-HLG-5. Unsupported actions should either be hidden by shared eligibility rules or produce clear diagnostics.`
 - [x] `Console-Gen1-HLG-6. The planning should begin at the Console vision/generation level and work down into index/phase docs instead of jumping directly into one implementation phase.`
+- [ ] `Console-Gen1-HLG-7. Console should display one canonical root for now so Root always means the same full command surface.`
+- [ ] `Console-Gen1-HLG-8. Every root-callable command should be visible in the root until a later intentional filtering system exists.`
+- [ ] `Console-Gen1-HLG-9. Viewport, sketch, and feature assist modes should be labeled as scoped modes instead of feeling like smaller alternate roots.`
+- [ ] `Console-Gen1-HLG-10. Later command hiding should separate display filtering from command callability instead of disabling commands.`
 
 ### Codex Level Goals
 
@@ -114,6 +127,10 @@ These CLG translate the Generation 1 HLG into implementation-sized routing goals
 - [x] `Console-Gen1-CLG-4. Preserve one workspace surface identity model across slotted, floating, detached, and popout states instead of branching Console behavior by host mode.`
 - [x] `Console-Gen1-CLG-5. Add focused regression coverage so new workspace catalog entries and optional surfaces do not require hand-added Console allowlist patches.`
 - [x] `Console-Gen1-CLG-6. Preserve the existing Root > Workspace Modes branch and shipped action vocabulary while replacing the brittle eligibility and runtime owner seams beneath it.`
+- [ ] `Console-Gen1-CLG-7. Derive all root display text and root summaries from the same canonical root choice source used by the staged root session.`
+- [ ] `Console-Gen1-CLG-8. Keep root command resolution and root display aligned so all root-callable commands are displayed during the current no-filter phase.`
+- [ ] `Console-Gen1-CLG-9. Ensure feature-assist and sketch-draw summaries use scoped breadcrumbs and do not masquerade as a smaller Root list.`
+- [ ] `Console-Gen1-CLG-10. Add focused regression coverage around viewport click/focus handoff so canonical Root is not accidentally replaced by stale prompt text.`
 
 ### `Console-1`
 
@@ -134,6 +151,22 @@ These CLG translate the Generation 1 HLG into implementation-sized routing goals
 - [x] `Console-Gen1-CLG-4`
 - [x] `Console-Gen1-CLG-5`
 - [x] `Console-Gen1-CLG-6`
+
+### `Console-2`
+
+- [ ] Replace the stale fallback root prompt list with canonical root choices.
+- [ ] Keep every currently root-callable command visible in the displayed root.
+- [ ] Keep viewport/sketch assist summaries scoped and clearly labeled.
+- [ ] Add guardrails for the later display-filtering direction without introducing filtering yet.
+- [ ] Prove viewport click/focus handoff does not create a smaller fake root.
+- [ ] `Console-Gen1-HLG-7`
+- [ ] `Console-Gen1-HLG-8`
+- [ ] `Console-Gen1-HLG-9`
+- [ ] `Console-Gen1-HLG-10`
+- [ ] `Console-Gen1-CLG-7`
+- [ ] `Console-Gen1-CLG-8`
+- [ ] `Console-Gen1-CLG-9`
+- [ ] `Console-Gen1-CLG-10`
 
 ## [x] `Console-1` - `Workspace Modes Catalog-Driven Surface Actions`
 
@@ -191,6 +224,53 @@ The phase should preserve the visible branch and shipped command vocabulary whil
 
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console-1 - Workspace Modes Catalog-Driven Surface Actions.md`
 
+## [ ] `Console-2` - `Canonical Root Display And Callability`
+
+### Family Phase Summary
+
+`Console-2` should correct the root display model so the app has one visible canonical root for now.
+
+The phase should make root prompt text, root summary chips, and root command availability read from the same canonical root choices. Viewport, sketch, and feature assist modes may remain contextual, but they should present themselves as scoped modes rather than appearing to replace Root with a smaller root.
+
+### HLG / CLG Coverage
+
+- [ ] `Console-Gen1-HLG-7`
+- [ ] `Console-Gen1-HLG-8`
+- [ ] `Console-Gen1-HLG-9`
+- [ ] `Console-Gen1-HLG-10`
+- [ ] `Console-Gen1-CLG-7`
+- [ ] `Console-Gen1-CLG-8`
+- [ ] `Console-Gen1-CLG-9`
+- [ ] `Console-Gen1-CLG-10`
+
+### Owns
+
+- canonical root prompt and staged root display unification
+- all-root-commands-visible rule for the current no-filter phase
+- scoped feature-assist labeling proof
+- root display versus root callability guardrails
+- viewport click/focus handoff regression coverage
+
+### Does Not Own
+
+- hiding commands from Root
+- user-customizable command menus
+- macros or scripting
+- a full command registry redesign
+- changing command execution ownership for Sketch, Extrude, Workspace Modes, Camera, Radio, or graph commands
+- broad `ConsoleDock` decomposition
+
+### Planning Read
+
+- `Console-2` is open.
+- `Console-2 / Phase 1` is prepped and ready for implementation.
+- `Console-1` remains complete and should not be reopened for this correction.
+- Current user rule: show everything in Root for now.
+
+### Family Phase Doc
+
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console-2 - Canonical Root Display And Callability.md`
+
 ## Deferred
 
 - full Console command-language redesign
@@ -198,4 +278,5 @@ The phase should preserve the visible branch and shipped command vocabulary whil
 - AutoCAD alias import or compatibility review
 - macro or scripting behavior
 - new workspace surface families not already registered in the workspace catalog
+- compact or filtered Root display mode
 - visible shell UI control redesign

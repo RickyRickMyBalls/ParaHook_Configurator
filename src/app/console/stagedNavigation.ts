@@ -295,6 +295,9 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'content.delete'
     | 'content.visibility.hide'
     | 'content.visibility.show'
+    | 'sketch.root'
+    | 'sketch.new'
+    | 'extrude.root'
     | 'sketch.plane'
     | 'sketch.draw'
     | 'node.delete'
@@ -415,6 +418,27 @@ const ROOT_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
   aliases: ['G'],
   label: 'Graph',
   kind: 'scope',
+}
+
+const ROOT_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SKETCH',
+  aliases: [],
+  label: 'Sketch',
+  kind: 'action',
+}
+
+const ROOT_NEW_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'NEW_SKETCH',
+  aliases: ['NS'],
+  label: 'New Sketch',
+  kind: 'action',
+}
+
+const ROOT_EXTRUDE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'EXTRUDE',
+  aliases: [],
+  label: 'Extrude',
+  kind: 'action',
 }
 
 const ROOT_CONTENT_CHOICE: ConsoleStagedNavigationChoice = {
@@ -1257,6 +1281,9 @@ const matchesChoice = (
 
 const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
+  ROOT_SKETCH_CHOICE,
+  ROOT_NEW_SKETCH_CHOICE,
+  ROOT_EXTRUDE_CHOICE,
   ROOT_CONTENT_CHOICE,
   ROOT_REFERENCES_CHOICE,
   ROOT_HIDE_CHOICE,
@@ -3650,6 +3677,39 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedRootChoice.canonicalToken === ROOT_CONTENT_CHOICE.canonicalToken) {
       return createAdvanceResult(createContentRootSession(context), submittedToken, matchedRootChoice)
     }
+    if (matchedRootChoice.canonicalToken === ROOT_SKETCH_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: createConsoleRootSession(),
+        submittedToken,
+        matchedChoice: matchedRootChoice,
+        actionId: 'sketch.root',
+        breadcrumb: [matchedRootChoice.label],
+        selections: createConsoleRootSession().selections,
+      }
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_NEW_SKETCH_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: createConsoleRootSession(),
+        submittedToken,
+        matchedChoice: matchedRootChoice,
+        actionId: 'sketch.new',
+        breadcrumb: [matchedRootChoice.label],
+        selections: createConsoleRootSession().selections,
+      }
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_EXTRUDE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: createConsoleRootSession(),
+        submittedToken,
+        matchedChoice: matchedRootChoice,
+        actionId: 'extrude.root',
+        breadcrumb: [matchedRootChoice.label],
+        selections: createConsoleRootSession().selections,
+      }
+    }
     if (matchedRootChoice.canonicalToken === ROOT_REFERENCES_CHOICE.canonicalToken) {
       return createAdvanceResult(
         createReferencesSelectedSession(
@@ -3786,6 +3846,48 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedChoice.canonicalToken === ROOT_CONTENT_CHOICE.canonicalToken) {
       return createAdvanceResult(createContentRootSession(context), submittedToken, matchedChoice)
+    }
+    if (matchedChoice.canonicalToken === ROOT_SKETCH_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: rootChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'sketch.root',
+        breadcrumb: [matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === ROOT_NEW_SKETCH_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: rootChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'sketch.new',
+        breadcrumb: [matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === ROOT_EXTRUDE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: rootChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'extrude.root',
+        breadcrumb: [matchedChoice.label],
+        selections: session.selections,
+      }
     }
     if (matchedChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()

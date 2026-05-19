@@ -962,6 +962,93 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Shortcuts-first viewport S to the root Sketch command shortcut', () => {
+    const result = routeKeyboardInput({
+      event: { key: 's', code: 'KeyS', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'sketch',
+    })
+  })
+
+  it('keeps viewport Sketch shortcut idle-only while command sessions own input', () => {
+    const baseRequest = {
+      event: { key: 's', code: 'KeyS', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first' as const,
+    }
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      sketchPlanePickStage: 'pick',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      geometrySketchMode: 'draw',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      geometrySketchMode: 'review',
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      stagedConsoleActive: true,
+      viewportCommandModalOwnerActive: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      referenceTransformActive: true,
+    })).toEqual({
+      owner: 'reference-transform',
+      decision: 'handle',
+    })
+
+    expect(routeKeyboardInput({
+      ...baseRequest,
+      viewportCommandModalOwnerActive: true,
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
+  it('keeps viewport Sketch shortcut out of Console-first plain text capture', () => {
+    const result = routeKeyboardInput({
+      event: { key: 's', code: 'KeyS', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'flat-console',
+      decision: 'handle',
+    })
+  })
+
   it('keeps Shortcuts-first deliberate Console entry limited to an unmodified C key', () => {
     for (const event of [
       { key: 'C', shiftKey: true, target: null },

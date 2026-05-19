@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+11. 2026-05-19 00:44:39: Added the imported-STEP triangle-wireframe correction read after the live screenshot showed STEP display covered in tessellation edges, clarifying that Three can remain the renderer while normal STEP line display must come from B-rep-derived semantic edge, surface, point, and body packets instead of raw mesh wireframe.
 10. 2026-04-16: Renamed this `Import-5` planning doc from the older `...FidelityOLD.md` filename to the clean canonical path already used across the import-family docs so the new master import vision and family index can point at one consistent live STEP-fidelity record
 9. 2026-04-16: Added a concrete staged STEP row mock spec to `Import-5`, turning the planned `.step` importer UX into one explicit row-level flow with the `Mesh / B-Rep` toggle, reviewed quality and units controls, explicit `Load` action, and `Add To Project` reuse direction
 8. 2026-04-16: Filled in `Import-5 Phase 0.3 - STEP Performance, Memory, And Failure-Surface Research` with measured `ADV3.step` timing and memory findings, confirmed the duplicate staged-versus-final heavy-load cost, and locked the first practical fix direction around explicit staged load, truthful in-dialog progress, reuse, and later worker isolation
@@ -477,6 +478,12 @@ What is not finished:
 - `occt-import-js` reads the STEP file
 - ParaHook then converts that STEP import result into a Three object tree made from mesh geometry and materials
 - the current STEP reference path therefore renders tessellated STEP output, not a retained B-rep scene graph inside the viewer
+- a normal imported STEP view should not show every tessellation triangle boundary as visible CAD linework
+- the intended correction is not to remove Three from the viewer, but to feed Three a ParaHook-owned semantic display packet:
+  - shaded surface fill from tessellated faces
+  - visible edges from STEP or B-rep-derived topology edges
+  - optional points from topological vertices
+  - body highlight separate from surface, edge, and point highlight
 
 ### Can Three.js Display Proper B-Rep Geometry?
 
@@ -537,6 +544,11 @@ If ParaHook wants proper B-rep-derived viewport presentation, it will need at le
   - shaded face tessellation
   - optional edge or wire overlays
   - consistent IDs or structure labels where possible
+- use the newer edge, surface, point, and body display/highlight system as the user-facing contract for imported STEP:
+  - surfaces may still be triangle-filled internally
+  - edge overlays should be semantic CAD edges, not raw mesh wireframe
+  - point overlays should be real or explicitly derived topology points
+  - body highlight should not force all triangle edges to appear
 - present that output explicitly as authoritative-derived display data rather than as generic `meshPreview`
 
 This is likely enough to become honest and useful without widening into a full CAD-kernel viewer rewrite.

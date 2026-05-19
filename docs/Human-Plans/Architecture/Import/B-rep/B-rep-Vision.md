@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-05-19 00:44:39: Added the imported-STEP triangle-wireframe correction rule after the live screenshot showed a tessellated `.step` import covered in mesh edges, clarifying that Three may still receive face triangles internally but visible STEP lines must come from ParaHook's B-rep-derived edge, surface, point, and body display contract rather than raw triangle wireframe.
 5. 2026-04-16: Updated the relationship pointer to the master `Import-Vision.md` again so this retained imported-geometry direction now reads as the later `Generation 2` companion lane after the family collapsed `Import-1` through `Import-4` into one broader `Generation 0`
 4. 2026-04-16: Added a relationship pointer to the new `Import-Vision.md` master doc so this retained imported-geometry direction now reads as the later `Generation 4` companion lane after the earlier direct-row, staged-session, and STEP-fidelity import generations
 3. 2026-04-16: Added an explicit `Generation 0` read so the B-rep vision now records that the current live work is still enriching the meshing side of STEP or B-rep handling inside the staged inspector, with the active grounding doc remaining `Import-5 - STEP Import Metadata, Units, And Loader Fidelity.md` before later retained-shape `Generation 1` work begins
@@ -226,6 +227,29 @@ Important rule:
 
 Proper support does not require kernel-native viewport drawing with no tessellation.
 
+Three will still ultimately draw viewport data as meshes, lines, points, and materials.
+
+That is fine.
+
+The important correction is that imported STEP display should not expose raw tessellation wireframe as if every triangle boundary were a meaningful CAD edge.
+
+For imported `.step` files, the acceptable first-pass visual model is:
+- shaded surfaces are rendered from face tessellation
+- visible linework comes from B-rep-derived or STEP-derived semantic edges
+- point markers come from real topological vertices when point display is enabled
+- body selection highlights the whole imported body or part without turning every triangle boundary into selectable structure
+
+This matches the newer ParaHook edge, surface, point, and body highlight system:
+- surfaces should behave like surfaces, even if their fill is made from triangles internally
+- edges should be the real outline, trim, seam, or topology edges ParaHook can honestly derive
+- points should be real vertices or explicitly derived topology points
+- body highlighting should remain separate from sub-entity highlighting
+
+Important rule:
+- the viewer may use "fake B-rep" render packets for Three
+- but those packets must describe CAD-facing surfaces, edges, points, and bodies
+- they must not simply forward generic mesh wireframe as the B-rep display layer
+
 Proper first-pass support does require:
 - shaded face triangles derived from real B-rep faces
 - explicit edge overlays derived from real topological edges
@@ -304,6 +328,7 @@ The `Generation 1` wishlist should stay focused on the foundation required for a
 Good `Generation 1` wishlist items:
 - retain imported `.step` shapes in the worker as real OpenCascade-backed geometry truth
 - derive viewport face shading, edge overlays, and optional point overlays from that retained truth
+- suppress raw tessellation wireframe for normal imported STEP display and show only topology-derived linework through the semantic edge overlay system
 - let the user click any visible face, edge, or point and see that exact entity highlight
 - surface truthful imported assembly, object, and part structure from STEP instead of relying only on mesh names
 - add a dedicated B-rep inspector for the currently selected entity

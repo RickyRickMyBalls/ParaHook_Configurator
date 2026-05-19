@@ -3,6 +3,33 @@
 ## Doc Header
 
 ### Doc History
+57. 2026-05-19 12:36:07: Marked `Spaghetti-Editor 8 / Phase 3.3 - Viewport Shortcut Modal Guarding` shipped after viewport command shortcuts became idle-only through shared routing, active Extrude and other modal command/session owners now block viewport `S`, and the existing idle viewport `S` Sketch shortcut remained covered by regression tests.
+56. 2026-05-19 12:28:13: Marked `Spaghetti-Editor 8 / Phase 3.3 - Viewport Shortcut Modal Guarding` implementation-prepped after grounding the next slice in `routeKeyboardInput(...)`, `routeConsoleGlobalKey(...)`, and the docked/popout viewport `S` handlers, with the first implementation limited to keeping viewport command shortcuts idle-only while sketch plane, sketch draw/review, staged Console, reference transform, and active Extrude sessions own input.
+55. 2026-05-19 11:00:21: Marked `Spaghetti-Editor 8 / Phase 3.2A - Extrude Select Profiles Console Prompt` shipped after Console profile prompt routing landed for active Extrude sessions, including pure sketch-profile Console choices, text token resolution into transient profile sources, no-root-command fallthrough while selecting profiles, and no graph mutation before later commit work.
+54. 2026-05-19 10:43:01: Added the no-duplicate-Extrude-command guardrail to the `Spaghetti-Editor 8 / Phase 3.2A` handoff, recording that root `Extrude` is a shortcut into the canonical `Graph > Extrude` workflow and must share the same `extrudeCommandSession` plus later atomic graph-authoring commit path.
+53. 2026-05-19 10:40:25: Marked `Spaghetti-Editor 8 / Phase 3.2A - Extrude Select Profiles Console Prompt` implementation-prepped after grounding the slice in the shipped `extrudeCommandSession`, current Console submit routing, `setExtrudeCommandSelectedProfileSources(...)`, and the existing sketch profile member port contract while keeping graph commit, viewport picking, toolbar, preview, and Build Path work out of scope.
+52. 2026-05-19 10:37:45: Added `Spaghetti-Editor 8 / Phase 3.2A - Extrude Select Profiles Console Prompt` between the shipped session owner and viewport shortcut guard so the active root `Extrude` session can make Console ask for sketch-profile input before toolbar, viewport picking, preview, or commit phases continue.
+51. 2026-05-19 10:15:09: Marked `Spaghetti-Editor 8 / Phase 3.2 - Real Extrude Session Owner And Command Tree` shipped after the shared Extrude command-session helper and Spaghetti store slice landed, root Console `Extrude` began creating `Extrude > Select Profiles > Depth` session state, Escape cancellation cleared the session, and focused tests plus production build verified no graph mutation on start or cancel.
+50. 2026-05-19 10:05:12: Marked `Spaghetti-Editor 8 / Phase 3.2 - Real Extrude Session Owner And Command Tree` implementation-prepped after narrowing the next slice to a shared transient Extrude command-session owner, Console-visible `Extrude > Select Profiles > Depth` command-tree projection, start/cancel/step-transition proof, and explicit toolbar-as-viewer boundary with profile picking, drag handle, preview, graph commit, and Build Path work deferred.
+49. 2026-05-19 09:41:36: Marked `Spaghetti-Editor 8 / Phase 3.1 - Atomic Extrude Graph Commit Repair` shipped after `authorExtrudeGraphCommand` moved to a preflighted `ExtrudeGraphCommandPlan` plus one atomic `commitExtrudeGraphPlan(...)` boundary, preserving Build Path-ready committed summaries while preventing helper-owned partial node or profile-wire mutation from being reported as cancellation.
+48. 2026-05-19 09:27:48: Refined the `Spaghetti-Editor 8 / Phase 3` Extrude continuation from the reference screenshot so the remaining open work now explicitly targets the staged `Extrude > Select Profiles > Depth` command tree, shift-click all-profiles selection inside one sketch, and depth drag-handle/value behavior, with `Phase 3.2` widened to include the Console/session staging needed before toolbar and picking work builds on it.
+47. 2026-05-19 09:22:10: Marked `Spaghetti-Editor 8 / Phase 3.1 - Atomic Extrude Graph Commit Repair` implementation-prepped after grounding the next slice in the live `authorExtrudeGraphCommand` partial-mutation risk, with the repair narrowed to pre-mutation failure proof, atomic plan/commit behavior, and preserved committed-summary output before viewport toolbar work continues.
+46. 2026-05-19 09:12:52: Split the open `Spaghetti-Editor 8 / Phase 3` Extrude continuation into explicit `Phase 3.1` through `Phase 3.6` follow-up sections for atomic commit repair, real session ownership, modal shortcut guards, toolbar shell, profile picking/preview state, and commit/cancel closeout before broader Build Path or arrangement follow-ons.
+45. 2026-05-19 08:47:12: Marked `Spaghetti-Editor 8 / Phase 5 - Background Node Layout And Arrangement Modes` shipped after the pure command-created node placement planner landed with downstream, bridge, stacked-repeat, fallback, existing-position preservation, and edge-inferred anchor tests while leaving call-site integration and arrangement UI as follow-ons.
+44. 2026-05-19 08:44:05: Marked `Spaghetti-Editor 8 / Phase 5 - Background Node Layout And Arrangement Modes` prepped as a pure command-created node placement planner over existing graph positions, with downstream, bridge, repeated-node, and fallback placement rules while preserving existing positioned nodes and leaving full arrangement UI for later.
+43. 2026-05-19 08:41:03: Marked `Spaghetti-Editor 8 / Phase 4 - Build Path Projection Handoff` shipped after the pure Build Path projection helper and tests landed for committed Sketch/Extrude graph-command summaries, cancelled-command skips, explicit graph document ids, graph-id preservation, and optional build-result linkage without Build Path UI or worker checkpoint/replay scope.
+42. 2026-05-19 08:35:53: Marked `Spaghetti-Editor 8 / Phase 4 - Build Path Projection Handoff` prepped as a Spaghetti-side projection contract over accepted graph-command summaries, leaving Build Path UI, worker checkpoint/replay, restore, branch, and scrub behavior to later Build Path and Worker phases.
+41. 2026-05-19 08:23:25: Prepped `Spaghetti-Editor 8 / Phase 3 - Root Extrude And Viewport Profile Selection Toolbar` for implementation around root `Extrude`, transient viewport Extrude session state, sketch-profile selection/counting, graph-authored commit/cancel, and reuse of the shipped Extrude `SketchProfiles` collection/multi-wire contract.
+40. 2026-05-19 08:20:56: Marked `Spaghetti-Editor 8 / Phase 2 - Shared Command To Graph Authoring Seam` shipped after the shared Sketch graph-authoring owner landed with selected/first/fresh sketch creation tests and the console hook became a thin caller for graph mutation.
+39. 2026-05-19 08:14:37: Prepped `Spaghetti-Editor 8 / Phase 2 - Shared Command To Graph Authoring Seam` for implementation as the extraction of existing Sketch graph-authoring decisions into a shared owner that console, viewport shortcut, and later toolbar/session callers can use.
+38. 2026-05-19 08:09:08: Marked `Spaghetti-Editor 8 / Phase 1 - Viewport Command Commit Contract` shipped after the shared command commit contract landed with lifecycle-state tests and root Sketch/New Sketch/viewport shortcut integration.
+37. 2026-05-19 08:04:06: Prepped `Spaghetti-Editor 8 / Phase 1 - Viewport Command Commit Contract` for implementation as a narrow command lifecycle guardrail, defining preview/session/commit/cancel boundaries, likely ownership surfaces, non-goals, verification targets, and the handoff that Phase 3 root Extrude should use.
+36. 2026-05-19 08:00:03: Clarified the `Spaghetti-Editor 8` phase relevance read after the first root Sketch/New Sketch proof, keeping all five phases while marking Phase 1 as a guardrail, Phase 2 as the active shared command-authoring spine, Phase 3 as the next root Extrude/profile-toolbar target, and Phase 4/5 as deferred Build Path and layout follow-ons.
+35. 2026-05-19 01:19:25: Added `Spaghetti-Editor 8 / Phase 3 - Root Extrude And Viewport Profile Selection Toolbar` to the viewport command-authoring ladder, placing Fusion-style Extrude profile picking and toolbar workflow before Build Path projection and background node layout follow-ons.
+34. 2026-05-19 00:42:25: Expanded `Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge` with a background node layout and arrangement phase, making neat automatic placement plus later dependency, command-flow, compact-chain, grouped-output, and manual arrangement reads part of the viewport-command bridge instead of leaving command-created nodes to pile up.
+33. 2026-05-19 00:36:42: Added `Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge` as the next workspace-level planning surface for Fusion/Blender-style viewport command operation that still authors normal Spaghetti nodes and wires in the background, while defining how those accepted graph commits can later feed Build Path as a history projection instead of a second model.
+32. 2026-05-19 00:34:37: Marked `Spaghetti-Editor 7 / Phase 4 - Narrow Pane Visual Proof And Closeout` shipped after the final proof-only pass reran split-host fit, one-button `e / +`, essentials-body, panel/canvas, AppShell handoff, and production build checks; no runtime files needed changes, DOM-level proof covered the original narrow-pane requirements, and no immediate `Spaghetti-Editor 7` follow-on was required.
+31. 2026-05-19 00:29:23: Prepped `Spaghetti-Editor 7 / Phase 4 - Narrow Pane Visual Proof And Closeout` after the Phase 3 essentials-body follow-up, locking the final slice to focused regression reruns for split-host fit, one-button `e / +`, essentials body propagation, split-host console handoff, production build verification, and a narrow split-pane visual/manual check without adding new density, graph, node, overlay, or workspace-shell behavior.
 30. 2026-05-19 00:20:11: Added the `Spaghetti-Editor 7 / Phase 3` follow-up fix after the split-pane button changed to `e` without making the slotted editor body render essentials mode; `ViewportSurfaceRegistry` now forwards editor viewport presentation flags into `SpaghettiPanel` so split-hosted essentials mode hides expanded panel chrome and canvas-toolbar content.
 29. 2026-05-19 00:14:12: Marked `Spaghetti-Editor 7 / Phase 3 - Split Pane Local Minus Rule` shipped after split-pane Spaghetti `e / +` density behavior moved onto the shared primary `ViewportFrame` button, removing the adjacent duplicate density supplement while preserving right-click viewport-type access and floating/windowed Spaghetti `- / e / + / O` behavior.
 28. 2026-05-19 00:08:47: Corrected the `Spaghetti-Editor 7 / Phase 3` handoff after the live split-pane screenshot showed the shared `ViewportFrameModeButton` `-` sitting beside the Spaghetti `+` density button; the next slice now explicitly folds Spaghetti split-pane `e / +` density onto the shared primary header button, removes the duplicate density supplement, preserves right-click viewport-type access, and leaves floating/windowed `- / e / + / O` behavior unchanged.
@@ -147,6 +174,7 @@ Current read:
 - this family is still mainly an umbrella architecture map
 - it now has one first proving-slice phase for cross-node smart-wiring behavior
 - it now also has a small editor-shell and canvas-chrome ladder for shared spawn-mode, overlay, and a left-side node palette
+- it now has a viewport-command bridge plan for command commits that should author graph nodes and wires behind the scenes while later feeding Build Path history projection
 - it still does not have a deep standalone ladder like `Sketch`
 - deeper feature planning should keep moving into subfamilies instead of bloating the umbrella doc
 
@@ -169,8 +197,32 @@ Current read:
 - `Phase 2 - Split Pane e And + Mode Behavior` is now shipped with a Spaghetti-only shared `ViewportFrame` header-start control that uses existing editor viewport presentation state to cycle `+` into compact essentials and `e` back to full editor mode without mounting the floating Spaghetti titlebar inside the pane
 - `Phase 3 - Split Pane Local Minus Rule` is now shipped with Spaghetti split-pane `e / +` density folded onto the shared primary header button, the duplicate density supplement removed, right-click viewport-type access preserved, and floating Spaghetti `- / e / + / O` behavior unchanged
 - the Phase 3 follow-up now forwards split-hosted editor viewport presentation flags into `SpaghettiPanel`, so `e` mode changes the slotted panel body to essentials mode instead of only changing the header button label
-- `Phase 4 - Narrow Pane Visual Proof And Closeout` remains as the visual/manual verification and final closeout slice
+- `Phase 4 - Narrow Pane Visual Proof And Closeout` is now shipped as the final proof-only closeout after focused regression reruns, production build proof, and DOM-level narrow split-pane validation confirmed no additional behavior change was needed
+- no immediate `Spaghetti-Editor 7` follow-on is required unless a new split-pane polish request appears outside the original crowded-titlebar, `e / +`, local `-`, and compact-toolbar goals
 - this work belongs to the Spaghetti Editor shell rather than node-family behavior, because it changes editor hosting and presentation fit, not graph-authored truth
+
+#### `Spaghetti-Editor 8` Next Slice
+
+Current read:
+- this is now the active planning bridge for viewport-first CAD command authoring
+- the user should be able to operate from the model viewport, console, shortcuts, or toolbar while accepted commands still create/update normal Spaghetti graph truth
+- `Phase 1 - Viewport Command Commit Contract` is shipped with a narrow lifecycle contract over preview/session/commit/cancel behavior and root Sketch integration
+- `Phase 2 - Shared Command To Graph Authoring Seam` is shipped with the current Sketch node create/reuse mutation extracted into a shared graph-command authoring owner
+- `Phase 3 - Root Extrude And Viewport Profile Selection Toolbar` has a first runtime slice shipped but remains partial
+- the remaining Phase 3 UX target should read as `Extrude > Select Profiles > Depth`, where profile clicks select individual sketch profiles, shift-click selects all compatible profiles in the same sketch, and the depth drag handle/value appears after selected profiles exist
+- `Phase 3.1 - Atomic Extrude Graph Commit Repair` is shipped with `authorExtrudeGraphCommand` using a preflighted plan and one atomic commit boundary instead of separate helper-owned node and wire callbacks
+- `Phase 3.2 - Real Extrude Session Owner And Command Tree` is shipped with a shared transient session owner plus Console-visible command-tree projection; the toolbar should later read and dispatch against this owner, not own the Extrude truth itself
+- `Phase 3.2A - Extrude Select Profiles Console Prompt` is shipped as the Console prompt bridge: the active `Extrude > Select Profiles` session now owns the next Console token before root parsing, can resolve text profile choices into transient selected profile sources, and still keeps root `Extrude` as a shortcut into canonical `Graph > Extrude` rather than a duplicate command owner
+- the remaining Phase 3 continuation is now split into `Phase 3.1` through `Phase 3.6`:
+  - `Phase 3.1` - shipped atomic Extrude graph commit repair
+  - `Phase 3.2` - shipped real Extrude session owner and Console-visible command tree
+  - `Phase 3.2A` - shipped Console prompt bridge for `Extrude > Select Profiles`
+  - `Phase 3.3` - shipped viewport shortcut modal guarding
+  - `Phase 3.4` - model viewport Extrude toolbar shell
+  - `Phase 3.5` - profile picking count and preview state
+  - `Phase 3.6` - Extrude commit/cancel proof and Phase 3 closeout
+- `Build Path` should later present those accepted graph command commits as a history-style row projection instead of owning separate command geometry
+- Build Path projection and full node arrangement modes remain relevant, but should wait until accepted Sketch/Extrude command commits create enough graph truth to summarize and arrange
 
 #### [~] `Nodes`
 
@@ -523,7 +575,7 @@ Initial phase breakdown:
 - `Spaghetti-Editor 6 - Phase 5 - Authoritative Export Handoff Completion`
 - `Spaghetti-Editor 6 - Phase 6 - Mesh-Truth Leak Cleanup And HLG Closeout`
 
-### [~] Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls
+### [x] Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls
 
 Standalone phase doc:
 - `Future/Spaghetti-Editor 7 - Split Pane Density And Local Mode Controls.md`
@@ -549,4 +601,41 @@ Initial phase breakdown:
 - `[x] Spaghetti-Editor 7 - Phase 1 - Split Pane Chrome Fit`
 - `[x] Spaghetti-Editor 7 - Phase 2 - Split Pane e And + Mode Behavior`
 - `[x] Spaghetti-Editor 7 - Phase 3 - Split Pane Local Minus Rule`
-- `Spaghetti-Editor 7 - Phase 4 - Narrow Pane Visual Proof And Closeout`
+- `[x] Spaghetti-Editor 7 - Phase 4 - Narrow Pane Visual Proof And Closeout`
+
+### [~] Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+
+#### Purpose
+
+Define the bridge where Fusion/Blender-style viewport operation, console commands, shortcuts, and toolbar actions still author the Spaghetti graph in the background.
+
+This phase should separate:
+- transient viewport command preview
+- accepted graph-command commits
+- automatic node creation and wiring
+- later Build Path projection over those accepted graph commits
+
+Short read:
+- the user should be able to model mostly from the viewport
+- committing commands like `Sketch` or `Extrude` should create or update real Spaghetti nodes, params, and wires
+- automatic wiring should reuse one shared graph-command/planner direction instead of being cloned per surface
+- command-created nodes should land neatly in the Spaghetti editor instead of piling up
+- later arrangement modes can make the same graph easier to read without changing graph truth
+- Build Path should later show those accepted command commits as history rows while Spaghetti remains the dependency truth
+
+Initial phase breakdown:
+- `[x] Spaghetti-Editor 8 - Phase 1 - Viewport Command Commit Contract` - shipped implementation guardrail for preview/session/commit/cancel boundaries
+- `[x] Spaghetti-Editor 8 - Phase 2 - Shared Command To Graph Authoring Seam` - shipped shared owner for Sketch graph authoring
+- `[~] Spaghetti-Editor 8 - Phase 3 - Root Extrude And Viewport Profile Selection Toolbar` - first runtime slice shipped for root Extrude command entry, no-mutation session start, and shared Extrude profile-wire authoring; viewport toolbar/profile-pick UI remains next
+- `[x] Spaghetti-Editor 8 - Phase 3.1 - Atomic Extrude Graph Commit Repair` - shipped repair that moved Extrude graph authoring to a preflighted plan plus one atomic commit boundary before visible toolbar commit depends on the helper
+- `[x] Spaghetti-Editor 8 - Phase 3.2 - Real Extrude Session Owner And Command Tree` - shipped shared transient command state for root Console `Extrude`, Console/session labels for `Extrude > Select Profiles > Depth`, Escape cancellation, and first selected-profiles-to-depth transition proof while toolbar, picking, preview, graph commit, and Build Path work stay deferred
+- `[~] Spaghetti-Editor 8 - Phase 3.2A - Extrude Select Profiles Console Prompt` - implementation-prepped slice to make the active Extrude session ask for sketch-profile input through Console, route the next token through `Extrude > Select Profiles`, optionally resolve text tokens into transient profile sources, keep root `Extrude` as a shortcut into canonical `Graph > Extrude`, and avoid viewport picking, toolbar, preview, graph commit, or Build Path scope
+- `[ ] Spaghetti-Editor 8 - Phase 3.3 - Viewport Shortcut Modal Guarding` - keep viewport command shortcuts from stealing keys while another command/session owns input
+- `[ ] Spaghetti-Editor 8 - Phase 3.4 - Model Viewport Extrude Toolbar Shell` - mount the first visible toolbar against the owned session state
+- `[ ] Spaghetti-Editor 8 - Phase 3.5 - Profile Picking Count And Preview State` - connect individual sketch-profile selection, shift-click same-sketch profile expansion, selected count, depth-step transition, and preview-ready drag-handle state
+- `[ ] Spaghetti-Editor 8 - Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout` - route OK/Cancel through atomic graph truth and close the first usable Extrude workflow
+- `[x] Spaghetti-Editor 8 - Phase 4 - Build Path Projection Handoff` - shipped pure projection contract over accepted graph-command summaries, with cancelled commands skipped and graph ids preserved for later Build Path phases
+- `[x] Spaghetti-Editor 8 - Phase 5 - Background Node Layout And Arrangement Modes` - shipped pure command-created node placement planner before later call-site integration and arrangement-mode UI

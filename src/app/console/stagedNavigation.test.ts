@@ -16,6 +16,9 @@ describe('stagedNavigation', () => {
     expect(result.breadcrumb).toEqual(['Root'])
     expect(result.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'SKETCH',
+      'NEW_SKETCH',
+      'EXTRUDE',
       'CONTENT',
       'REFERENCES',
       'HIDE',
@@ -79,6 +82,48 @@ describe('stagedNavigation', () => {
       session: {
         scopeId: 'referenceHideRoot',
       },
+    })
+  })
+
+  it('executes Sketch as a root command for viewport-first authoring', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'sketch', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'sketch.root',
+      breadcrumb: ['Sketch'],
+    })
+  })
+
+  it('executes New Sketch as a root command that forces a fresh sketch', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'new sketch', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'sketch.new',
+      breadcrumb: ['New Sketch'],
+    })
+  })
+
+  it('executes Extrude as a root command for viewport-first authoring', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'extrude', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'extrude.root',
+      breadcrumb: ['Extrude'],
     })
   })
 
@@ -2112,6 +2157,9 @@ describe('stagedNavigation', () => {
     expect(cancelledResult.breadcrumb).toEqual([])
     expect(cancelledResult.validChoices.map((choice) => choice.canonicalToken)).toEqual([
       'GRAPH',
+      'SKETCH',
+      'NEW_SKETCH',
+      'EXTRUDE',
       'CONTENT',
       'REFERENCES',
       'HIDE',
