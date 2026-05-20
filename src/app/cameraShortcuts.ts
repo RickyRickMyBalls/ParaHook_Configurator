@@ -58,20 +58,23 @@ export const viewerCameraShortcutBindings: ViewerCameraShortcutBinding[] = [
   },
 ]
 
-const hasExpectedModifiers = (
-  event: CameraShortcutKeyboardLikeEvent,
-  binding: ViewerCameraShortcutBinding,
-): boolean =>
-  Boolean(event.shiftKey) === Boolean(binding.shiftKey) &&
-  !event.ctrlKey &&
-  !event.altKey &&
-  !event.metaKey
-
 const matchesZoomObjectShortcut = (
   event: CameraShortcutKeyboardLikeEvent,
   inputPriorityMode: CameraShortcutInputPriorityMode,
 ): boolean =>
   event.code === 'KeyZ' &&
+  !event.ctrlKey &&
+  !event.altKey &&
+  !event.metaKey &&
+  (inputPriorityMode === 'shortcuts-first' ? event.shiftKey !== true : event.shiftKey === true)
+
+const matchesCameraPresetShortcut = (
+  event: CameraShortcutKeyboardLikeEvent,
+  binding: ViewerCameraShortcutBinding,
+  inputPriorityMode: CameraShortcutInputPriorityMode,
+): boolean =>
+  binding.action !== 'zoom-object' &&
+  event.code === binding.code &&
   !event.ctrlKey &&
   !event.altKey &&
   !event.metaKey &&
@@ -89,11 +92,10 @@ export const resolveViewerCameraShortcutAction = (
     return null
   }
 
-  const binding = viewerCameraShortcutBindings.find((candidate) => candidate.code === event.code)
-  if (binding === undefined || !hasExpectedModifiers(event, binding)) {
-    return null
-  }
-  if (binding.action === 'zoom-object') {
+  const binding = viewerCameraShortcutBindings.find((candidate) =>
+    matchesCameraPresetShortcut(event, candidate, inputPriorityMode),
+  )
+  if (binding === undefined) {
     return null
   }
 

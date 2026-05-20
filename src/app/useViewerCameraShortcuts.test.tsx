@@ -84,10 +84,11 @@ describe('useViewerCameraShortcuts', () => {
     setViewer(viewportId, null)
   })
 
-  it('routes numpad view shortcuts through the shared camera preset command seam for the active viewer', () => {
+  it('routes Shortcuts-first plain numpad view shortcuts through the shared camera preset command seam for the active viewer', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,
     } as unknown as ViewerApi)
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(480)
     useAppStore.setState((state) => ({
       ...state,
@@ -142,6 +143,79 @@ describe('useViewerCameraShortcuts', () => {
       animate: true,
       durationMs: 480,
     })
+    expect(frameSelectedCommandMock).not.toHaveBeenCalled()
+    expect(frameReferenceCommandMock).not.toHaveBeenCalled()
+  })
+
+  it('routes Console-first shifted numpad view shortcuts through the shared camera preset command seam', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as unknown as ViewerApi)
+    useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(455)
+    useAppStore.setState((state) => ({
+      ...state,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: '4',
+          code: 'Numpad4',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(setCameraPresetCommandMock).toHaveBeenCalledWith('left', viewportId, {
+      animate: true,
+      durationMs: 455,
+    })
+    expect(frameSelectedCommandMock).not.toHaveBeenCalled()
+    expect(frameReferenceCommandMock).not.toHaveBeenCalled()
+  })
+
+  it('does not dispatch Console-first plain numpad view shortcuts', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as unknown as ViewerApi)
+    useAppStore.setState((state) => ({
+      ...state,
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: '4',
+          code: 'Numpad4',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
     expect(frameSelectedCommandMock).not.toHaveBeenCalled()
     expect(frameReferenceCommandMock).not.toHaveBeenCalled()
   })

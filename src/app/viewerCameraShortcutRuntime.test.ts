@@ -27,6 +27,33 @@ describe('viewerCameraShortcutRuntime', () => {
     expect(resolveActiveViewerCameraShortcutAction({ key: '5', code: 'Numpad5' })).toBeNull()
   })
 
+  it('keeps built-in camera preset input priority behavior until a preset binding is customized', () => {
+    expect(resolveActiveViewerCameraShortcutAction({
+      key: '5',
+      code: 'Numpad5',
+    })).toBeNull()
+    expect(resolveActiveViewerCameraShortcutAction({
+      key: '5',
+      code: 'Numpad5',
+      shiftKey: true,
+    })).toBe('preset-top')
+    expect(resolveActiveViewerCameraShortcutAction(
+      {
+        key: '5',
+        code: 'Numpad5',
+      },
+      'shortcuts-first',
+    )).toBe('preset-top')
+    expect(resolveActiveViewerCameraShortcutAction(
+      {
+        key: '5',
+        code: 'Numpad5',
+        shiftKey: true,
+      },
+      'shortcuts-first',
+    )).toBeNull()
+  })
+
   it('keeps Zoom Object input priority behavior until that binding is customized', () => {
     expect(resolveActiveViewerCameraShortcutAction({
       key: 'Z',
@@ -81,7 +108,11 @@ describe('viewerCameraShortcutRuntime', () => {
       'default',
       overrides,
     )).toBeNull()
-    expect(resolveActiveViewerCameraShortcutAction({ key: '8', code: 'Numpad8' })).toBe(
+    expect(resolveActiveViewerCameraShortcutAction({
+      key: '8',
+      code: 'Numpad8',
+      shiftKey: true,
+    })).toBe(
       'preset-back',
     )
   })
@@ -108,11 +139,12 @@ describe('viewerCameraShortcutRuntime', () => {
         continue
       }
 
+      const isPriorityAwareBasePreset = row.id !== 'viewer-camera-shortcuts:zoom-object'
       expect(resolveViewerCameraShortcutActionFromPreferences(
         {
           key: row.keyChord,
           code: row.bindingValue.code,
-          shiftKey: row.bindingValue.shiftKey,
+          shiftKey: isPriorityAwareBasePreset ? true : row.bindingValue.shiftKey,
           ctrlKey: row.bindingValue.ctrlKey,
           altKey: row.bindingValue.altKey,
           metaKey: row.bindingValue.metaKey,

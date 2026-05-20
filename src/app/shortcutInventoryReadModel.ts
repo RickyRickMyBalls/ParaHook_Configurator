@@ -103,6 +103,16 @@ const formatKeyChord = (binding: ViewerCameraShortcutBinding): string => {
   return keys.join('+')
 }
 
+const getCameraShortcutContextNote = (
+  source: ShortcutInventorySourceEntry,
+  binding: ViewerCameraShortcutBinding,
+): string | undefined => {
+  if (source.id !== 'viewer-camera-shortcuts' || binding.action === 'zoom-object') {
+    return undefined
+  }
+  return 'Console first uses Shift+Numpad; Shortcuts first uses plain Numpad.'
+}
+
 const toShortcutRows = (source: ShortcutInventorySourceEntry): readonly ShortcutInventoryRow[] => {
   if (source.status !== 'cataloged' || source.bindings === undefined) {
     if (source.status === 'cataloged' && source.displayBindings !== undefined) {
@@ -128,6 +138,7 @@ const toShortcutRows = (source: ShortcutInventorySourceEntry): readonly Shortcut
     sourceId: source.id,
     editability: 'editable',
     bindingValue: toKeyboardBindingValue(binding),
+    contextNote: getCameraShortcutContextNote(source, binding),
   }))
 }
 

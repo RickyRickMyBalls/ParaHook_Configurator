@@ -29,6 +29,10 @@ const rowActionById: ReadonlyMap<string, ViewerCameraShortcutAction> = new Map([
   [zoomObjectRowId, 'zoom-object'],
 ])
 
+const rowIdByAction: ReadonlyMap<ViewerCameraShortcutAction, string> = new Map(
+  [...rowActionById.entries()].map(([rowId, action]) => [action, rowId]),
+)
+
 const getViewerCameraRows = (): readonly ShortcutInventoryRow[] =>
   getShortcutInventoryReadModel().groups.find((group) => group.id === viewerCameraSourceId)?.rows ?? []
 
@@ -61,11 +65,15 @@ export const resolveViewerCameraShortcutActionFromPreferences = (
   )
   const overriddenRowIds = new Set(activePresetOverrides.map((override) => override.rowId))
 
-  if (!overriddenRowIds.has(zoomObjectRowId) && !conflictingRowIds.has(zoomObjectRowId)) {
-    const baseZoomAction = resolveViewerCameraShortcutAction(event, inputPriorityMode)
-    if (baseZoomAction === 'zoom-object') {
-      return baseZoomAction
-    }
+  const baseAction = resolveViewerCameraShortcutAction(event, inputPriorityMode)
+  const baseActionRowId = baseAction === null ? null : rowIdByAction.get(baseAction) ?? null
+  if (
+    baseAction !== null &&
+    baseActionRowId !== null &&
+    !overriddenRowIds.has(baseActionRowId) &&
+    !conflictingRowIds.has(baseActionRowId)
+  ) {
+    return baseAction
   }
 
   for (const row of effectiveRows) {
@@ -76,7 +84,7 @@ export const resolveViewerCameraShortcutActionFromPreferences = (
     ) {
       continue
     }
-    if (row.id === zoomObjectRowId && !overriddenRowIds.has(zoomObjectRowId)) {
+    if (rowActionById.has(row.id) && !overriddenRowIds.has(row.id)) {
       continue
     }
     if (!hasExactKeyboardMatch(event, row)) {
@@ -125,4 +133,3 @@ export const getViewerCameraShortcutRuntimeSignature = (
     metaKey: event.metaKey || undefined,
   })
 }
-

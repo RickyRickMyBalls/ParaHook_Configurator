@@ -535,6 +535,32 @@ const doesCurrentOutputMatchGeometryResultPartKeys = (
   return committedPartKeys.every((partKey) => currentPartKeySet.has(partKey))
 }
 
+const doesCurrentOutputRetainGeometryResultPartKeys = (
+  previewPreparation: GraphPreviewPreparation | null,
+  geometryResult: GeometryResultBundle | null,
+): boolean => {
+  if (previewPreparation === null || geometryResult === null) {
+    return false
+  }
+
+  if (hasExplicitSolidBodyMemberPublication(previewPreparation)) {
+    return false
+  }
+
+  const currentPartKeySet = new Set(
+    previewPreparation.previewCandidatePartKeys.filter((partKey) => partKey.length > 0),
+  )
+  const committedPartKeys = [...new Set(geometryResult.request.partKeys)].filter(
+    (partKey) => partKey.length > 0,
+  )
+
+  if (committedPartKeys.length === 0) {
+    return false
+  }
+
+  return committedPartKeys.every((partKey) => currentPartKeySet.has(partKey))
+}
+
 const resolveRetainedBaseCandidate = (options: {
   requestedMode: WorkspaceViewportResultMode
   currentAuthoritativeGeometryResult: GeometryResultBundle | null
@@ -943,7 +969,13 @@ const buildBranchLocalRetainedBaselineRecipe = (options: {
   const baseParts = sourceBaseParts.filter((part) => !overlayViewerKeySet.has(part.viewerKey))
   const baselineParts = sourceBaseParts.filter((part) => overlayViewerKeySet.has(part.viewerKey))
   if (baselineParts.length === 0) {
-    return null
+    return buildRetainedOverlayRecipe({
+      baseParts,
+      basePresentationStateId: options.committedBasePresentationStateId,
+      overlayParts: options.overlayParts,
+      overlayPresentationStateId: options.overlayPresentationStateId,
+      overlayOpacity: options.overlayOpacity,
+    })
   }
 
   return {
@@ -1277,13 +1309,20 @@ export const selectViewportResultState = (
     geometryResult: options.committedAuthoritativeGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
+  const committedAcceptedOutputPreviewRenderVm = qualifyPreviewRenderVm(
+    options.interactionAcceptedOutputPreviewRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
+    options.viewerTargetGraphDocumentId,
+  )
   const committedAuthoritativeRenderVm =
     committedAuthoritativeGeometryRenderVm.viewerParts.length > 0
       ? committedAuthoritativeGeometryRenderVm
       : options.committedAuthoritativeGeometryResult !== null &&
-          publishedAuthoritativeRenderVm.viewerParts.length > 0
-        ? publishedAuthoritativeRenderVm
-        : committedAuthoritativeGeometryRenderVm
+          committedAcceptedOutputPreviewRenderVm.viewerParts.length > 0
+        ? committedAcceptedOutputPreviewRenderVm
+        : options.committedAuthoritativeGeometryResult !== null &&
+            publishedAuthoritativeRenderVm.viewerParts.length > 0
+          ? publishedAuthoritativeRenderVm
+          : committedAuthoritativeGeometryRenderVm
   const suppressWholeNodeDraftMeshPreview = hasExplicitSolidBodyMemberPublication(
     options.previewPreparation,
   )
@@ -1309,6 +1348,14 @@ export const selectViewportResultState = (
     options.previewPreparation,
     options.committedDraftGeometryResult,
   )
+  const currentOutputRetainsCommittedAuthoritative = doesCurrentOutputRetainGeometryResultPartKeys(
+    options.previewPreparation,
+    options.committedAuthoritativeGeometryResult,
+  )
+  const currentOutputRetainsCommittedDraft = doesCurrentOutputRetainGeometryResultPartKeys(
+    options.previewPreparation,
+    options.committedDraftGeometryResult,
+  )
   const allowsCurrentAuthoritativeVisibility =
     !shouldEnforceCurrentOutputResolution || hasOutputContinuation
   const allowsCurrentDraftVisibility = !shouldEnforceCurrentOutputResolution || hasOutputContinuation
@@ -1325,8 +1372,10 @@ export const selectViewportResultState = (
     currentDraftRenderVm: currentDraftGeometryRenderVm,
     committedDraftRenderVm,
     hasCurrentOutputContinuation: hasOutputContinuation,
-    currentOutputMatchesCommittedAuthoritative,
-    currentOutputMatchesCommittedDraft,
+    currentOutputMatchesCommittedAuthoritative:
+      currentOutputMatchesCommittedAuthoritative || currentOutputRetainsCommittedAuthoritative,
+    currentOutputMatchesCommittedDraft:
+      currentOutputMatchesCommittedDraft || currentOutputRetainsCommittedDraft,
   })
   const overlayCandidate = resolveOverlayCandidate({
     requestedMode: options.requestedMode,

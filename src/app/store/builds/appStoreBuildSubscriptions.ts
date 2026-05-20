@@ -185,6 +185,13 @@ export const createBuildSubscriptionRuntime = <TAcceptedPublicationRecords>({
       return
     }
 
+    if (
+      runtime.acceptedBuildBundle?.executionIntent.geometryTarget === 'authoritative' &&
+      runtime.acceptedBuildBundle.seq === runtime.compileBuild.latestAcceptedBuildSeq
+    ) {
+      return
+    }
+
     appState.requestBrowserGraphDocumentBuild(graphDocumentId, {
       geometryTargetOverride: 'authoritative',
       reuseCurrentAcceptedPreviewComparison: true,

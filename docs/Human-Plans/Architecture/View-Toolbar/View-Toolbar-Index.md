@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+36. 2026-05-20 00:37:40: Marked `View-Toolbar 9 / Phase 1 - Priority-Aware Camera Snap Shortcuts` complete after the camera shortcut resolver and runtime preference path started requiring shifted numpad snaps in `Console first`, preserving plain numpad snaps in `Shortcuts first`, keeping custom bindings exact-match and conflict-safe, adding Settings inventory context text, and passing focused shortcut tests plus production build verification.
+35. 2026-05-20 00:26:16: Prepped `View-Toolbar 9 / Phase 1 - Priority-Aware Camera Snap Shortcuts` for implementation by tightening its standalone future doc around resolver-first changes, custom preference behavior, shared input-routing proof, active-viewer dispatch proof, and Settings shortcut inventory readout boundaries.
+34. 2026-05-20 00:15:48: Added standalone `Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md`, extended the family ladder with `View-Toolbar 9`, and refreshed this umbrella family so the camera snap shortcut conflict with `Console first` input priority now has one explicit planning home under the shared view-command and Console-alignment family.
 33. 2026-04-17 18:51:52: Added standalone `Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md`, refreshed `View-Toolbar 6`, and kept this umbrella family aligned with the reopened tabs-cleanup lane so the next shell polish now has one explicit planning home for moving the section rail outside the main toolbar box and making the active section chrome read like real attached tabs
 32. 2026-04-17 11:58:05: Added standalone `Future/View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`, extended the family ladder with `View-Toolbar 8`, and refreshed this umbrella family so the next layout follow-on now explicitly treats drag-out floating as a viewport-local presentation and shell-hosting phase that reuses workspace window patterns without turning the toolbar into a separate command owner
 31. 2026-04-16 18:43:12: Added `Environment/Environment-Index.md` and refreshed this umbrella family so `View-Toolbar` now points at a dedicated `Environment` subfamily home for visible lighting, scene-atmosphere, and environment-preset planning while keeping HDRI asset browsing with `Catalog` and deeper runtime ownership outside the toolbar family
@@ -138,6 +141,7 @@ Use this folder like this:
   - `View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md`
   - `View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`
   - `View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`
+  - `View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 
@@ -151,6 +155,7 @@ Current roadmap home:
 - `[View-Toolbar 6] Classic And Tabs Presentation Modes`
 - `[View-Toolbar 7] Camera Controls Enrichment`
 - `[View-Toolbar 8] Detachable Floating Window Presentation`
+- `[View-Toolbar 9] Camera Snap Shortcut Input Priority`
 
 ### Cross-Doc Boundaries
 
@@ -444,6 +449,7 @@ Current family read:
 - `View-Toolbar 6` is open
 - `View-Toolbar 7` is complete
 - `View-Toolbar 8` is open
+- `View-Toolbar 9` is complete
 
 Evidence for the completed read:
 - the standalone phase doc [`Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`](./Future/View_Toolbar_Phase%20View-Toolbar%201%20-%20Shared%20View%20Command%20Dispatch%20And%20Projection%20Console%20Entry.md) is marked `## [x]`
@@ -658,6 +664,29 @@ Architectural suggestion:
 
 Completion read:
 - open
+
+## [x] View-Toolbar 9 - Camera Snap Shortcut Input Priority
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md`](./Future/View_Toolbar_Phase%20View-Toolbar%209%20-%20Camera%20Snap%20Shortcut%20Input%20Priority.md)
+
+Goal:
+- make camera snap shortcuts respect `Console first` versus `Shortcuts first` input priority without moving camera behavior into Console
+
+This phase should:
+- require `Shift+Numpad2/4/5/6/8` for camera snaps when `Console first` is active
+- preserve plain `Numpad2/4/5/6/8` camera snaps when `Shortcuts first` is active
+- keep plain numpad input available for Console capture in `Console first`
+- reuse the existing `consoleInputPriorityMode`, viewer camera shortcut resolver, and shared input-routing seams
+- keep custom shortcut conflict handling stable
+- update Settings shortcut readout only as far as needed to avoid misleading fixed key-chord text
+
+Phase rule:
+- do not widen this into new camera snap actions such as `Bottom`, `Iso`, `Rear`, or `Reset`
+- do not change camera preset math, toolbar buttons, pointer gestures, or the Console input priority preference owner
+
+Completion read:
+- complete
 
 ### Open Questions
 

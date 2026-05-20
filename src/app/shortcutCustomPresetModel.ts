@@ -160,6 +160,7 @@ export const applyShortcutBindingOverrides = (
       ...row,
       keyChord: formatShortcutBindingValue(overrideBinding),
       bindingValue: overrideBinding,
+      contextNote: undefined,
     }
   })
 }

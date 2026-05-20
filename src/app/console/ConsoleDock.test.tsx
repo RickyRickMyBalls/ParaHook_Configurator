@@ -6262,6 +6262,117 @@ describe('ConsoleDock', () => {
     )
   })
 
+  it('starts viewport Extrude at depth with a selected sketch profile and clears root prompt input', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('console-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                ...rectangleSketchFeature(),
+                outputs: {
+                  diagnostics: [],
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 200,
+                      loop: { segments: [], winding: 'CCW' },
+                      verticesProxy: [
+                        { x: 0, y: 0 },
+                        { x: 20, y: 0 },
+                        { x: 20, y: 10 },
+                        { x: 0, y: 10 },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().setViewportSelectedSketchProfiles([
+        {
+          graphDocumentId: 'graph-document-1',
+          sketchNodeId: 'node-sketch-1',
+          profileId: 'profile-a',
+          portId: 'SketchProfile:profile-a',
+        },
+      ])
+      useConsoleStore.getState().setStagedNavigationSession({
+        scopeId: 'root',
+        breadcrumb: ['Root'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+        },
+        validChoices: [
+          {
+            canonicalToken: 'GRAPH',
+            aliases: ['G'],
+            label: 'Graph',
+            kind: 'scope',
+          },
+        ],
+      })
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'E',
+          code: 'KeyE',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+    await act(async () => {})
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'depth',
+      entryPoint: 'console-root',
+      validation: 'readyForDepth',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+    })
+    expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
+      breadcrumb: ['Extrude', 'Depth'],
+      summaryLeadText: ' > Enter depth',
+    })
+    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Extrude > Depth',
+    )
+  })
+
   it('starts root Extrude from the viewport plain E shortcut in Shortcuts-first mode', async () => {
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     setViewer({
@@ -6482,6 +6593,69 @@ describe('ConsoleDock', () => {
     })
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude > Depth'),
+    ).toBe(true)
+  })
+
+  it('updates active Extrude depth from Console typing and commits on Enter', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: { sketch: rectangleSketchFeature() },
+          },
+        ],
+        edges: [],
+      })
+      useConsoleStore.getState().setInputText('extrude')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Profile 1')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('50')
+    })
+
+    const sessionBeforeCommit = useSpaghettiStore.getState().extrudeCommandSession
+    const liveExtrudeNodeId = sessionBeforeCommit?.liveGraph?.liveExtrudeNodeId
+    expect(sessionBeforeCommit).toMatchObject({
+      activeStep: 'depth',
+      depth: 50,
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const acceptedExtrudeNode = useSpaghettiStore
+      .getState()
+      .graph.nodes.find((node) => node.nodeId === liveExtrudeNodeId)
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(acceptedExtrudeNode).toMatchObject({
+      type: 'Geometry/Extrude',
+      params: expect.objectContaining({
+        depthMm: 50,
+      }),
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Extrude committed'),
     ).toBe(true)
   })
 

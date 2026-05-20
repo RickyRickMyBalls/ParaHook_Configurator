@@ -31,6 +31,14 @@ describe('shortcutInventoryReadModel', () => {
       'Numpad 6',
       'Shift+Z',
     ])
+    expect(cameraGroup?.rows.map((row) => row.contextNote)).toEqual([
+      'Console first uses Shift+Numpad; Shortcuts first uses plain Numpad.',
+      'Console first uses Shift+Numpad; Shortcuts first uses plain Numpad.',
+      'Console first uses Shift+Numpad; Shortcuts first uses plain Numpad.',
+      'Console first uses Shift+Numpad; Shortcuts first uses plain Numpad.',
+      'Console first uses Shift+Numpad; Shortcuts first uses plain Numpad.',
+      undefined,
+    ])
     expect(cameraGroup?.rows.every((row) => row.sourceId === 'viewer-camera-shortcuts')).toBe(true)
     expect(cameraGroup?.rows.every((row) => row.editability === 'editable')).toBe(true)
     expect(cameraGroup?.rows.map((row) => row.bindingValue)).toEqual([

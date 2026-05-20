@@ -599,13 +599,13 @@ describe('buildRequestFromBuildInputs', () => {
         {
           slotId: 's001',
           sourceNodeId: 'node-extrude-1',
-          sourcePartKeyStr: 'extrude',
+          sourcePartKeyStr: 'extrude#1',
           sourcePortId: 'SolidBody:001',
         },
         {
           slotId: 's001',
           sourceNodeId: 'node-extrude-1',
-          sourcePartKeyStr: 'extrude',
+          sourcePartKeyStr: 'extrude#1',
           sourcePortId: 'SolidBody:002',
         },
       ],
@@ -613,20 +613,20 @@ describe('buildRequestFromBuildInputs', () => {
 
     const translated = buildRequestFromBuildInputs(compileResult.buildInputs!, previewPreparation)
 
-    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude'])
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude#1'])
     expect(translated.compiledBuildData.outputEntries).toEqual([
       {
         buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
         outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
         sourceNodeId: 'node-extrude-1',
-        partKey: 'extrude',
+        partKey: 'extrude#1',
         bodyId: 'node-extrude-1:body:001',
       },
       {
         buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
         outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
         sourceNodeId: 'node-extrude-1',
-        partKey: 'extrude',
+        partKey: 'extrude#1',
         bodyId: 'node-extrude-1:body:002',
       },
     ])
@@ -650,13 +650,13 @@ describe('buildRequestFromBuildInputs', () => {
         {
           slotId: 's001',
           sourceNodeId: 'node-extrude-1',
-          sourcePartKeyStr: 'extrude',
+          sourcePartKeyStr: 'extrude#1',
           sourcePortId: 'SolidBody:001',
         },
         {
           slotId: 's001',
           sourceNodeId: 'node-extrude-1',
-          sourcePartKeyStr: 'extrude',
+          sourcePartKeyStr: 'extrude#1',
           sourcePortId: 'SolidBody',
         },
       ],
@@ -664,20 +664,20 @@ describe('buildRequestFromBuildInputs', () => {
 
     const translated = buildRequestFromBuildInputs(compileResult.buildInputs!, previewPreparation)
 
-    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude'])
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude#1'])
     expect(translated.compiledBuildData.outputEntries).toEqual([
       {
         buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
         outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
         sourceNodeId: 'node-extrude-1',
-        partKey: 'extrude',
+        partKey: 'extrude#1',
         bodyId: 'node-extrude-1:body:001',
       },
       {
         buildUnitId: 'output-entry:s001:node-extrude-1',
         outputEntryId: 'output-entry:s001:node-extrude-1',
         sourceNodeId: 'node-extrude-1',
-        partKey: 'extrude',
+        partKey: 'extrude#1',
         bodyId: null,
       },
     ])

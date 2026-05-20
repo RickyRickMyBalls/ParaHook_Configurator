@@ -63,7 +63,7 @@ const PART_NODE_SPECS: readonly PartNodeSpec[] = [
   { nodeType: 'Part/HeelKick', basePartId: 'heelKick' },
 ]
 
-const ALWAYS_NUMBERED_PART_IDS = new Set<BasePartId>(['toeHook', 'heelKick'])
+const ALWAYS_NUMBERED_PART_IDS = new Set<BasePartId>(['toeHook', 'heelKick', 'extrude'])
 
 export type FeatureStackIrParts = Record<OwnedPartKey, FeatureStackIR>
 

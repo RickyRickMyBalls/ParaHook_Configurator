@@ -206,6 +206,7 @@ import {
 } from './sketch/geometrySketchComponentEditActions'
 import {
   createExtrudeCommandSession,
+  setExtrudeCommandSessionDepth,
   setExtrudeCommandSessionLiveGraphState,
   setExtrudeCommandSessionProfileSources,
   type CreateExtrudeCommandSessionOptions,
@@ -945,6 +946,7 @@ export type SpaghettiStoreState = {
   ) => ExtrudeCommandSession
   cancelExtrudeCommandSession: () => void
   acceptExtrudeCommandSession: () => GraphCommandCommitSummary
+  setExtrudeCommandDepth: (depth: number) => void
   setExtrudeCommandSelectedProfileSources: (
     selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
   ) => void
@@ -5170,6 +5172,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
       entryPoint: 'viewport-toolbar',
       reason: 'missing-extrude-session',
     })
+    const historyEntryRef: {
+      current:
+      | {
+          graphDocumentId: string
+          beforeGraph: SpaghettiGraph
+          afterGraph: SpaghettiGraph
+          targetId: string
+          targetLabel: string
+        }
+      | null
+    } = { current: null }
     set((state) => {
       const session = state.extrudeCommandSession
       if (session === null) {
@@ -5188,6 +5201,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         cancel('missing-live-extrude-graph')
         return state
       }
+      const beforeCommandGraph = normalizeGraphForStoreCommit(
+        rollbackLiveExtrudeCommandGraph(
+          state.graphDocumentsById[session.graphDocumentId]?.graph ?? state.graph,
+          session.liveGraph,
+        ),
+      )
       if (session.selectedProfileSources.length === 0) {
         cancel('missing-profile-selection')
         return state
@@ -5256,6 +5275,13 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         addedEdgeIds,
         removedEdgeIds: session.liveGraph.replacedProfileEdges.map((edge) => edge.edgeId),
       })
+      historyEntryRef.current = {
+        graphDocumentId: session.graphDocumentId,
+        beforeGraph: beforeCommandGraph,
+        afterGraph: nextGraph,
+        targetId: session.liveGraph.liveExtrudeNodeId,
+        targetLabel: 'Extrude',
+      }
 
       return {
         ...withUpdatedGraphDocumentState(state, session.graphDocumentId, nextGraph),
@@ -5264,7 +5290,38 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         viewportHoveredSketchProfile: null,
       }
     })
+    const historyEntry = historyEntryRef.current
+    if (historyEntry !== null && !areNormalizedGraphsEqual(historyEntry.beforeGraph, historyEntry.afterGraph)) {
+      editHistoryStore.commitEntry({
+        entryId: nextGraphStructureHistoryEntryId(historyEntry.graphDocumentId),
+        label: 'Extrude',
+        source: graphStructureHistorySource,
+        targetId: historyEntry.targetId,
+        targetLabel: historyEntry.targetLabel,
+        undo: () =>
+          restoreGraphHistorySnapshot(historyEntry.graphDocumentId, historyEntry.beforeGraph),
+        redo: () =>
+          restoreGraphHistorySnapshot(historyEntry.graphDocumentId, historyEntry.afterGraph),
+      })
+    }
     return resultSummary
+  },
+  setExtrudeCommandDepth: (depth) => {
+    if (!Number.isFinite(depth)) {
+      return
+    }
+    set((state) => {
+      if (state.extrudeCommandSession === null) {
+        return state
+      }
+
+      return {
+        extrudeCommandSession: setExtrudeCommandSessionDepth(
+          state.extrudeCommandSession,
+          depth,
+        ),
+      }
+    })
   },
   setExtrudeCommandSelectedProfileSources: (selectedProfileSources) => {
     set((state) => {

@@ -308,6 +308,24 @@ const isInputDrivenByDescriptor = (
   })
 }
 
+const isInputDrivenByStagedNavigationSession = (
+  session: ConsoleStagedNavigationSession,
+  inputText: string,
+): boolean => {
+  const normalizedInput = normalizeChoiceToken(inputText)
+  if (normalizedInput.length === 0) {
+    return false
+  }
+  return session.validChoices.some((choice) => {
+    const choiceInputText = getStagedChoiceInputText(choice)
+    return (
+      normalizeChoiceToken(choiceInputText) === normalizedInput ||
+      choice.canonicalToken === normalizedInput ||
+      choice.aliases.includes(normalizedInput)
+    )
+  })
+}
+
 const areAssistDescriptorsEqual = (
   left: ConsoleAssistDescriptor | null,
   right: ConsoleAssistDescriptor | null,
@@ -1021,9 +1039,11 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       }
       if (featureAssistDescriptor === null || featureAssistDescriptor.choices.length === 0) {
         const shouldClearStaleAssistInput =
-          state.featureAssistDescriptor !== null &&
           !state.isStagedChoiceManualOverride &&
-          isInputDrivenByDescriptor(state.featureAssistDescriptor, state.inputText)
+          ((state.featureAssistDescriptor !== null &&
+            isInputDrivenByDescriptor(state.featureAssistDescriptor, state.inputText)) ||
+            (state.stagedNavigationSession !== null &&
+              isInputDrivenByStagedNavigationSession(state.stagedNavigationSession, state.inputText)))
         return {
           ...nextState,
           ...(shouldClearStaleAssistInput

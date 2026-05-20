@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+86. 2026-05-20 15:29:25: Prepped `Model-Viewport-5 / Phase 1 - Clay Studio And Post-Process Settings Contract` inside the dedicated future doc after reading the live `ViewSettings`, UI prefs store, and view-persistence seams, locking the first implementation slice to an additive nested `postProcessing` settings owner for SSAO enablement, intensity, radius, and quality while deferring Clay Studio style identity, viewer runtime behavior, UI controls, and SSGI.
+85. 2026-05-20 15:21:44: Added the dedicated future doc `Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`, reserving the next model-viewport visual-style lane for a Pascal-inspired Clay Studio preset, an interactive SSAO post-process pass, overlay/fallback safety, user-facing controls, and a later SSGI feasibility branch.
 84. 2026-05-18 23:00:44: Followed up on `Model-Viewport-4 / Phase 9` by preserving retained topology through the artifact-preview selector path, so the normal Auto/draft viewport renderable can carry rectangle sketch-extrude edge, face, and point topology instead of dropping back to mesh-only selection.
 83. 2026-05-18 22:49:42: Marked `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` shipped inside the dedicated future doc after graph-authored capped sketch extrudes began emitting semantic topology previews, draft and authoritative geometry bundles carried the topology forward, and focused rectangle topology, selector forwarding, viewer, and build verification passed.
 82. 2026-05-18 22:31:44: Prepped `Model-Viewport-4 / Phase 9 - Sketch Extrude Topology Preview Generation` inside the dedicated future doc after reading the live worker/cad extrude mesh order, feature-stack result seam, authoritative bundle handoff, and viewport selector forwarding path, locking the next implementation to simple capped polygon extrude topology packets and focused rectangle-extrude verification.
@@ -150,6 +152,7 @@ The next later family follow-on reserved here is:
 - `Model-Viewport-2 - Primary Viewport Workspace Reassignment`
 - `Model-Viewport-3 - Display Mode Radial Menu And Render Preview`
 - `Model-Viewport-4 - Semantic Topology Display And Selection`
+- `Model-Viewport-5 - Clay Studio And SSAO Viewport Style`
 
 The current `Model-Viewport-1` status is:
 - umbrella phase created
@@ -448,6 +451,15 @@ Current status:
 - planned there
 - reserved here so face selection, semantic edge overlays, proper wireframe, point display, and debug mesh wireframe have one honest planning home
 
+8. `Model-Viewport 5 - Clay Studio And SSAO Viewport Style`
+Reason:
+- the repo now needs one explicit model-viewport lane for the Pascal-inspired bright clay studio look, real-time contact-depth readability, and a safe post-process foundation that does not blur presentation with geometry/build/export truth
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+Current status:
+- planned there
+- reserved here so Clay Studio, SSAO, overlay compatibility, fallback/performance behavior, user-facing controls, and later SSGI feasibility have one honest planning home
+
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
 
 ### Summary
@@ -681,6 +693,53 @@ Definition of done:
 - Phase 7 shipped edge-display visual correctness polish, including depth-tested visible edges, selected-highlight separation, and mesh-only cylinder/curve noise reduction
 - Phase 8 shipped Fusion-style hover and selection highlight hierarchy, including Settings-backed highlight colors/glow, white hover, blue sub-entity selection, and double-click whole-body selection promotion
 - Phase 9 is now prepped to make simple graph-authored sketch > extrude results emit semantic topology packets so rectangle extrudes can hover/select faces, edges, and points through the shipped viewport system
+
+## [ ] Model-Viewport 5 - Clay Studio And SSAO Viewport Style
+
+### Summary
+
+#### Purpose:
+- create a bright white clay/studio viewport look inspired by the Pascal editor screenshot
+- add real-time SSAO/contact-depth so pale clay geometry keeps readable corners, overlaps, and interior detail
+- keep the style presentation-only and downstream from current geometry result truth
+- preserve existing topology highlights, sketch overlays, transform gizmos, HUD behavior, display modes, and render preview
+
+#### Current read:
+- `Model-Viewport-3` already established display modes, render-preview settings, and a progressive path-traced preview mode
+- `Model-Viewport-4` already established semantic edge/face/point overlays, hover/selection hierarchy, and visible-edge controls that must remain readable under post-processing
+- `src/shared/viewSettingsTypes.ts` already owns view settings for display mode, environment, lighting, ground, highlights, render preview, and material presets
+- `src/viewer/Viewer.ts` already owns ACES tone mapping, shadow maps, HDRI/EXR environment handling, ground, lights, material caches, topology overlays, and the render loop
+- this phase should first ship Clay Studio plus SSAO, then treat SSGI as a later feasibility branch after the post-process foundation is stable
+
+### Questions
+
+#### [x] Question 1 - What should `Model-Viewport 5` own?
+
+##### Locked answer
+- a Pascal-inspired Clay Studio viewport look plus interactive SSAO/contact-depth presentation
+
+##### Why
+- the desired visual style is mostly a viewer presentation problem, not a graph/build/export problem
+
+#### [x] Question 2 - Should SSGI ship in the first pass?
+
+##### Locked answer
+- no, SSAO should ship first and SSGI should be a later feasibility branch
+
+##### Why
+- SSAO gives most of the immediate white-clay readability benefit while fitting the current WebGL viewer path; SSGI carries larger WebGPU/TSL compatibility and performance risk
+
+### Spec
+
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+
+Definition of done:
+- the family has one explicit later phase reserved for Clay Studio and SSAO
+- `Model-Viewport-5 / Phase 1 - Clay Studio And Post-Process Settings Contract` is prepped for implementation around an additive `ViewSettings.postProcessing` owner for SSAO enablement, intensity, radius, and quality
+- the plan splits the work into a settings contract, Clay Studio presentation preset, post-process composer boundary, SSAO runtime, overlay compatibility, controls, performance/fallback polish, visual QA, and SSGI feasibility
+- the phase stays separate from geometry result choice, material truth mutation, graph/build/export truth, production render export, and WebGPU migration
+- SSGI remains a later researched follow-on unless Phase 9 creates a dedicated implementation plan
 
 ## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment
 

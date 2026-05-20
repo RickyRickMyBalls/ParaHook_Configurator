@@ -872,6 +872,7 @@ describe('ViewerHost reference loading', () => {
 
   it('confirms the Extrude command toolbar by accepting the live graph node', async () => {
     const { ViewerHost } = await import('./ViewerHost')
+    const { editHistoryStore } = await import('../store/editHistoryStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
     act(() => {
@@ -965,7 +966,20 @@ describe('ViewerHost reference loading', () => {
         (edge) => edge.from.nodeId === liveExtrudeNodeId && edge.to.portId === 'in:solid:s001',
       ),
     ).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Extrude',
+      targetId: liveExtrudeNodeId,
+      targetLabel: 'Extrude',
+    })
     expect(viewerSetExtrudeCommandPreviewOverlay).toHaveBeenLastCalledWith(null)
+
+    act(() => {
+      editHistoryStore.undo()
+    })
+
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === liveExtrudeNodeId),
+    ).toBe(false)
   })
 
   it('cancels the Extrude command toolbar by rolling back the live graph node', async () => {

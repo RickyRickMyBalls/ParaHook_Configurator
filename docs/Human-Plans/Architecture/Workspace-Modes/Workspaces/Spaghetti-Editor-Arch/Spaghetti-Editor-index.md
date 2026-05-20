@@ -3,6 +3,18 @@
 ## Doc Header
 
 ### Doc History
+88. 2026-05-20 14:04:09: Added the `Spaghetti-Editor 9 / Phase 1` stable Extrude part-identity follow-up after console logs showed the first Extrude could be built as `extrude` and later addressed as `extrude#1`; compiled Extrude parts now start numbered at `extrude#1` so repeat Extrude does not rename Object 1 out from under retained display or build-entry matching.
+87. 2026-05-20 13:14:39: Added the `Spaghetti-Editor 9 / Phase 1` new-branch active preview layering follow-up after repeat-Extrude testing showed accepted sibling Extrudes disappeared when typing depth for a third Extrude; new branch overlays now keep accepted siblings as retained base when there is no matching baseline key.
+86. 2026-05-20 10:28:46: Added the `Spaghetti-Editor 9 / Phase 1` auto final build loop guard after console proof showed the worker completed the second Extrude final build and auto mode immediately re-requested it; current accepted authoritative-target bundles now stop same-revision auto follow-through loops even when export-grade authoritative geometry is unavailable.
+85. 2026-05-20 10:16:26: Replaced the `Spaghetti-Editor 9 / Phase 1` undo/redo follow-up after user testing showed the command interaction wrapper tinted retained geometry blue and still did not settle repeat Extrude; accepted Extrude commands now create edit-history graph snapshots from before the live node/auto-wire existed so Undo can remove the committed Extrude.
+84. 2026-05-20 09:52:26: Tightened the shipped `Spaghetti-Editor 9 / Phase 1` fix after undo/redo testing showed the repeat-Extrude graph data and final result could load correctly when history replay flushed state; `ViewerHost` now owns the active Extrude command browser-build interaction so `OK`/`Cancel` releases and promotes staged final results without needing undo/redo.
+83. 2026-05-20 09:15:28: Tightened the shipped `Spaghetti-Editor 9 / Phase 1` fix after screenshot proof showed the post-`OK` repeat-Extrude state still hiding Object 1, adding retained committed final rendering from raw accepted `OutputPreview` artifact VMs when the graph revision has advanced and the committed geometry result has no standalone mesh preview.
+82. 2026-05-20 09:04:52: Marked `Spaghetti-Editor 9 / Phase 1 - Retain Existing Output Entries During Repeat Extrude` shipped after the A/D/F viewport result selector gained retained output-overlap matching for additive repeat-Extrude output slots, keeping the first accepted Extrude visible while a second output slot is pending without changing worker supersession.
+81. 2026-05-20 08:19:45: Prepped `Spaghetti-Editor 9 / Phase 1 - Retain Existing Output Entries During Repeat Extrude` for implementation, narrowing the first code cut to selector-first retained output-entry overlap proof, explicit member-publication safety, stale-result gate preservation, and optional store-level repeat-Extrude coverage only if the selector proof cannot cover the slot-widening path.
+80. 2026-05-20 08:00:24: Added `Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building` as the next workspace-level plan after the repeat-Extrude unload investigation, routing the first fix toward retained output-entry continuity while a second Extrude build is pending before any broader worker diagnostics.
+79. 2026-05-20 00:09: Marked `Spaghetti-Editor 8 / Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` shipped after active Extrude depth sessions began consuming finite Console numeric input for preview updates and `Enter` began committing through the existing live command accept path.
+78. 2026-05-20 00:02:57: Refined `Spaghetti-Editor 8 / Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` so the target flow is now explicitly `Shift+E`, closed-profile click, numeric depth preview update, then `Enter` commit through the existing Extrude accept path.
+77. 2026-05-19 23:55:43: Added `Spaghetti-Editor 8 / Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` to the viewport-first Extrude ladder so the next implementation slice can make preselected-profile `Extrude` starts immediately own numeric depth input instead of asking for another profile or falling through to root Console parsing.
 76. 2026-05-19 22:50:18: Recorded the Phase 3.6 repeat-Extrude cleanup after profile-driven command starts stopped implicitly reusing a selected prior Extrude node, making a second Extrude on the same selected profile create a new `Geometry/Extrude` operation while preserving explicit reused-node editing as a separate opt-in path.
 75. 2026-05-19 22:34:25: Recorded the Phase 3.6 output-preview follow-up after accepted live Extrude command nodes began auto-wiring `SolidBody` into the first open `System/OutputPreview` solid slot when not already published, completing the viewport-command `SketchProfile -> Geometry/Extrude -> OutputPreview` graph chain without creating a second Extrude node.
 74. 2026-05-19 22:21:30: Marked `Spaghetti-Editor 8 / Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout` shipped after toolbar `OK` began accepting the existing live Extrude command node with durable params and committed summaries, while Cancel preserved live graph rollback and no second Extrude node was introduced.
@@ -230,6 +242,7 @@ Current read:
 - `Phase 3 - Root Extrude And Viewport Profile Selection Toolbar` is shipped with live command-session, toolbar, profile-pick, live node, live profile wires, accepted output-preview wiring, profile visual affordance, transient depth preview, durable `OK` acceptance, and Cancel rollback
 - the remaining Phase 3 UX target should read as `Extrude > Select Profiles > Depth`, where closed profiles are visibly selectable, plain profile clicks toggle individual sketch profile rows into or out of the selected set, shift-click selects all compatible profiles in the same sketch, and the depth preview/value appears after selected profiles exist
 - repeated profile-driven Extrude commands are new operations by default; selecting the same closed profile and accepting Extrude again should create a second `Geometry/Extrude` node rather than mutate the prior accepted Extrude
+- `Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` is shipped: active `Extrude > Depth` now consumes finite numeric Console input for transient preview/session depth updates, and `Enter` commits through the existing accept path
 - `Phase 3.1 - Atomic Extrude Graph Commit Repair` is shipped with `authorExtrudeGraphCommand` using a preflighted plan and one atomic commit boundary instead of separate helper-owned node and wire callbacks
 - `Phase 3.2 - Real Extrude Session Owner And Command Tree` is shipped with a shared transient session owner plus Console-visible command-tree projection; the toolbar should later read and dispatch against this owner, not own the Extrude truth itself
 - `Phase 3.2A - Extrude Select Profiles Console Prompt` is shipped as the Console prompt bridge: the active `Extrude > Select Profiles` session now owns the next Console token before root parsing, can resolve text profile choices into transient selected profile sources, and still keeps root `Extrude` as a shortcut into canonical `Graph > Extrude` rather than a duplicate command owner
@@ -244,6 +257,7 @@ Current read:
   - `Phase 3.5B` - shipped viewport profile hover and preselection
   - `Phase 3.5C` - shipped extrude depth preview volume and value feedback
   - `Phase 3.6` - shipped Extrude commit/cancel proof and Phase 3 closeout
+  - `Phase 3.7` - shipped profile-first Extrude numeric depth handoff
 - `Build Path` should later present those accepted graph command commits as a history-style row projection instead of owning separate command geometry
 - Build Path projection and full node arrangement modes remain relevant, but should wait until accepted Sketch/Extrude command commits create enough graph truth to summarize and arrange
 
@@ -663,5 +677,30 @@ Initial phase breakdown:
 - `[x] Spaghetti-Editor 8 - Phase 3.5B - Viewport Profile Hover And Preselection` - shipped first-pass selectable closed-profile fill, white hover highlight, transient profile preselection outside Extrude, same-sketch Shift-click expansion, and Extrude startup seeding into the live auto-wiring path
 - `[x] Spaghetti-Editor 8 - Phase 3.5C - Extrude Depth Preview Volume And Value Feedback` - shipped transient selected-profile cap and depth-driven extrusion preview volume projection, with no-graph-mutation proof before durable OK acceptance
 - `[x] Spaghetti-Editor 8 - Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout` - shipped live command-node accept/cancel closeout: `OK` finalizes durable depth/default params and keeps live profile wires, while Cancel preserves rollback behavior
+- `[x] Spaghetti-Editor 8 - Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` - shipped active `Extrude > Depth` numeric input ownership, live session/preview depth updates from typed finite numbers, and Enter-to-accept through the existing live command commit path
 - `[x] Spaghetti-Editor 8 - Phase 4 - Build Path Projection Handoff` - shipped pure projection contract over accepted graph-command summaries, with cancelled commands skipped and graph ids preserved for later Build Path phases
 - `[x] Spaghetti-Editor 8 - Phase 5 - Background Node Layout And Arrangement Modes` - shipped pure command-created node placement planner before later call-site integration and arrangement-mode UI
+
+### [~] Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+
+#### Purpose
+
+Keep already accepted Extrude output visible while a repeat Extrude adds another `OutputPreview` slot and the new build is still pending.
+
+This phase should separate:
+- valid retained output-entry display continuity
+- new pending output entries
+- worker supersession and diagnostics
+
+Short read:
+- the first accepted Extrude should stay visible after accepting a second Extrude
+- adding a second output slot should not make the viewport treat the whole previous result as invalid
+- stale build-result gates should stay strict
+- worker diagnostics should come after retained display continuity is proven
+
+Initial phase breakdown:
+- `[x] Spaghetti-Editor 9 - Phase 1 - Retain Existing Output Entries During Repeat Extrude` - shipped selector-owned retained output-overlap repair, committed `OutputPreview` artifact fallback, accepted Extrude edit-history snapshots, an auto final build loop guard, and new-branch active preview layering that keeps accepted sibling outputs visible
+- `[ ] Spaghetti-Editor 9 - Phase 2 - Second Build Pending Diagnostics`

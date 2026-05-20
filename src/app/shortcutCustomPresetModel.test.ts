@@ -121,6 +121,7 @@ describe('shortcutCustomPresetModel', () => {
       id: 'viewer-camera-shortcuts:preset-top',
       keyChord: 'Shift+1',
       bindingValue: { kind: 'keyboard', code: 'Digit1', shiftKey: true },
+      contextNote: undefined,
     })
     const flyEntryRow = rowsWithOverrides.find(
       (row) => row.id === 'viewer-fly-mode-entry:fly-mode-entry-right-click-hold',

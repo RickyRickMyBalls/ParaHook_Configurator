@@ -1936,9 +1936,11 @@ export function useConsoleInteraction(
       selectedProfileSources,
     })
     setFeatureAssistDescriptor(
-      buildExtrudeSelectProfilesAssistDescriptor(
-        listExtrudeProfileConsoleChoices(useSpaghettiStore.getState().graph.nodes),
-      ),
+      session.activeStep === 'depth'
+        ? buildExtrudeDepthAssistDescriptor()
+        : buildExtrudeSelectProfilesAssistDescriptor(
+            listExtrudeProfileConsoleChoices(useSpaghettiStore.getState().graph.nodes),
+          ),
     )
     useConsoleStore.getState().setInputText('')
     appendConsoleEntry({
@@ -2199,6 +2201,91 @@ export function useConsoleInteraction(
         appendConsoleEntry({
           layer: 'Commands',
           text: 'Extrude > Select Profiles',
+          source: 'console',
+          severity: 'info',
+        })
+        return
+      }
+      if (activeExtrudeSession?.activeStep === 'depth') {
+        const rawToken = inputText.trim()
+
+        appendConsoleEntry({
+          layer: 'Commands',
+          commandLineKind: 'user',
+          text: `> ${rawToken}`,
+        })
+        if (rawToken.length > 0) {
+          pushCommandHistory(rawToken)
+        }
+
+        if (rawToken.length === 0) {
+          setFeatureAssistDescriptor(buildExtrudeDepthAssistDescriptor())
+          useConsoleStore.getState().setInputText('')
+          appendConsoleEntry({
+            layer: 'Diagnostics',
+            text: 'Extrude depth is waiting for a number.',
+            source: 'console',
+            severity: 'warn',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: 'Extrude > Depth',
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+
+        const depth = Number(rawToken)
+        if (!Number.isFinite(depth) || Math.abs(depth) < 0.000001) {
+          setFeatureAssistDescriptor(buildExtrudeDepthAssistDescriptor())
+          useConsoleStore.getState().setInputText(rawToken)
+          appendConsoleEntry({
+            layer: 'Diagnostics',
+            text: 'Extrude depth must be a non-zero number.',
+            source: 'console',
+            severity: 'warn',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: 'Extrude > Depth',
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+
+        useSpaghettiStore.getState().setExtrudeCommandDepth(depth)
+        const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+        if (summary.lifecycleState !== 'committed') {
+          setFeatureAssistDescriptor(buildExtrudeDepthAssistDescriptor())
+          useConsoleStore.getState().setInputText(rawToken)
+          appendConsoleEntry({
+            layer: 'Diagnostics',
+            text: `Extrude could not commit: ${summary.reason}`,
+            source: 'console',
+            severity: 'warn',
+          })
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: 'Extrude > Depth',
+            source: 'console',
+            severity: 'info',
+          })
+          return
+        }
+
+        setFeatureAssistDescriptor(null)
+        useConsoleStore.getState().setInputText('')
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: `Extrude depth: ${depth}`,
+          source: 'console',
+          severity: 'info',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: 'Extrude committed',
           source: 'console',
           severity: 'info',
         })
@@ -5972,10 +6059,9 @@ export function useConsoleInteraction(
       previousSketchDrawIdleRef.current = isSketchDrawIdle
       return
     }
+    const sketchDrawContext = buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState())
     if (stagedNavigationSession === null) {
-      const sketchDrawRootSession = createSketchDrawRootSession(
-        buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
-      )
+      const sketchDrawRootSession = createSketchDrawRootSession(sketchDrawContext)
       const existingInputText = useConsoleStore.getState().inputText
       setStagedNavigationSession(sketchDrawRootSession)
       if (existingInputText.trim().length > 0) {
@@ -5995,6 +6081,13 @@ export function useConsoleInteraction(
           severity: 'info',
         })
       }
+    }
+    if (
+      stagedNavigationSession?.scopeId === 'sketchDrawRoot' &&
+      !useConsoleStore.getState().isStagedChoiceManualOverride &&
+      useConsoleStore.getState().inputText.trim().length === 0
+    ) {
+      setStagedNavigationSession(createSketchDrawRootSession(sketchDrawContext))
     }
     previousSketchDrawIdleRef.current = isSketchDrawIdle
   }, [
@@ -6148,11 +6241,31 @@ export function useConsoleInteraction(
             listExtrudeProfileConsoleChoices(spaghettiState.graph.nodes),
           ),
     )
+    if (activeExtrudeSession.activeStep === 'depth') {
+      useConsoleStore.getState().setInputText('')
+    }
   }, [
     featureAssistDescriptor,
     setFeatureAssistDescriptor,
     stagedNavigationSession,
   ])
+
+  useEffect(() => {
+    const rawDepthToken = consoleInputText.trim()
+    if (rawDepthToken.length === 0) {
+      return
+    }
+    const spaghettiState = useSpaghettiStore.getState()
+    const activeExtrudeSession = spaghettiState.extrudeCommandSession
+    if (activeExtrudeSession?.activeStep !== 'depth') {
+      return
+    }
+    const nextDepth = Number(rawDepthToken)
+    if (!Number.isFinite(nextDepth) || Object.is(activeExtrudeSession.depth, nextDepth)) {
+      return
+    }
+    useSpaghettiStore.getState().setExtrudeCommandDepth(nextDepth)
+  }, [consoleInputText])
 
   return {
     enterGuidedRootSession,

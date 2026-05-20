@@ -1583,6 +1583,194 @@ describe('selectViewportResultState', () => {
     expect(state.retainedBaseRenderVm.viewerParts).toEqual([])
   })
 
+  it('keeps retained committed final geometry when repeat Extrude adds a pending output slot', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude',
+      },
+      {
+        slotId: 's002',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude#2',
+        status: 'unresolved',
+      },
+    ])
+    previewPreparation.sourceEntriesBySlotId = {
+      s001: [
+        {
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKeyStr: 'extrude',
+          sourcePortId: 'SolidBody',
+        },
+      ],
+      s002: [
+        {
+          slotId: 's002',
+          sourceNodeId: 'node-extrude-2',
+          sourcePartKeyStr: 'extrude#2',
+          sourcePortId: 'SolidBody',
+        },
+      ],
+    }
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-repeat-extrude-first-final',
+        partKeys: ['extrude'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-repeat-extrude-first-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('extrude')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'artifact-preview',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'final',
+        retainedBaseSourceKind: 'retained-final',
+        retainedBaseGeometryResult: committedAuthoritativeGeometryResult,
+        fallbackReason: 'artifact-preview-bridge',
+      }),
+    )
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:s001:node-extrude-1',
+      }),
+    ])
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:authoritative-preview',
+      }),
+    ])
+  })
+
+  it('keeps retained committed final output artifacts when repeat Extrude advances the graph revision', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude',
+      },
+      {
+        slotId: 's002',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude#2',
+        status: 'unresolved',
+      },
+    ])
+    previewPreparation.sourceEntriesBySlotId = {
+      s001: [
+        {
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKeyStr: 'extrude',
+          sourcePortId: 'SolidBody',
+        },
+      ],
+      s002: [
+        {
+          slotId: 's002',
+          sourceNodeId: 'node-extrude-2',
+          sourcePartKeyStr: 'extrude#2',
+          sourcePortId: 'SolidBody',
+        },
+      ],
+    }
+    const firstExtrudeArtifact = createArtifact('extrude')
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-repeat-extrude-first-final',
+        partKeys: ['extrude'],
+      },
+      bodies: {},
+      meshPreview: null,
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-repeat-extrude-first-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      interactionAcceptedOutputPreviewRenderVm: {
+        items: [],
+        viewerParts: [
+          toViewerRenderablePart(
+            firstExtrudeArtifact,
+            'output-entry:s001:node-extrude-1',
+          ),
+        ],
+      },
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: null,
+        visibleSourceKind: 'none',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'final',
+        retainedBaseSourceKind: 'retained-final',
+        retainedBaseGeometryResult: committedAuthoritativeGeometryResult,
+      }),
+    )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:s001:node-extrude-1',
+      }),
+    ])
+    expect(state.layerRecipe.baseParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:s001:node-extrude-1',
+      }),
+    ])
+  })
+
   it('keeps retained committed draft geometry while the current output is temporarily unresolved', () => {
     const previewPreparation = createPreviewPreparation([
       {
@@ -3228,6 +3416,129 @@ describe('selectViewportResultState', () => {
         overlayParts: [
           expect.objectContaining({
             viewerKey: 'output-entry:slot-extrude-2:node-extrude-2',
+          }),
+        ],
+      }),
+    )
+  })
+
+  it('keeps accepted branches visible while a new branch live preview has no matching baseline key', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+      {
+        slotId: 'slot-extrude-3',
+        sourceNodeId: 'node-extrude-3',
+        sourcePartKey: 'extrude-3',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-before-new-branch-preview',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-before-new-branch-preview',
+      },
+    })
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-draft-new-branch-preview',
+        partKeys: ['extrude-3'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const extrude1 = toViewerRenderablePart(
+      createArtifact('extrude-1'),
+      'output-entry:slot-extrude-1:node-extrude-1',
+    )
+    const extrude2 = toViewerRenderablePart(
+      createArtifact('extrude-2'),
+      'output-entry:slot-extrude-2:node-extrude-2',
+    )
+    const extrude3 = toViewerRenderablePart(
+      createArtifact('extrude-3'),
+      'output-entry:slot-extrude-3:node-extrude-3',
+    )
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+      interactionAcceptedOutputPreviewRenderVm: {
+        items: [],
+        viewerParts: [extrude1, extrude2],
+      },
+      interactionAcceptedRebuiltPreviewRenderVm: {
+        items: [],
+        viewerParts: [extrude3],
+      },
+      committedInteractionBaseParts: [extrude1, extrude2],
+      committedInteractionBranchStableParts: [extrude1, extrude2],
+      committedInteractionBasePresentationStateId: 'lastLoaded',
+    })
+
+    expect(state.layerRecipe).toEqual(
+      expect.objectContaining({
+        kind: 'retained-plus-overlay',
+        basePresentationStateId: 'lastLoaded',
+        overlayPresentationStateId: 'previewMesh',
+        overlayOpacity: 0.5,
+        baseParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-1:node-extrude-1',
+          }),
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-2:node-extrude-2',
+          }),
+        ],
+        baselineParts: [],
+        overlayParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-3:node-extrude-3',
           }),
         ],
       }),

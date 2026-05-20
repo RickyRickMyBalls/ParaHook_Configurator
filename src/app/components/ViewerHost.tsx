@@ -652,23 +652,15 @@ export function ViewerHost(props: ViewerHostProps) {
     viewerTargetGraphDocumentId === null
       ? null
       : graphRuntimeByDocumentId[viewerTargetGraphDocumentId] ?? null
-  const isViewerTargetInteractionActive =
-    viewerTargetGraphDocumentId !== null &&
-    browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true &&
-    isInteracting === true
   const interactionPreviewPreparation =
     viewerTargetPreviewPreparation ?? viewerTargetGraphRuntime?.previewPreparation ?? null
   const interactionAcceptedPreviewBuildBundle =
     viewerTargetBuildBundle ??
-    (isViewerTargetInteractionActive
-      ? viewerTargetGraphRuntime?.acceptedPreviewBuildBundle ?? null
-      : null)
+    (viewerTargetGraphRuntime?.acceptedPreviewBuildBundle ?? null)
   const interactionAcceptedPreviewBuildOutputs =
     viewerTargetBuildOutputs.length > 0
       ? viewerTargetBuildOutputs
-      : isViewerTargetInteractionActive
-        ? viewerTargetGraphRuntime?.acceptedPreviewBuildOutputs ?? []
-        : []
+      : (viewerTargetGraphRuntime?.acceptedPreviewBuildOutputs ?? [])
   const committedInteractionBaselineRef = useRef<{
     baseParts: ViewerRenderablePart[]
     branchStableParts: ViewerRenderablePart[]

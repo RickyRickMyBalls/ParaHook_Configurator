@@ -1051,7 +1051,7 @@ describe('compileSpaghettiGraph determinism', () => {
 
     const result = compileSpaghettiGraph(graph)
     expect(result.ok).toBe(true)
-    expect(result.buildInputs?.orderedPartKeys).toEqual(['extrude'])
+    expect(result.buildInputs?.orderedPartKeys).toEqual(['extrude#1'])
 
     const featureIr = result.buildInputs?.resolvedShared?.sp_featureStackIR as
       | {
@@ -1060,7 +1060,7 @@ describe('compileSpaghettiGraph determinism', () => {
         }
       | undefined
 
-    expect(featureIr?.parts?.extrude).toEqual([
+    expect(featureIr?.parts?.['extrude#1']).toEqual([
       {
         op: 'sketch',
         featureId: 'n-sketch',
@@ -1184,7 +1184,7 @@ describe('compileSpaghettiGraph determinism', () => {
         }
       | undefined
 
-    expect(featureIr?.parts?.extrude).toEqual([
+    expect(featureIr?.parts?.['extrude#1']).toEqual([
       {
         op: 'sketch',
         featureId: 'n-sketch',
@@ -1311,7 +1311,7 @@ describe('compileSpaghettiGraph determinism', () => {
         }
       | undefined
 
-    expect(featureIr?.parts?.extrude).toEqual([
+    expect(featureIr?.parts?.['extrude#1']).toEqual([
       {
         op: 'sketch',
         featureId: 'n-sketch',
@@ -1449,7 +1449,7 @@ describe('compileSpaghettiGraph determinism', () => {
         }
       | undefined
 
-    expect(featureIr?.parts?.extrude).toEqual([
+    expect(featureIr?.parts?.['extrude#1']).toEqual([
       {
         op: 'sketch',
         featureId: 'n-sketch-a',
@@ -1778,7 +1778,7 @@ describe('compileSpaghettiGraph determinism', () => {
     })
     expect(result.warnings).toEqual([])
 
-    expect(result.parts.extrude).toEqual([
+    expect(result.parts['extrude#1']).toEqual([
       expect.objectContaining({
         op: 'sketch',
         featureId: 'n-sketch',
@@ -1907,7 +1907,7 @@ describe('compileSpaghettiGraph determinism', () => {
     })
     expect(result.warnings).toEqual([])
 
-    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+    const extrudeOp = result.parts['extrude#1']?.find((operation) => operation.op === 'extrude') as
       | {
           op: 'extrude'
           taperResolved: number
@@ -2001,7 +2001,7 @@ describe('compileSpaghettiGraph determinism', () => {
     })
     expect(result.warnings).toEqual([])
 
-    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+    const extrudeOp = result.parts['extrude#1']?.find((operation) => operation.op === 'extrude') as
       | {
           op: 'extrude'
           extrudeType: 'Body' | 'Walls'
@@ -2098,7 +2098,7 @@ describe('compileSpaghettiGraph determinism', () => {
     })
     expect(result.warnings).toEqual([])
 
-    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+    const extrudeOp = result.parts['extrude#1']?.find((operation) => operation.op === 'extrude') as
       | {
           op: 'extrude'
           extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
@@ -2199,7 +2199,7 @@ describe('compileSpaghettiGraph determinism', () => {
     })
     expect(result.warnings).toEqual([])
 
-    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+    const extrudeOp = result.parts['extrude#1']?.find((operation) => operation.op === 'extrude') as
       | {
           op: 'extrude'
           extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
@@ -2288,7 +2288,7 @@ describe('compileSpaghettiGraph determinism', () => {
     })
     expect(result.warnings).toEqual([])
 
-    const sketchOp = result.parts.extrude?.find((operation) => operation.op === 'sketch') as
+    const sketchOp = result.parts['extrude#1']?.find((operation) => operation.op === 'sketch') as
       | {
           op: 'sketch'
           profilesResolved: Array<{

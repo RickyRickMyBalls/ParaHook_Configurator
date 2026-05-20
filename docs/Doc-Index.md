@@ -4,6 +4,9 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+296. 2026-05-20 15:21:44: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md` to the docs map and refreshed the Model Viewport family index so the Pascal-inspired Clay Studio and SSAO viewport-style lane is discoverable beside display-mode, render-preview, and semantic-topology planning.
+295. 2026-05-20 08:00:24: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md` to the docs map and refreshed the Spaghetti editor family index so the repeat-Extrude retained-output repair plan is discoverable beside the active viewport command and build pipeline planning lanes.
+294. 2026-05-20 00:15:48: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md` to the docs map and refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the camera snap shortcut priority repair is discoverable beside the existing `View-Toolbar` future phase ladder.
 293. 2026-05-19 22:08:52: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md` to the docs map and refreshed `Sketch-Index2.md` so Generation 2 now has a planned Browser projection lane for expandable `SketchProfiles` and individual `SketchProfile` closed-loop rows.
 292. 2026-05-19 00:42:25: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md` and refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md` so background-created command nodes now have a planned neat layout and later arrangement-mode lane.
 291. 2026-05-19 00:36:42: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md` to the docs map, refreshed the Spaghetti editor family index, and updated the Build Path index so viewport-first command commits are now planned as graph-authored Spaghetti nodes and wires that later feed Build Path as a history projection.
@@ -888,6 +891,10 @@ Rule notes:
             - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.1 - Shared Geometry IR And Result Contract.md`
             - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.2 - Draft Preview Execution And Viewport Swap Rules.md`
             - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
 ###### -------------Radio
             - `Workspaces/Radio/Radio.md`
 ###### -------------Spaghetti-Editor-Arch
@@ -899,6 +906,7 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 5 - Meatball Dock Persistence Across Split Layouts.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
 ####### --------------Shipped
             - `Workspaces/Spaghetti-Editor-Arch/Shipped/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
 ####### --------------Nodes
@@ -1046,6 +1054,8 @@ Rule notes:
             - `Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
             - `Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`
             - `Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md`
 #### -------Viewport-HUD
             - `Viewport-HUD/Viewport-HUD-Index.md`
         ##### ------------Future

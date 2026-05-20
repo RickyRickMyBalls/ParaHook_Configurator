@@ -72,6 +72,422 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1999 -->
+
+### [1999] - 2026-05-20 14:04 - `Spaghetti-Editor 9 - Phase 1 - Stable Extrude Part Identity`
+
+HUMAN SUMMARY: ``Repeat Extrude no longer renames the first compiled Extrude from `extrude` to `extrude#1` after a second Extrude is added. The compiler now gives `Geometry/Extrude` parts stable numbered keys from the first operation, so retained display, preview preparation, build requests, and worker cache identity all speak the same language across the first and second Extrude.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside compiler part-key identity and its direct test expectations.
+- Preserved existing numbered identity behavior for `toeHook` and `heelKick`.
+- Did not change worker scheduling, graph authoring, Extrude command flow, or Browser presentation behavior.
+
+#### Summary of Implementation
+
+- Updated `compileGraph` so `extrude` is always an explicitly numbered part family.
+- Updated compiler, build-request, preview-preparation, and preview-render VM tests to expect the stable `extrude#1` key where runtime compiler output is involved.
+- Refreshed the preview-render VM snapshot for the existing `topologyPreview: null` viewer-part contract exposed by the focused verification pass.
+
+#### Files Changed
+
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/__snapshots__/selectPreviewRenderVm.test.ts.snap`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The first compiled Extrude keeps the same part identity before and after later Extrudes are added, preventing retained viewport output and worker build entries from losing track of Object 1 during repeat Extrude.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/compiler/compileGraph.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/previewPreparation.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/app/store/useAppStore.test.ts -t "auto authoritative follow-through"`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "confirms the Extrude command toolbar by accepting the live graph node"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1998 -->
+
+### [1998] - 2026-05-20 13:14 - `Spaghetti-Editor 9 - Phase 1 - New Branch Preview Retains Accepted Siblings`
+
+HUMAN SUMMARY: ``Active repeat-Extrude preview now keeps already accepted sibling Extrudes visible when the preview is for a brand-new output branch. The branch-local layer recipe falls back to retained base plus overlay when the new preview has no matching baseline key, so typing depth for Extrude 3 should not hide Extrudes 1 and 2.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside viewport layer recipe selection.
+- Preserved branch-local baseline dimming when an existing output branch is being rebuilt.
+- Did not change graph authoring, worker scheduling, build request scoping, or Browser presentation.
+
+#### Summary of Implementation
+
+- Updated branch-local retained preview layering so a new output branch with no overlapping viewer key still renders accepted stable sibling parts as the base.
+- Added a selector regression for two accepted Extrude branches plus a new third branch live preview.
+
+#### Files Changed
+
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Starting a new repeat Extrude branch and typing a depth should show accepted sibling Extrudes underneath the active preview instead of replacing the scene with only the new preview body.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "confirms the Extrude command toolbar by accepting the live graph node"`
+- `npm.cmd test -- src/app/store/useAppStore.test.ts -t "auto authoritative follow-through"`
+
+<!-- ENTRY 1997 -->
+
+### [1997] - 2026-05-20 10:28 - `Spaghetti-Editor 9 - Phase 1 - Auto Final Build Loop Guard`
+
+HUMAN SUMMARY: ``Auto viewer final follow-through now stops after accepting a current authoritative-target build bundle, even when that build did not include reusable export-grade authoritative geometry. This fixes the repeated `Requested graph build` / `Build complete` console loop that kept repeat Extrude stuck on `Building Final...`.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside auto viewer build follow-through scheduling.
+- Preserved explicit export behavior for revisions that still lack reusable authoritative geometry.
+- Did not change worker supersession, Extrude graph authoring, or Browser presentation behavior.
+
+#### Summary of Implementation
+
+- Added an auto follow-through guard for current accepted authoritative-target build bundles in `maybeRequestAutoViewportAuthoritativeFollowThrough(...)`.
+- Added a regression proving auto mode requests draft, follows with one authoritative build, accepts an artifact-only authoritative result, and does not request the same authoritative build again.
+
+#### Files Changed
+
+- `src/app/store/builds/appStoreBuildSubscriptions.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- A completed current final-target build no longer causes auto mode to immediately requeue the same final build just because `acceptedAuthoritativeGeometryResult` is still unavailable.
+- The HUD can stop treating the graph as perpetually `Building Final...` when the worker has already completed the current final-target artifact build.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/useAppStore.test.ts -t "auto authoritative follow-through"`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "confirms the Extrude command toolbar by accepting the live graph node"`
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+<!-- ENTRY 1996 -->
+
+### [1996] - 2026-05-20 10:16 - `Spaghetti-Editor 9 - Phase 1 - Extrude Accept Edit History Follow-Up`
+
+HUMAN SUMMARY: ``Extrude `OK` now creates a real edit-history entry for the accepted graph command. The undo snapshot is captured before the live Extrude node and auto-wire exist, so Undo can remove the last committed Extrude instead of leaving the new operation behind.``
+
+#### Scope / Constraints Honored
+
+- Replaced the prior command interaction wrapper because it made retained geometry look like active preview geometry.
+- Kept the fix inside the existing Extrude command accept and edit-history snapshot model.
+- Did not change worker scheduling, OutputPreview slot normalization, or Browser layout behavior.
+
+#### Summary of Implementation
+
+- Removed the `ViewerHost` Extrude command browser-build interaction wrapper that tinted retained geometry blue.
+- Updated `acceptExtrudeCommandSession()` to commit a graph-structure edit-history entry after successful Extrude accept.
+- Captured the undo graph by rolling back the live Extrude command graph before accept, covering both the live node and its profile/output auto-wires.
+- Extended the focused ViewerHost Extrude `OK` test to prove the edit-history entry exists and Undo removes the accepted live Extrude node.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Confirming an Extrude records an `Extrude` edit-history item.
+- Undo after confirming an Extrude restores the graph to the pre-command state, removing the live Extrude node and auto-wires for new Extrude commands.
+- Active repeat-Extrude preview no longer turns the retained first Extrude blue because the removed interaction wrapper no longer marks the command as a browser build interaction.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "confirms the Extrude command toolbar by accepting the live graph node"`
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude"`
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1995 -->
+
+### [1995] - 2026-05-20 09:52 - `Spaghetti-Editor 9 - Phase 1 - Repeat Extrude Command Interaction Release Follow-Up`
+
+HUMAN SUMMARY: ``Repeat Extrude no longer relies on Undo/Redo to flush a completed second Extrude into view. The active Extrude command session is now bracketed as a browser build interaction, so closing the toolbar through `OK` or `Cancel` releases the interaction and lets staged final results promote normally.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix in `ViewerHost` command lifecycle ownership.
+- Did not change worker scheduling, graph commit semantics, or OutputPreview slot wiring.
+- Preserved the existing build release path instead of adding a new promotion path.
+
+#### Summary of Implementation
+
+- Updated `ViewerHost` to begin a browser build interaction while an Extrude command session is active.
+- Released that interaction when the Extrude command session closes, which lets staged final results promote after `OK`/`Cancel`.
+- Extended the focused Extrude toolbar commit test to prove the interaction starts while the toolbar is active and clears after confirmation.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- After confirming or cancelling an active viewport Extrude command, any staged final build result can settle without requiring a follow-up undo/redo cycle.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "confirms the Extrude command toolbar by accepting the live graph node"`
+- `npm.cmd test -- src/app/store/useAppStore.test.ts -t "keeps auto authoritative follow-through scoped"`
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+<!-- ENTRY 1994 -->
+
+### [1994] - 2026-05-20 09:15 - `Spaghetti-Editor 9 - Phase 1 - Repeat Extrude Committed Artifact Retention Follow-Up`
+
+HUMAN SUMMARY: ``The repeat-Extrude retention fix now covers the real post-OK state shown in screenshots. When the graph revision advances for the second Extrude and the committed final geometry has no standalone mesh preview, the viewport can still render the first accepted body from the raw accepted OutputPreview artifact VM instead of hiding it during Building Final.``
+
+#### Scope / Constraints Honored
+
+- Kept the follow-up inside viewer/viewport result presentation.
+- Preserved current-revision gates for normal accepted preview selectors.
+- Used raw accepted preview data only as a retained committed-base render fallback.
+- Did not change worker supersession, build acceptance, Extrude command commit semantics, or OutputPreview slot wiring.
+
+#### Summary of Implementation
+
+- Updated `ViewerHost` so retained-base presentation can still build an accepted OutputPreview VM from raw runtime artifacts after the graph revision advances.
+- Updated `selectViewportResultState` so committed final retained base rendering can fall back to that accepted OutputPreview VM when the committed geometry result has no mesh preview of its own.
+- Added a selector regression for the screenshot-shaped case: accepted preview outputs hidden from the normal current selector, committed final geometry truth still present, and current OutputPreview widened with a pending second Extrude slot.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- After committing repeat Extrude 2, the first accepted Extrude can remain visible during `Building Final...` even when its retained renderable comes from accepted OutputPreview artifacts rather than `meshPreview`.
+- Normal current accepted preview visibility still stays revision-gated.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "does not render branch-local yellow draft overlay"`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx` timed out in this workspace before returning results.
+- `npm.cmd run build`
+
+<!-- ENTRY 1993 -->
+
+### [1993] - 2026-05-20 09:04 - `Spaghetti-Editor 9 - Phase 1 - Retain Existing Output Entries During Repeat Extrude`
+
+HUMAN SUMMARY: ``Repeat Extrude viewport retention now keeps already-built output visible when a new output slot is pending. The A/D/F selector can retain committed final or draft base geometry when current OutputPreview candidates add a new part key, while explicit `SolidBody:*` member publication still clears retained truth as a real dependency break.``
+
+#### Scope / Constraints Honored
+
+- Kept the production change inside viewport result selection.
+- Preserved strict current-result matching so retained old geometry does not masquerade as a complete current result.
+- Preserved explicit `SolidBody:*` subset publication as a dependency-break guard.
+- Preserved worker supersession and stale build-result gates.
+- Did not change Extrude command accept semantics, profile picking, or worker scheduling.
+
+#### Summary of Implementation
+
+- Added retained output-overlap matching beside the existing exact output-set matching helper.
+- Allowed retained base selection when every committed retained part key still appears in the current output candidate set, even if a new repeat-Extrude output slot adds a pending part key.
+- Kept exact current authoritative/draft visibility checks strict.
+- Added a focused selector regression for one accepted first Extrude output plus one pending second Extrude output.
+- Closed the Phase 1 planning checklist and recorded Phase 2 worker diagnostics as still separate.
+
+#### Files Changed
+
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Accepting a second repeat Extrude no longer clears the first accepted Extrude solely because the current output candidate set widened.
+- The viewport can now carry a retained final base while the current artifact preview has an added pending output slot.
+- Real member-publication dependency breaks still clear retained geometry.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts` failed on unrelated dirty-worktree expectation drift in `selectPreviewRenderVm.test.ts` and `useSpaghettiStore.test.ts`.
+- `npm.cmd run build`
+
+<!-- ENTRY 1992 -->
+
+### [1992] - 2026-05-20 08:35 - `Spaghetti-Editor 8 - Phase 3.7 - Profile-First Extrude Depth Prompt Clear`
+
+HUMAN SUMMARY: ``Profile-first viewport Extrude starts now land directly in the numeric depth prompt with an empty Console input. A stale guided root value such as `Graph` no longer survives the Shift+E handoff when a closed sketch profile is already selected, while Sketch Draw still restores the last-tool prefill after finishing a tool.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside the existing Console assist and active Extrude command-session handoff.
+- Preserved profile-selection-first Extrude behavior when no closed sketch profile is preselected.
+- Preserved the existing numeric depth update and Enter-to-commit path.
+- Did not add new command syntax, viewport picking modes, or graph mutation behavior.
+
+#### Summary of Implementation
+
+- Updated the root Extrude starter so sessions seeded with valid viewport sketch-profile selections install the `Extrude > Depth` assist immediately instead of briefly installing `Extrude > Select Profiles`.
+- Hardened Console assist state clearing so stale staged-navigation values are cleared when switching into a value prompt with no choices.
+- Cleared the Console input during the active Extrude depth-assist sync path to prevent a root prompt token from reappearing after the command session starts.
+- Refreshed the idle Sketch Draw staged session from the current sketch context when the input is empty so finishing a draw tool still restores the last-used tool prefill.
+- Added focused Console regression proof for `Graph` being present before viewport Shift+E, a selected closed sketch profile, and an empty numeric depth field after Extrude starts.
+
+#### Files Changed
+
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Starting Extrude from the viewport with a preselected closed sketch profile now immediately shows `Extrude > Depth` and leaves the Console input empty for numeric depth entry.
+- The Console no longer keeps root guided input such as `Graph` when the next active command prompt expects a freeform number.
+- Sketch Draw still preloads the previous draw tool, such as `Rectangle`, when a command returns to idle after point entry.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "starts viewport Extrude at depth with a selected sketch profile and clears root prompt input|starts root Extrude from the viewport Shift\\+E shortcut|updates active Extrude depth from Console typing and commits on Enter"`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "accepts typed vec2 submissions during an active Rectangle command and returns to idle after the second point|re-arms the last draw tool when enter is pressed again from idle sketch draw|prefills and cycles sketch draw feature assist choices after staged launch|starts viewport Extrude at depth with a selected sketch profile and clears root prompt input"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1991 -->
+
+### [1991] - 2026-05-20 00:37 - `View-Toolbar 9 - Phase 1 - Priority-Aware Camera Snap Shortcuts`
+
+HUMAN SUMMARY: ``Camera snap shortcuts now respect the Console input priority setting. In Console-first mode, camera snaps use shifted numpad keys so plain numpad input can flow to Console; in Shortcuts-first mode, plain numpad camera snaps stay instant. Custom camera bindings remain exact-match and conflict-safe.``
+
+#### Scope / Constraints Honored
+
+- Reused the existing `consoleInputPriorityMode` preference instead of adding a new camera setting.
+- Kept shared `inputRouting` as the keyboard owner arbitration point.
+- Preserved custom camera shortcut override behavior as exact effective binding matches.
+- Preserved existing `Zoom Object` priority behavior.
+- Did not add new camera snap actions such as `Bottom`, `Iso`, `Rear`, or `Reset`.
+
+#### Summary of Implementation
+
+- Made built-in camera preset shortcut resolution priority-aware in `cameraShortcuts`.
+- Updated the active viewer camera shortcut runtime so uncustomized, conflict-free built-in preset rows use the priority-aware base resolver.
+- Kept customized camera preset rows on exact effective binding matching.
+- Added Settings shortcut inventory context text for built-in camera snap rows so the Console-first versus Shortcuts-first behavior is visible without changing editable binding values.
+- Added focused resolver, runtime, routing, hook, inventory, and custom-preset regression proof.
+
+#### Files Changed
+
+- `src/app/cameraShortcuts.ts`
+- `src/app/cameraShortcuts.test.ts`
+- `src/app/viewerCameraShortcutRuntime.ts`
+- `src/app/viewerCameraShortcutRuntime.test.ts`
+- `src/app/inputRouting.test.ts`
+- `src/app/useViewerCameraShortcuts.test.tsx`
+- `src/app/shortcutInventoryReadModel.ts`
+- `src/app/shortcutInventoryReadModel.test.ts`
+- `src/app/shortcutCustomPresetModel.ts`
+- `src/app/shortcutCustomPresetModel.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Console first` plus plain `Numpad2/4/5/6/8` no longer triggers camera snaps.
+- `Console first` plus `Shift+Numpad2/4/5/6/8` triggers the matching camera snap.
+- `Shortcuts first` plus plain `Numpad2/4/5/6/8` still triggers the matching camera snap.
+- Settings shortcut inventory now explains the priority-mode behavior for built-in camera snap rows.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/cameraShortcuts.test.ts src/app/viewerCameraShortcutRuntime.test.ts src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx src/app/shortcutInventoryReadModel.test.ts src/app/shortcutCustomPresetModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1990 -->
+
+### [1990] - 2026-05-20 00:09 - `Spaghetti-Editor 8 - Phase 3.7 - Profile-First Extrude Numeric Depth Handoff`
+
+HUMAN SUMMARY: ``Active Extrude depth entry now behaves like a real viewport command prompt. After starting Extrude and selecting a closed profile, typing a finite number updates the live Extrude preview/session depth, and Enter commits that live command through the existing graph-owned accept path.``
+
+#### Scope / Constraints Honored
+
+- Reused the existing active Extrude command session and Phase 3.6 accept/finalize path.
+- Kept numeric depth edits transient until Enter or toolbar `OK` accepts the command.
+- Preserved live profile auto-wires and OutputPreview accept wiring.
+- Blocked invalid depth input from falling through to unrelated root commands while `Extrude > Depth` owns input.
+
+#### Summary of Implementation
+
+- Added a session/store depth update path for active Extrude command sessions.
+- Routed Console input while active Extrude is in the `depth` step so finite numeric text updates `extrudeCommandSession.depth`.
+- Added Enter-to-commit handling for active Extrude depth input, including invalid-depth diagnostics.
+- Added focused Console proof for `Extrude -> Profile 1 -> 50 -> Enter`, with live depth update before submit and durable `Geometry/Extrude.depthMm` after commit.
+
+#### Files Changed
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Typing a finite number while `Extrude > Depth` is active now updates the active Extrude depth and preview before acceptance.
+- Pressing Enter with a valid active Extrude depth commits the live Extrude node through `acceptExtrudeCommandSession()`.
+- Non-numeric and zero depth input stays inside the active Extrude prompt with a diagnostic instead of being parsed as a root command.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "updates active Extrude depth" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "Extrude" --reporter verbose`
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1989 -->
 
 ### [1989] - 2026-05-19 23:49 - `Sketch - 3 Phase 4 - Outside-Extrude Empty Viewport Deselect`

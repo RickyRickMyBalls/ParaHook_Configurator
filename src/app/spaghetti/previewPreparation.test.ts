@@ -98,14 +98,14 @@ describe('prepareGraphPreviewPreparation', () => {
       {
         slotId: 's001',
         sourceNodeId: 'node-extrude-1',
-        sourcePartKeyStr: 'extrude',
+        sourcePartKeyStr: 'extrude#1',
         sourcePortId: 'SolidBody',
         memberIndex: 0,
       },
       {
         slotId: 's001',
         sourceNodeId: 'node-extrude-1',
-        sourcePartKeyStr: 'extrude',
+        sourcePartKeyStr: 'extrude#1',
         sourcePortId: 'SolidBody',
         memberIndex: 1,
       },
@@ -134,7 +134,7 @@ describe('prepareGraphPreviewPreparation', () => {
       {
         slotId: 's001',
         sourceNodeId: 'node-extrude-1',
-        sourcePartKeyStr: 'extrude',
+        sourcePartKeyStr: 'extrude#1',
         sourcePortId: 'SolidBody',
       },
     ])
@@ -162,7 +162,7 @@ describe('prepareGraphPreviewPreparation', () => {
       {
         slotId: 's001',
         sourceNodeId: 'node-extrude-1',
-        sourcePartKeyStr: 'extrude',
+        sourcePartKeyStr: 'extrude#1',
         sourcePortId: 'SolidBody',
       },
     ])

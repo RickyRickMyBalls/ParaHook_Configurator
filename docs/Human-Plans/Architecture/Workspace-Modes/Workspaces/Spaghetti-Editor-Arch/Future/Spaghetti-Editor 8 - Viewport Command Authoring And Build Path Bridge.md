@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+50. 2026-05-20 00:09: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` by adding active Extrude depth session updates, Console live numeric depth routing, Enter-to-accept behavior through the existing graph-owned accept path, and focused Console proof for `Extrude -> Profile 1 -> 50 -> Enter`.
+49. 2026-05-20 00:02:57: Refined `Spaghetti-Editor 8 / Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` around the desired keyboard-first flow: `Shift+E`, click a closed profile, type a number such as `50` to update the preview, then press `Enter` to commit the active Extrude command, while still preserving `Cancel` as rollback.
+48. 2026-05-19 23:55:43: Added `Spaghetti-Editor 8 / Phase 3.7 - Profile-First Extrude Numeric Depth Handoff` as the next implementation-ready viewport Extrude slice, capturing that when the user selects one or more closed profiles first and then starts `Extrude`, ParaHook should immediately be looking for a numeric depth value through the active `Extrude > Depth` command owner instead of asking for another profile or falling back to root command parsing.
 47. 2026-05-19 22:50:18: Added the Phase 3.6 repeat-Extrude cleanup so profile-driven `Extrude` starts now create a new `Geometry/Extrude` command node by default even when a previous accepted Extrude node is still selected, while reused-node editing remains an explicit opt-in path for future edit flows.
 46. 2026-05-19 22:34:25: Added the Phase 3.6 output-preview follow-up so accepting a live Extrude command now auto-wires the accepted `Geometry/Extrude.SolidBody` output into the first open `System/OutputPreview` solid slot when that Extrude node is not already published, preserving the no-second-Extrude rule and the existing OutputPreview slot normalization contract.
 45. 2026-05-19 22:21:30: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout` by adding the store-owned `acceptExtrudeCommandSession()` live-node finalizer, wiring toolbar `OK` through it, writing durable Extrude depth/default operation params onto the live node, preserving live profile wires, returning committed/cancelled command summaries, clearing transient preview/session state after accept, and preserving Cancel rollback behavior without creating a second Extrude node.
@@ -674,6 +677,7 @@ Extrude
 - `Phase 3.5B` - add viewport profile hover, fill, selected state, and preselection handoff
 - `Phase 3.5C` - add transient depth preview volume and viewport value feedback
 - `Phase 3.6` - commit/cancel proof and Phase 3 closeout
+- `Phase 3.7` - profile-first Extrude numeric depth handoff
 
 ## [x] `Spaghetti-Editor 8 / Phase 3.1` - `Atomic Extrude Graph Commit Repair`
 
@@ -2201,6 +2205,114 @@ Phase 3.6 is shipped. Toolbar `OK` accepts the live Extrude command node as dura
 - Returned committed/cancelled graph command summaries for accept attempts.
 - Wired the viewport toolbar `OK` button to the store-owned accept action.
 - Added focused store and toolbar proof for new live-node accept, reused live-node accept, invalid accept rejection, preview/session clearing, and Cancel rollback preservation.
+
+## [x] `Spaghetti-Editor 8 / Phase 3.7` - `Profile-First Extrude Numeric Depth Handoff`
+
+### Phase 3.7 Summary
+
+Make the viewport-first Extrude path behave like a real CAD command prompt.
+
+When the user starts `Extrude` with `Shift+E`, clicks one or more closed sketch profiles, and then types a number, ParaHook should treat that number as the active Extrude depth. The typed number should update the transient preview, and pressing `Enter` should commit the active Extrude command.
+
+Current status: shipped. Profile-selected Extrude sessions now route directly into `Extrude > Depth` numeric input ownership, typing a finite number updates the active Extrude command depth/preview before acceptance, and `Enter` commits the live command through the existing store-owned accept path while toolbar `OK` remains equivalent.
+
+### Phase 3.7 Implementation Spec
+
+#### Purpose
+
+Close the remaining command-conversation gap after viewport profile selection:
+
+```text
+Shift+E
+  -> click closed profile
+    -> type number
+      -> preview updates
+        -> Enter commits / Cancel rolls back
+```
+
+This is not a new graph-authoring model. It is command input routing for the already-shipped live Extrude session.
+
+#### Owns
+
+- supporting the keyboard-first flow where `Shift+E` starts Extrude before the user clicks a closed profile
+- ensuring the active session moves to `depth` step immediately after a valid profile is selected
+- making Console/keyboard submit route numeric tokens to the active Extrude depth owner while `extrudeCommandSession.activeStep === 'depth'`
+- updating the active Extrude session depth value from a finite numeric token
+- keeping the transient preview volume/value feedback in sync with that depth value
+- keeping the model-viewport toolbar depth readout in sync with the numeric input
+- routing `Enter` after a numeric depth value to the durable accept/finalize action
+- preserving toolbar `OK` as an equivalent durable accept path
+- preserving `Cancel` as rollback for command-owned live graph work
+- focused tests proving `Shift+E -> profile click -> number -> Enter` updates preview first and commits only on `Enter`
+
+#### Does Not Own
+
+- drag-handle depth editing
+- taper input
+- boolean operation variants
+- imported face picking
+- generic planar face extrusion outside graph-authored sketch profiles
+- settings-backed profile/preview colors
+- Build Path UI
+- node arrangement UI
+
+#### Likely Code Surfaces
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+  - add a depth-update helper if one does not already exist
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - expose the store action that updates active Extrude command depth without accepting
+- `src/app/console/useConsoleInteraction.ts`
+  - route numeric submit while active Extrude is in `depth`
+  - route the next Enter after numeric depth entry to `acceptExtrudeCommandSession()`
+  - keep non-numeric tokens diagnostic/blocked instead of falling through to root commands
+- `src/app/components/ViewerHost.tsx`
+  - should already read session depth for toolbar and preview; add proof if the numeric route updates it
+- focused tests in:
+  - `src/app/console/ConsoleDock.test.tsx` or `src/app/console/useConsoleInteraction` coverage if available
+  - `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+  - `src/app/components/ViewerHost.test.tsx`
+
+#### Expected Behavior
+
+- `Shift+E` starts `Extrude > Select Profiles` when no profile is already selected.
+- Clicking a valid closed profile while Extrude is active moves the command to `Extrude > Depth`.
+- If a valid profile was selected before `Extrude`, the command may start directly at `Extrude > Depth`.
+- The Console assist/status should communicate that the next input is depth/number.
+- Typing a finite number such as `50` while `Extrude > Depth` is active updates `extrudeCommandSession.depth` to `50`.
+- Updating the depth this way updates the transient preview overlay and toolbar readout.
+- The graph remains live-command truth only; depth is not durable until the user presses `Enter` or toolbar `OK`.
+- Pressing `Enter` after the numeric depth value commits the active Extrude through the existing accept/finalize path.
+- Non-numeric depth input should not start unrelated root commands while the active Extrude command owns input.
+
+#### No-Widening Rule
+
+Do not auto-accept merely because a number was typed. A number should update command depth and preview; the following `Enter` commits.
+
+Do not create another profile-selection model. Profile-first startup should keep using `viewportSelectedSketchProfiles` and active Extrude `selectedProfileSources`.
+
+Do not create a second Extrude node for numeric entry. The live Extrude node is created at command start, and numeric depth edits only change active session/preview until `OK`.
+
+#### Verification Shape
+
+```powershell
+cmd /c npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude" --reporter verbose
+cmd /c npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command" --reporter verbose
+cmd /c npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "Extrude" --reporter verbose
+cmd /c npm.cmd run build
+```
+
+#### Done Shape
+
+Phase 3.7 is done when a user can press `Shift+E`, click a closed profile, type a numeric depth value such as `50`, see the active Extrude session, toolbar, and transient preview use that number without accepting yet, then press `Enter` to commit the live Extrude command through the same graph-owned accept path as toolbar `OK`.
+
+### Phase 3.7 Shipped Notes
+
+- Added a store/session depth update path for active Extrude command sessions.
+- Routed Console input while `Extrude > Depth` is active so finite numeric text updates the transient Extrude session depth instead of falling through to root commands.
+- Preserved non-numeric/zero depth input as blocked diagnostic input while the active Extrude command still owns the prompt.
+- Routed `Enter` with a valid depth to `acceptExtrudeCommandSession()`, so committed Extrude nodes receive durable `depthMm` params and existing live profile/output-preview wires are finalized through the shipped Phase 3.6 accept path.
+- Added Console proof for `Extrude -> Profile 1 -> 50 -> Enter`, including live depth update before submit and durable `Geometry/Extrude` params after commit.
 
 ## [x] `Spaghetti-Editor 8 / Phase 4` - `Build Path Projection Handoff`
 

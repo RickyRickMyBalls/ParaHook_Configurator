@@ -115,6 +115,14 @@ export const setExtrudeCommandSessionProfileSources = (
   }
 }
 
+export const setExtrudeCommandSessionDepth = (
+  session: ExtrudeCommandSession,
+  depth: number,
+): ExtrudeCommandSession => ({
+  ...session,
+  depth,
+})
+
 export const setExtrudeCommandSessionLiveGraphState = (
   session: ExtrudeCommandSession,
   liveGraph: ExtrudeCommandLiveGraphState | null,

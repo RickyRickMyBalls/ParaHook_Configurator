@@ -5112,6 +5112,74 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('does not loop auto authoritative follow-through after a current authoritative bundle is accepted', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    resetStoreWithManifestReferences(useAppStore)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const requestBuildSpy = vi
+      .spyOn(buildDispatcher, 'requestGraphBuild')
+      .mockReturnValueOnce(811)
+      .mockReturnValueOnce(812)
+      .mockReturnValueOnce(813)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    useSpaghettiStore.getState().setGraph(createParallelExtrudeOutputPreviewGraph())
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    const draftRequest = requestBuildSpy.mock.calls[0]?.[0]
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 811,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: draftRequest!.routingIdentity!.buildRequestId,
+        artifacts: [createExtrudeArtifact('extrude#2')],
+        executionIntent: draftRequest!.executionIntent,
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: draftRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['extrude#2'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(2)
+    const authoritativeRequest = requestBuildSpy.mock.calls[1]?.[0]
+    expect(authoritativeRequest).toEqual(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        }),
+      }),
+    )
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 812,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: authoritativeRequest!.routingIdentity!.buildRequestId,
+        artifacts: [createExtrudeArtifact('extrude#2')],
+        executionIntent: authoritativeRequest!.executionIntent,
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(2)
+  })
+
   it('stages release-authoritative follow-through after an auto draft build accepts current truth', async () => {
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')

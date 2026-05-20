@@ -637,6 +637,26 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Console-first shifted numpad camera snaps before flat console capture', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: '4',
+        code: 'Numpad4',
+        shiftKey: true,
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
   it('routes custom active viewer camera shortcuts before flat console capture', () => {
     useShortcutPreferencesStore.getState().setShortcutBindingOverrides([
       {
@@ -746,6 +766,44 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Shortcuts-first plain numpad camera snaps before console capture', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: '4',
+        code: 'Numpad4',
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
+  it('lets Console-first plain numpad input fall through to console capture', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: '4',
+        code: 'Numpad4',
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+    })
+
+    expect(result).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
   it('does not route Shortcuts-first Shift+Z as the active viewer camera shortcut', () => {
     const result = routeKeyboardInput({
       event: {
@@ -787,6 +845,7 @@ describe('routeKeyboardInput', () => {
       event: {
         key: '5',
         code: 'Numpad5',
+        shiftKey: true,
         target: null,
       },
       editHistoryCanUndo: true,
