@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+293. 2026-05-19 22:08:52: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md` to the docs map and refreshed `Sketch-Index2.md` so Generation 2 now has a planned Browser projection lane for expandable `SketchProfiles` and individual `SketchProfile` closed-loop rows.
 292. 2026-05-19 00:42:25: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md` and refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md` so background-created command nodes now have a planned neat layout and later arrangement-mode lane.
 291. 2026-05-19 00:36:42: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md` to the docs map, refreshed the Spaghetti editor family index, and updated the Build Path index so viewport-first command commits are now planned as graph-authored Spaghetti nodes and wires that later feed Build Path as a history projection.
 290. 2026-05-17 14:57:56: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md` to the docs map and refreshed the Spaghetti editor family index so the new HLG plan for fast draft mesh feedback, separate authoritative B-rep generation, Auto draft-to-final swapping, and authoritative-only export truth is discoverable.
@@ -903,6 +904,13 @@ Rule notes:
 ####### --------------Nodes
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-List.md`
+######## ---------------Sketch
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+######### ----------------Future2
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
 ######## ---------------Loft
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md`
 ##### ------------Future

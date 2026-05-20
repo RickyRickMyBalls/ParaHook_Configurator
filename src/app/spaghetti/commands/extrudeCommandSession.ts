@@ -7,7 +7,7 @@ import {
   listSketchProfileMemberOutputPorts,
   parseSketchProfileMemberPortId,
 } from '../families/Geometry/contracts/sketchExtrudeProfileContract'
-import type { SpaghettiNode } from '../schema/spaghettiTypes'
+import type { SpaghettiEdge, SpaghettiNode } from '../schema/spaghettiTypes'
 
 export const EXTRUDE_COMMAND_PATH = ['Extrude', 'Select Profiles', 'Depth'] as const
 
@@ -16,6 +16,13 @@ export type ExtrudeCommandStep = 'selectProfiles' | 'depth'
 export type ExtrudeCommandValidationState = 'needsProfiles' | 'readyForDepth'
 
 export type ExtrudeCommandOperationMode = 'newBody'
+
+export type ExtrudeCommandLiveGraphState = {
+  liveExtrudeNodeId: string
+  createdExtrudeNodeId: string | null
+  commandOwnedProfileEdgeIds: readonly string[]
+  replacedProfileEdges: readonly SpaghettiEdge[]
+}
 
 export type ExtrudeCommandSession = {
   commandFamily: 'Extrude'
@@ -28,6 +35,7 @@ export type ExtrudeCommandSession = {
   operationMode: ExtrudeCommandOperationMode
   validation: ExtrudeCommandValidationState
   commandPath: typeof EXTRUDE_COMMAND_PATH
+  liveGraph: ExtrudeCommandLiveGraphState | null
 }
 
 export type CreateExtrudeCommandSessionOptions = {
@@ -35,6 +43,8 @@ export type CreateExtrudeCommandSessionOptions = {
   entryPoint: GraphCommandEntryPoint
   selectedProfileSources?: readonly ExtrudeGraphCommandProfileSource[]
   depth?: number
+  liveGraph?: ExtrudeCommandLiveGraphState | null
+  reuseSelectedExtrudeNode?: boolean
 }
 
 export type ExtrudeProfileConsoleChoice = {
@@ -71,6 +81,7 @@ export const createExtrudeCommandSession = ({
   depth = DEFAULT_EXTRUDE_COMMAND_DEPTH,
   entryPoint,
   graphDocumentId,
+  liveGraph = null,
   selectedProfileSources = [],
 }: CreateExtrudeCommandSessionOptions): ExtrudeCommandSession => {
   const selectionState = resolveExtrudeCommandSelectionState(selectedProfileSources)
@@ -86,6 +97,7 @@ export const createExtrudeCommandSession = ({
     operationMode: 'newBody',
     validation: selectionState.validation,
     commandPath: EXTRUDE_COMMAND_PATH,
+    liveGraph,
   }
 }
 
@@ -102,6 +114,14 @@ export const setExtrudeCommandSessionProfileSources = (
     validation: selectionState.validation,
   }
 }
+
+export const setExtrudeCommandSessionLiveGraphState = (
+  session: ExtrudeCommandSession,
+  liveGraph: ExtrudeCommandLiveGraphState | null,
+): ExtrudeCommandSession => ({
+  ...session,
+  liveGraph,
+})
 
 const normalizeExtrudeProfileToken = (value: string): string =>
   value.trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase()

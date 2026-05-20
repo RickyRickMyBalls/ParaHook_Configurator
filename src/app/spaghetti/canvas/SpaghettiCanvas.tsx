@@ -102,6 +102,7 @@ import {
   classifyExtrudeProfileContributorEdge,
   isWholeExtrusionProfileTargetEndpoint,
 } from '../features/extrudeProfileConnections'
+import { parseSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 
 type EndpointPayload = {
   nodeId: string
@@ -1627,6 +1628,30 @@ export function SpaghettiCanvas({
     },
     [nodeRenderDataById, portAnchors],
   )
+  const resolveRenderedOutputPortIdForEdge = useCallback(
+    (edge: SpaghettiGraph['edges'][number]): string => {
+      if (parseSketchProfileMemberPortId(edge.from.portId) === null) {
+        return edge.from.portId
+      }
+      const exactAnchorKey = buildPortAnchorKey(
+        edge.from.nodeId,
+        'out',
+        edge.from.portId,
+        edge.from.path,
+      )
+      if (portAnchors[exactAnchorKey] !== undefined) {
+        return edge.from.portId
+      }
+      const parentAnchorKey = buildPortAnchorKey(
+        edge.from.nodeId,
+        'out',
+        'SketchProfiles',
+        edge.from.path,
+      )
+      return portAnchors[parentAnchorKey] !== undefined ? 'SketchProfiles' : edge.from.portId
+    },
+    [portAnchors],
+  )
 
   const hoverValidation = useMemo(() => {
     if (connectionDragAnchor === null) {
@@ -1669,18 +1694,22 @@ export function SpaghettiCanvas({
   }, [graph])
   const renderedEdges = useMemo(
     () =>
-      graph.edges.map((edge) =>
-        isWholeExtrusionProfileTargetEndpoint(edge.to)
+      graph.edges.map((edge) => ({
+        ...edge,
+        from: {
+          nodeId: edge.from.nodeId,
+          portId: resolveRenderedOutputPortIdForEdge(edge),
+          ...(edge.from.path === undefined ? {} : { path: edge.from.path }),
+        },
+        to: isWholeExtrusionProfileTargetEndpoint(edge.to)
           ? {
-              ...edge,
-              to: {
-                nodeId: edge.to.nodeId,
-                portId: resolveRenderedInputPortIdForEdge(edge),
-              },
+              nodeId: edge.to.nodeId,
+              portId: resolveRenderedInputPortIdForEdge(edge),
+              ...(edge.to.path === undefined ? {} : { path: edge.to.path }),
             }
-          : edge,
-      ),
-    [graph.edges, resolveRenderedInputPortIdForEdge],
+          : edge.to,
+      })),
+    [graph.edges, resolveRenderedInputPortIdForEdge, resolveRenderedOutputPortIdForEdge],
   )
 
   const previewColor = useMemo(() => {

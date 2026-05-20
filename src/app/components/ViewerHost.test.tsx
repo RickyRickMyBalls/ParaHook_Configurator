@@ -66,6 +66,7 @@ let viewerSetReferenceTransformRotateSnapPreviewRadiusDeg: ReturnType<typeof vi.
 let viewerSetReferenceTransformRotateSnapPreviewDelayMs: ReturnType<typeof vi.fn>
 let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
 let viewerSetVisibleGeometrySketchOverlays: ReturnType<typeof vi.fn>
+let viewerSetExtrudeCommandPreviewOverlay: ReturnType<typeof vi.fn>
 let viewerSetParts: ReturnType<typeof vi.fn>
 let viewerSetViewportRenderLayers: ReturnType<typeof vi.fn>
 let viewerSetHighlightedPartKeys: ReturnType<typeof vi.fn>
@@ -79,6 +80,8 @@ let viewerSetOnGeometrySketchHoverPoint: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchConfirmPoint: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchHoverComponent: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchSelectComponents: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchSelectProfile: ReturnType<typeof vi.fn>
+let viewerSetOnGeometrySketchHoverProfile: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchSelectionWindowDraftChange: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchDeleteSelection: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchFinishDraft: ReturnType<typeof vi.fn>
@@ -252,6 +255,8 @@ vi.mock('../../viewer/Viewer', () => ({
     public setGeometrySketchOverlay = (...args: unknown[]) => viewerSetGeometrySketchOverlay(...args)
     public setVisibleGeometrySketchOverlays = (...args: unknown[]) =>
       viewerSetVisibleGeometrySketchOverlays(...args)
+    public setExtrudeCommandPreviewOverlay = (...args: unknown[]) =>
+      viewerSetExtrudeCommandPreviewOverlay(...args)
     public setOnGeometrySketchHoverPoint = (...args: unknown[]) =>
       viewerSetOnGeometrySketchHoverPoint(...args)
     public setOnGeometrySketchConfirmPoint = (...args: unknown[]) =>
@@ -260,6 +265,10 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnGeometrySketchHoverComponent(...args)
     public setOnGeometrySketchSelectComponents = (...args: unknown[]) =>
       viewerSetOnGeometrySketchSelectComponents(...args)
+    public setOnGeometrySketchSelectProfile = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchSelectProfile(...args)
+    public setOnGeometrySketchHoverProfile = (...args: unknown[]) =>
+      viewerSetOnGeometrySketchHoverProfile(...args)
     public setOnGeometrySketchSelectionWindowDraftChange = (...args: unknown[]) =>
       viewerSetOnGeometrySketchSelectionWindowDraftChange(...args)
     public setOnGeometrySketchDeleteSelection = (...args: unknown[]) =>
@@ -301,6 +310,16 @@ type WorkspaceSelectionPickPayload = {
   ctrlKey: boolean
   doubleClick?: boolean
 }
+
+type GeometrySketchProfilePickHandler = (event: {
+  sketchNodeId: string
+  profileId: string
+  shiftKey: boolean
+}) => void
+
+type GeometrySketchProfileHoverHandler = (
+  event: { sketchNodeId: string; profileId: string } | null,
+) => void
 
 class MockWorker {
   private readonly handlers = new Set<WorkerMessageHandler>()
@@ -593,6 +612,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetReferenceTransformRotateSnapPreviewDelayMs = vi.fn()
     viewerSetGeometrySketchOverlay = vi.fn()
     viewerSetVisibleGeometrySketchOverlays = vi.fn()
+    viewerSetExtrudeCommandPreviewOverlay = vi.fn()
     viewerSetParts = vi.fn()
     viewerSetViewportRenderLayers = vi.fn()
     viewerSetHighlightedPartKeys = vi.fn()
@@ -606,6 +626,8 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnGeometrySketchConfirmPoint = vi.fn()
     viewerSetOnGeometrySketchHoverComponent = vi.fn()
     viewerSetOnGeometrySketchSelectComponents = vi.fn()
+    viewerSetOnGeometrySketchSelectProfile = vi.fn()
+    viewerSetOnGeometrySketchHoverProfile = vi.fn()
     viewerSetOnGeometrySketchSelectionWindowDraftChange = vi.fn()
     viewerSetOnGeometrySketchDeleteSelection = vi.fn()
     viewerSetOnGeometrySketchFinishDraft = vi.fn()
@@ -744,7 +766,209 @@ describe('ViewerHost reference loading', () => {
     expect(okButton?.disabled).toBe(false)
   })
 
-  it('cancels the Extrude command toolbar without mutating the graph', async () => {
+  it('projects the active Extrude command preview from selected profile sources', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XZ',
+                planeTransform: {
+                  offsetMm: 0,
+                  translation: { x: 1, y: 2, z: 3 },
+                  rotationDeg: { x: 0, y: 0, z: 0 },
+                  inPlaneRotationDeg: 0,
+                },
+                components: [],
+                outputs: {
+                  diagnostics: [],
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [
+                        { x: 0, y: 0 },
+                        { x: 10, y: 0 },
+                        { x: 10, y: 10 },
+                        { x: 0, y: 10 },
+                      ],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [
+                        { x: 20, y: 0 },
+                        { x: 28, y: 0 },
+                        { x: 28, y: 8 },
+                        { x: 20, y: 8 },
+                      ],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-toolbar',
+        selectedProfileSources: [
+          { nodeId: 'node-sketch-1', portId: 'SketchProfile:profile-a' },
+          { nodeId: 'node-sketch-1', portId: 'SketchProfile:profile-b' },
+        ],
+        depth: 25,
+      })
+    })
+    const graphAfterCommandStart = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerSetExtrudeCommandPreviewOverlay).toHaveBeenLastCalledWith({
+      graphDocumentId: 'graph-document-1',
+      depthMm: 25,
+      profiles: [
+        expect.objectContaining({
+          sketchNodeId: 'node-sketch-1',
+          profileId: 'profile-a',
+          plane: 'XZ',
+          vertices: [
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+            { x: 0, y: 10 },
+          ],
+        }),
+        expect.objectContaining({
+          sketchNodeId: 'node-sketch-1',
+          profileId: 'profile-b',
+          plane: 'XZ',
+        }),
+      ],
+    })
+    expect(useSpaghettiStore.getState().graph).toEqual(graphAfterCommandStart)
+  })
+
+  it('confirms the Extrude command toolbar by accepting the live graph node', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  diagnostics: [],
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [
+                        { x: 0, y: 0 },
+                        { x: 10, y: 0 },
+                        { x: 10, y: 10 },
+                        { x: 0, y: 10 },
+                      ],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-toolbar',
+        selectedProfileSources: [
+          {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-a',
+          },
+        ],
+        depth: 32,
+      })
+    })
+    const liveExtrudeNodeId =
+      useSpaghettiStore.getState().extrudeCommandSession?.liveGraph?.liveExtrudeNodeId
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      const okButton = container?.querySelector('[aria-label="Confirm Extrude"]') as
+        | HTMLButtonElement
+        | null
+      okButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const acceptedExtrudeNode = useSpaghettiStore
+      .getState()
+      .graph.nodes.find((node) => node.nodeId === liveExtrudeNodeId)
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(container.querySelector('[aria-label="Extrude command toolbar"]')).toBeNull()
+    expect(acceptedExtrudeNode).toMatchObject({
+      type: 'Geometry/Extrude',
+      params: expect.objectContaining({
+        depthMm: 32,
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        bodyGenerationMode: 'NewObjects',
+      }),
+    })
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) => edge.to.nodeId === liveExtrudeNodeId && edge.to.portId === 'ExtrusionProfile',
+      ),
+    ).toHaveLength(1)
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) => edge.from.nodeId === liveExtrudeNodeId && edge.to.portId === 'in:solid:s001',
+      ),
+    ).toHaveLength(1)
+    expect(viewerSetExtrudeCommandPreviewOverlay).toHaveBeenLastCalledWith(null)
+  })
+
+  it('cancels the Extrude command toolbar by rolling back the live graph node', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
@@ -760,12 +984,15 @@ describe('ViewerHost reference loading', () => {
         ],
         edges: [],
       })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    act(() => {
       useSpaghettiStore.getState().startExtrudeCommandSession({
         graphDocumentId: 'graph-document-1',
         entryPoint: 'console-root',
       })
     })
-    const graphBefore = useSpaghettiStore.getState().graph
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -785,6 +1012,683 @@ describe('ViewerHost reference loading', () => {
     expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
     expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
     expect(container.querySelector('[aria-label="Extrude command toolbar"]')).toBeNull()
+  })
+
+  it('preselects a viewport sketch profile without graph mutation when no Extrude session is active', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    act(() => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+    })
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useSpaghettiStore.getState().viewportSelectedSketchProfiles).toEqual([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(container.querySelector('[aria-label="Extrude command toolbar"]')).toBeNull()
+  })
+
+  it('preselects every profile from the picked sketch on outside-Extrude shift-click', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+          {
+            nodeId: 'node-sketch-2',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-2',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-c',
+                      profileIndex: 0,
+                      area: 25,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    act(() => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        shiftKey: true,
+      })
+    })
+
+    expect(useSpaghettiStore.getState().viewportSelectedSketchProfiles).toEqual([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+    expect(useSpaghettiStore.getState().viewportSelectedSketchProfiles).not.toContainEqual(
+      expect.objectContaining({ profileId: 'profile-c' }),
+    )
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+  })
+
+  it('toggles multiple viewport sketch profile preselections outside Extrude', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    act(() => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        shiftKey: false,
+      })
+    })
+
+    expect(useSpaghettiStore.getState().viewportSelectedSketchProfiles).toEqual([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+
+    act(() => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+    })
+
+    expect(useSpaghettiStore.getState().viewportSelectedSketchProfiles).toEqual([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+  })
+
+  it('stores viewport sketch profile hover for overlay highlighting', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profileHoverHandler = viewerSetOnGeometrySketchHoverProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfileHoverHandler
+      | undefined
+
+    act(() => {
+      profileHoverHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+      })
+    })
+
+    expect(useSpaghettiStore.getState().viewportHoveredSketchProfile).toEqual({
+      sketchNodeId: 'node-sketch-1',
+      profileId: 'profile-a',
+    })
+
+    act(() => {
+      profileHoverHandler?.(null)
+    })
+
+    expect(useSpaghettiStore.getState().viewportHoveredSketchProfile).toBeNull()
+  })
+
+  it('routes one viewport sketch profile pick into the active Extrude session', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-toolbar',
+      })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    await act(async () => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+    })
+
+    const session = useSpaghettiStore.getState().extrudeCommandSession
+    const toolbar = container.querySelector('[aria-label="Extrude command toolbar"]')
+
+    expect(session).toMatchObject({
+      activeStep: 'depth',
+      validation: 'readyForDepth',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+    })
+    expect(toolbar?.textContent).toContain('Depth')
+    expect(toolbar?.textContent).toContain('1 selected')
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) =>
+          edge.to.nodeId === session?.liveGraph?.liveExtrudeNodeId &&
+          edge.to.portId === 'ExtrusionProfile',
+      ),
+    ).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      },
+    ])
+  })
+
+  it('routes shift-picked viewport sketch profiles into the active Extrude session', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+          {
+            nodeId: 'node-sketch-2',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-2',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-c',
+                      profileIndex: 0,
+                      area: 25,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-toolbar',
+      })
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    await act(async () => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        shiftKey: true,
+      })
+    })
+
+    const session = useSpaghettiStore.getState().extrudeCommandSession
+    const toolbar = container.querySelector('[aria-label="Extrude command toolbar"]')
+
+    expect(session?.selectedProfileSources).toEqual([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+    expect(session?.selectedProfileSources).not.toContainEqual({
+      nodeId: 'node-sketch-2',
+      portId: 'SketchProfile:profile-c',
+    })
+    expect(toolbar?.textContent).toContain('2 selected')
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) =>
+          edge.to.nodeId === session?.liveGraph?.liveExtrudeNodeId &&
+          edge.to.portId === 'ExtrusionProfile',
+      ),
+    ).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      },
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-b',
+        },
+      },
+    ])
+  })
+
+  it('toggles viewport-picked sketch profiles into and out of the active Extrude session', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                    {
+                      profileId: 'profile-b',
+                      profileIndex: 1,
+                      area: 64,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-toolbar',
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    await act(async () => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        shiftKey: false,
+      })
+    })
+
+    let session = useSpaghettiStore.getState().extrudeCommandSession
+    expect(session?.selectedProfileSources).toEqual([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) =>
+          edge.to.nodeId === session?.liveGraph?.liveExtrudeNodeId &&
+          edge.to.portId === 'ExtrusionProfile',
+      ),
+    ).toHaveLength(2)
+
+    await act(async () => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+    })
+
+    session = useSpaghettiStore.getState().extrudeCommandSession
+    expect(session?.selectedProfileSources).toEqual([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) =>
+          edge.to.nodeId === session?.liveGraph?.liveExtrudeNodeId &&
+          edge.to.portId === 'ExtrusionProfile',
+      ),
+    ).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-b',
+        },
+      },
+    ])
   })
 
   it('promotes a visible reference from loading to loaded after the async viewer load resolves', async () => {

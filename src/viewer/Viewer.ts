@@ -78,6 +78,7 @@ import { resolveZoomObjectTarget } from '../app/zoomObjectTarget'
 import type {
   FlyActivationMode,
   FlyModeType,
+  ExtrudeCommandPreviewOverlayVm,
   GeometrySketchOverlayVm,
   ViewerTransformHistoryOverlayVm,
   GeometrySketchSnapTarget,
@@ -102,6 +103,7 @@ import { createViewerGeometryFromArtifactMesh } from './artifactMeshGeometry'
 import { resolveViewerPartPlacement } from './previewPartPlacement'
 import {
   buildGeometrySketchRenderPolylines,
+  buildGeometrySketchRenderRegions,
   collectGeometrySketchSelectionIds,
   expandGeometrySketchSelectionFromRowId,
   type GeometrySketchRenderLayer,
@@ -128,6 +130,7 @@ import {
   getSketchPlaneWorldNormal,
   getSketchPlaneWorldOrigin,
   getSketchPlaneWorldYAxis,
+  projectSketchPointToWorld,
 } from './sketch/sketchPlaneMath'
 import type { SketchPlane, SketchPlaneTransform } from '../app/spaghetti/features/featureTypes'
 import type { GeometrySketchSelectionWindowDraft } from '../app/spaghetti/store/useSpaghettiStore'
@@ -533,6 +536,7 @@ export class Viewer {
   private readonly rootGroup: Group
   private readonly geometrySketchOverlayGroup: Group
   private readonly visibleGeometrySketchOverlayGroup: Group
+  private readonly extrudeCommandPreviewGroup: Group
   private readonly gridGroup: Group
   private readonly groundPlane: Mesh
   private readonly groundPlaneMaterial: MeshStandardMaterial
@@ -561,7 +565,14 @@ export class Viewer {
   private readonly geometrySketchHoveredComponentMaterial: LineBasicMaterial
   private readonly geometrySketchSelectedComponentMaterial: LineBasicMaterial
   private readonly geometrySketchProfileMaterial: LineBasicMaterial
+  private readonly geometrySketchHoveredProfileMaterial: LineBasicMaterial
   private readonly geometrySketchSelectedProfileMaterial: LineBasicMaterial
+  private readonly geometrySketchProfileFillMaterial: MeshBasicMaterial
+  private readonly geometrySketchHoveredProfileFillMaterial: MeshBasicMaterial
+  private readonly geometrySketchSelectedProfileFillMaterial: MeshBasicMaterial
+  private readonly extrudeCommandPreviewCapMaterial: MeshBasicMaterial
+  private readonly extrudeCommandPreviewWallMaterial: MeshBasicMaterial
+  private readonly extrudeCommandPreviewEdgeMaterial: LineBasicMaterial
   private readonly geometrySketchSelectionWindowMaterial: LineBasicMaterial
   private readonly geometrySketchSelectionCrossingMaterial: LineBasicMaterial
   private readonly raycaster = new Raycaster()
@@ -679,6 +690,12 @@ export class Viewer {
     | null = null
   private onGeometrySketchHoverComponent: ((rowId: string | null) => void) | null = null
   private onGeometrySketchSelectComponents: ((rowIds: string[]) => void) | null = null
+  private onGeometrySketchSelectProfile:
+    | ((event: { sketchNodeId: string; profileId: string; shiftKey: boolean }) => void)
+    | null = null
+  private onGeometrySketchHoverProfile:
+    | ((event: { sketchNodeId: string; profileId: string } | null) => void)
+    | null = null
   private onGeometrySketchSelectionWindowDraftChange:
     | ((draft: GeometrySketchSelectionWindowDraft | null) => void)
     | null = null
@@ -890,6 +907,9 @@ export class Viewer {
     this.visibleGeometrySketchOverlayGroup = new Group()
     this.visibleGeometrySketchOverlayGroup.renderOrder = 94
     this.scene.add(this.visibleGeometrySketchOverlayGroup)
+    this.extrudeCommandPreviewGroup = new Group()
+    this.extrudeCommandPreviewGroup.renderOrder = 93
+    this.scene.add(this.extrudeCommandPreviewGroup)
     this.sketchPlanePickHelper = new SketchPlanePickHelper()
     this.scene.add(this.sketchPlanePickHelper.getGroup())
     this.referenceTransformHistoryHelper = new ReferenceTransformHistoryHelper()
@@ -942,10 +962,64 @@ export class Viewer {
       toneMapped: false,
       depthTest: false,
     })
-    this.geometrySketchSelectedProfileMaterial = new LineBasicMaterial({
-      color: new Color('#ffd66b'),
+    this.geometrySketchHoveredProfileMaterial = new LineBasicMaterial({
+      color: new Color('#ffffff'),
       transparent: true,
       opacity: 1,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchSelectedProfileMaterial = new LineBasicMaterial({
+      color: new Color('#2f80ff'),
+      transparent: true,
+      opacity: 1,
+      toneMapped: false,
+      depthTest: false,
+    })
+    this.geometrySketchProfileFillMaterial = new MeshBasicMaterial({
+      color: new Color('#74f2cf'),
+      transparent: true,
+      opacity: 0.5,
+      toneMapped: false,
+      depthTest: false,
+      side: DoubleSide,
+    })
+    this.geometrySketchHoveredProfileFillMaterial = new MeshBasicMaterial({
+      color: new Color('#ffffff'),
+      transparent: true,
+      opacity: 0.62,
+      toneMapped: false,
+      depthTest: false,
+      side: DoubleSide,
+    })
+    this.geometrySketchSelectedProfileFillMaterial = new MeshBasicMaterial({
+      color: new Color('#2f80ff'),
+      transparent: true,
+      opacity: 0.58,
+      toneMapped: false,
+      depthTest: false,
+      side: DoubleSide,
+    })
+    this.extrudeCommandPreviewCapMaterial = new MeshBasicMaterial({
+      color: new Color('#2f80ff'),
+      transparent: true,
+      opacity: 0.34,
+      toneMapped: false,
+      depthTest: true,
+      side: DoubleSide,
+    })
+    this.extrudeCommandPreviewWallMaterial = new MeshBasicMaterial({
+      color: new Color('#2f80ff'),
+      transparent: true,
+      opacity: 0.22,
+      toneMapped: false,
+      depthTest: true,
+      side: DoubleSide,
+    })
+    this.extrudeCommandPreviewEdgeMaterial = new LineBasicMaterial({
+      color: new Color('#dbe9ff'),
+      transparent: true,
+      opacity: 0.9,
       toneMapped: false,
       depthTest: false,
     })
@@ -2816,6 +2890,7 @@ export class Viewer {
     this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
     for (const overlay of overlays) {
       this.renderGeometrySketchOverlayPolylines(this.visibleGeometrySketchOverlayGroup, {
+        nodeId: overlay.nodeId,
         mode: 'review',
         plane: overlay.plane,
         planeTransform: overlay.planeTransform,
@@ -2823,6 +2898,8 @@ export class Viewer {
         activeTool: null,
         components: overlay.components,
         profiles: overlay.profiles,
+        selectedProfileIds: overlay.selectedProfileIds,
+        hoveredProfileId: overlay.hoveredProfileId,
         drawDraft: null,
         ui: {
           snapEnabled: false,
@@ -2837,6 +2914,16 @@ export class Viewer {
         },
       })
     }
+  }
+
+  public setExtrudeCommandPreviewOverlay(
+    overlay: ExtrudeCommandPreviewOverlayVm | null,
+  ): void {
+    this.clearGeometrySketchOverlayGroup(this.extrudeCommandPreviewGroup)
+    if (overlay === null) {
+      return
+    }
+    this.renderExtrudeCommandPreviewOverlay(overlay)
   }
 
   private syncCameraInteractionState(): void {
@@ -3212,6 +3299,20 @@ export class Viewer {
     this.onGeometrySketchSelectComponents = handler
   }
 
+  public setOnGeometrySketchSelectProfile(
+    handler:
+      | ((event: { sketchNodeId: string; profileId: string; shiftKey: boolean }) => void)
+      | null,
+  ): void {
+    this.onGeometrySketchSelectProfile = handler
+  }
+
+  public setOnGeometrySketchHoverProfile(
+    handler: ((event: { sketchNodeId: string; profileId: string } | null) => void) | null,
+  ): void {
+    this.onGeometrySketchHoverProfile = handler
+  }
+
   public setOnGeometrySketchSelectionWindowDraftChange(
     handler: ((draft: GeometrySketchSelectionWindowDraft | null) => void) | null,
   ): void {
@@ -3332,6 +3433,7 @@ export class Viewer {
     this.clearAllLights()
     this.clearGeometrySketchOverlayGroup(this.geometrySketchOverlayGroup)
     this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
+    this.clearGeometrySketchOverlayGroup(this.extrudeCommandPreviewGroup)
     this.groundPlane.geometry.dispose()
     this.groundPlaneMaterial.dispose()
     this.displayModeSolidMaterial.dispose()
@@ -3361,7 +3463,14 @@ export class Viewer {
     this.geometrySketchHoveredComponentMaterial.dispose()
     this.geometrySketchSelectedComponentMaterial.dispose()
     this.geometrySketchProfileMaterial.dispose()
+    this.geometrySketchHoveredProfileMaterial.dispose()
     this.geometrySketchSelectedProfileMaterial.dispose()
+    this.geometrySketchProfileFillMaterial.dispose()
+    this.geometrySketchHoveredProfileFillMaterial.dispose()
+    this.geometrySketchSelectedProfileFillMaterial.dispose()
+    this.extrudeCommandPreviewCapMaterial.dispose()
+    this.extrudeCommandPreviewWallMaterial.dispose()
+    this.extrudeCommandPreviewEdgeMaterial.dispose()
     this.geometrySketchSelectionWindowMaterial.dispose()
     this.geometrySketchSelectionCrossingMaterial.dispose()
     this.onRuntimeStatsChange = null
@@ -5952,6 +6061,9 @@ export class Viewer {
     if (layer === 'selectedProfile') {
       return this.geometrySketchSelectedProfileMaterial
     }
+    if (layer === 'hoveredProfile') {
+      return this.geometrySketchHoveredProfileMaterial
+    }
     if (layer === 'profile') {
       return this.geometrySketchProfileMaterial
     }
@@ -5964,18 +6076,163 @@ export class Viewer {
     return this.geometrySketchComponentMaterial
   }
 
+  private getGeometrySketchRegionMaterial(layer: GeometrySketchRenderLayer): MeshBasicMaterial {
+    if (layer === 'hoveredProfileFill') {
+      return this.geometrySketchHoveredProfileFillMaterial
+    }
+    if (layer === 'selectedProfileFill') {
+      return this.geometrySketchSelectedProfileFillMaterial
+    }
+    return this.geometrySketchProfileFillMaterial
+  }
+
   private clearGeometrySketchOverlayGroup(group: Group): void {
     group.children.forEach((child) => {
-      const line = child as Line
-      line.geometry.dispose()
+      const drawable = child as Line | Mesh
+      drawable.geometry.dispose()
     })
     group.clear()
+  }
+
+  private createExtrudeCommandPreviewCap(points: Vector3[]): Mesh | null {
+    if (points.length < 3) {
+      return null
+    }
+    const geometry = new BufferGeometry()
+    geometry.setFromPoints(points)
+    const indices: number[] = []
+    for (let index = 1; index < points.length - 1; index += 1) {
+      indices.push(0, index, index + 1)
+    }
+    geometry.setIndex(indices)
+    geometry.computeVertexNormals()
+    const mesh = new Mesh(geometry, this.extrudeCommandPreviewCapMaterial)
+    mesh.frustumCulled = false
+    mesh.renderOrder = 93
+    return mesh
+  }
+
+  private createExtrudeCommandPreviewWalls(base: Vector3[], top: Vector3[]): Mesh | null {
+    if (base.length < 3 || top.length !== base.length) {
+      return null
+    }
+    const points: Vector3[] = []
+    const indices: number[] = []
+    for (let index = 0; index < base.length; index += 1) {
+      const nextIndex = (index + 1) % base.length
+      const vertexOffset = points.length
+      points.push(base[index]!, base[nextIndex]!, top[nextIndex]!, top[index]!)
+      indices.push(vertexOffset, vertexOffset + 1, vertexOffset + 2)
+      indices.push(vertexOffset, vertexOffset + 2, vertexOffset + 3)
+    }
+    const geometry = new BufferGeometry()
+    geometry.setFromPoints(points)
+    geometry.setIndex(indices)
+    geometry.computeVertexNormals()
+    const mesh = new Mesh(geometry, this.extrudeCommandPreviewWallMaterial)
+    mesh.frustumCulled = false
+    mesh.renderOrder = 92
+    return mesh
+  }
+
+  private createExtrudeCommandPreviewEdgeLoop(points: Vector3[]): LineLoop | null {
+    if (points.length < 3) {
+      return null
+    }
+    const geometry = new BufferGeometry()
+    geometry.setFromPoints(points)
+    const line = new LineLoop(geometry, this.extrudeCommandPreviewEdgeMaterial)
+    line.frustumCulled = false
+    line.renderOrder = 94
+    return line
+  }
+
+  private renderExtrudeCommandPreviewOverlay(overlay: ExtrudeCommandPreviewOverlayVm): void {
+    for (const profile of overlay.profiles) {
+      const basePoints = profile.vertices
+        .map((point) => projectSketchPointToWorld(profile.plane, profile.planeTransform, point))
+        .map((point) => new Vector3(point.x, point.y, point.z))
+      const points =
+        basePoints.length > 1 &&
+        basePoints[0]!.distanceTo(basePoints[basePoints.length - 1]!) < 0.000001
+          ? basePoints.slice(0, -1)
+          : basePoints
+      if (points.length < 3) {
+        continue
+      }
+
+      const normal = getSketchPlaneWorldNormal(profile.plane, profile.planeTransform).normalize()
+      const offset = normal.clone().multiplyScalar(overlay.depthMm)
+      const topPoints = points.map((point) => point.clone().add(offset))
+
+      const walls = this.createExtrudeCommandPreviewWalls(points, topPoints)
+      if (walls !== null) {
+        this.extrudeCommandPreviewGroup.add(walls)
+      }
+      const baseCap = this.createExtrudeCommandPreviewCap(points)
+      if (baseCap !== null) {
+        this.extrudeCommandPreviewGroup.add(baseCap)
+      }
+      const topCap = this.createExtrudeCommandPreviewCap(topPoints)
+      if (topCap !== null) {
+        this.extrudeCommandPreviewGroup.add(topCap)
+      }
+      const topEdge = this.createExtrudeCommandPreviewEdgeLoop(topPoints)
+      if (topEdge !== null) {
+        this.extrudeCommandPreviewGroup.add(topEdge)
+      }
+    }
+  }
+
+  private renderGeometrySketchOverlayRegions(
+    group: Group,
+    overlay: GeometrySketchOverlayVm,
+  ): void {
+    for (const region of buildGeometrySketchRenderRegions(overlay)) {
+      if (region.points.length < 4) {
+        continue
+      }
+      const points =
+        region.points.length > 1 &&
+        region.points[0].x === region.points[region.points.length - 1].x &&
+        region.points[0].y === region.points[region.points.length - 1].y &&
+        region.points[0].z === region.points[region.points.length - 1].z
+          ? region.points.slice(0, -1)
+          : region.points
+      if (points.length < 3) {
+        continue
+      }
+      const geometry = new BufferGeometry()
+      geometry.setFromPoints(points.map((point) => new Vector3(point.x, point.y, point.z)))
+      const indices: number[] = []
+      for (let index = 1; index < points.length - 1; index += 1) {
+        indices.push(0, index, index + 1)
+      }
+      geometry.setIndex(indices)
+      geometry.computeVertexNormals()
+      const mesh = new Mesh(geometry, this.getGeometrySketchRegionMaterial(region.layer))
+      mesh.frustumCulled = false
+      mesh.renderOrder =
+        region.layer === 'hoveredProfileFill'
+          ? 96
+          : region.layer === 'selectedProfileFill'
+            ? 95
+            : 94
+      if (typeof overlay.nodeId === 'string') {
+        mesh.userData.geometrySketchProfilePick = {
+          sketchNodeId: overlay.nodeId,
+          profileId: region.profileId,
+        }
+      }
+      group.add(mesh)
+    }
   }
 
   private renderGeometrySketchOverlayPolylines(
     group: Group,
     overlay: GeometrySketchOverlayVm,
   ): void {
+    this.renderGeometrySketchOverlayRegions(group, overlay)
     for (const polyline of buildGeometrySketchRenderPolylines(overlay)) {
       if (polyline.points.length < 2) {
         continue
@@ -5991,6 +6248,8 @@ export class Viewer {
           ? 99
           : polyline.layer === 'hoveredComponent'
             ? 98
+            : polyline.layer === 'hoveredProfile'
+              ? 99
             : polyline.layer === 'selectedProfile'
               ? 98
               : polyline.layer === 'profile'
@@ -5999,11 +6258,71 @@ export class Viewer {
                     polyline.layer === 'selectionWindowCrossing'
                   ? 100
                   : 96
-      if (group === this.geometrySketchOverlayGroup && polyline.layer === 'component' && typeof polyline.componentRowId === 'string') {
+      if (
+        group === this.geometrySketchOverlayGroup &&
+        polyline.layer === 'component' &&
+        typeof polyline.componentRowId === 'string'
+      ) {
         line.userData.geometrySketchComponentRowId = polyline.componentRowId
+      }
+      if (
+        (polyline.layer === 'profile' ||
+          polyline.layer === 'selectedProfile' ||
+          polyline.layer === 'hoveredProfile') &&
+        typeof overlay.nodeId === 'string' &&
+        typeof polyline.profileId === 'string'
+      ) {
+        line.userData.geometrySketchProfilePick = {
+          sketchNodeId: overlay.nodeId,
+          profileId: polyline.profileId,
+        }
       }
       group.add(line)
     }
+  }
+
+  private getPickedGeometrySketchProfile(
+    clientX: number,
+    clientY: number,
+  ): { sketchNodeId: string; profileId: string } | null {
+    if (this.onGeometrySketchSelectProfile === null && this.onGeometrySketchHoverProfile === null) {
+      return null
+    }
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null
+    }
+    this.pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
+    )
+    this.raycaster.params.Line = {
+      ...(this.raycaster.params.Line ?? {}),
+      threshold: 0.18,
+    }
+    this.raycaster.setFromCamera(this.pointer, this.cameraController.getActiveCamera())
+    const intersections = this.raycaster.intersectObjects(
+      [
+        ...this.geometrySketchOverlayGroup.children,
+        ...this.visibleGeometrySketchOverlayGroup.children,
+      ],
+      false,
+    )
+    for (const intersection of intersections) {
+      const pick = intersection.object.userData.geometrySketchProfilePick
+      if (
+        typeof pick === 'object' &&
+        pick !== null &&
+        typeof (pick as { sketchNodeId?: unknown }).sketchNodeId === 'string' &&
+        typeof (pick as { profileId?: unknown }).profileId === 'string'
+      ) {
+        return {
+          sketchNodeId: (pick as { sketchNodeId: string }).sketchNodeId,
+          profileId: (pick as { profileId: string }).profileId,
+        }
+      }
+    }
+    return null
   }
 
   private getHoveredGeometrySketchComponentId(
@@ -6450,6 +6769,19 @@ export class Viewer {
     if (event.button !== 0) {
       return
     }
+    const geometrySketchProfilePick = this.getPickedGeometrySketchProfile(
+      event.clientX,
+      event.clientY,
+    )
+    if (geometrySketchProfilePick !== null) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.onGeometrySketchSelectProfile?.({
+        ...geometrySketchProfilePick,
+        shiftKey: event.shiftKey,
+      })
+      return
+    }
     if (
       this.shouldHandleWorkspaceSelectionPick() &&
       !this.isWorkspaceSelectionViewportGizmoHit(event.clientX, event.clientY)
@@ -6691,9 +7023,13 @@ export class Viewer {
       this.onGeometrySketchHoverComponent?.(
         this.getHoveredGeometrySketchComponentId(event.clientX, event.clientY),
       )
+      this.onGeometrySketchHoverProfile?.(null)
       this.setHoveredTopologyEntity(null)
       return
     }
+    this.onGeometrySketchHoverProfile?.(
+      this.getPickedGeometrySketchProfile(event.clientX, event.clientY),
+    )
     this.updateWorkspaceSelectionHover(event.clientX, event.clientY)
     const drawHit = this.geometrySketchDrawHelper.projectPointerToSketch(
       this.cameraController.getActiveCamera(),
@@ -6928,6 +7264,7 @@ export class Viewer {
 
   private readonly handleViewerPointerLeave = (): void => {
     this.setHoveredTopologyEntity(null)
+    this.onGeometrySketchHoverProfile?.(null)
   }
 
   private readonly handleViewerDoubleClick = (event: MouseEvent): void => {
@@ -7326,6 +7663,7 @@ export class Viewer {
     accumulateObject(this.referenceGroup, true)
     accumulateObject(this.geometrySketchOverlayGroup, true)
     accumulateObject(this.visibleGeometrySketchOverlayGroup, true)
+    accumulateObject(this.extrudeCommandPreviewGroup, true)
 
     return totals
   }

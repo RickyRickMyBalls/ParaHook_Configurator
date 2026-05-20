@@ -6081,7 +6081,7 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
-  it('starts root Extrude as a transient command session without mutating the graph', async () => {
+  it('starts root Extrude as a live command session with a rollbackable graph node', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -6121,7 +6121,16 @@ describe('ConsoleDock', () => {
       depth: 10,
     })
     expect(session?.commandPath).toEqual(['Extrude', 'Select Profiles', 'Depth'])
-    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
+    expect(
+      useSpaghettiStore
+        .getState()
+        .graph.nodes.some(
+          (node) =>
+            node.nodeId === session?.liveGraph?.liveExtrudeNodeId &&
+            node.type === 'Geometry/Extrude',
+        ),
+    ).toBe(true)
     expect(useConsoleStore.getState().inputText).toBe('')
     expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
       label: 'Extrude',
@@ -6188,7 +6197,7 @@ describe('ConsoleDock', () => {
       entryPoint: 'console-root',
       validation: 'needsProfiles',
     })
-    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Extrude > Select Profiles',
     )
@@ -6246,7 +6255,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
       breadcrumb: ['Extrude', 'Select Profiles'],
     })
-    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> E')).toBe(false)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Extrude > Select Profiles',
@@ -6304,7 +6313,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
       breadcrumb: ['Extrude', 'Select Profiles'],
     })
-    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> e')).toBe(false)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Extrude > Select Profiles',
@@ -6411,7 +6420,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> s')).toBe(false)
   })
 
-  it('selects a Console profile token into the transient Extrude session without graph mutation', async () => {
+  it('selects a Console profile token into the live Extrude session and graph wire', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -6453,7 +6462,20 @@ describe('ConsoleDock', () => {
     expect(session?.selectedProfileSources).toHaveLength(1)
     expect(session?.selectedProfileSources[0]?.nodeId).toBe('node-sketch-1')
     expect(session?.selectedProfileSources[0]?.portId).toMatch(/^SketchProfile:/)
-    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
+    expect(
+      useSpaghettiStore.getState().graph.edges.filter(
+        (edge) =>
+          edge.to.nodeId === session?.liveGraph?.liveExtrudeNodeId &&
+          edge.to.portId === 'ExtrusionProfile',
+      ),
+    ).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+        },
+      },
+    ])
     expect(useConsoleStore.getState().featureAssistDescriptor).toMatchObject({
       breadcrumb: ['Extrude', 'Depth'],
       summaryLeadText: ' > Enter depth',

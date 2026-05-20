@@ -54,6 +54,7 @@ import {
 } from '../store/workspaceSelectionCommands'
 import { getLatestViewerCameraPose, getViewer, restoreViewerCameraPose } from '../viewerBridge'
 import type { EditorViewportWindowMode } from '../spaghetti/schema/spaghettiTypes'
+import type { SketchFeature } from '../spaghetti/features/featureTypes'
 import {
   type GeometrySketchDrawStage,
   type SketchPlaneCommand,
@@ -1908,9 +1909,31 @@ export function useConsoleInteraction(
     clearStagedNavigationSession()
     useConsoleStore.getState().clearConsolePromptSession()
     setFeatureAssistDescriptor(null)
+    const spaghettiState = useSpaghettiStore.getState()
+    const targetGraph =
+      spaghettiState.graphDocumentsById[consoleActionContext.graphDocumentId]?.graph ??
+      spaghettiState.graph
+    const selectedProfileSources = spaghettiState.viewportSelectedSketchProfiles
+      .filter((selection) => selection.graphDocumentId === consoleActionContext.graphDocumentId)
+      .filter((selection) => {
+        const sketchNode = targetGraph.nodes.find(
+          (node) => node.nodeId === selection.sketchNodeId && node.type === 'Geometry/Sketch',
+        )
+        const sketchFeature = sketchNode?.params.sketch as SketchFeature | undefined
+        return (
+          sketchFeature?.outputs.profiles?.some(
+            (profile) => profile.profileId === selection.profileId,
+          ) ?? false
+        )
+      })
+      .map((selection) => ({
+        nodeId: selection.sketchNodeId,
+        portId: selection.portId,
+      }))
     const session = useSpaghettiStore.getState().startExtrudeCommandSession({
       graphDocumentId: consoleActionContext.graphDocumentId,
       entryPoint: 'console-root',
+      selectedProfileSources,
     })
     setFeatureAssistDescriptor(
       buildExtrudeSelectProfilesAssistDescriptor(
@@ -6106,7 +6129,7 @@ export function useConsoleInteraction(
 
     const expectedBreadcrumb =
       activeExtrudeSession.activeStep === 'depth'
-        ? ['Extrude', 'Select Profiles', 'Depth']
+        ? ['Extrude', 'Depth']
         : ['Extrude', 'Select Profiles']
     const activeBreadcrumb = consoleState.featureAssistDescriptor?.breadcrumb ?? null
     const hasExpectedAssist =

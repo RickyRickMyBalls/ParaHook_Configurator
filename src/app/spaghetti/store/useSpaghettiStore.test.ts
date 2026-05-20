@@ -249,6 +249,550 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(activeDocument.graph).toEqual(state.graph)
   })
 
+  it('starts an Extrude session by creating a live Extrude node in the graph', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    const session = useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+    })
+    const graph = useSpaghettiStore.getState().graph
+    const liveExtrudeNode = graph.nodes.find(
+      (node) => node.nodeId === session.liveGraph?.liveExtrudeNodeId,
+    )
+
+    expect(liveExtrudeNode?.type).toBe('Geometry/Extrude')
+    expect(session.liveGraph?.createdExtrudeNodeId).toBe(liveExtrudeNode?.nodeId)
+    expect(graph.edges.filter((edge) => edge.to.nodeId === liveExtrudeNode?.nodeId)).toEqual([])
+  })
+
+  it('auto-wires selected profile rows into the live Extrude node', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+    })
+
+    useSpaghettiStore.getState().setExtrudeCommandSelectedProfileSources([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+
+    const state = useSpaghettiStore.getState()
+    const liveExtrudeNodeId = state.extrudeCommandSession?.liveGraph?.liveExtrudeNodeId
+    const profileEdges = state.graph.edges.filter(
+      (edge) => edge.to.nodeId === liveExtrudeNodeId && edge.to.portId === 'ExtrusionProfile',
+    )
+
+    expect(profileEdges).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+        to: {
+          nodeId: liveExtrudeNodeId,
+          portId: 'ExtrusionProfile',
+        },
+      },
+    ])
+    expect(state.extrudeCommandSession?.liveGraph?.commandOwnedProfileEdgeIds).toEqual(
+      profileEdges.map((edge) => edge.edgeId),
+    )
+  })
+
+  it('cancels a new live Extrude session by removing the created node and wires', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      reuseSelectedExtrudeNode: true,
+    })
+    expect(useSpaghettiStore.getState().graph.edges).toEqual(graphBefore.edges)
+
+    useSpaghettiStore.getState().setExtrudeCommandSelectedProfileSources([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+    expect(useSpaghettiStore.getState().graph).not.toEqual(graphBefore)
+
+    useSpaghettiStore.getState().cancelExtrudeCommandSession()
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+  })
+
+  it('cancels a reused live Extrude session by restoring replaced profile wires', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-original-profile',
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-original',
+          },
+          to: {
+            nodeId: 'node-extrude-1',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    })
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().setSelectedNodeId('node-extrude-1')
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      reuseSelectedExtrudeNode: true,
+    })
+    useSpaghettiStore.getState().setExtrudeCommandSelectedProfileSources([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+
+    expect(useSpaghettiStore.getState().graph.edges).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+        to: {
+          nodeId: 'node-extrude-1',
+          portId: 'ExtrusionProfile',
+        },
+      },
+    ])
+
+    useSpaghettiStore.getState().cancelExtrudeCommandSession()
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+  })
+
+  it('accepts a new live Extrude session by keeping the live node, profile wires, and durable params', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 25,
+    })
+    const sessionBeforeAccept = useSpaghettiStore.getState().extrudeCommandSession
+    const liveExtrudeNodeId = sessionBeforeAccept?.liveGraph?.liveExtrudeNodeId
+    const profileEdgeIds = [...(sessionBeforeAccept?.liveGraph?.commandOwnedProfileEdgeIds ?? [])]
+
+    const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+
+    const state = useSpaghettiStore.getState()
+    const acceptedExtrudeNode = state.graph.nodes.find((node) => node.nodeId === liveExtrudeNodeId)
+    expect(state.extrudeCommandSession).toBeNull()
+    expect(acceptedExtrudeNode).toMatchObject({
+      type: 'Geometry/Extrude',
+      params: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        bodyGenerationMode: 'NewObjects',
+        depthMm: 25,
+        taperAngleDeg: 0,
+      },
+    })
+    expect(state.graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          edgeId: profileEdgeIds[0],
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-a',
+          },
+          to: {
+            nodeId: liveExtrudeNodeId,
+            portId: 'ExtrusionProfile',
+          },
+        }),
+        expect.objectContaining({
+          from: {
+            nodeId: liveExtrudeNodeId,
+            portId: 'SolidBody',
+          },
+          to: expect.objectContaining({
+            portId: 'in:solid:s001',
+          }),
+        }),
+      ]),
+    )
+    const outputPreviewEdge = state.graph.edges.find(
+      (edge) => edge.from.nodeId === liveExtrudeNodeId && edge.to.portId === 'in:solid:s001',
+    )
+    const outputPreviewNode = state.graph.nodes.find((node) => node.type === OUTPUT_PREVIEW_NODE_TYPE)
+    expect(outputPreviewEdge?.to.nodeId).toBe(outputPreviewNode?.nodeId)
+    expect(outputPreviewNode?.params).toMatchObject({
+      slots: [{ slotId: 's001' }, { slotId: 's002' }],
+    })
+    expect(summary).toEqual({
+      commandFamily: 'Extrude',
+      entryPoint: 'viewport-toolbar',
+      lifecycleState: 'committed',
+      createdNodeIds: [liveExtrudeNodeId],
+      reusedNodeIds: [],
+      updatedNodeIds: [liveExtrudeNodeId],
+      addedEdgeIds: [...profileEdgeIds, outputPreviewEdge?.edgeId],
+      removedEdgeIds: [],
+    })
+  })
+
+  it('accepts an Extrude session without duplicating an existing OutputPreview wire', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            depthMm: 5,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            componentLabel: 'Published Component',
+            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1' }],
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-existing-output-preview',
+          from: {
+            nodeId: 'node-extrude-1',
+            portId: 'SolidBody',
+          },
+          to: {
+            nodeId: 'node-output-preview-1',
+            portId: 'in:solid:s001',
+          },
+        },
+      ],
+    })
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().setSelectedNodeId('node-extrude-1')
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      reuseSelectedExtrudeNode: true,
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 30,
+    })
+    const profileEdgeIds = [
+      ...(useSpaghettiStore.getState().extrudeCommandSession?.liveGraph
+        ?.commandOwnedProfileEdgeIds ?? []),
+    ]
+
+    const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+
+    const state = useSpaghettiStore.getState()
+    const outputPreviewEdges = state.graph.edges.filter(
+      (edge) => edge.from.nodeId === 'node-extrude-1' && edge.to.portId.startsWith('in:solid:'),
+    )
+    expect(outputPreviewEdges).toEqual([
+      {
+        from: {
+          nodeId: 'node-extrude-1',
+          portId: 'SolidBody',
+        },
+        to: {
+          nodeId: 'node-output-preview-1',
+          portId: 'in:solid:s001',
+        },
+        edgeId: 'edge-existing-output-preview',
+      },
+    ])
+    expect(summary).toEqual({
+      commandFamily: 'Extrude',
+      entryPoint: 'viewport-toolbar',
+      lifecycleState: 'committed',
+      createdNodeIds: [],
+      reusedNodeIds: ['node-extrude-1'],
+      updatedNodeIds: ['node-extrude-1'],
+      addedEdgeIds: profileEdgeIds,
+      removedEdgeIds: [],
+    })
+  })
+
+  it('accepts a reused live Extrude session by replacing old profile wires and summarizing removed edges', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            depthMm: 5,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-original-profile',
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-original',
+          },
+          to: {
+            nodeId: 'node-extrude-1',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    })
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().setSelectedNodeId('node-extrude-1')
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      reuseSelectedExtrudeNode: true,
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 40,
+    })
+    const profileEdgeIds = [
+      ...(useSpaghettiStore.getState().extrudeCommandSession?.liveGraph
+        ?.commandOwnedProfileEdgeIds ?? []),
+    ]
+
+    const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+
+    const state = useSpaghettiStore.getState()
+    expect(state.extrudeCommandSession).toBeNull()
+    expect(state.graph.nodes.find((node) => node.nodeId === 'node-extrude-1')).toMatchObject({
+      params: expect.objectContaining({
+        depthMm: 40,
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        bodyGenerationMode: 'NewObjects',
+      }),
+    })
+    expect(state.graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          edgeId: profileEdgeIds[0],
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-a',
+          },
+          to: {
+            nodeId: 'node-extrude-1',
+            portId: 'ExtrusionProfile',
+          },
+        }),
+      ]),
+    )
+    expect(state.graph.edges).not.toContainEqual(
+      expect.objectContaining({ edgeId: 'edge-original-profile' }),
+    )
+    const outputPreviewEdge = state.graph.edges.find(
+      (edge) => edge.from.nodeId === 'node-extrude-1' && edge.to.portId === 'in:solid:s001',
+    )
+    expect(outputPreviewEdge).toMatchObject({
+      from: {
+        nodeId: 'node-extrude-1',
+        portId: 'SolidBody',
+      },
+      to: {
+        portId: 'in:solid:s001',
+      },
+    })
+    expect(summary).toEqual({
+      commandFamily: 'Extrude',
+      entryPoint: 'viewport-toolbar',
+      lifecycleState: 'committed',
+      createdNodeIds: [],
+      reusedNodeIds: ['node-extrude-1'],
+      updatedNodeIds: ['node-extrude-1'],
+      addedEdgeIds: [...profileEdgeIds, outputPreviewEdge?.edgeId],
+      removedEdgeIds: ['edge-original-profile'],
+    })
+  })
+
+  it('starts a new Extrude node for a repeated profile-driven command even when the prior Extrude is selected', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 20,
+    })
+    const firstExtrudeNodeId =
+      useSpaghettiStore.getState().extrudeCommandSession?.liveGraph?.liveExtrudeNodeId ?? null
+    useSpaghettiStore.getState().acceptExtrudeCommandSession()
+    useSpaghettiStore.getState().setSelectedNodeId(firstExtrudeNodeId)
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 35,
+    })
+    const secondExtrudeNodeId =
+      useSpaghettiStore.getState().extrudeCommandSession?.liveGraph?.liveExtrudeNodeId ?? null
+
+    expect(firstExtrudeNodeId).not.toBeNull()
+    expect(secondExtrudeNodeId).not.toBeNull()
+    expect(secondExtrudeNodeId).not.toBe(firstExtrudeNodeId)
+    expect(useSpaghettiStore.getState().extrudeCommandSession?.liveGraph).toMatchObject({
+      createdExtrudeNodeId: secondExtrudeNodeId,
+      replacedProfileEdges: [],
+    })
+    expect(
+      useSpaghettiStore
+        .getState()
+        .graph.nodes.filter((node) => node.type === 'Geometry/Extrude')
+        .map((node) => node.nodeId),
+    ).toEqual([firstExtrudeNodeId, secondExtrudeNodeId])
+  })
+
+  it('rejects accepting an Extrude session without selected profiles', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+
+    const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+
+    expect(summary).toEqual({
+      commandFamily: 'Extrude',
+      entryPoint: 'viewport-toolbar',
+      lifecycleState: 'cancelled',
+      reason: 'missing-profile-selection',
+    })
+    expect(useSpaghettiStore.getState().extrudeCommandSession).not.toBeNull()
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
+  })
+
   it('boots with no open editor viewport until Browser opens one', () => {
     const state = useSpaghettiStore.getState()
     const activeDocument = selectActiveGraphDocument(state)

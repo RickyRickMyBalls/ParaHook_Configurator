@@ -4,6 +4,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SketchFeature } from '../features/featureTypes'
+import { profileIdFromSignature } from '../features/profileDerivation'
+import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 import {
   MIN_SPAGHETTI_NODE_WIDTH,
   type SpaghettiGraph,
@@ -716,6 +718,77 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     expect(inputRow?.textContent).not.toContain('No SketchProfiles contributors yet')
     expect(outputRow?.textContent).toContain('Ready')
     expect(outputRow?.textContent).not.toContain('Waiting')
+  })
+
+  it('draws singular SketchProfile wires when managed profile rows are collapsed', async () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-profile-to-extrude',
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: buildSketchProfileMemberPortId(profileIdFromSignature('rect-a')),
+          },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+      ],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 40, y: 40 },
+          'node-extrude-1': { x: 360, y: 40 },
+        },
+        nodeModesByNodeId: {
+          'node-sketch-1': 'collapsed',
+          'node-extrude-1': 'collapsed',
+        },
+      },
+    }
+
+    useSpaghettiStore.getState().setGraph(graph)
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="collapsed"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    expect(findPortRow(sketchNode, 'out', 'SketchProfiles')).not.toBeNull()
+    expect(findPortRow(sketchNode, 'out', 'SketchProfile')).toBeNull()
+    expect(findPortRow(extrudeNode, 'in', 'SketchProfiles')).not.toBeNull()
+    expect(container?.querySelectorAll('.SpaghettiWire:not(.SpaghettiWire--preview)')).toHaveLength(1)
   })
 
   it('keeps the live extrude node mounted across graph-document revisions while its depth display updates', async () => {

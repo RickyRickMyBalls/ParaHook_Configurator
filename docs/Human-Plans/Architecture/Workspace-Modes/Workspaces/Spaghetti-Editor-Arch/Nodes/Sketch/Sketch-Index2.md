@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-05-19 22:08:52: Added `Sketch - 3 - Browser Sketch Profile Row Projection` as the next Generation 2 sketch planning lane, with a dedicated `Future2` child doc for projecting graph-authored `SketchProfiles` and individual `SketchProfile:<profileId>` closed loops into expandable Browser rows without making Browser the profile owner or adding literal selected-state wording
 11. 2026-04-08 15:55: Added the dedicated child planning doc `Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`, split `Sketch - 2` into four implementation-ready subphases for parent contract lock, child-row reveal, aggregate-versus-singular wiring meaning, and final surface verification, and refreshed this sketch-family index so the next output-cleanup lane now has a real execution home instead of only an inline phase summary
 10. 2026-04-07 18:30: Marked `Sketch - 1 Phase 4 - Failure Honesty, Resource Cleanup, And Focused Verification` shipped after the worker hardened the new face-driven authoritative path around open/disconnected loop rejection, cleanup coverage, and final-view honesty, and completed the `Sketch - 1` ladder so the next family handoff is now `Sketch - 2 - Sketch Node Output Cleanup And Profile Array Surface`
 9. 2026-04-07 18:24: Tightened `Sketch - 1 Phase 4 - Failure Honesty, Resource Cleanup, And Focused Verification` inside `Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md` into an implementation-ready next slice by grounding it in the shipped face-driven authoritative builder, extracted OC helper cleanup seams, authoritative shape-set registration boundary, and the existing final-view selector path that must stay honest when authoritative sketch lowering still returns `null`
@@ -42,6 +43,12 @@ The next separate node-cleanup lane after that groundwork is:
 The dedicated child planning doc now lives at:
 - `Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`
 
+The next separate Browser-projection lane after the sketch profile output identity is stable is:
+- `Sketch - 3 - Browser Sketch Profile Row Projection`
+
+The dedicated child planning doc now lives at:
+- `Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+
 ### Current Code-Backed Read
 
 - `src/app/spaghetti/features/compileFeatureStack.ts`
@@ -74,6 +81,7 @@ The recommendation is:
 - break the work into smaller subphases so contract growth, OC lowering, extrude handoff, and hardening do not land as one oversized Codex slice
 - keep later sketch-node output cleanup and `SketchProfiles` array behavior in a separate follow-on instead of widening the B-rep ladder
 - keep the next immediate implementation pass on hardening the shipped face-driven path instead of widening support again before failure honesty and cleanup are explicitly proven
+- keep Browser sketch-profile rows as a projection follow-on after the node output identity exists, not as a competing source of profile ownership
 
 ## [x] - `Sketch - 1` - `Graph-Native Sketch B-Rep Loop Lowering`
 
@@ -234,13 +242,13 @@ The recommendation is:
 
 - no
 - keep this work inside `Sketch - 2`
-- treat later sketch curve and point taxonomy as the future `Sketch - 3` style widening instead
+- reserve `Sketch - 3` for a distinct follow-on such as Browser projection or later sketch-family widening after the node output identity is stable
 
 ##### Why
 
 - this phase is already the sketch-side parent-collection versus singular-member contract cleanup
 - splitting it again before implementation would only create another phase boundary around the same output problem
-- the broader taxonomy move belongs later, after the profile collection contract is actually stable in live code
+- Browser projection and broader taxonomy moves belong later, after the profile collection contract is actually stable in live code
 
 ### Implementation Spec
 
@@ -286,3 +294,107 @@ The recommendation is:
 - expanding or essentials mode reveals one child `SketchProfile` row per resolved profile member
 - the user can wire either the whole profile array or one specific child profile intentionally
 - this behavior stays clearly separate from the worker-owned B-rep lowering path in `Sketch - 1`
+
+## [ ] - `Sketch - 3` - `Browser Sketch Profile Row Projection`
+
+### Header
+
+- Status: proposed follow-on phase
+- Goal: project graph-authored sketch profile collections into the Browser so each sketch can expand from the sketch row into `SketchProfiles` and then individual closed-loop `SketchProfile` member rows
+- Dedicated child doc:
+  - `Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+- Current subphase status:
+  - `Phase 1 - Browser Row Model And Identity Contract`
+    - proposed
+  - `Phase 2 - Expandable SketchProfiles Browser Tree Projection`
+    - proposed
+  - `Phase 3 - Viewport Selection Visual Sync`
+    - proposed
+  - `Phase 4 - Focused Browser Interaction Proof`
+    - proposed
+
+### Questions / Decisions
+
+#### [x] - `q1` Should this work live in the Browser family instead of the Sketch family?
+
+##### Suggestion
+
+- no
+- keep this as `Sketch - 3`
+- treat Browser as the presentation surface while `Geometry/Sketch` remains the owner of profile identity
+
+##### Why
+
+- the user-facing need is a Browser row for each graph-authored closed sketch profile
+- the identity contract is `graphDocumentId + sketch nodeId + profileId`, which belongs to the sketch profile system
+- Browser rows should stay derived projection, not a second profile owner
+
+#### [x] - `q2` Should individual profile rows write literal `selected` text?
+
+##### Suggestion
+
+- no
+- use the existing selected-row/highlight visual language
+- let the row identity match viewport profile highlighting without adding extra selected-state copy
+
+##### Why
+
+- the viewport already represents selected closed profiles visually
+- the Browser should give that selected profile a visible place in the tree without cluttering the row text
+
+#### [x] - `q3` What should the Browser hierarchy be?
+
+##### Suggestion
+
+- `Sketches`
+  - `Sketch`
+    - `SketchProfiles`
+      - `SketchProfile`
+      - `SketchProfile`
+
+##### Why
+
+- this mirrors the graph node output contract from `Sketch - 2`
+- the parent row means the full ordered profile array
+- each child row means one closed-loop member from that array
+
+### Implementation Spec
+
+#### Suggested phase title
+
+- `Sketch - 3 - Browser Sketch Profile Row Projection`
+
+#### Suggested scope
+
+1. Add Browser row identity for sketch profile projection.
+   - define Browser row ids for the aggregate `SketchProfiles` row and each `SketchProfile:<profileId>` child row
+   - keep row ids deterministic from graph document, sketch node, and profile id
+2. Expand sketch rows into profile rows.
+   - make Browser `sketch` rows expandable when profile rows exist
+   - add one `SketchProfiles` aggregate row beneath the sketch
+   - add one child `SketchProfile` row per resolved closed profile beneath the aggregate row
+3. Sync visual selection/highlight with viewport profile selection.
+   - row visual state should reflect the same selected-profile identity used by viewport highlighting
+   - do not add literal `selected` row text
+   - avoid mutating graph truth from passive Browser projection
+4. Prove Browser behavior.
+   - cover collapsed sketch rows
+   - cover expanded aggregate and child profile rows
+   - cover selected-profile visual projection without string-based selected labels
+
+#### Likely files
+
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+
+#### Definition of done
+
+- Browser sketch rows can expand into a `SketchProfiles` aggregate row
+- the aggregate row can expand into one `SketchProfile` row per resolved closed profile
+- each profile row has stable identity based on its source profile id
+- selecting or preselecting a profile in the viewport can be visually represented on the matching Browser row
+- Browser does not become the owner of profile membership, selection truth, or graph wiring

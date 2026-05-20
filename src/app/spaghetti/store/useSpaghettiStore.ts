@@ -59,6 +59,10 @@ import { prepareGraphPreviewPreparation, type GraphPreviewPreparation } from '..
 import { getDefaultNodeParams, getNodeDef } from '../registry/nodeRegistry'
 import { ensureOutputPreviewSingletonPatch } from '../families/OutputPreview/system/ensureOutputPreviewSingleton'
 import { ensureOutputPreviewSlotsPatch } from '../families/OutputPreview/system/ensureOutputPreviewSlots'
+import {
+  OUTPUT_PREVIEW_NODE_TYPE,
+  readNormalizedOutputPreviewParams,
+} from '../families/OutputPreview/system/outputPreviewNode'
 import { getNextViewMode, type ViewMode } from '../canvas/rowViewMode'
 import {
   buildSketchDrawSessionIdlePrompt,
@@ -103,6 +107,12 @@ import {
 } from '../../../shared/geometryResult'
 import { buildDispatcher } from '../../buildDispatcher'
 import { appendConsoleEntry } from '../../console/useConsoleStore'
+import {
+  cancelGraphCommandBeforeCommit,
+  commitReadyGraphCommandPlan,
+  createReadyGraphCommandCommitPlan,
+  type GraphCommandCommitSummary,
+} from '../../console/commandCommitContract'
 import {
   createDefaultEditorPopoutState,
   createDefaultEditorWorkspaceSurfaceState,
@@ -196,10 +206,16 @@ import {
 } from './sketch/geometrySketchComponentEditActions'
 import {
   createExtrudeCommandSession,
+  setExtrudeCommandSessionLiveGraphState,
   setExtrudeCommandSessionProfileSources,
   type CreateExtrudeCommandSessionOptions,
   type ExtrudeCommandSession,
+  type ExtrudeCommandLiveGraphState,
 } from '../commands/extrudeCommandSession'
+import {
+  isWholeExtrusionProfileTargetEndpoint,
+  normalizeExtrudeProfileConnectionEndpoints,
+} from '../families/Geometry/contracts/sketchExtrudeProfileContract'
 import {
   selectActiveGraph,
   selectActiveGraphCompileResult,
@@ -251,6 +267,18 @@ export type CanvasUiMessage = {
   level: 'error' | 'info'
   text: string
 }
+
+export type ViewportSketchProfileSelection = {
+  graphDocumentId: string
+  sketchNodeId: string
+  profileId: string
+  portId: string
+}
+
+export type ViewportSketchProfileHover = {
+  sketchNodeId: string
+  profileId: string
+} | null
 
 type NodePosUpdate = {
   nodeId: string
@@ -341,6 +369,17 @@ const generateUniqueCreatedGraphNodeId = (graph: SpaghettiGraph): string => {
   return candidate
 }
 
+const generateUniqueCreatedGraphEdgeId = (graph: SpaghettiGraph): string => {
+  const existing = new Set(graph.edges.map((edge) => edge.edgeId))
+  let candidate = newId('edge')
+  let suffix = 2
+  while (existing.has(candidate)) {
+    candidate = `${newId('edge')}-${suffix}`
+    suffix += 1
+  }
+  return candidate
+}
+
 const buildDefaultCreatedGraphNodePosition = (graph: SpaghettiGraph): GraphNodePos => {
   const positions = graph.nodes
     .map((node) => graph.ui?.nodes?.[node.nodeId] ?? node.ui ?? null)
@@ -353,6 +392,244 @@ const buildDefaultCreatedGraphNodePosition = (graph: SpaghettiGraph): GraphNodeP
   return {
     x: Math.round(maxX + 240),
     y: Math.round(minY),
+  }
+}
+
+const isIncomingExtrudeProfileEdge = (
+  edge: SpaghettiEdge,
+  extrudeNodeId: string,
+): boolean =>
+  edge.to.nodeId === extrudeNodeId &&
+  isWholeExtrusionProfileTargetEndpoint(edge.to)
+
+const listIncomingExtrudeProfileEdges = (
+  graph: SpaghettiGraph,
+  extrudeNodeId: string,
+): SpaghettiEdge[] =>
+  graph.edges.filter((edge) => isIncomingExtrudeProfileEdge(edge, extrudeNodeId))
+
+const OUTPUT_PREVIEW_SOLID_INPUT_PORT_PREFIX = 'in:solid:'
+
+const readOutputPreviewSolidInputSlotId = (portId: string): string | null =>
+  portId.startsWith(OUTPUT_PREVIEW_SOLID_INPUT_PORT_PREFIX)
+    ? portId.slice(OUTPUT_PREVIEW_SOLID_INPUT_PORT_PREFIX.length)
+    : null
+
+const createLiveExtrudeNode = (graph: SpaghettiGraph): SpaghettiNode => ({
+  nodeId: generateUniqueCreatedGraphNodeId(graph),
+  type: 'Geometry/Extrude',
+  params: getDefaultNodeParams('Geometry/Extrude'),
+})
+
+const ensureLiveExtrudeCommandGraph = (
+  graph: SpaghettiGraph,
+  selectedNodeId: string | null,
+): {
+  graph: SpaghettiGraph
+  liveGraph: ExtrudeCommandLiveGraphState
+} => {
+  const selectedExtrudeNode =
+    selectedNodeId === null
+      ? null
+      : graph.nodes.find(
+          (node) => node.nodeId === selectedNodeId && node.type === 'Geometry/Extrude',
+        ) ?? null
+
+  if (selectedExtrudeNode !== null) {
+    return {
+      graph,
+      liveGraph: {
+        liveExtrudeNodeId: selectedExtrudeNode.nodeId,
+        createdExtrudeNodeId: null,
+        commandOwnedProfileEdgeIds: [],
+        replacedProfileEdges: listIncomingExtrudeProfileEdges(graph, selectedExtrudeNode.nodeId),
+      },
+    }
+  }
+
+  const createdNode = createLiveExtrudeNode(graph)
+  return {
+    graph: addNodeCommand({
+      node: createdNode,
+      position: buildDefaultCreatedGraphNodePosition(graph),
+    })(graph),
+    liveGraph: {
+      liveExtrudeNodeId: createdNode.nodeId,
+      createdExtrudeNodeId: createdNode.nodeId,
+      commandOwnedProfileEdgeIds: [],
+      replacedProfileEdges: [],
+    },
+  }
+}
+
+const syncLiveExtrudeProfileEdges = (
+  graph: SpaghettiGraph,
+  liveGraph: ExtrudeCommandLiveGraphState,
+  selectedProfileSources: readonly Pick<EdgeEndpoint, 'nodeId' | 'portId'>[],
+): {
+  graph: SpaghettiGraph
+  liveGraph: ExtrudeCommandLiveGraphState
+} => {
+  const ownedEdgeIds = new Set(liveGraph.commandOwnedProfileEdgeIds)
+  const replacedEdgeIds = new Set(liveGraph.replacedProfileEdges.map((edge) => edge.edgeId))
+  let nextGraph: SpaghettiGraph = {
+    ...graph,
+    edges: graph.edges.filter((edge) => {
+      if (edge.to.nodeId !== liveGraph.liveExtrudeNodeId) {
+        return true
+      }
+      if (ownedEdgeIds.has(edge.edgeId) || replacedEdgeIds.has(edge.edgeId)) {
+        return false
+      }
+      return !isWholeExtrusionProfileTargetEndpoint(edge.to)
+    }),
+  }
+  const commandOwnedProfileEdgeIds: string[] = []
+  const addedEdges: SpaghettiEdge[] = []
+
+  for (const source of selectedProfileSources) {
+    const edgeId = generateUniqueCreatedGraphEdgeId({
+      ...nextGraph,
+      edges: [...nextGraph.edges, ...addedEdges],
+    })
+    const endpoints = normalizeExtrudeProfileConnectionEndpoints({
+      from: {
+        nodeId: source.nodeId,
+        portId: source.portId,
+      },
+      to: {
+        nodeId: liveGraph.liveExtrudeNodeId,
+        portId: 'ExtrusionProfile',
+      },
+    })
+    commandOwnedProfileEdgeIds.push(edgeId)
+    addedEdges.push({
+      edgeId,
+      from: endpoints.from,
+      to: endpoints.to,
+    })
+  }
+
+  nextGraph = {
+    ...nextGraph,
+    edges: [...nextGraph.edges, ...addedEdges],
+  }
+
+  return {
+    graph: nextGraph,
+    liveGraph: {
+      ...liveGraph,
+      commandOwnedProfileEdgeIds,
+    },
+  }
+}
+
+const rollbackLiveExtrudeCommandGraph = (
+  graph: SpaghettiGraph,
+  liveGraph: ExtrudeCommandLiveGraphState,
+): SpaghettiGraph => {
+  if (liveGraph.createdExtrudeNodeId !== null) {
+    return removeNodeCommand(liveGraph.createdExtrudeNodeId)(graph)
+  }
+
+  const commandOwnedProfileEdgeIds = new Set(liveGraph.commandOwnedProfileEdgeIds)
+  const restoredEdgeIds = new Set(liveGraph.replacedProfileEdges.map((edge) => edge.edgeId))
+  const remainingEdges = graph.edges.filter(
+    (edge) => !commandOwnedProfileEdgeIds.has(edge.edgeId),
+  )
+  const existingEdgeIds = new Set(remainingEdges.map((edge) => edge.edgeId))
+  const restoredEdges = liveGraph.replacedProfileEdges.filter(
+    (edge) => !existingEdgeIds.has(edge.edgeId) && restoredEdgeIds.has(edge.edgeId),
+  )
+
+  return {
+    ...graph,
+    edges: [...remainingEdges, ...restoredEdges],
+  }
+}
+
+const writeAcceptedExtrudeCommandParams = (
+  graph: SpaghettiGraph,
+  liveExtrudeNodeId: string,
+  depthMm: number,
+): SpaghettiGraph => ({
+  ...graph,
+  nodes: graph.nodes.map((node) =>
+    node.nodeId === liveExtrudeNodeId && node.type === 'Geometry/Extrude'
+      ? {
+          ...node,
+          params: {
+            ...node.params,
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            bodyGenerationMode: 'NewObjects',
+            depthMm,
+            taperAngleDeg: 0,
+          },
+        }
+      : node,
+  ),
+})
+
+const wireAcceptedExtrudeCommandToOutputPreview = (
+  graph: SpaghettiGraph,
+  liveExtrudeNodeId: string,
+): {
+  graph: SpaghettiGraph
+  edgeId: string | null
+} => {
+  const outputPreviewNode = graph.nodes.find((node) => node.type === OUTPUT_PREVIEW_NODE_TYPE)
+  if (outputPreviewNode === undefined) {
+    return { graph, edgeId: null }
+  }
+
+  const alreadyPublished = graph.edges.some(
+    (edge) =>
+      edge.from.nodeId === liveExtrudeNodeId &&
+      edge.to.nodeId === outputPreviewNode.nodeId &&
+      readOutputPreviewSolidInputSlotId(edge.to.portId) !== null,
+  )
+  if (alreadyPublished) {
+    return { graph, edgeId: null }
+  }
+
+  const normalizedOutputPreviewParams = readNormalizedOutputPreviewParams(graph)
+  const occupiedSlotIds = new Set(
+    graph.edges.flatMap((edge) => {
+      if (edge.to.nodeId !== outputPreviewNode.nodeId) {
+        return []
+      }
+      const slotId = readOutputPreviewSolidInputSlotId(edge.to.portId)
+      return slotId === null ? [] : [slotId]
+    }),
+  )
+  const targetSlot =
+    normalizedOutputPreviewParams?.slots.find((slot) => !occupiedSlotIds.has(slot.slotId)) ??
+    null
+  if (targetSlot === null) {
+    return { graph, edgeId: null }
+  }
+
+  const edgeId = generateUniqueCreatedGraphEdgeId(graph)
+  return {
+    graph: {
+      ...graph,
+      edges: [
+        ...graph.edges,
+        {
+          edgeId,
+          from: {
+            nodeId: liveExtrudeNodeId,
+            portId: 'SolidBody',
+          },
+          to: {
+            nodeId: outputPreviewNode.nodeId,
+            portId: `${OUTPUT_PREVIEW_SOLID_INPUT_PORT_PREFIX}${targetSlot.slotId}`,
+          },
+        },
+      ],
+    },
+    edgeId,
   }
 }
 
@@ -656,10 +933,18 @@ export type SpaghettiStoreState = {
   moveGeometrySketchComponentDown: (nodeId: string, rowId: string) => void
   removeGeometrySketchComponent: (nodeId: string, rowId: string) => void
   setGeometrySketchSelectedProfile: (nodeId: string, profileId: string | null) => void
+  viewportSelectedSketchProfiles: ViewportSketchProfileSelection[]
+  viewportHoveredSketchProfile: ViewportSketchProfileHover
+  setViewportSelectedSketchProfiles: (
+    selections: readonly ViewportSketchProfileSelection[],
+  ) => void
+  clearViewportSelectedSketchProfiles: () => void
+  setViewportHoveredSketchProfile: (hover: ViewportSketchProfileHover) => void
   startExtrudeCommandSession: (
     options: CreateExtrudeCommandSessionOptions,
   ) => ExtrudeCommandSession
   cancelExtrudeCommandSession: () => void
+  acceptExtrudeCommandSession: () => GraphCommandCommitSummary
   setExtrudeCommandSelectedProfileSources: (
     selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
   ) => void
@@ -4119,6 +4404,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
   sketchPlanePickSession: null,
   geometrySketchSession: null,
   extrudeCommandSession: null,
+  viewportSelectedSketchProfiles: [],
+  viewportHoveredSketchProfile: null,
   geometrySketchHistoryScrub: null,
   geometrySketchLocalHistoryByTargetId: {},
   uiMessage: null,
@@ -4153,6 +4440,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
           state.geometrySketchSession,
         ),
         extrudeCommandSession: null,
+        viewportSelectedSketchProfiles: [],
+        viewportHoveredSketchProfile: null,
         geometrySketchHistoryScrub: null,
         geometrySketchLocalHistoryByTargetId: {},
         edgeWaypoints: {},
@@ -4801,13 +5090,181 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
       )
     }
   },
+  setViewportSelectedSketchProfiles: (selections) => {
+    set({
+      viewportSelectedSketchProfiles: selections.map((selection) => ({ ...selection })),
+    })
+  },
+  clearViewportSelectedSketchProfiles: () => {
+    set({
+      viewportSelectedSketchProfiles: [],
+      viewportHoveredSketchProfile: null,
+    })
+  },
+  setViewportHoveredSketchProfile: (hover) => {
+    set({
+      viewportHoveredSketchProfile: hover === null ? null : { ...hover },
+    })
+  },
   startExtrudeCommandSession: (options) => {
-    const session = createExtrudeCommandSession(options)
-    set({ extrudeCommandSession: session })
-    return session
+    let createdSession = createExtrudeCommandSession(options)
+    set((state) => {
+      const targetDocument = selectGraphDocumentById(state, options.graphDocumentId)
+      if (targetDocument === null) {
+        return {
+          extrudeCommandSession: createdSession,
+        }
+      }
+
+      const ensuredLiveGraph = ensureLiveExtrudeCommandGraph(
+        targetDocument.graph,
+        options.reuseSelectedExtrudeNode === true ? state.selectedNodeId : null,
+      )
+      const initialSelectedProfileSources = options.selectedProfileSources ?? []
+      const syncedLiveGraph =
+        initialSelectedProfileSources.length > 0
+          ? syncLiveExtrudeProfileEdges(
+              ensuredLiveGraph.graph,
+              ensuredLiveGraph.liveGraph,
+              initialSelectedProfileSources,
+            )
+          : ensuredLiveGraph
+      const nextGraph = normalizeGraphForStoreCommit(syncedLiveGraph.graph)
+      createdSession = createExtrudeCommandSession({
+        ...options,
+        liveGraph: syncedLiveGraph.liveGraph,
+      })
+      return {
+        ...withUpdatedGraphDocumentState(state, options.graphDocumentId, nextGraph),
+        extrudeCommandSession: createdSession,
+      }
+    })
+    return createdSession
   },
   cancelExtrudeCommandSession: () => {
-    set({ extrudeCommandSession: null })
+    set((state) => {
+      const session = state.extrudeCommandSession
+      if (session?.liveGraph === undefined || session.liveGraph === null) {
+        return {
+          extrudeCommandSession: null,
+        }
+      }
+      const targetDocument = selectGraphDocumentById(state, session.graphDocumentId)
+      if (targetDocument === null) {
+        return {
+          extrudeCommandSession: null,
+        }
+      }
+      const nextGraph = normalizeGraphForStoreCommit(
+        rollbackLiveExtrudeCommandGraph(targetDocument.graph, session.liveGraph),
+      )
+      return {
+        ...withUpdatedGraphDocumentState(state, session.graphDocumentId, nextGraph),
+        extrudeCommandSession: null,
+      }
+    })
+  },
+  acceptExtrudeCommandSession: () => {
+    let resultSummary: GraphCommandCommitSummary = cancelGraphCommandBeforeCommit({
+      commandFamily: 'Extrude',
+      entryPoint: 'viewport-toolbar',
+      reason: 'missing-extrude-session',
+    })
+    set((state) => {
+      const session = state.extrudeCommandSession
+      if (session === null) {
+        return state
+      }
+
+      const cancel = (reason: string) => {
+        resultSummary = cancelGraphCommandBeforeCommit({
+          commandFamily: 'Extrude',
+          entryPoint: session.entryPoint,
+          reason,
+        })
+      }
+
+      if (session.liveGraph === null) {
+        cancel('missing-live-extrude-graph')
+        return state
+      }
+      if (session.selectedProfileSources.length === 0) {
+        cancel('missing-profile-selection')
+        return state
+      }
+      if (!Number.isFinite(session.depth) || Math.abs(session.depth) < 0.000001) {
+        cancel('invalid-depth')
+        return state
+      }
+
+      const targetDocument = selectGraphDocumentById(state, session.graphDocumentId)
+      if (targetDocument === null) {
+        cancel('missing-graph-document')
+        return {
+          extrudeCommandSession: null,
+        }
+      }
+
+      const liveExtrudeNode = targetDocument.graph.nodes.find(
+        (node) =>
+          node.nodeId === session.liveGraph?.liveExtrudeNodeId &&
+          node.type === 'Geometry/Extrude',
+      )
+      if (liveExtrudeNode === undefined) {
+        cancel('missing-live-extrude-node')
+        return {
+          extrudeCommandSession: null,
+        }
+      }
+
+      const acceptedParamsGraph = normalizeGraphForStoreCommit(
+        writeAcceptedExtrudeCommandParams(
+          targetDocument.graph,
+          session.liveGraph.liveExtrudeNodeId,
+          session.depth,
+        ),
+      )
+      const outputPreviewWire = wireAcceptedExtrudeCommandToOutputPreview(
+        acceptedParamsGraph,
+        session.liveGraph.liveExtrudeNodeId,
+      )
+      const nextGraph = normalizeGraphForStoreCommit(outputPreviewWire.graph)
+      const addedEdgeIds = [
+        ...session.liveGraph.commandOwnedProfileEdgeIds,
+        ...(outputPreviewWire.edgeId === null ? [] : [outputPreviewWire.edgeId]),
+      ]
+      const commandCommitPlan = createReadyGraphCommandCommitPlan({
+        commandFamily: 'Extrude',
+        entryPoint: session.entryPoint,
+        intendedMutations: [
+          session.liveGraph.createdExtrudeNodeId !== null ? 'create-node' : 'reuse-node',
+          'update-params',
+          ...(addedEdgeIds.length > 0 ? ['add-wire' as const] : []),
+          ...(session.liveGraph.replacedProfileEdges.length > 0 ? ['remove-wire' as const] : []),
+        ],
+      })
+      resultSummary = commitReadyGraphCommandPlan(commandCommitPlan, {
+        createdNodeIds:
+          session.liveGraph.createdExtrudeNodeId === null
+            ? []
+            : [session.liveGraph.createdExtrudeNodeId],
+        reusedNodeIds:
+          session.liveGraph.createdExtrudeNodeId === null
+            ? [session.liveGraph.liveExtrudeNodeId]
+            : [],
+        updatedNodeIds: [session.liveGraph.liveExtrudeNodeId],
+        addedEdgeIds,
+        removedEdgeIds: session.liveGraph.replacedProfileEdges.map((edge) => edge.edgeId),
+      })
+
+      return {
+        ...withUpdatedGraphDocumentState(state, session.graphDocumentId, nextGraph),
+        extrudeCommandSession: null,
+        viewportSelectedSketchProfiles: [],
+        viewportHoveredSketchProfile: null,
+      }
+    })
+    return resultSummary
   },
   setExtrudeCommandSelectedProfileSources: (selectedProfileSources) => {
     set((state) => {
@@ -4815,11 +5272,43 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         return state
       }
 
-      return {
-        extrudeCommandSession: setExtrudeCommandSessionProfileSources(
+      const targetDocument = selectGraphDocumentById(
+        state,
+        state.extrudeCommandSession.graphDocumentId,
+      )
+      if (
+        targetDocument === null ||
+        state.extrudeCommandSession.liveGraph === null
+      ) {
+        return {
+          extrudeCommandSession: setExtrudeCommandSessionProfileSources(
+            state.extrudeCommandSession,
+            selectedProfileSources,
+          ),
+        }
+      }
+
+      const syncedLiveGraph = syncLiveExtrudeProfileEdges(
+        targetDocument.graph,
+        state.extrudeCommandSession.liveGraph,
+        selectedProfileSources,
+      )
+      const nextGraph = normalizeGraphForStoreCommit(syncedLiveGraph.graph)
+      const nextSession = setExtrudeCommandSessionLiveGraphState(
+        setExtrudeCommandSessionProfileSources(
           state.extrudeCommandSession,
           selectedProfileSources,
         ),
+        syncedLiveGraph.liveGraph,
+      )
+
+      return {
+        ...withUpdatedGraphDocumentState(
+          state,
+          state.extrudeCommandSession.graphDocumentId,
+          nextGraph,
+        ),
+        extrudeCommandSession: nextSession,
       }
     })
   },

@@ -72,6 +72,421 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1982 -->
+
+### [1982] - 2026-05-19 22:50 - `Spaghetti-Editor 8 / Phase 3.6 - Repeat Extrude New Operation Cleanup`
+
+HUMAN SUMMARY: ``Fixed repeated profile Extrude behavior. Starting Extrude from a selected profile now creates a new Extrude node by default, so extruding the same profile again becomes a second operation instead of silently editing the previous accepted Extrude.``
+
+#### Scope / Constraints Honored
+
+- Kept the cleanup inside the existing live Extrude command-session start path.
+- Preserved explicit reused-node behavior as an opt-in path for future edit flows and focused tests.
+- Did not change profile picking, depth preview rendering, OutputPreview slot normalization, or Cancel rollback semantics.
+
+#### Summary of Implementation
+
+- Added `reuseSelectedExtrudeNode` as an explicit start-session option.
+- Changed normal `startExtrudeCommandSession(...)` calls to create a fresh live `Geometry/Extrude` node even if an older Extrude node is selected.
+- Updated reused-node tests to opt into reuse directly.
+- Added regression coverage for repeating Extrude on the same selected profile after accepting the first operation.
+
+#### Files Changed
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Repeating Extrude on the same selected profile creates a new `Geometry/Extrude` node by default.
+- Selected prior Extrude nodes are no longer implicitly reused by normal viewport/console profile-driven command starts.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude"`
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command"`
+- `cmd /c npx vitest run src/app/console/graphCommandAuthoring.test.ts -t "Extrude"`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1981 -->
+
+### [1981] - 2026-05-19 22:34 - `Spaghetti-Editor 8 / Phase 3.6 - Extrude Output Preview Wiring Follow-Up`
+
+HUMAN SUMMARY: ``Completed the accepted Extrude graph chain into OutputPreview. Toolbar OK now publishes the accepted live Extrude node by wiring its SolidBody output into the first open OutputPreview solid slot when that Extrude is not already published.``
+
+#### Scope / Constraints Honored
+
+- Kept the follow-up inside the existing Phase 3.6 accept path.
+- Preserved the no-second-Extrude rule and reused the existing live command node.
+- Reused the current `System/OutputPreview` slot contract and normalization behavior instead of adding a viewer-only preview owner.
+
+#### Summary of Implementation
+
+- Added store-owned output-preview wiring for accepted Extrude sessions.
+- Skips output wire creation when the accepted Extrude node is already connected to an OutputPreview solid slot.
+- Includes the generated OutputPreview wire in committed command summaries.
+- Added focused store and ViewerHost assertions for output-preview publication behavior.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Accepting an Extrude command now completes `SketchProfile -> Geometry/Extrude -> OutputPreview` for newly published command-created or reused Extrude nodes.
+- Existing OutputPreview publication wires for reused Extrude nodes are preserved without duplication.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude"`
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command"`
+- `cmd /c npx vitest run src/app/console/graphCommandAuthoring.test.ts -t "Extrude"`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1980 -->
+
+### [1980] - 2026-05-19 22:21 - `Spaghetti-Editor 8 / Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout`
+
+HUMAN SUMMARY: ``Closed the first usable Extrude command loop. Toolbar OK now accepts the existing live Extrude command node with durable params and committed summaries, while Cancel still rolls back unaccepted live graph work without creating a second Extrude node.``
+
+#### Scope / Constraints Honored
+
+- Accepted the existing live command node created by the Phase 3.5A path instead of creating another Extrude node on `OK`.
+- Kept durable graph mutation owned by the Spaghetti store/session owner, not the viewer preview or toolbar component.
+- Left Build Path UI, imported face picking, generic planar face extrusion, drag handles, taper fidelity, and arrangement UI out of scope.
+
+#### Summary of Implementation
+
+- Added `acceptExtrudeCommandSession()` to finalize active Extrude sessions from the store.
+- Wrote durable `Geometry/Extrude` params for accepted sessions, including `depthMm`, `extrudeType`, `extrudeDirection`, `bodyGenerationMode`, and `taperAngleDeg`.
+- Preserved live profile wires already synchronized by the active command selection path.
+- Returned committed/cancelled command summaries for accept attempts.
+- Wired the viewport toolbar `OK` button to the accept action.
+- Added focused store and toolbar tests for new/reused live-node acceptance, invalid accept rejection, preview/session clearing, and Cancel rollback preservation.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Users can now press `OK` in the Extrude toolbar to accept the live Extrude graph node as durable graph truth.
+- Accepted Extrude sessions keep selected profile wires and write the active depth value onto the Extrude node params.
+- Successful accept clears the transient Extrude session and viewport preview.
+- Cancel continues to remove or restore unaccepted command-owned graph edits.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude"`
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command"`
+- `cmd /c npx vitest run src/app/console/graphCommandAuthoring.test.ts -t "Extrude"`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1979 -->
+
+### [1979] - 2026-05-19 22:02 - `Spaghetti-Editor 8 / Phase 3.5C - Extrude Depth Preview Volume And Value Feedback`
+
+HUMAN SUMMARY: ``Implemented the first transient Extrude depth preview. Active Extrude sessions now project selected sketch profiles plus the current depth into a viewer-only preview volume without accepting graph params, accepted output, command summaries, or Build Path rows.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3.5C limited to transient preview presentation.
+- Preserved the Phase 3.5A live graph node/wire ownership and Cancel rollback boundary.
+- Left durable `OK` acceptance, graph param writes, Build Path projection, imported face picking, generic planar face extrusion, drag handles, and Settings-backed colors deferred.
+
+#### Summary of Implementation
+
+- Added a narrow `ExtrudeCommandPreviewOverlayVm` bridge shape for selected profile preview data.
+- Derived the preview in `ViewerHost` from the active `extrudeCommandSession`, selected sketch-profile sources, profile vertices, sketch plane transforms, and session depth.
+- Added a separate viewer preview group that renders first-pass translucent profile caps, side walls, and top outlines for the selected profiles.
+- Added focused proof that multi-profile preview projection is produced without mutating graph state.
+
+#### Files Changed
+
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- When Extrude is in the `Depth` step with one or more valid selected sketch profiles and a finite non-zero depth, the model viewport now receives and renders a transient extrusion preview.
+- Multiple selected profiles preview together, and the projection follows the existing selected profile source order.
+- The preview clears when the active command/session state no longer has valid selected profiles or depth.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command"`
+- `cmd /c npx vitest run src/viewer/geometrySketchOverlay.test.ts src/app/components/ViewerHost.test.tsx -t "profile"`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1978 -->
+
+### [1978] - 2026-05-19 21:15 - `Spaghetti-Editor 8 / Phase 3.5B Follow-Up - Selected Profile Color`
+
+HUMAN SUMMARY: ``Made selected closed sketch profiles visually distinct from normal selectable profiles. Selected profile fills and outlines now render blue, while unselected profiles stay cyan and hover remains white.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing selected-profile overlay ownership in the viewer render layer.
+- Kept normal selectable profile fill and hover highlighting behavior unchanged.
+- Limited this follow-up to selected profile color/material tuning.
+
+#### Summary of Implementation
+
+- Updated the selected sketch-profile outline material to blue.
+- Updated the selected sketch-profile fill material to blue with slightly stronger opacity than the normal selectable fill.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Closed profiles that are selected now render with a distinct blue selected state.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/viewer/geometrySketchOverlay.test.ts src/app/components/ViewerHost.test.tsx -t "profile"`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1977 -->
+
+### [1977] - 2026-05-19 21:12 - `Spaghetti-Editor 8 / Phase 3.5B Follow-Up - Toggle Multi-Profile Selection`
+
+HUMAN SUMMARY: ``Changed viewport sketch-profile picking from replace-only selection to toggle multi-selection. Plain clicks now add unselected profiles, remove already selected profiles, and keep the live Extrude node's profile wires synchronized with the selected set.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing Shift-click same-sketch expansion behavior.
+- Kept outside-Extrude profile selection transient with no graph mutation.
+- Kept active Extrude selection routed through the existing live auto-wiring path instead of adding a second graph mutation path.
+
+#### Summary of Implementation
+
+- Updated `ViewerHost` profile-pick routing to build the next selected-profile set from the current transient or active Extrude session selection.
+- Plain profile picks now toggle one profile on or off while preserving other selected profiles.
+- Added focused ViewerHost tests for outside-Extrude preselection toggling and active Extrude live wire toggling.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Users can select profile 1, then profile 2, and both remain selected.
+- Clicking a selected profile again removes that profile from the selected set.
+- During active Extrude, the Spaghetti graph profile wires add and remove to match the selected profile set.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/app/components/ViewerHost.test.tsx -t "profile"`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1976 -->
+
+### [1976] - 2026-05-19 21:02 - `Spaghetti-Editor 8 / Phase 3.5A Follow-Up - Singular Profile Wire Rendering`
+
+HUMAN SUMMARY: ``Repaired the Spaghetti canvas display for live auto-wired singular sketch-profile edges. Exact `SketchProfile:<profileId>` graph wires now still draw when the per-profile child row is collapsed by falling back to the visible parent `SketchProfiles` row for canvas rendering only.``
+
+#### Scope / Constraints Honored
+
+- Kept the underlying graph edge endpoints exact so live Extrude auto-wiring continues to store `SketchProfile:<profileId>` sources.
+- Limited the fix to canvas rendering endpoint resolution; no Extrude session, graph mutation, viewport selection, preview volume, or command-acceptance behavior was changed.
+- Added focused proof for collapsed managed profile rows because that is the state where the exact child socket is not mounted.
+
+#### Summary of Implementation
+
+- Added output-side render endpoint resolution in `SpaghettiCanvas` for singular sketch-profile member wires.
+- Preserved exact profile child sockets when they are visible, and fell back to the parent `SketchProfiles` socket only when the exact child anchor is absent.
+- Added a real canvas regression that renders a singular `SketchProfile:<profileId>` to `ExtrusionProfile` edge with both nodes collapsed and asserts the wire path is drawn.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Live singular profile auto-wires can now remain visible in the Spaghetti node canvas even when managed profile rows are collapsed.
+
+#### Verification Steps
+
+- `cmd /c npx vitest run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1975 -->
+
+### [1975] - 2026-05-19 20:41 - `Spaghetti-Editor 8 / Phase 3.5B - Viewport Profile Hover And Preselection`
+
+HUMAN SUMMARY: ``Made closed sketch profiles visibly selectable in the viewport. Profiles now get first-pass filled regions, hovered profiles highlight white, profile clicks outside Extrude create transient preselection without graph mutation, and starting Extrude can consume valid preselected profiles through the live auto-wiring path.``
+
+#### Scope / Constraints Honored
+
+- Kept Settings-backed profile color controls, depth preview volume, drag handles, toolbar depth editing, `OK` acceptance, Build Path rows, imported STEP face selection, and generic planar face extrusion out of this slice.
+- Kept profile preselection transient in viewport/store state rather than graph truth.
+- Reused the Phase 3.5A live Extrude session path for startup seeding and active profile-click graph wiring.
+
+#### Summary of Implementation
+
+- Added sketch-profile fill and hovered-profile render layers to the geometry sketch overlay helper and viewer overlay renderer.
+- Added a viewer hover callback for sketch profiles and routed it through `ViewerHost` into transient Spaghetti store state.
+- Added transient viewport sketch-profile selection state in the Spaghetti store.
+- Updated viewport profile picks so plain click outside Extrude preselects one profile and Shift-click preselects every profile in the picked sketch only.
+- Projected selected and hovered profile ids into active and visible sketch overlays.
+- Updated root Extrude startup to validate preselected profiles and pass them into `startExtrudeCommandSession(...)`, which then creates/reuses the live Extrude node and wires exact profile inputs.
+
+#### Files Changed
+
+- `src/app/viewerBridge.ts`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/viewer/geometrySketchOverlay.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Closed graph-authored sketch profiles can now render as filled selectable regions.
+- Hovering a sketch profile can now drive a white profile highlight.
+- Clicking a sketch profile outside Extrude stores transient preselection and does not mutate graph nodes or edges.
+- Starting Extrude with valid preselected profiles enters the live selected-profile/depth path through existing graph auto-wiring.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/viewer/geometrySketchOverlay.test.ts --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t profile --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t Extrude --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t Extrude --reporter verbose`
+- `npm.cmd run build`
+
+<!-- ENTRY 1974 -->
+
+### [1974] - 2026-05-19 20:17 - `Spaghetti-Editor 8 / Phase 3.5A - Live Extrude Node And Profile Auto-Wiring Contract`
+
+HUMAN SUMMARY: ``Made Extrude command sessions live in graph truth. Starting Extrude now creates or reuses a real `Geometry/Extrude` node, Console and viewport profile selection auto-wire exact sketch-profile rows into that live node, and Cancel rolls back unaccepted command-owned graph work.``
+
+#### Scope / Constraints Honored
+
+- Kept hover fill, white hover highlight, profile preselection outside Extrude, depth preview volume, depth handles, final `OK` acceptance, Build Path accepted summaries, imported STEP face picking, and generic planar face extrusion out of this slice.
+- Routed both Console token selection and viewport profile picking through the shared store command/session actions instead of adding component-local graph mutation.
+- Preserved exact `SketchProfile:<profileId>` member-row wiring for individual profile selections.
+
+#### Summary of Implementation
+
+- Extended `ExtrudeCommandSession` with live graph metadata for the live Extrude node, command-created node marker, command-owned profile edge ids, and replaced profile edges for rollback.
+- Updated `startExtrudeCommandSession(...)` to create or reuse a live `Geometry/Extrude` node immediately and store rollback metadata on the session.
+- Updated `setExtrudeCommandSelectedProfileSources(...)` to reconcile selected profile sources into live `ExtrusionProfile` wires.
+- Updated `cancelExtrudeCommandSession(...)` to remove command-created Extrude nodes/wires or restore pre-command profile wires on reused Extrude nodes.
+- Updated Console and viewport tests to assert the new live graph behavior.
+
+#### Files Changed
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Starting `Extrude` now mutates the graph immediately by creating or reusing a live `Geometry/Extrude` command node.
+- Selecting a profile from Console or the viewport now writes live graph wires into the command node's `ExtrusionProfile` input.
+- Cancel rolls back unaccepted live command graph work instead of only clearing transient session state.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "Extrude" --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude" --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/spaghetti/commands/extrudeCommandSession.test.ts --reporter verbose`
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude" --reporter verbose`
+- `npm.cmd run build`
+
+<!-- ENTRY 1973 -->
+
+### [1973] - 2026-05-19 19:14 - `Spaghetti-Editor 8 / Phase 3.5 - Profile Picking Count And Preview State`
+
+HUMAN SUMMARY: ``Connected viewport sketch-profile clicks to the active Extrude session. A plain click now selects one graph-authored profile, Shift-click selects every profile from that sketch only, and the viewport toolbar moves to Depth with the correct selected count while graph truth remains untouched until OK is wired.``
+
+#### Scope / Constraints Honored
+
+- Kept profile picking transient inside `extrudeCommandSession`; no graph nodes, edges, command summaries, or Build Path rows are created by picking.
+- Limited viewport picks to graph-authored sketch profiles carried by the sketch overlay path.
+- Left imported STEP face picking, generic planar face extrusion, rich preview, depth handles, and `OK` commit to later phases.
+
+#### Summary of Implementation
+
+- Added a dedicated viewer bridge callback for graph sketch-profile picks.
+- Carried source sketch node ids through visible sketch overlays and profile ids through rendered profile polylines.
+- Added viewer hit handling that raycasts profile overlay lines and reports `{ sketchNodeId, profileId, shiftKey }`.
+- Registered the callback in `ViewerHost` so active Extrude sessions update selected profile sources through `buildSketchProfileMemberPortId(...)`.
+- Added focused ViewerHost proof for ignored inactive picks, one-profile picks, Shift-click same-sketch expansion, toolbar count/depth transition, and no graph mutation.
+
+#### Files Changed
+
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- During an active Extrude session, clicking a visible graph-authored sketch profile selects that profile source and moves the session to `Depth`.
+- Shift-clicking a profile selects all profiles from the picked sketch only.
+- The model-viewport Extrude toolbar now reflects the selected profile count from viewport picking.
+- Profile picking leaves graph nodes and edges unchanged; `OK` still does not commit graph truth in this phase.
+
+#### Verification Steps
+
+- `npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude" --reporter verbose`
+- `npm.cmd exec -- vitest run src/viewer/geometrySketchOverlay.test.ts --reporter verbose`
+- `npm.cmd run build`
+
 <!-- ENTRY 1972 -->
 
 ### [1972] - 2026-05-19 19:01 - `Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell`

@@ -18,7 +18,11 @@ export type GeometrySketchRenderLayer =
   | 'component'
   | 'hoveredComponent'
   | 'selectedComponent'
+  | 'profileFill'
+  | 'selectedProfileFill'
+  | 'hoveredProfileFill'
   | 'profile'
+  | 'hoveredProfile'
   | 'selectedProfile'
   | 'draftChain'
   | 'draftGhost'
@@ -29,6 +33,16 @@ export type GeometrySketchRenderPolyline = {
   layer: GeometrySketchRenderLayer
   points: Point3[]
   componentRowId?: string
+  profileId?: string
+}
+
+export type GeometrySketchRenderRegion = {
+  layer: Extract<
+    GeometrySketchRenderLayer,
+    'profileFill' | 'selectedProfileFill' | 'hoveredProfileFill'
+  >
+  points: Point3[]
+  profileId: string
 }
 
 const BEZIER_STEPS = 24
@@ -36,7 +50,11 @@ const ARC_STEPS = 24
 const CIRCLE_STEPS = 48
 const COMPONENT_ELEVATION = 0.02
 const PROFILE_ELEVATION = 0.04
-const SELECTED_PROFILE_ELEVATION = 0.06
+const PROFILE_FILL_ELEVATION = 0.035
+const SELECTED_PROFILE_FILL_ELEVATION = 0.05
+const HOVERED_PROFILE_FILL_ELEVATION = 0.065
+const SELECTED_PROFILE_ELEVATION = 0.07
+const HOVERED_PROFILE_ELEVATION = 0.08
 const DRAFT_CHAIN_ELEVATION = COMPONENT_ELEVATION
 const DRAFT_GHOST_ELEVATION = COMPONENT_ELEVATION
 
@@ -553,21 +571,72 @@ export const buildGeometrySketchRenderPolylines = (
   }
 
   const reviewPolylines = overlay.profiles
-    .map((profile) => ({
-      layer:
-        profile.profileId === overlay.selectedProfileId
-          ? ('selectedProfile' as const)
-          : ('profile' as const),
+    .map((profile) => {
+      const selectedProfileIds = new Set([
+        ...(overlay.selectedProfileIds ?? []),
+        ...(overlay.selectedProfileId === undefined ? [] : [overlay.selectedProfileId]),
+      ])
+      const isHovered = profile.profileId === overlay.hoveredProfileId
+      const isSelected = selectedProfileIds.has(profile.profileId)
+      return {
+        layer: isHovered
+          ? ('hoveredProfile' as const)
+          : isSelected
+            ? ('selectedProfile' as const)
+            : ('profile' as const),
+        profileId: profile.profileId,
         points: polyline2To3(
-          overlay.plane,
-          overlay.planeTransform,
-          ensureClosedLoop(profile.vertices),
-          profile.profileId === overlay.selectedProfileId
-            ? SELECTED_PROFILE_ELEVATION
-          : PROFILE_ELEVATION,
-      ),
-    }))
+            overlay.plane,
+            overlay.planeTransform,
+            ensureClosedLoop(profile.vertices),
+            isHovered
+              ? HOVERED_PROFILE_ELEVATION
+              : isSelected
+                ? SELECTED_PROFILE_ELEVATION
+                : PROFILE_ELEVATION,
+        ),
+      }
+    })
     .filter((polyline) => polyline.points.length >= 2)
 
   return [...componentPolylines, ...reviewPolylines]
+}
+
+export const buildGeometrySketchRenderRegions = (
+  overlay: GeometrySketchOverlayVm | null,
+): GeometrySketchRenderRegion[] => {
+  if (overlay === null || overlay.mode !== 'review') {
+    return []
+  }
+
+  const selectedProfileIds = new Set([
+    ...(overlay.selectedProfileIds ?? []),
+    ...(overlay.selectedProfileId === undefined ? [] : [overlay.selectedProfileId]),
+  ])
+
+  return overlay.profiles
+    .map((profile) => {
+      const points2 = ensureClosedLoop(profile.vertices)
+      const isHovered = profile.profileId === overlay.hoveredProfileId
+      const isSelected = selectedProfileIds.has(profile.profileId)
+      return {
+        layer: isHovered
+          ? ('hoveredProfileFill' as const)
+          : isSelected
+            ? ('selectedProfileFill' as const)
+            : ('profileFill' as const),
+        profileId: profile.profileId,
+        points: polyline2To3(
+          overlay.plane,
+          overlay.planeTransform,
+          points2,
+          isHovered
+            ? HOVERED_PROFILE_FILL_ELEVATION
+            : isSelected
+              ? SELECTED_PROFILE_FILL_ELEVATION
+              : PROFILE_FILL_ELEVATION,
+        ),
+      }
+    })
+    .filter((region) => region.points.length >= 4)
 }

@@ -5,6 +5,7 @@ import {
   getLatestViewerCameraPose,
   setLatestViewerCameraPose,
   setViewer,
+  type ExtrudeCommandPreviewOverlayVm,
   type GeometrySketchOverlayVm,
   type ViewerRenderPreviewStatus,
   type ViewerRuntimeStats,
@@ -69,8 +70,12 @@ import {
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
-import type { SketchFeature } from '../spaghetti/features/featureTypes'
+import type { SketchFeature, SketchPlaneTransform } from '../spaghetti/features/featureTypes'
 import { getProfileDisplayVertices } from '../spaghetti/features/profileDisplayVertices'
+import {
+  buildSketchProfileMemberPortId,
+  parseSketchProfileMemberPortId,
+} from '../spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract'
 import {
   selectPreviewRenderVmFromPreparation,
   type PreviewRenderVm,
@@ -344,11 +349,30 @@ const formatExtrudeSelectedProfileCount = (
   return `${count} ${count === 1 ? 'selected' : 'selected'}`
 }
 
+const cloneSketchPlaneTransform = (
+  transform: SketchPlaneTransform | undefined,
+): SketchPlaneTransform => ({
+  ...(transform ?? {
+    offsetMm: 0,
+    inPlaneRotationDeg: 0,
+    translation: { x: 0, y: 0, z: 0 },
+    rotationDeg: { x: 0, y: 0, z: 0 },
+  }),
+  translation: {
+    ...(transform?.translation ?? { x: 0, y: 0, z: 0 }),
+  },
+  rotationDeg: {
+    ...(transform?.rotationDeg ?? { x: 0, y: 0, z: 0 }),
+  },
+})
+
 const ExtrudeCommandToolbar = ({
   onCancel,
+  onConfirm,
   session,
 }: {
   onCancel: () => void
+  onConfirm: () => void
   session: ExtrudeCommandSession
 }) => {
   const okDisabled = session.validation === 'needsProfiles'
@@ -387,6 +411,7 @@ const ExtrudeCommandToolbar = ({
           className="ViewportExtrudeCommandToolbarButton"
           disabled={okDisabled}
           aria-label="Confirm Extrude"
+          onClick={onConfirm}
         >
           OK
         </button>
@@ -497,6 +522,12 @@ export function ViewerHost(props: ViewerHostProps) {
   const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
+  const viewportSelectedSketchProfiles = useSpaghettiStore(
+    (state) => state.viewportSelectedSketchProfiles,
+  )
+  const viewportHoveredSketchProfile = useSpaghettiStore(
+    (state) => state.viewportHoveredSketchProfile,
+  )
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
@@ -564,6 +595,9 @@ export function ViewerHost(props: ViewerHostProps) {
   const extrudeCommandSession = useSpaghettiStore((state) => state.extrudeCommandSession)
   const cancelExtrudeCommandSession = useSpaghettiStore(
     (state) => state.cancelExtrudeCommandSession,
+  )
+  const acceptExtrudeCommandSession = useSpaghettiStore(
+    (state) => state.acceptExtrudeCommandSession,
   )
   const activeGeometrySketchNode = useSpaghettiStore((state) => {
     const nodeId = state.geometrySketchSession?.nodeId
@@ -839,6 +873,28 @@ export function ViewerHost(props: ViewerHostProps) {
     workspaceSelectedTarget,
   ])
 
+  const selectedProfileIdsBySketchNodeId = useMemo(() => {
+    const selectedBySketchNodeId = new Map<string, Set<string>>()
+    const addSelection = (sketchNodeId: string, profileId: string): void => {
+      const current = selectedBySketchNodeId.get(sketchNodeId) ?? new Set<string>()
+      current.add(profileId)
+      selectedBySketchNodeId.set(sketchNodeId, current)
+    }
+
+    for (const selection of viewportSelectedSketchProfiles) {
+      addSelection(selection.sketchNodeId, selection.profileId)
+    }
+
+    for (const source of extrudeCommandSession?.selectedProfileSources ?? []) {
+      const parsed = parseSketchProfileMemberPortId(source.portId)
+      if (parsed !== null) {
+        addSelection(source.nodeId, parsed.profileId)
+      }
+    }
+
+    return selectedBySketchNodeId
+  }, [extrudeCommandSession?.selectedProfileSources, viewportSelectedSketchProfiles])
+
   const geometrySketchOverlay = useMemo<GeometrySketchOverlayVm | null>(() => {
     if (geometrySketchSession === null || activeGeometrySketchNode === null) {
       return null
@@ -858,27 +914,22 @@ export function ViewerHost(props: ViewerHostProps) {
       (profiles.length === 1 ? profiles[0].profileId : undefined)
 
     return {
+      nodeId: activeGeometrySketchNode.nodeId,
       mode: geometrySketchSession.mode,
       plane: sketchFeature.plane ?? 'XY',
-      planeTransform: {
-        ...(sketchFeature.planeTransform ?? {
-          offsetMm: 0,
-          inPlaneRotationDeg: 0,
-          translation: { x: 0, y: 0, z: 0 },
-          rotationDeg: { x: 0, y: 0, z: 0 },
-        }),
-        translation: {
-          ...(sketchFeature.planeTransform?.translation ?? { x: 0, y: 0, z: 0 }),
-        },
-        rotationDeg: {
-          ...(sketchFeature.planeTransform?.rotationDeg ?? { x: 0, y: 0, z: 0 }),
-        },
-      },
+      planeTransform: cloneSketchPlaneTransform(sketchFeature.planeTransform),
       drawStage: geometrySketchSession.drawStage,
       activeTool: geometrySketchSession.activeTool,
       components: sketchFeature.components ?? [],
       profiles,
       selectedProfileId,
+      selectedProfileIds: [
+        ...(selectedProfileIdsBySketchNodeId.get(activeGeometrySketchNode.nodeId) ?? []),
+      ],
+      hoveredProfileId:
+        viewportHoveredSketchProfile?.sketchNodeId === activeGeometrySketchNode.nodeId
+          ? viewportHoveredSketchProfile.profileId
+          : null,
       drawDraft:
         geometrySketchSession.drawDraft === null
           ? null
@@ -908,6 +959,7 @@ export function ViewerHost(props: ViewerHostProps) {
   }, [
     activeGeometrySketchNode,
     geometrySketchSession,
+    selectedProfileIdsBySketchNodeId,
     sketchDrawCrosshairSize,
     sketchDrawSnapDistancePx,
     sketchDrawSnapEnabled,
@@ -917,6 +969,7 @@ export function ViewerHost(props: ViewerHostProps) {
     sketchDrawStartPointSymbolType,
     sketchDrawStartPointVisible,
     sketchDrawStartPointSymbolSize,
+    viewportHoveredSketchProfile,
   ])
 
   const visibleGeometrySketchOverlays = useMemo<VisibleGeometrySketchOverlayVm[]>(() => {
@@ -927,7 +980,7 @@ export function ViewerHost(props: ViewerHostProps) {
       )
       .filter((row) => row.isVisible)
       .filter((row) => geometrySketchSession === null || row.nodeId !== geometrySketchSession.nodeId)
-      .map((row) => {
+      .map((row): VisibleGeometrySketchOverlayVm | null => {
         const graphDocument = graphDocumentsById[row.graphDocumentId]
         const sketchNode =
           graphDocument?.graph.nodes.find(
@@ -939,34 +992,89 @@ export function ViewerHost(props: ViewerHostProps) {
         }
         return {
           overlayId: row.rowId,
+          nodeId: row.nodeId,
           plane: sketchFeature.plane ?? row.plane,
-          planeTransform: {
-            ...(sketchFeature.planeTransform ?? {
-              offsetMm: 0,
-              inPlaneRotationDeg: 0,
-              translation: { x: 0, y: 0, z: 0 },
-              rotationDeg: { x: 0, y: 0, z: 0 },
-            }),
-            translation: {
-              ...(sketchFeature.planeTransform?.translation ?? { x: 0, y: 0, z: 0 }),
-            },
-            rotationDeg: {
-              ...(sketchFeature.planeTransform?.rotationDeg ?? { x: 0, y: 0, z: 0 }),
-            },
-          },
+          planeTransform: cloneSketchPlaneTransform(sketchFeature.planeTransform),
           components: sketchFeature.components ?? [],
           profiles: (sketchFeature.outputs.profiles ?? []).map((profile) => ({
             profileId: profile.profileId,
             vertices: getProfileDisplayVertices(profile),
           })),
-        } satisfies VisibleGeometrySketchOverlayVm
+          selectedProfileIds: [...(selectedProfileIdsBySketchNodeId.get(row.nodeId) ?? [])],
+          hoveredProfileId:
+            viewportHoveredSketchProfile?.sketchNodeId === row.nodeId
+              ? viewportHoveredSketchProfile.profileId
+              : null,
+        }
       })
       .filter((overlay): overlay is VisibleGeometrySketchOverlayVm => overlay !== null)
   }, [
     geometrySketchSession,
     graphDocumentsById,
     projectContentRows,
+    selectedProfileIdsBySketchNodeId,
+    viewportHoveredSketchProfile,
   ])
+
+  const extrudeCommandPreviewOverlay = useMemo<ExtrudeCommandPreviewOverlayVm | null>(() => {
+    if (
+      extrudeCommandSession === null ||
+      extrudeCommandSession.activeStep !== 'depth' ||
+      extrudeCommandSession.validation !== 'readyForDepth' ||
+      !Number.isFinite(extrudeCommandSession.depth) ||
+      Math.abs(extrudeCommandSession.depth) < 0.000001
+    ) {
+      return null
+    }
+
+    const graphDocument = graphDocumentsById[extrudeCommandSession.graphDocumentId]
+    if (graphDocument === undefined) {
+      return null
+    }
+
+    const profiles = extrudeCommandSession.selectedProfileSources.flatMap((source) => {
+      const parsed = parseSketchProfileMemberPortId(source.portId)
+      if (parsed === null) {
+        return []
+      }
+
+      const sketchNode = graphDocument.graph.nodes.find(
+        (node) => node.nodeId === source.nodeId && node.type === 'Geometry/Sketch',
+      )
+      const sketchFeature = sketchNode?.params.sketch as SketchFeature | undefined
+      const profile = sketchFeature?.outputs.profiles?.find(
+        (candidate) => candidate.profileId === parsed.profileId,
+      )
+      if (sketchFeature === undefined || profile === undefined) {
+        return []
+      }
+
+      const vertices = getProfileDisplayVertices(profile)
+      if (vertices.length < 3) {
+        return []
+      }
+
+      return [
+        {
+          sketchNodeId: source.nodeId,
+          profileId: parsed.profileId,
+          plane: sketchFeature.plane ?? 'XY',
+          planeTransform: cloneSketchPlaneTransform(sketchFeature.planeTransform),
+          vertices,
+        },
+      ]
+    })
+
+    if (profiles.length === 0) {
+      return null
+    }
+
+    return {
+      graphDocumentId: extrudeCommandSession.graphDocumentId,
+      depthMm: extrudeCommandSession.depth,
+      profiles,
+    }
+  }, [extrudeCommandSession, graphDocumentsById])
 
   const sketchPlanePickOverlay = useMemo<SketchPlanePickOverlayVm | null>(() => {
     if (sketchPlanePickSession === null) {
@@ -1481,6 +1589,85 @@ export function ViewerHost(props: ViewerHostProps) {
     viewer.setOnGeometrySketchSelectComponents((rowIds) => {
       useSpaghettiStore.getState().setGeometrySketchSelectedComponents(rowIds)
     })
+    viewer.setOnGeometrySketchSelectProfile(({ profileId, shiftKey, sketchNodeId }) => {
+      const spaghettiState = useSpaghettiStore.getState()
+      const session = spaghettiState.extrudeCommandSession
+      const graphDocumentId = session?.graphDocumentId ?? spaghettiState.activeGraphDocumentId
+      const graph =
+        spaghettiState.graphDocumentsById[graphDocumentId]?.graph ?? spaghettiState.graph
+      const sketchNode = graph.nodes.find(
+        (node) => node.nodeId === sketchNodeId && node.type === 'Geometry/Sketch',
+      )
+      const sketchFeature = sketchNode?.params.sketch as SketchFeature | undefined
+      if (sketchFeature === undefined) {
+        return
+      }
+      const selectableProfiles = sketchFeature.outputs.profiles ?? []
+      const pickedProfile = selectableProfiles.find((profile) => profile.profileId === profileId)
+      if (pickedProfile === undefined) {
+        return
+      }
+      const currentSelections =
+        session === null
+          ? spaghettiState.viewportSelectedSketchProfiles.filter(
+              (selection) => selection.graphDocumentId === graphDocumentId,
+            )
+          : session.selectedProfileSources.flatMap((source) => {
+              const parsed = parseSketchProfileMemberPortId(source.portId)
+              return parsed === null
+                ? []
+                : [
+                    {
+                      graphDocumentId,
+                      sketchNodeId: source.nodeId,
+                      profileId: parsed.profileId,
+                      portId: source.portId,
+                    },
+                  ]
+            })
+      const pickedSelection = {
+        graphDocumentId,
+        sketchNodeId,
+        profileId: pickedProfile.profileId,
+        portId: buildSketchProfileMemberPortId(pickedProfile.profileId),
+      }
+      const pickedAlreadySelected = currentSelections.some(
+        (selection) =>
+          selection.graphDocumentId === pickedSelection.graphDocumentId &&
+          selection.sketchNodeId === pickedSelection.sketchNodeId &&
+          selection.profileId === pickedSelection.profileId,
+      )
+      const nextSelections = shiftKey
+        ? selectableProfiles.map((profile) => ({
+            graphDocumentId,
+            sketchNodeId,
+            profileId: profile.profileId,
+            portId: buildSketchProfileMemberPortId(profile.profileId),
+          }))
+        : pickedAlreadySelected
+          ? currentSelections.filter(
+              (selection) =>
+                !(
+                  selection.graphDocumentId === pickedSelection.graphDocumentId &&
+                  selection.sketchNodeId === pickedSelection.sketchNodeId &&
+                  selection.profileId === pickedSelection.profileId
+                ),
+            )
+          : [...currentSelections, pickedSelection]
+      useAppStore.getState().setActiveSurface('viewer')
+      spaghettiState.setViewportSelectedSketchProfiles(nextSelections)
+      if (session !== null) {
+        spaghettiState.setExtrudeCommandSelectedProfileSources(
+          nextSelections.map((selection) => ({
+            nodeId: selection.sketchNodeId,
+            portId: selection.portId,
+          })),
+        )
+      }
+    })
+    viewer.setOnGeometrySketchHoverProfile((event) => {
+      useSpaghettiStore.getState().setViewportHoveredSketchProfile(event)
+    })
     viewer.setOnGeometrySketchSelectionWindowDraftChange((draft) => {
       useSpaghettiStore.getState().setGeometrySketchSelectionWindowDraft(draft ?? null)
     })
@@ -1764,6 +1951,8 @@ export function ViewerHost(props: ViewerHostProps) {
       viewer.setOnGeometrySketchConfirmPoint(null)
       viewer.setOnGeometrySketchHoverComponent(null)
       viewer.setOnGeometrySketchSelectComponents(null)
+      viewer.setOnGeometrySketchSelectProfile(null)
+      viewer.setOnGeometrySketchHoverProfile(null)
       viewer.setOnGeometrySketchSelectionWindowDraftChange(null)
       viewer.setOnGeometrySketchDeleteSelection(null)
       viewer.setOnGeometrySketchFinishDraft(null)
@@ -2214,6 +2403,10 @@ export function ViewerHost(props: ViewerHostProps) {
   }, [visibleGeometrySketchOverlays])
 
   useEffect(() => {
+    viewerRef.current?.setExtrudeCommandPreviewOverlay(extrudeCommandPreviewOverlay)
+  }, [extrudeCommandPreviewOverlay])
+
+  useEffect(() => {
     viewerRef.current?.setSketchPlanePickOverlay(sketchPlanePickOverlay)
   }, [sketchPlanePickOverlay])
 
@@ -2223,6 +2416,7 @@ export function ViewerHost(props: ViewerHostProps) {
       {extrudeCommandSession !== null ? (
         <ExtrudeCommandToolbar
           session={extrudeCommandSession}
+          onConfirm={acceptExtrudeCommandSession}
           onCancel={cancelExtrudeCommandSession}
         />
       ) : null}

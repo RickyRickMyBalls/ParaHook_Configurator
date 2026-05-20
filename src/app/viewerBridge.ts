@@ -46,6 +46,7 @@ export type GeometrySketchDrawDraftVm = {
 }
 
 export type GeometrySketchOverlayVm = {
+  nodeId?: string
   mode: 'draw' | 'review'
   plane: SketchPlane
   planeTransform: SketchPlaneTransform
@@ -54,6 +55,8 @@ export type GeometrySketchOverlayVm = {
   components: SketchComponent[]
   profiles: GeometrySketchOverlayProfileVm[]
   selectedProfileId?: string
+  selectedProfileIds?: string[]
+  hoveredProfileId?: string | null
   drawDraft: GeometrySketchDrawDraftVm | null
   selectedComponentIds?: string[]
   hoveredComponentId?: string | null
@@ -73,10 +76,27 @@ export type GeometrySketchOverlayVm = {
 
 export type VisibleGeometrySketchOverlayVm = {
   overlayId: string
+  nodeId: string
   plane: SketchPlane
   planeTransform: SketchPlaneTransform
   components: SketchComponent[]
   profiles: GeometrySketchOverlayProfileVm[]
+  selectedProfileIds?: string[]
+  hoveredProfileId?: string | null
+}
+
+export type ExtrudeCommandPreviewProfileVm = {
+  sketchNodeId: string
+  profileId: string
+  plane: SketchPlane
+  planeTransform: SketchPlaneTransform
+  vertices: Array<{ x: number; y: number }>
+}
+
+export type ExtrudeCommandPreviewOverlayVm = {
+  graphDocumentId: string
+  depthMm: number
+  profiles: ExtrudeCommandPreviewProfileVm[]
 }
 
 export type SketchPlanePickOverlayVm = {
@@ -356,6 +376,7 @@ export interface ViewerApi {
   clearAxisOverlayPointerHover?: () => void
   setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void
   setVisibleGeometrySketchOverlays: (overlays: VisibleGeometrySketchOverlayVm[]) => void
+  setExtrudeCommandPreviewOverlay: (overlay: ExtrudeCommandPreviewOverlayVm | null) => void
   setOnGeometrySketchHoverPoint: (
     handler: ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void) | null,
   ) => void
@@ -367,6 +388,14 @@ export interface ViewerApi {
   ) => void
   setOnGeometrySketchSelectComponents: (
     handler: ((rowIds: string[]) => void) | null,
+  ) => void
+  setOnGeometrySketchSelectProfile: (
+    handler:
+      | ((event: { sketchNodeId: string; profileId: string; shiftKey: boolean }) => void)
+      | null,
+  ) => void
+  setOnGeometrySketchHoverProfile: (
+    handler: ((event: { sketchNodeId: string; profileId: string } | null) => void) | null,
   ) => void
   setOnGeometrySketchSelectionWindowDraftChange: (
     handler: ((draft: GeometrySketchSelectionWindowDraft | null) => void) | null,

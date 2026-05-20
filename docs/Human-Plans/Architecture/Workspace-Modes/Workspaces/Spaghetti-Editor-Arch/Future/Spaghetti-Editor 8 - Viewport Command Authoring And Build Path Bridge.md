@@ -3,6 +3,23 @@
 ## Doc Header
 
 ### Doc History
+47. 2026-05-19 22:50:18: Added the Phase 3.6 repeat-Extrude cleanup so profile-driven `Extrude` starts now create a new `Geometry/Extrude` command node by default even when a previous accepted Extrude node is still selected, while reused-node editing remains an explicit opt-in path for future edit flows.
+46. 2026-05-19 22:34:25: Added the Phase 3.6 output-preview follow-up so accepting a live Extrude command now auto-wires the accepted `Geometry/Extrude.SolidBody` output into the first open `System/OutputPreview` solid slot when that Extrude node is not already published, preserving the no-second-Extrude rule and the existing OutputPreview slot normalization contract.
+45. 2026-05-19 22:21:30: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout` by adding the store-owned `acceptExtrudeCommandSession()` live-node finalizer, wiring toolbar `OK` through it, writing durable Extrude depth/default operation params onto the live node, preserving live profile wires, returning committed/cancelled command summaries, clearing transient preview/session state after accept, and preserving Cancel rollback behavior without creating a second Extrude node.
+44. 2026-05-19 22:14:36: Prepped `Spaghetti-Editor 8 / Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout` for implementation after Phase 3.5C shipped, narrowing the next cut to accepting the existing live `Geometry/Extrude` command node instead of creating a second node on `OK`, writing durable depth/default operation params, preserving live profile wires, clearing transient viewport/session preview state, producing committed/cancelled command summaries, and keeping Build Path UI, imported face picking, generic planar face extrusion, drag handles, taper fidelity, and arrangement UI out of scope.
+43. 2026-05-19 22:02:52: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.5C - Extrude Depth Preview Volume And Value Feedback` by adding a transient Extrude command preview VM, deriving selected profile/depth preview data from the active Extrude session, rendering first-pass translucent preview caps and side walls in the viewer, and proving focused preview projection plus no graph mutation while keeping `OK` acceptance, durable depth params, Build Path rows, imported face picking, generic planar face extrusion, and Settings-backed colors deferred.
+42. 2026-05-19 21:26:05: Refreshed `Spaghetti-Editor 8 / Phase 3.5C - Extrude Depth Preview Volume And Value Feedback` for implementation after the profile-selection follow-ups, making multi-profile toggle selection, blue selected-profile state, white hover priority, and visible singular profile wires explicit inputs to the preview slice while keeping `OK`, Build Path, imported face picking, generic planar face extrusion, Settings-backed color controls, and durable graph param writes out of scope.
+41. 2026-05-19 20:53:26: Prepped `Spaghetti-Editor 8 / Phase 3.5C - Extrude Depth Preview Volume And Value Feedback` for implementation after Phase 3.5B shipped, grounding the next slice in the live `extrudeCommandSession`, selected profile overlay/preselection state, `ViewerHost` overlay projection, `viewerBridge`/`Viewer` sketch overlay seams, and the existing `activeDraftExtrudePreview` helper as adjacent context while narrowing the first code cut to transient command-owned selected-profile cap/body preview data, no graph mutation, no `OK` acceptance, and no Settings or Build Path widening.
+40. 2026-05-19 20:41:28: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.5B - Viewport Profile Hover And Preselection` by adding selectable sketch-profile filled overlay regions, white hovered-profile overlay state, transient viewport profile preselection in the Spaghetti store, outside-Extrude plain and Shift-click profile selection, selected/hovered profile projection into active and visible sketch overlays, and root Extrude startup seeding from valid preselected profiles through the Phase 3.5A live node/wire path.
+39. 2026-05-19 20:27:26: Re-prepped `Spaghetti-Editor 8 / Phase 3.5B - Viewport Profile Hover And Preselection` after the Phase 3.5A live graph contract shipped, tightening the next implementation slice around first-pass filled selectable sketch profiles, white hover highlight, transient viewport profile preselection outside Extrude, valid preselection seeding into `startExtrudeCommandSession(...)`, and active Extrude click parity through the live auto-wiring path.
+38. 2026-05-19 20:17: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.5A - Live Extrude Node And Profile Auto-Wiring Contract` by extending the Extrude command session with live graph metadata, creating or reusing a live `Geometry/Extrude` node when the command starts, synchronizing Console and viewport profile selections into exact `SketchProfile:<profileId>` wires, rolling back command-owned node/wire edits on Cancel, and updating focused store, viewport, Console, command-session, and build verification.
+37. 2026-05-19 20:03:02: Prepped `Spaghetti-Editor 8 / Phase 3.5A - Live Extrude Node And Profile Auto-Wiring Contract` for implementation by grounding it in `useSpaghettiStore` command/session actions, `applyGraphCommand(...)`, Console root Extrude entry, `ViewerHost` profile-pick routing, the existing Extrude graph-authoring plan shape, and the sketch-profile connection normalization helpers, with the first cut narrowed to live node creation/reuse, exact profile-row auto-wiring, session/graph synchronization, and command-owned rollback tracking.
+36. 2026-05-19 19:51:27: Reworked the remaining Phase 3 Extrude ladder around the required live auto-wiring model: starting `Extrude` should create or reuse a real graph `Geometry/Extrude` node immediately, each selected sketch profile should auto-wire into that live node's `ExtrusionProfile` input, `OK` should accept/finalize rather than first create graph truth, and the previous hover/preselection and preview-volume polish slices were shifted later behind a new `Phase 3.5A - Live Extrude Node And Profile Auto-Wiring Contract`.
+35. 2026-05-19 19:47:21: Prepped `Spaghetti-Editor 8 / Phase 3.5A - Viewport Profile Hover And Preselection` for implementation by grounding it in the shipped `setOnGeometrySketchSelectProfile(...)` callback, visible sketch overlay profile ids, `ViewerHost` graph-authored sketch projection, and shared Extrude session source updater, narrowing the first code cut to filled selectable closed profiles, white hover highlight, transient viewport profile preselection outside Extrude, Extrude startup seeding from that preselection, and no graph mutation or preview volume work.
+34. 2026-05-19 19:42:24: Added `Spaghetti-Editor 8 / Phase 3.5B - Extrude Depth Preview Volume And Value Feedback` from the second Fusion-style reference, naming the selected-profile-plus-depth preview target as a transient blue selected profile cap, translucent extrusion body/side-wall preview at the typed depth value, and viewport depth arrow/value feedback before Phase 3.6 turns `OK` into durable graph mutation.
+33. 2026-05-19 19:38:33: Added `Spaghetti-Editor 8 / Phase 3.5A - Viewport Profile Hover And Preselection` as the next planned polish slice before commit, expanding profile picking into a normal viewport selection affordance outside active Extrude sessions, adding selectable-profile fill goals, white hover highlight for closed profiles, and a rule that starting Extrude can consume an existing profile preselection while active Extrude can still select closed sketch profiles directly.
+32. 2026-05-19 19:14:48: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.5 - Profile Picking Count And Preview State` by adding a dedicated viewport sketch-profile pick callback, tagging graph-authored sketch profile overlay lines with source node/profile ids, routing active Extrude picks through the transient session selected-profile source updater, supporting Shift-click same-sketch expansion, updating the toolbar count/depth state, and proving profile picking remains no-mutation until Phase 3.6 wires `OK`.
+31. 2026-05-19 19:06:52: Prepped `Spaghetti-Editor 8 / Phase 3.5 - Profile Picking Count And Preview State` for implementation by grounding the next slice in the live `ViewerHost` sketch overlay projection, `viewerBridge` geometry-sketch overlay callbacks, `extrudeCommandSession` selected-profile source updater, and `buildSketchProfileMemberPortId(...)`, narrowing the first code cut to viewport sketch-profile pick handoff, shift-pick same-sketch expansion, toolbar count/depth-step updates, and no graph mutation while leaving actual OK commit and rich preview/drag handles to later work unless the existing viewer seam can expose the first highlight state safely.
 30. 2026-05-19 19:01:25: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell` by mounting a compact `ViewerHost` Extrude toolbar over the shared `extrudeCommandSession`, displaying step, selected count, depth, operation, and blocked/ready state, wiring Cancel to clear only transient session state, and proving render/cancel behavior leaves graph nodes and edges unchanged while profile picking, preview, and OK commit remain deferred.
 29. 2026-05-19 18:54:59: Prepped `Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell` for implementation by grounding it in the shipped `extrudeCommandSession` owner, `ViewerHost` overlay seam, Console active-session projection, and focused ViewerHost/ConsoleDock proof, narrowing the next code cut to a visible read-only-plus-cancel toolbar shell with no profile picking, preview, graph commit, or local duplicate command state.
 28. 2026-05-19 12:36:07: Implemented and shipped `Spaghetti-Editor 8 / Phase 3.3 - Viewport Shortcut Modal Guarding` by adding an idle-only viewport command shortcut guard to shared input routing, passing active command/session ownership from Console into the route context, preserving root-level idle viewport `S`, and proving active Extrude profile selection blocks viewport `S` from starting Sketch.
@@ -216,7 +233,7 @@ All five phases remain relevant, but they should not all be implemented immediat
 
 - `Phase 1` is shipped as the baseline command-commit contract. The first shared lifecycle module now names `idle`, `previewing`, `readyToCommit`, `committed`, and `cancelled`, reserves durable graph mutation for the ready-to-commit transition, and lets the existing root `Sketch` / `New Sketch` proof emit committed graph summaries.
 - `Phase 2` is shipped as the first shared command-authoring seam. Root `Sketch`, root `New Sketch`, and viewport `S` now share `graphCommandAuthoring`, so root `Extrude` should extend that seam instead of creating another one-off mutation path.
-- `Phase 3` has its first runtime slice shipped. Root `Extrude` is now a command entry, the command can start without graph mutation, and the shared graph-authoring owner can commit selected sketch-profile contributors into `Geometry/Extrude`; the visible model-viewport profile picker/toolbar remains the next Phase 3 continuation before Phase 4.
+- `Phase 3` is shipped as the first usable viewport-first Extrude workflow. Root `Extrude` is now a command entry, the command starts with live `Geometry/Extrude` graph truth, Console and viewport profile selections auto-wire exact sketch-profile rows into the live node, selected profiles can drive a transient depth preview volume, `OK` accepts the live node with durable params, and Cancel rolls back unaccepted command-owned graph work.
 - `Phase 4` is shipped as the Build Path-ready projection contract. Committed graph-command summaries can now become projection records that preserve graph ids and mutation summaries while cancelled commands are skipped.
 - `Phase 5` is shipped as the pure command-created node placement contract. Later command call sites can consume the planner to place background-created graph work readably without moving existing positioned nodes or starting a full arrangement-mode UI.
 
@@ -457,7 +474,7 @@ This phase intentionally does not add root `Extrude`, profile selection, preview
 
 Add the first root `Extrude` command and the model-viewport tool surface needed to make extrusion feel like Fusion-style direct modeling while still authoring Spaghetti graph truth.
 
-Current status: first runtime slice shipped. Root `Extrude` is available from the command root, starts a no-mutation Extrude session prompt, and the shared authoring owner now knows how to commit selected sketch-profile contributors by creating or reusing `Geometry/Extrude` and adding profile wires. The visible model-viewport profile picker/toolbar, selected-count UI, distance editing, and OK/Cancel buttons remain the next Phase 3 continuation before this phase can be closed.
+Current status: shipped. Root `Extrude` is available from the command root, starts a live Extrude session, creates/reuses `Geometry/Extrude`, auto-wires selected sketch-profile contributors, shows the viewport toolbar/count state, supports profile hover/preselection/toggle selection, displays a transient selected-profile depth preview, and accepts or cancels through the live command graph owner.
 
 The user should be able to:
 - enter `extrude` from the console root or start Extrude from the viewport command surface
@@ -611,25 +628,28 @@ Acceptance read:
 - [x] a user can start `Extrude` from the root command path
 - [x] the model viewport shows an Extrude toolbar/session while extrusion is active
 - [x] Console/session state can represent the staged command tree `Extrude > Select Profiles > Depth`
-- [ ] individual sketch profiles can be selected and counted
-- [ ] shift-click can select all compatible profiles from the picked sketch
+- [x] individual sketch profiles can be selected and counted
+- [x] shift-click can select all compatible profiles from the picked sketch
 - [ ] selected profiles reveal an extrusion preview/depth step with a drag handle or equivalent first-pass handle state
-- [ ] selected profiles plus distance produce either a safe first preview or an explicit valid session state ready for preview follow-up
+- [x] selected profiles plus distance produce either a safe first preview or an explicit valid session state ready for preview follow-up
 - [x] the graph-authoring owner can create or reuse `Geometry/Extrude` graph truth and wire selected profiles
-- [ ] confirming from the viewport toolbar creates or updates durable graph truth
-- [x] starting the command leaves no durable graph mutation from the transient session prompt
+- [x] starting the command creates or reuses a live `Geometry/Extrude` graph node for the command
+- [x] profile picks auto-wire selected sketch profile contributors into the live Extrude node
+- [ ] confirming from the viewport toolbar accepts/finalizes the live graph-authored Extrude instead of first creating it
+- [x] cancelling removes or rolls back only the live command-created node/wires that have not been accepted
 - [ ] Phase 4 can later read accepted Extrude command summaries without reverse-engineering viewport state
 
 ### Phase 3 Runtime Note
 
 The shipped first slice covers the command and graph-authoring foundation:
 - root `extrude` now routes through staged navigation with canonical radio identity `Console.Root.Extrude`
-- starting `Extrude` from the root command path clears transient console state, emits an Extrude session prompt, and does not create nodes or wires
+- starting `Extrude` from the root command path now creates or reuses a live `Geometry/Extrude` graph node and stores command-owned rollback metadata on the active session
 - `graphCommandAuthoring` now includes `authorExtrudeGraphCommand`
 - `authorExtrudeGraphCommand` cancels before mutation when graph context or profile selection is missing
 - committed Extrude authoring can create or reuse a selected `Geometry/Extrude` node and wire selected sketch-profile contributors to `ExtrusionProfile`
+- Console and viewport profile selections now route through the same store action, so selected profile sources and live graph `ExtrusionProfile` wires stay synchronized
 
-Phase 3 remains partial because the user-visible Fusion-style toolbar/picker is not mounted yet. `Phase 3.1` is now the prepared next implementation slice because the visible toolbar should not depend on the current partial-mutation callback order.
+Phase 3 remains partial because the live command-authoring model needs one more correction before visual polish and commit closeout. The desired model is now live graph truth during the command: calling `Extrude` creates or reuses a real `Geometry/Extrude` node, profile picks auto-wire into that node, and `OK` accepts/finalizes the live authored command instead of being the first mutation point.
 
 The remaining Phase 3 work is now split into dedicated follow-up sections. The intended user-facing flow across those sections is:
 
@@ -642,13 +662,17 @@ Extrude
 
 - `Select Profiles` owns individual profile picks, selected count, and shift-click all-profiles-from-this-sketch behavior.
 - `Depth` owns the extrusion preview, typed distance, and viewport drag handle.
-- `OK` is the only point where selected profiles plus depth become durable graph truth.
+- `OK` accepts or finalizes live graph truth that already exists during the command.
+- `Cancel` must roll back or remove only the live command-created Extrude node/wires that have not been accepted.
 
 - `Phase 3.1` - shipped atomic Extrude graph commit repair
 - `Phase 3.2` - create a real Extrude session owner and Console-visible command tree
 - `Phase 3.3` - guard viewport command shortcuts against active modal owners
 - `Phase 3.4` - shipped model-viewport Extrude toolbar shell
-- `Phase 3.5` - add profile picking, selected count, and preview state
+- `Phase 3.5` - shipped profile picking, selected count, and preview-ready depth state
+- `Phase 3.5A` - shipped live Extrude graph node creation, profile auto-wiring, and Cancel rollback
+- `Phase 3.5B` - add viewport profile hover, fill, selected state, and preselection handoff
+- `Phase 3.5C` - add transient depth preview volume and viewport value feedback
 - `Phase 3.6` - commit/cancel proof and Phase 3 closeout
 
 ## [x] `Spaghetti-Editor 8 / Phase 3.1` - `Atomic Extrude Graph Commit Repair`
@@ -1438,13 +1462,15 @@ Runtime behavior:
 
 Focused proof landed in `src/app/components/ViewerHost.test.tsx`, with Console entry/session regression proof still covered by `src/app/console/ConsoleDock.test.tsx`. Phase 3.5 now owns real viewport profile picking, selected-profile updates from hit testing, and preview-ready depth state.
 
-## [ ] `Spaghetti-Editor 8 / Phase 3.5` - `Profile Picking Count And Preview State`
+## [x] `Spaghetti-Editor 8 / Phase 3.5` - `Profile Picking Count And Preview State`
 
 ### Phase 3.5 Summary
 
 Wire viewport sketch-profile selection into the active Extrude session and open the depth step once the selection is meaningful.
 
 The user should be able to pick individual sketch profiles, shift-click one profile to select all compatible profiles in that sketch, see the selected count update, and then see an honest first depth preview/handle state.
+
+Current status: shipped. Clicking visible graph-authored sketch profiles now updates `extrudeCommandSession.selectedProfileSources` and the Phase 3.4 toolbar count/depth state without committing graph truth.
 
 ### Phase 3.5 Implementation Spec
 
@@ -1454,65 +1480,591 @@ Make the toolbar meaningful by connecting it to selectable graph-authored sketch
 
 #### Owns
 
-- profile contributor hit-testing or selection handoff for visible authored sketch profiles
-- selected/unselected profile state
-- shift-click all-compatible-profiles-from-this-sketch behavior
-- selected count updates
-- transition from `Select Profiles` to `Depth`
-- preview validity state
-- first depth drag-handle state if the viewer can expose it safely
-- optional first preview display if the existing preview pipeline can be reused safely
+- a narrow viewport-to-session profile pick handoff for visible graph-authored sketch profiles
+- selecting one profile as one `ExtrudeGraphCommandProfileSource`
+- shift-click selecting all compatible profiles from the picked sketch
+- replacing/toggling transient selected-profile state without durable graph mutation
+- selected count updates in the Phase 3.4 toolbar
+- transition from `Select Profiles` to `Depth` through the existing session owner
+- selected profile highlight/readiness state if the existing overlay path can expose it safely
+- preview-ready session state, not durable preview or commit behavior
 
 #### Does Not Own
 
 - imported STEP face picking
 - generic planar face extrusion
 - boolean operation variants
-- final live preview fidelity
+- rich live preview fidelity
+- depth drag handles unless the first profile-pick seam makes them trivial and non-mutating
 - durable graph commit
+
+#### Current Live Read
+
+Live files and seams:
+- `src/app/components/ViewerHost.tsx`
+  - already builds `geometrySketchOverlay` for the active sketch and `visibleGeometrySketchOverlays` for visible inactive graph-authored sketches
+  - maps sketch profile ids and vertices through `getProfileDisplayVertices(...)`
+  - currently routes ordinary viewer object picks through `setOnWorkspaceSelectionPick(...)`, which should not become the profile-selection owner
+- `src/app/viewerBridge.ts`
+  - exposes `GeometrySketchOverlayVm.profiles` and `VisibleGeometrySketchOverlayVm.profiles`
+  - exposes component callbacks such as `setOnGeometrySketchSelectComponents(...)`
+  - now exposes the dedicated `setOnGeometrySketchSelectProfile(...)` graph sketch-profile pick callback instead of overloading whole-part selection
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+  - owns `selectedProfileSources`
+  - already moves the session from `selectProfiles` to `depth` when selected profile sources become non-empty
+  - already provides Console profile choices from sketch member output ports
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - exposes `setExtrudeCommandSelectedProfileSources(...)`
+  - keeps the transient session separate from durable graph nodes and edges
+- `src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts`
+  - owns `buildSketchProfileMemberPortId(profileId)` and `listSketchProfileMemberOutputPorts(node)`
+  - is the right source for turning a picked profile id into a `SketchProfile:<profileId>` source port
+- `src/app/components/ViewerHost.test.tsx`
+  - already mocks viewer bridge callbacks and is the right focused test surface for profile-pick handoff, toolbar count, depth-step transition, and no graph mutation
+
+#### First Pass Decisions
+
+- Add a dedicated profile-pick callback to the viewer bridge if no existing profile callback exists.
+- Route profile picks only while `extrudeCommandSession !== null`; otherwise existing viewer/sketch selection behavior should remain unchanged.
+- Treat visible graph-authored sketch profile picks as transient command input, not workspace target selection.
+- Convert picked `{ sketchNodeId, profileId }` to `{ nodeId: sketchNodeId, portId: buildSketchProfileMemberPortId(profileId) }`.
+- Plain click replaces the selected profile source list with the clicked profile.
+- Shift-click selects all compatible profiles from the same sketch node for the first implementation pass.
+- Do not create graph nodes, edges, command summaries, or Build Path projection rows in Phase 3.5.
+- If profile highlighting requires viewer-side support, keep it as a simple selected-profile id/source projection and defer richer preview styling.
+- Keep depth read-only unless a session-owned setter already exists or can be added narrowly without committing durable graph truth.
 
 #### Exact First Code Cut
 
-- expose selectable profile contributors from existing graph-authored sketch/profile data
-- let picking one profile select only that profile, not the whole sketch node
-- let shift-clicking a profile select all compatible profile contributors from the same sketch
-- support multiple compatible selected profiles
-- update toolbar count immediately
-- move the session to `depth` when at least one profile is selected
-- keep the selected profiles editable after entering `depth`
-- expose one transient depth value owner shared by numeric entry and the first drag-handle state
-- show selected/highlighted profile presentation if the existing viewer selection path can support it
-- keep all picks transient until `OK`
-- add tests for one profile, shift-click all profiles in one sketch, multiple compatible profiles, depth-step transition, and no whole-sketch fallback
+- add the smallest viewer-bridge callback needed for profile picks, likely shaped around `{ sketchNodeId, profileId, shiftKey }`
+- have `ViewerHost` register that callback and ignore it when no Extrude command session is active
+- find the picked sketch node in the active graph document/session context
+- verify the picked profile exists on that sketch's resolved `SketchProfiles` member output list
+- on plain click, call `setExtrudeCommandSelectedProfileSources([{ nodeId: sketchNodeId, portId: buildSketchProfileMemberPortId(profileId) }])`
+- on shift-click, collect every member profile output from the same sketch node and call the same setter with all compatible sources
+- keep the selected sources editable after the session enters `depth`
+- update any toolbar selected/highlighted projection from the same session state
+- keep graph nodes, edges, params, and command summaries unchanged
+- add focused tests for:
+  - profile pick is ignored when no Extrude session is active
+  - one viewport profile pick selects exactly one `SketchProfile:<profileId>` source and moves to `Depth`
+  - shift-click selects every profile source from the picked sketch only
+  - toolbar count updates from `1 selected` to `N selected`
+  - no whole-sketch `SketchProfiles` fallback is used for individual picks
+  - render/pick does not mutate graph nodes or edges
 
 #### Likely Files
 
-- viewport selection/ViewerHost files that already know topology or sketch-profile display
-- Extrude session owner
-- Extrude toolbar component
-- selectors that expose sketch profile contributors
+- `src/app/viewerBridge.ts`
+- viewer implementation file that consumes `GeometrySketchOverlayVm` / `VisibleGeometrySketchOverlayVm` and owns sketch-profile hit handling
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/commands/extrudeCommandSession.ts` only if a tiny reusable helper is needed for source replacement/shift expansion
+- `src/app/spaghetti/commands/extrudeCommandSession.test.ts` only if that helper is added
+- `src/app/theme/surfaces/viewport-overlay.css` only if selected-profile/highlight display needs a small toolbar state style
+- this future doc
+- `docs/Doc-Log.md`
+
+#### No-Widening Rule
+
+Do not commit graph nodes or wires in this phase. The session state should become commit-ready, and depth can remain existing session state, but Phase 3.6 owns acceptance.
+
+Do not route profile picks through whole-part workspace selection, imported STEP topology picking, generic face selection, or the Spaghetti canvas wire/port row system. This phase is only the viewport command-session path for graph-authored sketch profiles.
+
+Do not add Build Path projection changes, boolean operation variants, imported face extrusion, final preview fidelity, or OK behavior.
+
+#### Implementation Risks
+
+- The viewer bridge currently has overlay profile data but no dedicated profile-pick callback; adding one should be narrower than reusing whole-workspace part selection.
+- `visibleGeometrySketchOverlays` currently carry `overlayId` but not the source graph node id directly; implementation may need to add a `nodeId` to the overlay VM or otherwise preserve a stable pick-to-node mapping.
+- Active-sketch overlays and visible inactive sketch overlays need the same picked profile source shape.
+- Shift-click all-profiles must only gather compatible profiles from the picked sketch, not every visible sketch in the scene.
+- Console profile-token selection and viewport profile selection should converge on the same `setExtrudeCommandSelectedProfileSources(...)` session state.
+
+#### Verification Shape
+
+```powershell
+npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude" --reporter verbose
+npm.cmd exec -- vitest run src/app/spaghetti/commands/extrudeCommandSession.test.ts
+npm.cmd run build
+```
+
+#### Done Shape
+
+Phase 3.5 is done when a user can start Extrude, click a visible graph-authored sketch profile in the model viewport, see the toolbar count update and the command move to `Depth`, shift-click to select all compatible profiles from that sketch, and prove all of that remains transient with no graph mutation until Phase 3.6 wires `OK`.
+
+### Phase 3.5 Runtime Note
+
+Phase 3.5 shipped the first viewport profile-pick bridge for active Extrude sessions:
+- graph-authored sketch profile overlay lines now carry stable sketch node/profile pick metadata
+- the viewer bridge exposes `setOnGeometrySketchSelectProfile(...)`
+- `ViewerHost` ignores profile picks when no Extrude session is active
+- a plain profile click replaces the transient selected profile source with the picked `SketchProfile:<profileId>` member port
+- Shift-click selects every profile from the picked sketch only
+- the shared Extrude session moves to `Depth`, updates the toolbar count, and leaves graph nodes/edges unchanged
+
+This phase intentionally stops before `OK` commit, Build Path projection, imported STEP face picking, rich preview, or depth handles. Phase 3.6 owns turning the selected profiles plus depth into durable graph truth.
+
+## [x] `Spaghetti-Editor 8 / Phase 3.5A` - `Live Extrude Node And Profile Auto-Wiring Contract`
+
+### Phase 3.5A Summary
+
+Make `Extrude` become live graph-authored truth as soon as the command starts.
+
+When the user calls `Extrude`, ParaHook should create or reuse a real `Geometry/Extrude` node in the active graph immediately. When the user clicks a closed sketch profile, ParaHook should auto-wire that exact `SketchProfile:<profileId>` row into the live Extrude node's `ExtrusionProfile` input. The viewport session and toolbar remain the command-editing UI, but the Spaghetti graph should already show the authored node and profile wires while the command is in progress.
+
+Current status: shipped. `startExtrudeCommandSession(...)` now creates or reuses a live `Geometry/Extrude` node, `setExtrudeCommandSelectedProfileSources(...)` reconciles exact sketch-profile member wires into that live node, and `cancelExtrudeCommandSession(...)` removes command-created nodes/wires or restores pre-command profile wires on reused nodes.
+
+### Phase 3.5A Implementation Spec
+
+#### Purpose
+
+Replace the earlier no-mutation-until-OK model with live graph command authoring for Extrude.
+
+#### Owns
+
+- creating or reusing a live `Geometry/Extrude` graph node when `Extrude` starts
+- storing that live Extrude node id on the active command session
+- auto-wiring selected sketch profile member rows into the live node's `ExtrusionProfile` input as profiles are selected
+- replacing profile wires on plain click so the live graph matches the current selected profile list
+- replacing same-sketch profile wires on Shift-click with every profile from the picked sketch only
+- making `Cancel` roll back or remove unaccepted live command work
+- focused proof that auto-wiring uses individual `SketchProfile:<profileId>` member ports instead of whole-sketch fallback
+
+#### Does Not Own
+
+- selectable-profile fill and hover polish
+- profile preselection outside active Extrude sessions
+- depth preview volume rendering
+- final `OK` acceptance behavior and accepted Build Path row projection
+- imported STEP face picking
+- generic planar face extrusion
+- boolean operation variants
+- final distance/taper runtime fidelity
+
+#### Product Rules
+
+- Calling `Extrude` should make the Spaghetti graph show the Extrude node right away.
+- Selecting a profile should make the Spaghetti graph show the wire from the selected sketch profile row into that live Extrude node right away.
+- The live graph node/wires are command-owned until accepted.
+- `OK` should later accept/finalize the command-owned live graph work; it should not be the first time the node or wires appear.
+- `Cancel` should remove or roll back the live command-owned Extrude node/wires if they were created only for the unaccepted command.
+- Reusing an existing selected Extrude node should not delete user-authored pre-existing graph truth on cancel; only command-owned edits should be reversible.
+- The command session should remain the UI/editing owner for active step, selected count, depth, operation, and validation.
+
+#### Current Live Read
+
+Live files and seams:
+- `src/app/console/graphCommandAuthoring.ts`
+  - already has `authorExtrudeGraphCommand(...)` and `ExtrudeGraphCommandPlan`
+  - currently requires `selectedProfileSources.length > 0` before committing
+  - currently treats commit as the point where create/reuse plus profile wires happen
+  - can either be split so live graph authoring gets a plan/finalize helper, or left as the later accept-summary helper while a neighboring live owner handles command-time mutation
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+  - owns selected profile sources, depth, step, and validation
+  - now stores live Extrude node id, created-node marker, command-owned profile edge ids, and replaced pre-command profile edges
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - owns `startExtrudeCommandSession(...)` and `setExtrudeCommandSelectedProfileSources(...)`
+  - now `cancelExtrudeCommandSession(...)` rolls back command-owned live graph edits before clearing session state
+  - exposes `applyGraphCommand(...)` / `applyGraphPatch(...)` for store-normalized graph mutation
+  - will need a narrow store-owned way to create/reuse the live Extrude node and keep profile wires synchronized with selected sources
+- `src/app/console/useConsoleInteraction.ts`
+  - root `Extrude` calls `startExtrudeCommandSession(...)`, which now creates/reuses live graph truth
+  - Console profile token resolution calls `setExtrudeCommandSelectedProfileSources(...)`, which now syncs live graph wires
+- `src/app/components/ViewerHost.tsx`
+  - receives profile picks and calls the same session/profile action that updates live graph wires
+- `src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts`
+  - already owns `buildSketchProfileMemberPortId(profileId)` and `ExtrusionProfile` normalization
+  - `normalizeExtrudeProfileConnectionEndpoints(...)` and `isWholeExtrusionProfileTargetEndpoint(...)` are the right guardrails for wiring into `ExtrusionProfile`
+
+#### First Pass Decisions
+
+- Add live command metadata to the Extrude session, likely `liveExtrudeNodeId`, `createdExtrudeNodeId`, and command-owned profile edge ids.
+- On root/viewport `Extrude` start, create or reuse the target `Geometry/Extrude` node immediately even if no profile is selected yet.
+- When selected profiles change, reconcile the live Extrude node's `ExtrusionProfile` incoming edges to match the selected source list.
+- Prefer one store action that updates selected profile sources and live graph wires together so the UI/session and graph cannot drift.
+- Treat `authorExtrudeGraphCommand(...)` as either an accepted-summary/finalize helper later or split a new live authoring helper from it; do not bypass the graph-authoring owner.
+- Keep profile rows individual: selected profile sources should be `SketchProfile:<profileId>`, not whole `SketchProfiles`, unless the user explicitly selects an aggregate later.
+- Do not use raw `applyGraphCommand(...)` directly from UI components for the live Extrude mutation. Route through store/authoring helpers so rollback metadata and graph normalization stay together.
+
+#### Rollback Model
+
+- If Phase 3.5A creates a new Extrude node for the active command, Cancel removes that node and every command-owned wire attached to it.
+- If Phase 3.5A reuses an existing Extrude node, Cancel keeps that node.
+- For reused nodes, Cancel removes only wires created by this active command and restores any pre-command `ExtrusionProfile` wires that were replaced by the command.
+- Command-owned edge ids should be tracked explicitly where possible; if edge ids are generated during graph mutation, return them from the live sync helper and store them on the session.
+- Profile-wire reconciliation should be idempotent: applying the same selected source list twice should not create duplicate wires.
+- Accept/finalize in Phase 3.6 should clear rollback metadata after the user confirms the command-owned graph work.
+
+#### Exact First Code Cut
+
+- extend `ExtrudeCommandSession` with live graph command fields:
+  - `liveExtrudeNodeId`
+  - `createdExtrudeNodeId` or equivalent create/reuse marker
+  - command-owned profile edge ids
+  - optional replaced pre-command profile edges for reused-node rollback
+- add/create a store action for starting Extrude with live node creation/reuse
+- add/create a store action for syncing selected profile sources to live Extrude profile wires
+- update Console and viewport root Extrude entry points to use the live start action through `startExtrudeCommandSession(...)`
+- update profile pick handling so one profile click and Shift-click update both session state and graph wires
+- update Console profile-token resolution so text-selected profiles also auto-wire into the live Extrude node
+- prove the live graph contains the Extrude node immediately after command start
+- prove the live graph wire appears after profile selection and targets `ExtrusionProfile`
+- prove one profile pick wires `SketchProfile:<profileId>`, not whole `SketchProfiles`
+- prove Shift-click wires every profile from the picked sketch only
+- prove cancel rolls back command-owned live node/wires while preserving unrelated graph truth
+- prove reused existing Extrude cancel keeps the reused node and restores/removes only command-owned profile-wire changes
+- update docs/changelog when implemented
+
+#### Likely Files
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/console/graphCommandAuthoring.ts` or a new adjacent live Extrude authoring helper
+- focused ConsoleDock/ViewerHost/store/graph-authoring tests
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts` if live graph mutation/rollback is easiest to prove at store level
 - this future doc
 - `docs/CHANGELOG.md`
 - `docs/Doc-Log.md`
 
 #### No-Widening Rule
 
-Do not commit graph nodes or wires in this phase. The session state should be commit-ready, and depth can be preview/session state, but Phase 3.6 owns acceptance.
+Do not implement hover fill, white hover, extrusion preview volume, depth handles, final Build Path projection, imported STEP face selection, or generic planar face extrusion in this phase.
+
+Do not make graph mutation happen from hover. Only command start and selected-profile changes should mutate the live command-owned graph.
+
+Do not lose the rollback boundary. If this phase creates live graph truth before `OK`, it must also define which node/edges are command-owned and reversible on `Cancel`.
+
+Do not auto-wire whole `SketchProfiles` unless the selected source explicitly is an aggregate. Viewport and Console profile picks in this lane should wire exact `SketchProfile:<profileId>` member rows.
+
+Do not emit accepted Build Path summaries yet. Phase 3.5A may create live graph truth, but Phase 3.6 owns accepted/finalized command summaries.
+
+#### Implementation Risks
+
+- The existing graph-authoring helper cancels when profiles are missing, so live node creation may need a sibling helper rather than forcing `authorExtrudeGraphCommand(...)` to mean two different lifecycle moments.
+- Store graph mutation and session metadata must update together; a node/wire mutation without matching rollback metadata would make Cancel unsafe.
+- Reused Extrude nodes need a snapshot of their pre-command profile input edges before reconciliation starts.
+- Edge id generation and graph normalization must be deterministic enough for rollback tests to assert exact command-owned edge removal.
+- Console token selection and viewport click selection must converge on the same live sync action.
 
 #### Verification Shape
 
 ```powershell
-npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "Extrude"
+npm.cmd exec -- vitest run src/app/console/ConsoleDock.test.tsx -t "Extrude" --reporter verbose
+npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "Extrude" --reporter verbose
+npm.cmd exec -- vitest run src/app/spaghetti/commands/extrudeCommandSession.test.ts --reporter verbose
+npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude" --reporter verbose
 npm.cmd run build
 ```
 
-## [ ] `Spaghetti-Editor 8 / Phase 3.6` - `Extrude Commit Cancel Proof And Phase 3 Closeout`
+#### Done Shape
+
+Phase 3.5A is done when starting `Extrude` creates or reuses a live `Geometry/Extrude` graph node, profile picks immediately wire exact sketch profile member ports into that live node, selected source state and graph wires stay synchronized, and Cancel can remove or roll back command-owned live graph work without touching unrelated graph truth.
+
+## [x] `Spaghetti-Editor 8 / Phase 3.5B` - `Viewport Profile Hover And Preselection`
+
+### Phase 3.5B Summary
+
+Make closed graph-authored sketch profiles feel selectable before the user commits to Extrude.
+
+The user should be able to see selectable closed profiles as filled regions, hover a closed profile and see a clear white highlight, select a profile in the viewport outside the Extrude command, and then start Extrude with that preselected profile already available. The same profile selection visual language should also work while Extrude is active.
+
+Current status: shipped. Closed graph-authored sketch profiles now produce selectable filled overlay regions, hovered profiles project as a white highlight, profile clicks outside Extrude store transient viewport preselection without graph mutation, and root Extrude startup can consume valid preselected profiles through the shipped Phase 3.5A live node/wire path.
+
+### Phase 3.5B Implementation Spec
+
+#### Purpose
+
+Move profile picking from an Extrude-only hidden command input into a visible viewport selection affordance that Extrude can consume.
+
+#### Owns
+
+- selectable closed sketch-profile fill presentation
+- first-pass selectable fill color using 50% opacity of the existing sketch/profile line color
+- a future settings-owned customization goal for the selectable profile fill color
+- white hover highlight when the pointer is over a closed profile
+- selected profile state outside an active Extrude command
+- active Extrude consuming existing profile preselection when the command starts through the live node/wire path
+- active Extrude continuing to accept closed-profile clicks after the command starts
+- focused tests proving preselection does not mutate graph truth
+
+#### Does Not Own
+
+- durable graph commit
+- Build Path projection
+- imported STEP face picking
+- generic planar face extrusion
+- final Settings UI for the color picker unless the existing settings owner makes it trivial
+- rich extrusion preview or depth drag handles
+
+#### Product Rules
+
+- A closed graph-authored sketch profile that can be selected should be visibly filled even before Extrude is active.
+- For the first implementation, use the same color as the sketch/profile line at 50% opacity for selectable profile fill.
+- Later Settings should own customization of the selectable profile fill color and opacity.
+- Hovering a closed selectable profile should highlight the profile in white, matching the user's reference direction.
+- Profile selection outside Extrude should be transient viewport/workspace selection, not graph mutation.
+- Starting Extrude with one or more selected profiles should create/reuse the live Extrude node, seed `extrudeCommandSession.selectedProfileSources`, auto-wire those profiles, and move to `Depth` when valid.
+- Starting Extrude with no selected profiles should preserve the existing `Extrude > Select Profiles` path.
+- While Extrude is active, selecting closed sketch profiles should continue to update the active session exactly as Phase 3.5 shipped.
+
+#### Current Live Read
+
+Live files and seams:
+- `src/app/viewerBridge.ts`
+  - already carries `nodeId` on graph-authored sketch overlays
+  - already exposes `setOnGeometrySketchSelectProfile(...)` with `{ sketchNodeId, profileId, shiftKey }`
+  - currently has no selected/hovered profile VM fields for viewport-level profile selection outside sketch review
+- `src/viewer/geometrySketchOverlay.ts`
+  - already emits profile polylines with `profileId`
+  - currently renders profile outlines only; it does not yet emit filled profile surfaces or a hovered-profile layer
+  - selected profile styling currently depends on `overlay.selectedProfileId`, which is sketch-review UI state rather than a general viewport profile preselection owner
+- `src/viewer/Viewer.ts`
+  - already tags profile outline lines with `geometrySketchProfilePick`
+  - already raycasts profile outlines for click selection
+  - currently gates profile picking on `onGeometrySketchSelectProfile !== null`, so the next implementation can keep one callback but route it differently in `ViewerHost`
+  - already has topology hover overlay patterns that can guide hover state, but Phase 3.5B should stay in the sketch-profile overlay lane
+- `src/app/components/ViewerHost.tsx`
+  - builds active and visible graph-authored sketch overlays from sketch feature profiles
+  - currently ignores profile picks when no Extrude session is active
+  - currently maps active Extrude profile picks directly to `setExtrudeCommandSelectedProfileSources(...)`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - owns `extrudeCommandSession` and `setExtrudeCommandSelectedProfileSources(...)`
+  - `startExtrudeCommandSession(...)` now creates/reuses the live Extrude node and accepts initial `selectedProfileSources`
+  - `setExtrudeCommandSelectedProfileSources(...)` now keeps selected sources and live `ExtrusionProfile` graph wires synchronized
+  - `cancelExtrudeCommandSession(...)` now rolls back command-created live nodes/wires or restores replaced reused-node profile wires
+  - does not currently own a general selected sketch-profile source list outside Extrude
+- `src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts`
+  - remains the right helper for converting selected profile ids into `SketchProfile:<profileId>` member port ids
+
+#### First Pass Decisions
+
+- Add the narrowest transient selected-profile owner that can live outside Extrude and still be consumed by Extrude startup.
+- Prefer storing selected profile sources as `{ nodeId, portId }` plus enough `{ sketchNodeId, profileId }` display identity to light the overlay; do not invent a second durable graph selection schema.
+- Plain viewport profile click outside Extrude should replace the selected profile list with the clicked closed profile.
+- Shift-click outside Extrude should select every profile from the picked sketch only, matching Phase 3.5 active-Extrude behavior.
+- Active Extrude profile clicks should keep updating `extrudeCommandSession.selectedProfileSources` and may also mirror the selected visual state if that keeps display consistent.
+- Starting Extrude should seed from the preselected profile list by passing valid sources into `startExtrudeCommandSession(...)`; the existing Phase 3.5A startup path should create/reuse the live node, set selected sources, create the exact profile wires, and advance to `Depth`.
+- If preselected profiles are stale or no longer resolve, ignore/drop them and start the normal `Select Profiles` flow.
+- Fill selectable profiles in review overlays using the current profile/sketch line color at 50% opacity.
+- Use a hard white hover highlight for the hovered closed profile in this first pass; defer Settings-backed hover/fill controls.
+- Keep all profile preselection and hover display transient; graph nodes, edges, params, and command summaries must remain unchanged.
+
+#### Exact First Code Cut
+
+- extend the sketch overlay VM with optional selected/hovered profile ids or selected profile source identity needed for viewport display
+- extend `buildGeometrySketchRenderPolylines(...)` or add a small companion render output so closed profiles can produce filled surfaces in addition to outline lines
+- add a hovered profile layer/state in the viewer overlay path with white highlight presentation
+- keep profile click hit testing on the existing Phase 3.5 profile pick metadata
+- update `ViewerHost` so profile picks outside Extrude write transient viewport profile preselection instead of returning early
+- update the root Extrude startup callers so they resolve valid transient preselected profiles and pass them as initial `selectedProfileSources` into `startExtrudeCommandSession(...)`
+- project selected and hovered profile ids back into both active and visible graph-authored sketch overlays
+- add focused tests for:
+  - selectable graph-authored profiles receive filled overlay presentation data
+  - hover over a closed profile produces white hover/highlight state
+  - clicking a profile outside Extrude stores transient preselection and does not mutate graph nodes/edges
+  - Shift-click outside Extrude preselects every profile from the picked sketch only
+  - starting Extrude after valid preselection creates/reuses the live Extrude node, seeds selected profile sources, wires exact profile inputs, and moves to `Depth`
+  - starting Extrude without preselection keeps the existing `Select Profiles` state
+  - active Extrude profile clicks still update the session as Phase 3.5 proved
+
+#### Likely Files
+
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/geometrySketchOverlay.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts` or a narrower existing app/viewport selection owner, depending on where transient graph-profile preselection best fits
+- `src/app/spaghetti/commands/extrudeCommandSession.ts` only if startup seeding needs a small helper to validate/normalize profile sources
+- focused ViewerHost/viewer overlay tests
+- this future doc
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### No-Widening Rule
+
+Do not implement the Phase 3.5C extrusion volume preview in this phase. Do not add depth arrows, depth drag handles, toolbar value editing, OK commit, Build Path rows, imported STEP face selection, or generic planar face extrusion.
+
+Do not make selectable profile fill a Settings UI project yet. The first implementation should use a hardcoded first-pass presentation that can later be wired to Settings without changing selection ownership.
+
+Do not treat profile preselection as durable graph truth. It is allowed to behave like viewport/workspace selection state, but it must not create graph nodes, graph edges, params, command summaries, or published content rows.
+
+#### Implementation Risks
+
+- Filled profile rendering may need mesh/shape disposal beside the existing line disposal path; keep ownership local to the sketch overlay group.
+- Profile hover should not fight existing sketch component hover in active draw mode; keep hover profile behavior focused on closed review profiles.
+- The existing `selectedProfileId` on sketch feature UI state is not the same thing as cross-sketch viewport preselection; avoid silently overloading it if multiple sketches can be visible.
+- Seeding Extrude from preselection must validate the profile still exists before creating live wires.
+- Shift-click should stay same-sketch only and should not gather profiles across every visible overlay.
+
+#### Verification Shape
+
+```powershell
+npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "profile|Extrude" --reporter verbose
+npm.cmd exec -- vitest run src/viewer/geometrySketchOverlay.test.ts --reporter verbose
+npm.cmd run build
+```
+
+#### Done Shape
+
+Phase 3.5B is done when closed selectable sketch profiles show a first-pass filled region, hovering one gives a white profile highlight, selecting a profile outside Extrude stores a transient preselection without graph mutation, starting Extrude consumes that preselection into the live node/wire/session source shape from Phase 3.5A, and active Extrude profile clicks keep working.
+
+### Phase 3.5B Runtime Note
+
+The shipped implementation adds:
+- selectable closed-profile fill render regions from the sketch overlay helper
+- white hovered-profile fill/outline layers in the viewer overlay lane
+- viewport profile hover callback routing into transient Spaghetti store state
+- transient `viewportSelectedSketchProfiles` state for profile preselection outside Extrude
+- outside-Extrude plain click to preselect one profile and Shift-click to preselect every profile in the picked sketch only
+- active Extrude profile clicks mirroring the selected visual state while still updating live `ExtrusionProfile` graph wires
+- root Extrude startup seeding from valid preselected profiles through `startExtrudeCommandSession(...)`
+
+The shipped implementation does not add Settings-backed color controls, depth preview geometry, drag handles, `OK` acceptance, Build Path rows, imported STEP face selection, or generic planar face extrusion.
+
+## [x] `Spaghetti-Editor 8 / Phase 3.5C` - `Extrude Depth Preview Volume And Value Feedback`
+
+### Phase 3.5C Summary
+
+Show the user what the selected profile and current depth value will create before `OK` commits anything.
+
+The target is the Fusion-style preview from the reference screenshot: the selected profile is visibly active, the typed distance produces a temporary extrusion volume at that depth, and the viewport shows clear depth direction/value feedback while accepted graph truth remains unfinalized.
+
+Current status: shipped. Phase 3.5A already creates/reuses the live Extrude node and wires selected profiles. Phase 3.5B plus its follow-ups already make closed profiles selectable, allow plain-click toggle multi-selection, keep selected profiles blue, keep hover white, and keep singular profile auto-wires visible in the Spaghetti canvas. Phase 3.5C now adds transient command-owned preview presentation for the selected profiles plus current depth value, without accepting/finalizing the live Extrude command.
+
+### Phase 3.5C Implementation Spec
+
+#### Purpose
+
+Make the `Depth` step visually trustworthy before durable graph mutation exists.
+
+#### Owns
+
+- transient preview geometry for selected graph-authored sketch profiles plus the current depth value
+- selected-profile cap presentation similar to the blue active profile region in the reference
+- translucent extrusion side/body preview at the input distance
+- first-pass viewport depth direction/value feedback only if the existing viewer overlay seam can support it safely
+- keeping typed toolbar distance and viewport preview distance on the same session-owned value
+- focused tests or visual-state proof that preview generation does not mutate graph nodes, edges, params, or command summaries
+
+#### Does Not Own
+
+- `OK` accept/finalize behavior
+- Build Path projection
+- final B-rep preview fidelity
+- imported STEP face extrusion
+- boolean operation variants beyond displaying the currently selected operation label if already present
+- polished drag-handle editing or pointer-drag depth authoring if that needs a separate interaction owner
+- writing `depthMm` or other accepted params onto the live Extrude node
+
+#### Product Rules
+
+- Preview appears only when at least one selected profile and a valid depth value exist.
+- The preview is temporary command/session presentation, not accepted graph/output truth.
+- Every selected profile cap should remain visually distinct from non-selected selectable profiles and the white hover highlight.
+- Multiple selected profiles should preview together; toggling one profile out should remove only that profile's preview contribution.
+- The extrusion body should read as a preview volume rather than final accepted geometry.
+- The preview must update when selected profiles or the depth value changes.
+- Cancelling or leaving the command clears the preview and relies on the Phase 3.5A rollback boundary for unaccepted live graph work.
+- Confirming remains Phase 3.6; preview alone does not accept/finalize `Geometry/Extrude` graph truth.
+- If the first implementation cannot safely create side-wall volume geometry, it should still ship the selected-profile cap plus explicit no-graph-mutation preview-state projection rather than widening into worker/mesh execution.
+
+#### Current Live Read
+
+Live files and seams:
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+  - owns selected profile sources, depth value, operation mode, live graph metadata, and `depth` versus `selectProfiles` command step state
+  - does not yet own a preview VM or depth setter beyond initial session creation
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - owns active `extrudeCommandSession`, live node/wire creation, profile-source synchronization, Cancel rollback, and the 3.5B transient selected/hovered profile state
+  - should stay the session owner if a small preview projection or depth setter is needed
+- `src/app/components/ViewerHost.tsx`
+  - already projects selected/hovered profile ids into active and visible sketch overlays
+  - already treats plain viewport profile clicks as toggle multi-selection outside Extrude and inside active Extrude
+  - already renders the compact Extrude toolbar from `extrudeCommandSession.depth`
+  - should be the first candidate for deriving a preview VM from selected profiles plus session depth
+- `src/app/viewerBridge.ts`
+  - now carries sketch overlay selected/hovered profile ids and can be extended with a narrow Extrude preview overlay VM
+- `src/viewer/geometrySketchOverlay.ts`
+  - already builds profile fill regions and profile outline layers from sketch profile vertices
+  - can guide selected-profile cap shape construction, but it should not become the owner of command preview semantics
+- `src/viewer/Viewer.ts`
+  - now renders sketch profile fill/hover/select overlay meshes/lines
+  - selected profile material is blue, normal selectable profile fill is cyan, and hovered profile material is white
+  - can host a separate transient Extrude preview overlay group or a narrow extension to the existing sketch overlay group if disposal and hit testing stay clear
+- `src/app/components/activeDraftExtrudePreview.ts`
+  - adjacent context for sketch-plane draft transforms over already-built extrudes
+  - should not be reused as accepted-output truth for command preview unless the first cut can keep the preview purely transient and session-owned
+
+#### Likely Files
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/viewerBridge.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/geometrySketchOverlay.ts` only if shared profile-cap point conversion is needed
+- a small command-preview helper under `src/app/components/` or `src/viewer/` if deriving preview cap/body geometry inside `ViewerHost` would get bulky
+- `src/app/spaghetti/commands/extrudeCommandSession.ts` and `src/app/spaghetti/store/useSpaghettiStore.ts` only if a narrow depth setter or preview projection helper is needed
+- focused ViewerHost/viewer/overlay tests
+- this future doc
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Exact First Code Cut
+
+- add a narrow transient Extrude preview VM that can describe:
+  - graph document id
+  - selected sketch node/profile ids, preserving the current selected source order
+  - one selected profile cap vertex set per selected profile
+  - depth value
+  - operation label/state if already available
+- derive the preview VM only when `extrudeCommandSession.activeStep === 'depth'`, `validation === 'readyForDepth'`, at least one selected profile still resolves, and depth is finite/non-zero
+- project selected profile caps using the same sketch plane/transform and profile vertices used by the 3.5B overlay path
+- render first-pass selected caps and translucent preview body/side walls if the viewer seam can do that without worker/build involvement
+- if side walls are too large for the first cut, render selected caps and depth witness/value feedback first, with side walls left as the next preview-polish follow-up
+- clear the preview when the command returns to `selectProfiles`, selected profiles become stale, depth is invalid, Cancel runs, or the Extrude session is null
+- keep graph nodes, graph edges, graph params, accepted runtime output, command summaries, and Build Path projections unchanged
+- add focused tests for:
+  - selected profiles plus valid depth create preview VM/render calls
+  - multiple selected profiles produce multiple preview caps/volumes or multiple preview cap entries
+  - no selected profiles or invalid/stale selected profiles create no preview
+  - changing selection/depth changes preview projection
+  - toggling one selected profile out removes only that profile from the preview projection
+  - Cancel clears preview through session removal
+  - preview generation does not mutate graph nodes, edges, params, or command summaries
+  - existing 3.5B profile fill/hover/preselection tests still pass
+
+#### Verification Shape
+
+```powershell
+npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t Extrude --reporter verbose
+npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t preview --reporter verbose
+npm.cmd exec -- vitest run src/viewer/geometrySketchOverlay.test.ts --reporter verbose
+npm.cmd run build
+```
+
+#### Done Shape
+
+Phase 3.5C is shipped. One or more selected sketch profiles plus a valid depth value now produce a transient viewport extrusion preview at that value, the selected profile/preview volume is visually distinct from ordinary selectable profiles, toggling profile selection updates the preview projection, and cancelling still rolls back unaccepted live command graph work through the Phase 3.5A ownership boundary.
+
+#### Shipped Code Cut
+
+- Added `ExtrudeCommandPreviewOverlayVm` to the viewer bridge.
+- Derived the active Extrude preview from `extrudeCommandSession.selectedProfileSources`, sketch profile vertices, sketch plane transforms, and session depth inside `ViewerHost`.
+- Rendered first-pass translucent caps, side walls, and top outline in a separate `Viewer` preview group.
+- Kept preview generation display-only; it does not mutate graph nodes, graph edges, graph params, accepted output, command summaries, or Build Path projection.
+- Added focused `ViewerHost` proof for multi-profile preview projection and no graph mutation.
+
+## [x] `Spaghetti-Editor 8 / Phase 3.6` - `Extrude Commit Cancel Proof And Phase 3 Closeout`
 
 ### Phase 3.6 Summary
 
 Connect toolbar `OK` and `Cancel` to the atomic graph-authoring owner and close the Phase 3 Extrude workflow.
 
-After this phase, selected profiles plus depth should commit as normal `Geometry/Extrude` graph truth, and cancellation should leave no durable graph mutation.
+After this phase, selected profiles plus depth should be accepted/finalized as normal `Geometry/Extrude` graph truth, and cancellation should roll back unaccepted command-owned graph changes without touching unrelated graph truth.
+
+Current status: shipped. `OK` now accepts the already-live command node and profile wires instead of calling the older create/reuse authoring path in a way that creates a second Extrude node. The implementation added a store-owned accept/finalize action, wired the toolbar `OK` button to it, and keeps the transient preview/session boundary honest.
 
 ### Phase 3.6 Implementation Spec
 
@@ -1522,13 +2074,14 @@ Finish the first usable viewport-first Extrude command.
 
 #### Owns
 
-- toolbar `OK` commit behavior
-- toolbar `Cancel` no-mutation behavior
+- toolbar `OK` accept/finalize behavior for the live command-authored Extrude
+- toolbar `Cancel` rollback behavior for unaccepted command-owned live graph work
 - durable distance/default operation params
 - final depth value handoff from the session owner
 - selected profile contributors wired into `ExtrusionProfile`
 - committed/cancelled command summaries
 - final Phase 3 acceptance and doc closeout read
+- clearing viewport-selected profile preselection and transient Extrude preview after accept/cancel when it belongs to the completed command
 
 #### Does Not Own
 
@@ -1537,27 +2090,82 @@ Finish the first usable viewport-first Extrude command.
 - imported STEP face extrusion
 - Build Path UI
 - arrangement-mode UI
+- creating a second Extrude node during `OK`
+- replacing the live auto-wire owner with a separate toolbar-local graph mutation path
+- changing profile hover/fill/selection visual language
+
+#### Current Live Read
+
+Live files and seams:
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - already owns `startExtrudeCommandSession(...)`, `setExtrudeCommandSelectedProfileSources(...)`, `cancelExtrudeCommandSession()`, live Extrude node creation/reuse, live profile-wire synchronization, and rollback through `rollbackLiveExtrudeCommandGraph(...)`
+  - should own the new accept/finalize action so `ViewerHost` does not mutate graph truth directly
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+  - already carries `depth`, `selectedProfileSources`, `validation`, `entryPoint`, and live graph metadata
+  - likely needs no large lifecycle rewrite for the first cut, but can gain a small helper/result type if it keeps accept validation deterministic
+- `src/app/components/ViewerHost.tsx`
+  - already renders the toolbar, disables `OK` when profiles are missing, calls Cancel, and projects 3.5C preview data
+  - should pass a store action to `ExtrudeCommandToolbar` and add `onClick` to `Confirm Extrude`
+- `src/app/console/commandCommitContract.ts`
+  - already defines committed/cancelled summary shapes and mutation kinds, including `update-params`, `add-wire`, and `remove-wire`
+  - should be reused for the accept/cancel summaries instead of inventing a new summary shape
+- `src/app/console/graphCommandAuthoring.ts`
+  - still contains the older atomic create/reuse authoring helper
+  - useful as a summary/contract reference, but Phase 3.6 should not blindly call it on `OK` because the live command graph already exists
+- `src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts`
+  - defines `Geometry/Extrude` stored params and defaults: `depthMm`, `extrudeDirection`, `bodyGenerationMode`, `taperAngleDeg`, and related readers
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+  - confirms current default Extrude params: `extrudeType: 'Body'`, `extrudeDirection: 'OneSide'`, `bodyGenerationMode: 'NewObjects'`, `depthMm: defaultGeometryExtrudeDepthMm`, and `taperAngleDeg: 0`
 
 #### Exact First Code Cut
 
-- route `OK` through the atomic owner from Phase 3.1
-- validate that at least one profile is selected before commit
-- validate that the session has reached the `depth` step or has a valid depth value before commit
-- create or reuse `Geometry/Extrude` according to explicit command context
-- write durable distance/default operation params
-- wire selected profile contributors into the existing `SketchProfiles` / `ExtrusionProfile` graph contract
-- clear the transient session after commit or cancel
-- emit committed/cancelled command summaries
-- prove the Spaghetti editor can show the resulting node and wires
-- update Phase 3 checklist and runtime note honestly
+- add a store-owned action such as `acceptExtrudeCommandSession(): GraphCommandCommitSummary`
+- make the action cancel with a cancelled summary when:
+  - no `extrudeCommandSession` exists
+  - the session has no live graph metadata
+  - the target graph document is missing
+  - no selected profile sources remain
+  - depth is not finite or is effectively zero
+- on valid accept:
+  - find the live `Geometry/Extrude` node from `session.liveGraph.liveExtrudeNodeId`
+  - preserve the current live profile edges already synchronized by 3.5A/3.5B/3.5C
+  - write durable params onto the live node:
+    - `depthMm: session.depth`
+    - `extrudeType: 'Body'`
+    - `extrudeDirection: 'OneSide'`
+    - `bodyGenerationMode: 'NewObjects'`
+    - `taperAngleDeg: 0`
+  - clear `extrudeCommandSession`
+  - clear command-owned viewport profile preselection/hover if it would otherwise leave stale blue selection after accept
+  - return or record a committed summary using `commitReadyGraphCommandPlan(...)`
+- summary shape guidance:
+  - `createdNodeIds` includes the live Extrude node only when `session.liveGraph.createdExtrudeNodeId` is not null
+  - `reusedNodeIds` includes the live Extrude node when accepting an existing selected Extrude node
+  - `updatedNodeIds` includes the live Extrude node because params are accepted
+  - `addedEdgeIds` includes `session.liveGraph.commandOwnedProfileEdgeIds`
+  - `removedEdgeIds` includes replaced profile edge ids for reused-node sessions where accept intentionally replaces old profile inputs
+- route toolbar `OK` through the new store action
+- keep toolbar `Cancel` using the existing rollback action
+- keep the 3.5C preview clearing through `extrudeCommandSession === null`
+- update tests so:
+  - `OK` on a valid new live Extrude session writes params, preserves profile wires, clears session, and returns/records a committed summary with created node, updated node, and added edges
+  - `OK` on a reused live Extrude session writes params, keeps the selected existing node, does not restore replaced profile wires, and summarizes reused/updated/added/removed ids
+  - `OK` with missing profiles or invalid depth does not accept and leaves rollback-safe state clear or cancelled according to the chosen action contract
+  - toolbar `Confirm Extrude` calls the accept action and removes the toolbar/preview after success
+  - Cancel still removes a command-created live node and restores reused-node replaced wires
+  - focused build/compile behavior sees the accepted `Geometry/Extrude` params and wires as ordinary graph truth
+- update Phase 3 checklist and runtime note honestly after implementation
 
 #### Likely Files
 
-- Extrude session owner
-- Extrude toolbar component
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/commands/extrudeCommandSession.ts` only if a small validation/result helper is useful
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/console/commandCommitContract.ts` only if a tiny helper is needed; prefer using the existing committed/cancelled summary helpers
 - `src/app/console/graphCommandAuthoring.ts`
-- graph command/store helpers used for durable node/wire mutation
-- focused viewport/session/graph-authoring tests
+- `src/app/console/graphCommandAuthoring.test.ts` only if the older authoring helper needs summary parity updates
 - this future doc
 - `docs/CHANGELOG.md`
 - `docs/Doc-Log.md`
@@ -1566,13 +2174,33 @@ Finish the first usable viewport-first Extrude command.
 
 Do not expand into Build Path UI, imported STEP face extrusion, boolean variants, taper fidelity, or arrangement-mode UI.
 
+Do not make the viewer preview or toolbar own durable graph mutation. They should dispatch to the store/session owner.
+
+Do not call a create/reuse helper from `OK` if it would create another Extrude node instead of accepting the existing live command node.
+
 #### Verification Shape
 
 ```powershell
-npm.cmd test -- src/app/console/graphCommandAuthoring.test.ts
-npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "Extrude"
-npm.cmd run build
+cmd /c npx vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude"
+cmd /c npx vitest run src/app/components/ViewerHost.test.tsx -t "Extrude command"
+cmd /c npx vitest run src/app/console/graphCommandAuthoring.test.ts -t "Extrude"
+cmd /c npm run build
 ```
+
+#### Done Shape
+
+Phase 3.6 is shipped. Toolbar `OK` accepts the live Extrude command node as durable graph truth with depth params and selected profile wires intact, toolbar `Cancel` still rolls back unaccepted command-owned live graph edits, command summaries distinguish committed versus cancelled results, the transient preview/session state clears after accept/cancel, and the Phase 3 Extrude workflow can be described as usable from root command start through profile selection, depth preview, and final accept/cancel.
+
+#### Shipped Code Cut
+
+- Added `acceptExtrudeCommandSession()` to the Spaghetti store.
+- Finalized the existing live `Geometry/Extrude` node with durable `depthMm`, `extrudeType`, `extrudeDirection`, `bodyGenerationMode`, and `taperAngleDeg` params.
+- Preserved live profile wires created by the 3.5A/3.5B auto-wiring path.
+- Auto-wired accepted Extrude nodes from `SolidBody` into the first open `System/OutputPreview` `in:solid:<slotId>` slot when that node is not already published.
+- Changed normal profile-driven Extrude starts to create a new `Geometry/Extrude` command node by default, so repeating Extrude on the same profile creates a second operation instead of editing the prior accepted node.
+- Returned committed/cancelled graph command summaries for accept attempts.
+- Wired the viewport toolbar `OK` button to the store-owned accept action.
+- Added focused store and toolbar proof for new live-node accept, reused live-node accept, invalid accept rejection, preview/session clearing, and Cancel rollback preservation.
 
 ## [x] `Spaghetti-Editor 8 / Phase 4` - `Build Path Projection Handoff`
 

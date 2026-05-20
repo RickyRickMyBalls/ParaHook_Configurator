@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { GeometrySketchOverlayVm } from '../app/viewerBridge'
 import {
   buildGeometrySketchRenderPolylines,
+  buildGeometrySketchRenderRegions,
   collectGeometrySketchEndpointCandidates,
   collectGeometrySketchSelectionIds,
   expandGeometrySketchSelectionFromRowId,
@@ -110,6 +111,59 @@ describe('geometrySketchOverlay helpers', () => {
     expect(polylines.filter((polyline) => polyline.layer === 'component')).toHaveLength(1)
     expect(polylines.filter((polyline) => polyline.layer === 'profile')).toHaveLength(1)
     expect(polylines.filter((polyline) => polyline.layer === 'selectedProfile')).toHaveLength(1)
+  })
+
+  it('builds filled selectable regions and white hover layer for review profiles', () => {
+    const overlay: GeometrySketchOverlayVm = {
+      mode: 'review',
+      plane: 'XY',
+      planeTransform: {
+        offsetMm: 0,
+        inPlaneRotationDeg: 0,
+        translation: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+      },
+      drawStage: null,
+      activeTool: null,
+      components: [],
+      profiles: [
+        {
+          profileId: 'profile-a',
+          vertices: [
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+            { x: 0, y: 10 },
+          ],
+        },
+      ],
+      hoveredProfileId: 'profile-a',
+      drawDraft: null,
+      ui: {
+        snapEnabled: true,
+        snapDistancePx: 14,
+        crosshairSize: 1,
+        startPointVisible: true,
+        startPointSymbolSize: 1,
+        startPointSymbolType: 'crosshair',
+        plinePointVisible: true,
+        plinePointSymbolSize: 1,
+        plinePointSymbolType: 'crosshair',
+      },
+    }
+
+    expect(buildGeometrySketchRenderRegions(overlay)).toMatchObject([
+      {
+        layer: 'hoveredProfileFill',
+        profileId: 'profile-a',
+      },
+    ])
+    expect(buildGeometrySketchRenderPolylines(overlay)).toMatchObject([
+      {
+        layer: 'hoveredProfile',
+        profileId: 'profile-a',
+      },
+    ])
   })
 
   it('builds viewer-owned draft chain and ghost polylines during draw mode', () => {
