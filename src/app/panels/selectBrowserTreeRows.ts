@@ -10,6 +10,7 @@ import type {
 } from '../store/useAppStore'
 import type { ViewSettings } from '../../shared/viewSettingsTypes'
 import { resolveEnvironmentPresetRead } from '../../shared/viewSettingsTypes'
+import { buildSketchProfileMemberPortId } from '../spaghetti/features/sketchProfileVirtualPorts'
 import type { BrowserGraphRowVm } from './selectBrowserGraphRows'
 
 export type BrowserBuildPolicySource = 'self' | 'graph' | 'assembly' | 'component' | 'default'
@@ -22,6 +23,8 @@ export type BrowserTreeRowKind =
   | 'assembly'
   | 'sketches-root'
   | 'sketch'
+  | 'sketch-profiles'
+  | 'sketch-profile'
   | 'component'
   | 'object'
   | 'graph-document'
@@ -179,7 +182,34 @@ export type BrowserSketchTreeRowVm = BrowserTreeRowBaseVm & {
   diagnosticsCount: number
   authoringGraphDocumentId: string
   authoringNodeId: string
+  profileProjectionRows?: BrowserSketchProfileProjectionTreeRowVm[]
 }
+
+export type BrowserSketchProfilesTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'sketch-profiles'
+  graphDocumentId: string
+  nodeId: string
+  featureId: string
+  profileCount: number
+  authoringGraphDocumentId: string
+  authoringNodeId: string
+}
+
+export type BrowserSketchProfileTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'sketch-profile'
+  graphDocumentId: string
+  nodeId: string
+  featureId: string
+  profileId: string
+  profileIndex: number
+  profilePortId: string
+  authoringGraphDocumentId: string
+  authoringNodeId: string
+}
+
+export type BrowserSketchProfileProjectionTreeRowVm =
+  | BrowserSketchProfilesTreeRowVm
+  | BrowserSketchProfileTreeRowVm
 
 export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm &
   BrowserReferenceContainerTraits & {
@@ -342,6 +372,8 @@ export type BrowserRenderableRowVm =
   | BrowserAssemblyTreeRowVm
   | BrowserSketchesRootTreeRowVm
   | BrowserSketchTreeRowVm
+  | BrowserSketchProfilesTreeRowVm
+  | BrowserSketchProfileTreeRowVm
   | BrowserComponentTreeRowVm
   | BrowserObjectTreeRowVm
   | BrowserGraphTreeRowVm
@@ -373,6 +405,8 @@ export type BrowserTreeRowsVm = {
     | BrowserAssemblyTreeRowVm
     | BrowserSketchesRootTreeRowVm
     | BrowserSketchTreeRowVm
+    | BrowserSketchProfilesTreeRowVm
+    | BrowserSketchProfileTreeRowVm
     | BrowserComponentTreeRowVm
     | BrowserObjectTreeRowVm
     | BrowserPartTreeRowVm
@@ -385,6 +419,17 @@ const buildGraphSectionRowId = (
   graphDocumentId: string,
   sectionKind: BrowserGraphSectionKind,
 ): string => `graph-section-row:${graphDocumentId}:${sectionKind}`
+
+export const buildBrowserSketchProfilesRowId = (
+  graphDocumentId: string,
+  nodeId: string,
+): string => `sketch-profiles-row:${graphDocumentId}:${nodeId}`
+
+export const buildBrowserSketchProfileRowId = (
+  graphDocumentId: string,
+  nodeId: string,
+  profileId: string,
+): string => `sketch-profile-row:${graphDocumentId}:${nodeId}:${profileId}`
 
 const isDefaultGraphSectionExpanded = (sectionKind: BrowserGraphSectionKind): boolean =>
   sectionKind === 'needs-rebuild'
@@ -405,6 +450,74 @@ const formatGraphNodeLabel = (nodeType: string): string => {
 }
 
 const buildGraphNodeMeta = (nodeType: string, nodeId: string): string => `${nodeType} | ${nodeId}`
+
+const formatProfileCount = (profileCount: number): string =>
+  profileCount === 1 ? '1 profile' : `${profileCount} profiles`
+
+const buildSketchProfileProjectionRows = (
+  sketchRow: Extract<ProjectContentBrowserRowVm, { kind: 'sketch' }>,
+  selectedRowIdSet: ReadonlySet<string>,
+): BrowserSketchProfileProjectionTreeRowVm[] => {
+  const profiles = sketchRow.profiles ?? []
+  if (profiles.length === 0) {
+    return []
+  }
+
+  const aggregateRowId = buildBrowserSketchProfilesRowId(
+    sketchRow.graphDocumentId,
+    sketchRow.nodeId,
+  )
+  const aggregateRow: BrowserSketchProfilesTreeRowVm = {
+    rowId: aggregateRowId,
+    rowKind: 'sketch-profiles',
+    depth: 2,
+    treeGuides: [],
+    graphDocumentId: sketchRow.graphDocumentId,
+    nodeId: sketchRow.nodeId,
+    featureId: sketchRow.featureId,
+    profileCount: profiles.length,
+    authoringGraphDocumentId: sketchRow.authoringGraphDocumentId,
+    authoringNodeId: sketchRow.authoringNodeId,
+    iconLabel: 'P',
+    label: 'SketchProfiles',
+    meta: formatProfileCount(profiles.length),
+    isSelected: selectedRowIdSet.has(aggregateRowId),
+    isExpandable: profiles.length > 0,
+    isExpanded: false,
+    actions: [],
+  }
+
+  const memberRows = profiles.map((profile, index) => {
+    const rowId = buildBrowserSketchProfileRowId(
+      sketchRow.graphDocumentId,
+      sketchRow.nodeId,
+      profile.profileId,
+    )
+    return {
+      rowId,
+      rowKind: 'sketch-profile' as const,
+      depth: 3,
+      treeGuides: [],
+      graphDocumentId: sketchRow.graphDocumentId,
+      nodeId: sketchRow.nodeId,
+      featureId: sketchRow.featureId,
+      profileId: profile.profileId,
+      profileIndex: profile.profileIndex,
+      profilePortId: buildSketchProfileMemberPortId(profile.profileId),
+      authoringGraphDocumentId: sketchRow.authoringGraphDocumentId,
+      authoringNodeId: sketchRow.authoringNodeId,
+      iconLabel: 'P',
+      label: 'SketchProfile',
+      meta: `Profile ${index + 1}`,
+      isSelected: selectedRowIdSet.has(rowId),
+      isExpandable: false,
+      isExpanded: false,
+      actions: [],
+    } satisfies BrowserSketchProfileTreeRowVm
+  })
+
+  return [aggregateRow, ...memberRows]
+}
 
 const formatReferenceStateLabel = (state: BrowserReferenceRowState): string => {
   switch (state) {
@@ -687,17 +800,7 @@ export const selectBrowserTreeRows = (options: {
       existing.push(row)
     })
 
-  const visibleContentRows: Array<
-    | BrowserEnvironmentRootTreeRowVm
-    | BrowserEnvironmentSourceTreeRowVm
-    | BrowserEnvironmentLightTreeRowVm
-    | BrowserAssemblyTreeRowVm
-    | BrowserSketchesRootTreeRowVm
-    | BrowserSketchTreeRowVm
-    | BrowserComponentTreeRowVm
-    | BrowserObjectTreeRowVm
-    | BrowserPartTreeRowVm
-  > = []
+  const visibleContentRows: BrowserTreeRowsVm['contentRows'] = []
   const assemblyRowById = new Map(
     normalizedContentRows
       .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> => row.kind === 'assembly')
@@ -1339,11 +1442,32 @@ export const selectBrowserTreeRows = (options: {
     }
 
     orderedSketchRows.forEach((sketchRow, sketchIndex) => {
+      const profileProjectionRows = buildSketchProfileProjectionRows(sketchRow, selectedRowIdSet)
+      const sketchProfilesRow =
+        profileProjectionRows[0]?.rowKind === 'sketch-profiles' ? profileProjectionRows[0] : null
+      const sketchProfileRows = profileProjectionRows.slice(1).filter(
+        (row): row is BrowserSketchProfileTreeRowVm => row.rowKind === 'sketch-profile',
+      )
+      const hasMoreSketchSiblings = sketchIndex < orderedSketchRows.length - 1
+      const hasProfileProjectionRows = sketchProfilesRow !== null
+      const isSketchExpanded =
+        hasProfileProjectionRows && !collapsedContentRowIds.includes(sketchRow.rowId)
+      const isSketchProfilesExpanded =
+        sketchProfileRows.length > 0 &&
+        sketchProfilesRow !== null &&
+        !collapsedContentRowIds.includes(sketchProfilesRow.rowId)
+
       visibleContentRows.push({
         rowId: sketchRow.rowId,
         rowKind: 'sketch',
         depth: 1,
-        treeGuides: [sketchIndex < orderedSketchRows.length - 1 ? 'tee' : 'elbow'],
+        treeGuides: [
+          hasProfileProjectionRows && isSketchExpanded
+            ? 'tee'
+            : hasMoreSketchSiblings
+              ? 'tee'
+              : 'elbow',
+        ],
         isVisible: sketchRow.isVisible,
         buildState: sketchRow.buildState ?? 'done',
         buildStateLabel: sketchRow.buildStateLabel ?? '',
@@ -1358,6 +1482,7 @@ export const selectBrowserTreeRows = (options: {
         diagnosticsCount: sketchRow.diagnosticsCount,
         authoringGraphDocumentId: sketchRow.authoringGraphDocumentId,
         authoringNodeId: sketchRow.authoringNodeId,
+        profileProjectionRows,
         iconLabel: 'S',
         label: sketchRow.label,
         meta: sketchRow.meta,
@@ -1368,8 +1493,8 @@ export const selectBrowserTreeRows = (options: {
             }
           : {}),
         isSelected: selectedRowIdSet.has(sketchRow.rowId),
-        isExpandable: false,
-        isExpanded: false,
+        isExpandable: hasProfileProjectionRows,
+        isExpanded: isSketchExpanded,
         actions: [
           {
             actionId: 'view-in-graph',
@@ -1378,6 +1503,39 @@ export const selectBrowserTreeRows = (options: {
           },
         ],
       } satisfies BrowserSketchTreeRowVm)
+
+      if (!isSketchExpanded || sketchProfilesRow === null) {
+        return
+      }
+
+      const sketchChildAncestorGuides: BrowserTreeGuideKind[] = [
+        hasMoreSketchSiblings ? 'vertical' : 'none',
+      ]
+      visibleContentRows.push({
+        ...sketchProfilesRow,
+        depth: 2,
+        treeGuides: [
+          ...sketchChildAncestorGuides,
+          isSketchProfilesExpanded ? 'tee' : 'elbow',
+        ],
+        isExpanded: isSketchProfilesExpanded,
+      } satisfies BrowserSketchProfilesTreeRowVm)
+
+      if (!isSketchProfilesExpanded) {
+        return
+      }
+
+      sketchProfileRows.forEach((profileRow, profileIndex) => {
+        visibleContentRows.push({
+          ...profileRow,
+          depth: 3,
+          treeGuides: [
+            ...sketchChildAncestorGuides,
+            'none',
+            profileIndex < sketchProfileRows.length - 1 ? 'tee' : 'elbow',
+          ],
+        } satisfies BrowserSketchProfileTreeRowVm)
+      })
     })
   })
 

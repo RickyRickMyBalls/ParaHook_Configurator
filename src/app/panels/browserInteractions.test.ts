@@ -14,6 +14,7 @@ import type {
   BrowserObjectTreeRowVm,
   BrowserPartTreeRowVm,
   BrowserReferenceItemTreeRowVm,
+  BrowserSketchProfileTreeRowVm,
   BrowserSketchTreeRowVm,
 } from './selectBrowserTreeRows'
 import type { BrowserRowInteractionDeps } from './browserInteractions'
@@ -287,6 +288,31 @@ const sketchRow = (): BrowserSketchTreeRowVm => ({
   authoringNodeId: 'node-2',
 })
 
+const sketchProfileRow = (
+  profileId: string,
+  profileIndex: number,
+): BrowserSketchProfileTreeRowVm => ({
+  rowId: `sketch-profile-row:graph-document-1:node-2:${profileId}`,
+  rowKind: 'sketch-profile',
+  depth: 3,
+  treeGuides: ['vertical', 'vertical', 'elbow'],
+  iconLabel: 'P',
+  label: 'SketchProfile',
+  meta: `Profile ${profileIndex + 1}`,
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+  graphDocumentId: 'graph-document-1',
+  nodeId: 'node-2',
+  featureId: 'feature-1',
+  profileId,
+  profileIndex,
+  profilePortId: `SketchProfile:${profileId}`,
+  authoringGraphDocumentId: 'graph-document-1',
+  authoringNodeId: 'node-2',
+})
+
 const referenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   rowId: 'reference-item-row:shoe-1',
   rowKind: 'reference-item',
@@ -337,6 +363,10 @@ const createDeps = (
   setLocalSelectedBrowserRowId: vi.fn(),
   setWorkspaceSelectedTarget: vi.fn(),
   setWorkspaceExplicitSelection: vi.fn(),
+  viewportSelectedSketchProfiles: [],
+  extrudeCommandSession: null,
+  setViewportSelectedSketchProfiles: vi.fn(),
+  setExtrudeCommandSelectedProfileSources: vi.fn(),
   setActiveSurface: vi.fn(),
   activeViewerViewportId: 'model-viewer-primary',
   selectLight: vi.fn(),
@@ -582,6 +612,148 @@ describe('createBrowserRowInteractionHandlers', () => {
       ],
       selectionAnchorTarget: { kind: 'object', objectId: 'object-1' },
     })
+  })
+
+  it('toggles Browser sketch profile rows through viewport profile selection without workspace multi-select', () => {
+    const row = sketchProfileRow('profile-a', 0)
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [row],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(row)
+
+    expect(deps.setLocalSelectedBrowserRowId).toHaveBeenCalledWith(row.rowId)
+    expect(deps.setViewportSelectedSketchProfiles).toHaveBeenCalledWith([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-2',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+    expect(deps.setWorkspaceExplicitSelection).not.toHaveBeenCalled()
+    expect(activateGraphNodeIntentMock).not.toHaveBeenCalled()
+
+    const selectedDeps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [row],
+      },
+      viewportSelectedSketchProfiles: [
+        {
+          graphDocumentId: 'graph-document-1',
+          sketchNodeId: 'node-2',
+          profileId: 'profile-a',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+    })
+    const selectedHandlers = createBrowserRowInteractionHandlers(selectedDeps)
+
+    selectedHandlers.handleSelectBrowserRow(row)
+
+    expect(selectedDeps.setViewportSelectedSketchProfiles).toHaveBeenCalledWith([])
+  })
+
+  it('shift-selects all Browser sketch profile rows for the clicked sketch', () => {
+    const firstRow = sketchProfileRow('profile-a', 0)
+    const secondRow = sketchProfileRow('profile-b', 1)
+    const otherSketchRow: BrowserSketchProfileTreeRowVm = {
+      ...sketchProfileRow('profile-c', 0),
+      rowId: 'sketch-profile-row:graph-document-1:node-other:profile-c',
+      nodeId: 'node-other',
+      profilePortId: 'SketchProfile:profile-c',
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [firstRow, secondRow, otherSketchRow],
+      },
+      viewportSelectedSketchProfiles: [
+        {
+          graphDocumentId: 'graph-document-1',
+          sketchNodeId: 'node-other',
+          profileId: 'profile-c',
+          portId: 'SketchProfile:profile-c',
+        },
+      ],
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(secondRow, { ctrlKey: false, shiftKey: true })
+
+    expect(deps.setViewportSelectedSketchProfiles).toHaveBeenCalledWith([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-other',
+        profileId: 'profile-c',
+        portId: 'SketchProfile:profile-c',
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-2',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-2',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+  })
+
+  it('mirrors Browser sketch profile clicks into an active Extrude command session', () => {
+    const firstRow = sketchProfileRow('profile-a', 0)
+    const secondRow = sketchProfileRow('profile-b', 1)
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [firstRow, secondRow],
+      },
+      extrudeCommandSession: {
+        graphDocumentId: 'graph-document-1',
+        selectedProfileSources: [
+          {
+            nodeId: 'node-2',
+            portId: 'SketchProfile:profile-a',
+          },
+        ],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(secondRow)
+
+    expect(deps.setViewportSelectedSketchProfiles).toHaveBeenCalledWith([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-2',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-2',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+    expect(deps.setExtrudeCommandSelectedProfileSources).toHaveBeenCalledWith([
+      {
+        nodeId: 'node-2',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        nodeId: 'node-2',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
   })
 
   it('extends shift-click selection across the eligible section rows', () => {

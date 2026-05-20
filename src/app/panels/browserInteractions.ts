@@ -1,4 +1,9 @@
 import type { GraphDocument } from '../spaghetti/schema/spaghettiTypes'
+import type { ExtrudeCommandSession } from '../spaghetti/commands/extrudeCommandSession'
+import {
+  parseSketchProfileMemberPortId,
+} from '../spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract'
+import type { ViewportSketchProfileSelection } from '../spaghetti/store/useSpaghettiStore'
 import {
   activateSurfaceIntent,
   activateGraphDocumentIntent,
@@ -75,6 +80,17 @@ export type BrowserRowInteractionDeps = {
     explicitSelectedTargets: WorkspaceSelectedTarget[]
     selectionAnchorTarget: WorkspaceSelectedTarget | null
   }) => void
+  viewportSelectedSketchProfiles: readonly ViewportSketchProfileSelection[]
+  extrudeCommandSession: Pick<
+    ExtrudeCommandSession,
+    'graphDocumentId' | 'selectedProfileSources'
+  > | null
+  setViewportSelectedSketchProfiles: (
+    selections: readonly ViewportSketchProfileSelection[],
+  ) => void
+  setExtrudeCommandSelectedProfileSources: (
+    selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
+  ) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
   activeViewerViewportId: WorkspaceViewportId
   selectLight: (lightId: string | null) => void
@@ -363,12 +379,110 @@ export const createBrowserRowInteractionHandlers = (
     )
   }
 
+  const resolveActiveProfileSelections = (
+    graphDocumentId: string,
+  ): ViewportSketchProfileSelection[] => {
+    if (
+      deps.extrudeCommandSession !== null &&
+      deps.extrudeCommandSession.graphDocumentId === graphDocumentId
+    ) {
+      return deps.extrudeCommandSession.selectedProfileSources.flatMap((source) => {
+        const parsed = parseSketchProfileMemberPortId(source.portId)
+        return parsed === null
+          ? []
+          : [
+              {
+                graphDocumentId,
+                sketchNodeId: source.nodeId,
+                profileId: parsed.profileId,
+                portId: source.portId,
+              },
+            ]
+      })
+    }
+
+    return deps.viewportSelectedSketchProfiles.filter(
+      (selection) => selection.graphDocumentId === graphDocumentId,
+    )
+  }
+
+  const commitBrowserSketchProfileSelection = (
+    row: Extract<BrowserRenderableRowVm, { rowKind: 'sketch-profile' }>,
+    modifiers: BrowserSelectionModifiers,
+  ) => {
+    const clickedSelection: ViewportSketchProfileSelection = {
+      graphDocumentId: row.graphDocumentId,
+      sketchNodeId: row.nodeId,
+      profileId: row.profileId,
+      portId: row.profilePortId,
+    }
+    const otherGraphSelections = deps.viewportSelectedSketchProfiles.filter(
+      (selection) => selection.graphDocumentId !== row.graphDocumentId,
+    )
+    const currentGraphSelections = resolveActiveProfileSelections(row.graphDocumentId)
+    const currentOtherSketchSelections = currentGraphSelections.filter(
+      (selection) => selection.sketchNodeId !== row.nodeId,
+    )
+
+    const nextSketchSelections = modifiers.shiftKey
+      ? deps.browserTreeRows.contentRows
+          .filter(
+            (
+              candidate,
+            ): candidate is Extract<BrowserRenderableRowVm, { rowKind: 'sketch-profile' }> =>
+              candidate.rowKind === 'sketch-profile' &&
+              candidate.graphDocumentId === row.graphDocumentId &&
+              candidate.nodeId === row.nodeId,
+          )
+          .map((candidate) => ({
+            graphDocumentId: candidate.graphDocumentId,
+            sketchNodeId: candidate.nodeId,
+            profileId: candidate.profileId,
+            portId: candidate.profilePortId,
+          }))
+      : currentGraphSelections.some(
+            (selection) =>
+              selection.graphDocumentId === clickedSelection.graphDocumentId &&
+              selection.sketchNodeId === clickedSelection.sketchNodeId &&
+              selection.profileId === clickedSelection.profileId,
+          )
+        ? currentGraphSelections.filter(
+            (selection) =>
+              !(
+                selection.graphDocumentId === clickedSelection.graphDocumentId &&
+                selection.sketchNodeId === clickedSelection.sketchNodeId &&
+                selection.profileId === clickedSelection.profileId
+              ),
+          )
+        : [...currentGraphSelections, clickedSelection]
+
+    const nextGraphSelections = modifiers.shiftKey
+      ? [...currentOtherSketchSelections, ...nextSketchSelections]
+      : nextSketchSelections
+    const nextSelections = [...otherGraphSelections, ...nextGraphSelections]
+
+    deps.setViewportSelectedSketchProfiles(nextSelections)
+    if (deps.extrudeCommandSession?.graphDocumentId === row.graphDocumentId) {
+      deps.setExtrudeCommandSelectedProfileSources(
+        nextGraphSelections.map((selection) => ({
+          nodeId: selection.sketchNodeId,
+          portId: selection.portId,
+        })),
+      )
+    }
+  }
+
   const handleSelectBrowserRow = (
     row: BrowserRenderableRowVm,
     modifiers: BrowserSelectionModifiers = { ctrlKey: false, shiftKey: false },
   ) => {
     deps.setLocalSelectedBrowserRowId(row.rowId)
     deps.closeMenus()
+
+    if (row.rowKind === 'sketch-profile') {
+      commitBrowserSketchProfileSelection(row, modifiers)
+      return
+    }
 
     if (isExplicitSelectionRow(row)) {
       const explicitSelectionTarget = buildExplicitSelectionTargetFromRow(row)
@@ -651,7 +765,9 @@ export const createBrowserRowInteractionHandlers = (
       row.rowKind === 'reference-item' ||
       (row.rowKind === 'object' &&
         (row.isExpandable || row.contentOriginKind === 'source-reference')) ||
-      row.rowKind === 'sketches-root'
+      row.rowKind === 'sketches-root' ||
+      row.rowKind === 'sketch' ||
+      row.rowKind === 'sketch-profiles'
     ) {
       deps.closeMenus()
       deps.setCollapsedContentRowIds((currentIds) =>

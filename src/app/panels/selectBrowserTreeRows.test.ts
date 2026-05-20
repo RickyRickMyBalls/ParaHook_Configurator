@@ -2161,6 +2161,195 @@ describe('selectBrowserTreeRows', () => {
     )
   })
 
+  it('renders expandable sketch profile rows from the sketch projection rows', () => {
+    const selectRows = (collapsedContentRowIds: string[] = []) =>
+      selectBrowserTreeRows({
+        referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+        contentRows: [
+          {
+            rowId: 'project-sketches-root:project-file-1',
+            kind: 'sketches-root',
+            label: 'Sketches',
+            meta: '1 sketch',
+            sketchCount: 1,
+          },
+          {
+            rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+            kind: 'sketch',
+            label: 'Sketch 1',
+            meta: 'Graph 1 | XY | 4 comps | 2 profiles',
+            isVisible: true,
+            buildState: 'done',
+            buildStateLabel: 'Done',
+            rebuildGraphDocumentIds: [],
+            ownerGraphDocumentId: 'graph-document-1',
+            graphDocumentId: 'graph-document-1',
+            nodeId: 'node-sketch-1',
+            featureId: 'sketch-1',
+            plane: 'XY',
+            componentCount: 4,
+            profileCount: 2,
+            profiles: [
+              { profileId: 'profile-a', profileIndex: 0 },
+              { profileId: 'profile-b', profileIndex: 1 },
+            ],
+            diagnosticsCount: 0,
+            authoringGraphDocumentId: 'graph-document-1',
+            authoringNodeId: 'node-sketch-1',
+          },
+        ],
+        graphRows: [],
+        editorViewports: [],
+        graphDocumentsById: {
+          'graph-document-1': graphDocument('graph-document-1', 'Graph 1'),
+        },
+        selectedRowId: 'sketch-profile-row:graph-document-1:node-sketch-1:profile-b',
+        collapsedContentRowIds,
+        expandedGraphDocumentIds: [],
+        hasActiveEditorViewport: true,
+        sharedViewerCompositionGraphDocumentIds: [],
+        sharedViewerCompositionActive: false,
+      })
+
+    const rows = selectRows()
+
+    const sketchRow = rows.contentRows.find(
+      (row) => row.rowKind === 'sketch',
+    )
+    expect(sketchRow).toEqual(
+      expect.objectContaining({
+        rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+        rowKind: 'sketch',
+        isExpandable: true,
+        isExpanded: true,
+        treeGuides: ['none', 'tee'],
+      }),
+    )
+    expect(rows.contentRows.map((row) => row.rowKind)).toEqual([
+      'sketches-root',
+      'sketch',
+      'sketch-profiles',
+      'sketch-profile',
+      'sketch-profile',
+    ])
+    expect(rows.contentRows[2]).toEqual(
+      expect.objectContaining({
+        rowId: 'sketch-profiles-row:graph-document-1:node-sketch-1',
+        rowKind: 'sketch-profiles',
+        label: 'SketchProfiles',
+        meta: '2 profiles',
+        depth: 2,
+        treeGuides: ['none', 'none', 'tee'],
+        isExpandable: true,
+        isExpanded: true,
+      }),
+    )
+    expect(rows.contentRows[3]).toEqual(
+      expect.objectContaining({
+        rowId: 'sketch-profile-row:graph-document-1:node-sketch-1:profile-a',
+        rowKind: 'sketch-profile',
+        label: 'SketchProfile',
+        meta: 'Profile 1',
+        depth: 3,
+        treeGuides: ['none', 'none', 'none', 'tee'],
+        isExpandable: false,
+      }),
+    )
+    expect(rows.contentRows[4]).toEqual(
+      expect.objectContaining({
+        rowId: 'sketch-profile-row:graph-document-1:node-sketch-1:profile-b',
+        rowKind: 'sketch-profile',
+        label: 'SketchProfile',
+        meta: 'Profile 2',
+        depth: 3,
+        treeGuides: ['none', 'none', 'none', 'elbow'],
+        isSelected: true,
+      }),
+    )
+    const profileProjectionRows = sketchRow?.profileProjectionRows ?? []
+    expect(profileProjectionRows).toEqual([
+      expect.objectContaining({
+        rowId: 'sketch-profiles-row:graph-document-1:node-sketch-1',
+        rowKind: 'sketch-profiles',
+        graphDocumentId: 'graph-document-1',
+        nodeId: 'node-sketch-1',
+        featureId: 'sketch-1',
+        profileCount: 2,
+        label: 'SketchProfiles',
+        meta: '2 profiles',
+        isSelected: false,
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-sketch-1',
+      }),
+      expect.objectContaining({
+        rowId: 'sketch-profile-row:graph-document-1:node-sketch-1:profile-a',
+        rowKind: 'sketch-profile',
+        graphDocumentId: 'graph-document-1',
+        nodeId: 'node-sketch-1',
+        featureId: 'sketch-1',
+        profileId: 'profile-a',
+        profileIndex: 0,
+        profilePortId: 'SketchProfile:profile-a',
+        label: 'SketchProfile',
+        meta: 'Profile 1',
+        isSelected: false,
+        authoringGraphDocumentId: 'graph-document-1',
+        authoringNodeId: 'node-sketch-1',
+      }),
+      expect.objectContaining({
+        rowId: 'sketch-profile-row:graph-document-1:node-sketch-1:profile-b',
+        rowKind: 'sketch-profile',
+        profileId: 'profile-b',
+        profileIndex: 1,
+        profilePortId: 'SketchProfile:profile-b',
+        label: 'SketchProfile',
+        meta: 'Profile 2',
+        isSelected: true,
+      }),
+    ])
+    expect(
+      profileProjectionRows.some((row) =>
+        `${row.label} ${row.meta}`.toLowerCase().includes('selected'),
+      ),
+    ).toBe(false)
+    expect(
+      rows.contentRows.some((row) =>
+        `${row.label} ${row.meta}`.toLowerCase().includes('selected'),
+      ),
+    ).toBe(false)
+
+    const sketchCollapsedRows = selectRows([
+      'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+    ]).contentRows
+    expect(sketchCollapsedRows.map((row) => row.rowKind)).toEqual([
+      'sketches-root',
+      'sketch',
+    ])
+    expect(sketchCollapsedRows[1]).toEqual(
+      expect.objectContaining({
+        rowKind: 'sketch',
+        isExpandable: true,
+        isExpanded: false,
+      }),
+    )
+
+    const profilesCollapsedRows = selectRows([
+      'sketch-profiles-row:graph-document-1:node-sketch-1',
+    ]).contentRows
+    expect(profilesCollapsedRows.map((row) => row.rowKind)).toEqual([
+      'sketches-root',
+      'sketch',
+      'sketch-profiles',
+    ])
+    expect(profilesCollapsedRows[2]).toEqual(
+      expect.objectContaining({
+        rowKind: 'sketch-profiles',
+        isExpandable: true,
+        isExpanded: false,
+      }),
+    )
+  })
+
   it('interleaves imported reference rows with authored content children using parent content order', () => {
     const rows = selectBrowserTreeRows({
       contentRows: [

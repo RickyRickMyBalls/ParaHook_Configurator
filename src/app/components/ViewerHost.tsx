@@ -1819,6 +1819,13 @@ export function ViewerHost(props: ViewerHostProps) {
       }
 
       if (selectionTargetEntries.length === 0) {
+        const spaghettiState = useSpaghettiStore.getState()
+        if (
+          spaghettiState.extrudeCommandSession === null &&
+          spaghettiState.viewportSelectedSketchProfiles.length > 0
+        ) {
+          spaghettiState.clearViewportSelectedSketchProfiles()
+        }
         setSelectedTopologyEntity(null)
         clearWorkspaceTargetSelection(
           {

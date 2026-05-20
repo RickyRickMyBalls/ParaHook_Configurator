@@ -927,6 +927,14 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+.BrowserTreeRow--sketch-profiles .BrowserGraphChildPlainBar {
+  border-color: rgba(16, 185, 129, 0.48);
+}
+
+.BrowserTreeRow--sketch-profile .BrowserGraphChildPlainBar {
+  border-color: rgba(110, 231, 183, 0.48);
+}
+
 .BrowserContentStateFill {
   position: absolute;
   inset: 0 auto 0 0;

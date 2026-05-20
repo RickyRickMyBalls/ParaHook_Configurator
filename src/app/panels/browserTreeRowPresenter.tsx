@@ -207,7 +207,11 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     browserBuildPolicyState.effectiveBrowserBuildPolicySource !== 'self' &&
     browserBuildPolicyState.effectiveBrowserBuildPolicySource !== 'default'
   const isGraphRebuildRow = row.rowKind === 'graph-rebuild-object'
-  const isGraphChildPlainRow = row.rowKind === 'graph-section' || row.rowKind === 'graph-node'
+  const isGraphChildPlainRow =
+    row.rowKind === 'graph-section' ||
+    row.rowKind === 'graph-node' ||
+    row.rowKind === 'sketch-profiles' ||
+    row.rowKind === 'sketch-profile'
   const isReferenceRow = referenceSurfaceRow !== null
   const isPartRow = row.rowKind === 'part'
   const isReferenceVisibilityRow =

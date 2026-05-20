@@ -65,7 +65,11 @@ export const browserRowFamilyAdapters: BrowserRowFamilyAdapter[] = [
   },
   {
     familyId: 'sketch',
-    matchesRow: (row) => row.rowKind === 'sketches-root' || row.rowKind === 'sketch',
+    matchesRow: (row) =>
+      row.rowKind === 'sketches-root' ||
+      row.rowKind === 'sketch' ||
+      row.rowKind === 'sketch-profiles' ||
+      row.rowKind === 'sketch-profile',
     supportsContextMenu: true,
     supportsDoubleSelect: true,
     supportsExpandToggle: true,
@@ -108,6 +112,10 @@ export const describeBrowserRow = (row: BrowserRenderableRowVm): string => {
       return row.label
     case 'sketch':
       return `Sketch ${row.label}`
+    case 'sketch-profiles':
+      return row.label
+    case 'sketch-profile':
+      return `Sketch profile ${row.label}`
     case 'graph-document':
       return `Graph ${row.label}`
     case 'graph-node':

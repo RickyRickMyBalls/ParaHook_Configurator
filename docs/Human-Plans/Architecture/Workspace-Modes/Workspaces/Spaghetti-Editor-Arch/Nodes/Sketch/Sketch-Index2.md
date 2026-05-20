@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-05-19 23:37: Marked `Sketch - 3 Phase 4 - Browser Profile Interaction Proof` shipped in the dedicated `Future2` child doc after Browser `SketchProfile` row clicks gained viewport profile selection toggle behavior, Shift same-sketch profile expansion, active Extrude selected-source mirroring, focused interaction/render proof, and production build verification while avoiding workspace multi-select drift and command accept or graph-node creation behavior
+19. 2026-05-19 23:31: Tightened `Sketch - 3 Phase 4 - Browser Profile Interaction Proof` in the dedicated `Future2` child doc into an implementation-ready Browser-to-viewport profile selection slice, locking Browser `SketchProfile` row clicks to the existing viewport profile identity path, active Extrude selected-source mirroring, Shift same-sketch expansion, no workspace multi-select drift, no literal selected text, and no command accept or graph-node creation behavior
+18. 2026-05-19 23:28: Marked `Sketch - 3 Phase 3 - Viewport Selection Visual Sync` shipped in the dedicated `Future2` child doc after Browser profile rows gained one-way selected-profile visual projection from viewport and active Extrude selected profile sources, including stale-selection filtering, additive selected-row visuals, neutral labels, and selected-row ancestor auto-reveal
+17. 2026-05-19 23:22: Tightened `Sketch - 3 Phase 3 - Viewport Selection Visual Sync` in the dedicated `Future2` child doc into an implementation-ready one-way viewport-to-Browser projection slice, locking selected profile row-id mapping, additive Browser visual selection, ancestor auto-reveal, clearing behavior, and deferring Browser-to-viewport profile clicks to the proposed Phase 4 interaction proof
+16. 2026-05-19 23:09: Marked `Sketch - 3 Phase 2 - Expandable SketchProfiles Browser Tree Projection` shipped in the dedicated `Future2` child doc after Browser sketch rows gained expandable visible `SketchProfiles` aggregate rows and ordered `SketchProfile` member rows through existing Browser collapse state, keeping viewport selection sync as the next proposed subphase
+15. 2026-05-19 23:03:29: Tightened `Sketch - 3 Phase 2 - Expandable SketchProfiles Browser Tree Projection` in the dedicated `Future2` child doc into an implementation-ready rendering slice that consumes the shipped `profileProjectionRows`, uses Browser content collapse state for sketch and aggregate rows, and leaves viewport selection sync for Phase 3
+14. 2026-05-19 23:00:08: Marked `Sketch - 3 Phase 1 - Browser Row Model And Identity Contract` shipped after the Browser selector gained profile projection VM rows for graph-authored `SketchProfiles` and `SketchProfile:<profileId>` identities while keeping visible Browser tree rendering deferred
+13. 2026-05-19 22:53:32: Tightened `Sketch - 3 Phase 1 - Browser Row Model And Identity Contract` in the dedicated `Future2` child doc into an implementation-ready row-model slice, locking the first pass to Browser VM kinds, deterministic aggregate/member row ids, profile member port identity, and selector proof before visible tree rendering or viewport selection sync
 12. 2026-05-19 22:08:52: Added `Sketch - 3 - Browser Sketch Profile Row Projection` as the next Generation 2 sketch planning lane, with a dedicated `Future2` child doc for projecting graph-authored `SketchProfiles` and individual `SketchProfile:<profileId>` closed loops into expandable Browser rows without making Browser the profile owner or adding literal selected-state wording
 11. 2026-04-08 15:55: Added the dedicated child planning doc `Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`, split `Sketch - 2` into four implementation-ready subphases for parent contract lock, child-row reveal, aggregate-versus-singular wiring meaning, and final surface verification, and refreshed this sketch-family index so the next output-cleanup lane now has a real execution home instead of only an inline phase summary
 10. 2026-04-07 18:30: Marked `Sketch - 1 Phase 4 - Failure Honesty, Resource Cleanup, And Focused Verification` shipped after the worker hardened the new face-driven authoritative path around open/disconnected loop rejection, cleanup coverage, and final-view honesty, and completed the `Sketch - 1` ladder so the next family handoff is now `Sketch - 2 - Sketch Node Output Cleanup And Profile Array Surface`
@@ -305,13 +313,13 @@ The recommendation is:
   - `Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
 - Current subphase status:
   - `Phase 1 - Browser Row Model And Identity Contract`
-    - proposed
+    - shipped
   - `Phase 2 - Expandable SketchProfiles Browser Tree Projection`
-    - proposed
+    - shipped
   - `Phase 3 - Viewport Selection Visual Sync`
-    - proposed
-  - `Phase 4 - Focused Browser Interaction Proof`
-    - proposed
+    - shipped
+  - `Phase 4 - Browser Profile Interaction Proof`
+    - shipped
 
 ### Questions / Decisions
 

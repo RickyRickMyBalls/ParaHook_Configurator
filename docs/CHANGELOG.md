@@ -72,6 +72,291 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1989 -->
+
+### [1989] - 2026-05-19 23:49 - `Sketch - 3 Phase 4 - Outside-Extrude Empty Viewport Deselect`
+
+HUMAN SUMMARY: ``Outside an active Extrude command, clicking empty space in the model viewport now clears selected sketch profiles the same way it clears object selection. Active Extrude profile sources stay command-owned, so empty viewport clicks do not silently erase an in-progress Extrude selection.``
+
+#### Scope / Constraints Honored
+
+- Reused the existing empty workspace-selection pick path in `ViewerHost`.
+- Cleared only transient `viewportSelectedSketchProfiles` when no active Extrude command session exists.
+- Preserved active Extrude selected profile sources and command behavior.
+- Kept Browser/profile row projection unchanged; Browser simply reflects the cleared viewport selection.
+
+#### Summary of Implementation
+
+- Added an outside-Extrude sketch-profile clear to the empty viewport pick branch.
+- Extended the viewport object-selection empty-click test to prove stale sketch profile preselection clears with object/workspace selection.
+- Re-ran focused Browser sketch-profile projection tests to confirm Browser selection follows the cleared viewport state.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Empty model-viewport clicks now clear selected sketch profiles when no Extrude command is active.
+- Existing active Extrude selected profile sources are not cleared by this outside-Extrude cleanup.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/components/ViewerHost.test.tsx -t "preselects a viewport sketch profile|toggles multiple viewport sketch profile preselections|routes viewport object picks" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "sketch profile" --reporter verbose`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1988 -->
+
+### [1988] - 2026-05-19 23:37 - `Sketch - 3 Phase 4 - Browser Profile Interaction Proof`
+
+HUMAN SUMMARY: ``Browser `SketchProfile` rows are now a two-way profile selection surface. Clicking a Browser profile row toggles the matching viewport profile selection, Shift-click selects all same-sketch profile rows, and active Extrude sessions mirror the selected profile sources through the existing command-session path without accepting or creating graph nodes.``
+
+#### Scope / Constraints Honored
+
+- Kept Browser rows downstream from graph-authored sketch profile identity.
+- Reused `viewportSelectedSketchProfiles` and active Extrude selected profile sources instead of adding a second profile selection owner.
+- Did not add literal `selected` text to row labels or metadata.
+- Did not route profile row clicks through workspace explicit multi-select, graph-node activation, Extrude accept, or Extrude node creation behavior.
+
+#### Summary of Implementation
+
+- Added Browser `sketch-profile` row click handling in the shared Browser interaction layer.
+- Toggled clicked profile identities into `viewportSelectedSketchProfiles`.
+- Added Shift-click expansion to select all visible/resolved Browser profile members for the clicked sketch.
+- Mirrored Browser-driven profile selection into active Extrude command selected profile sources when the active command graph matches.
+- Passed the minimal Spaghetti profile-selection state and setters from the Browser controller into Browser interactions.
+- Added focused interaction and render tests for toggle, Shift expansion, active Extrude mirroring, Browser-to-viewport click behavior, and no workspace selection drift.
+
+#### Files Changed
+
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Clicking a Browser `SketchProfile` row selects the matching viewport sketch profile.
+- Clicking that selected Browser profile row again clears the matching profile selection.
+- Shift-clicking a Browser `SketchProfile` row selects all Browser profile members for that sketch.
+- Active Extrude selected profile sources now stay synchronized with Browser-driven profile selection.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/browserInteractions.test.ts --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "sketch profile" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/selectBrowserTreeRows.test.ts --reporter verbose`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1987 -->
+
+### [1987] - 2026-05-19 23:28 - `Sketch - 3 Phase 3 - Viewport Selection Visual Sync`
+
+HUMAN SUMMARY: ``Browser `SketchProfile` rows now visually follow selected sketch profiles from the viewport and active Extrude command sessions. The projection is one-way, keeps row text neutral, ignores stale profile identities, and auto-reveals collapsed sketch/profile ancestors so the selected profile has a visible Browser row.``
+
+#### Scope / Constraints Honored
+
+- Kept Browser profile rows as derived projection over graph-authored sketch profile truth.
+- Did not add literal `selected` text to labels, metadata, tooltips, or counts.
+- Did not add Browser-to-viewport profile click selection.
+- Did not mutate graph truth, sketch profile membership, or Extrude commit behavior from passive Browser projection.
+
+#### Summary of Implementation
+
+- Derived Browser `SketchProfile` row ids from `viewportSelectedSketchProfiles`.
+- Included active Extrude `selectedProfileSources` by parsing `SketchProfile:<profileId>` member ports.
+- Filtered projected selections to profile rows that exist in the current Browser sketch profile projection.
+- Merged projected profile row ids into Browser selected-row visuals without replacing unrelated Browser selection.
+- Auto-opened collapsed owning sketch and `SketchProfiles` rows while a selected profile row needs to be visible.
+- Added focused Browser render tests for viewport selection projection, active Extrude projection, clearing behavior, neutral text, and ancestor auto-reveal.
+
+#### Files Changed
+
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Selecting a sketch profile in the viewport can now mark the matching Browser `SketchProfile` row with the existing selected-row visual.
+- Active Extrude selected profile sources also mark matching Browser profile rows.
+- Clearing viewport/Extrude selected profile sources clears the projected Browser profile row selection.
+- Collapsed sketch/profile ancestors reopen while a valid selected profile row is projected.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "sketch profile" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/selectBrowserTreeRows.test.ts --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/browserInteractions.test.ts --reporter verbose`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1986 -->
+
+### [1986] - 2026-05-19 23:17 - `Sketch - 3 Phase 2 - Browser Profile Type-Color Border`
+
+HUMAN SUMMARY: ``Matched Browser sketch profile row borders to the Spaghetti editor type colors. The `SketchProfiles` aggregate row now uses the aggregate sketch-profile green, and individual `SketchProfile` rows use the singular sketch-profile mint from the Spaghetti port/type palette.``
+
+#### Scope / Constraints Honored
+
+- Kept row hierarchy, identity, labels, collapse behavior, and selection behavior unchanged.
+- Limited the change to Browser profile row border styling.
+
+#### Summary of Implementation
+
+- Added Browser CSS overrides for `sketch-profiles` and `sketch-profile` row borders.
+- Matched the colors to the Spaghetti editor `sketchProfiles` and `sketchProfile` port/type colors.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/browser.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `SketchProfiles` Browser rows now use `rgba(16, 185, 129, 0.48)` for the row border.
+- `SketchProfile` Browser rows now use `rgba(110, 231, 183, 0.48)` for the row border.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "renders sketch profiles as expandable Browser children" --reporter verbose`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1985 -->
+
+### [1985] - 2026-05-19 23:14 - `Sketch - 3 Phase 2 - Sketch Profile Row Chrome Cleanup`
+
+HUMAN SUMMARY: ``Cleaned up the Browser sketch profile row chrome so `SketchProfiles` and `SketchProfile` rows use the same single plain-child row treatment as neighboring tree children instead of showing a second dark framed box around the label surface.``
+
+#### Scope / Constraints Honored
+
+- Kept the Phase 2 row hierarchy, identities, collapse behavior, labels, and metadata unchanged.
+- Limited the change to Browser row presentation chrome.
+
+#### Summary of Implementation
+
+- Classified `sketch-profiles` and `sketch-profile` rows as plain child rows in the shared Browser row presenter.
+- Extended the focused BrowserPanel profile render test to prove the profile rows use the plain-child chrome path.
+
+#### Files Changed
+
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Browser sketch profile rows no longer render with an extra outer dark bordered box around the inner plain row surface.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "renders sketch profiles as expandable Browser children" --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/browserTreeRowPresenter.test.tsx --reporter verbose`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1984 -->
+
+### [1984] - 2026-05-19 23:09 - `Sketch - 3 Phase 2 - Expandable SketchProfiles Browser Tree Projection`
+
+HUMAN SUMMARY: ``Made sketch profile projection rows visible in the Browser tree. Sketch rows with resolved profiles now expand into a `SketchProfiles` aggregate row, and that aggregate row expands into ordered `SketchProfile` member rows while preserving the Phase 1 row identities and keeping viewport selection sync deferred.``
+
+#### Scope / Constraints Honored
+
+- Consumed the Phase 1 selector-owned `profileProjectionRows` instead of deriving profile identity again.
+- Kept Browser rows downstream from graph-authored sketch truth.
+- Did not change sketch profile derivation, graph output ports, `Geometry/Extrude` wiring, viewport selected-profile sync, or profile row command behavior.
+- Preserved neutral `SketchProfiles` / `SketchProfile` labels and avoided literal selected-state wording.
+
+#### Summary of Implementation
+
+- Made Browser sketch rows expandable when they have a projected `SketchProfiles` aggregate row.
+- Appended the aggregate `sketch-profiles` row under expanded sketch rows.
+- Appended ordered `sketch-profile` member rows under expanded aggregate rows.
+- Reused `collapsedContentRowIds` for both sketch-row collapse and aggregate-row collapse.
+- Updated Browser row interactions so sketch and `SketchProfiles` rows participate in the content collapse path.
+- Added selector and BrowserPanel coverage for expanded, sketch-collapsed, aggregate-collapsed, ordered profile member, and no selected-text behavior.
+
+#### Files Changed
+
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Browser sketch rows with resolved profiles now expose an expandable profile branch.
+- Expanded sketch rows show a `SketchProfiles` aggregate row.
+- Expanded `SketchProfiles` rows show ordered `SketchProfile` member rows.
+- Collapsing either the sketch row or aggregate row hides its profile descendants through existing Browser collapse state.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/selectBrowserTreeRows.test.ts --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/browserInteractions.test.ts --reporter verbose`
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/BrowserPanel.test.tsx -t "renders sketch profiles as expandable Browser children" --reporter verbose`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1983 -->
+
+### [1983] - 2026-05-19 23:00 - `Sketch - 3 Phase 1 - Browser Row Model And Identity Contract`
+
+HUMAN SUMMARY: ``Added the first Browser row-model support for sketch profile projection. Sketch Browser rows can now carry derived `SketchProfiles` and individual `SketchProfile:<profileId>` projection rows behind the current visible hierarchy, giving the next Browser expansion phase stable aggregate/member identities without making Browser own profile truth.``
+
+#### Scope / Constraints Honored
+
+- Kept the visible Browser tree unchanged for this phase.
+- Kept Browser profile rows as selector-derived projection over graph-authored sketch truth.
+- Did not change sketch profile derivation, `Geometry/Sketch` output ports, `Geometry/Extrude` wiring, viewport selection behavior, or Browser two-way selection.
+- Preserved the no literal `selected` row text rule for profile projection labels and metadata.
+
+#### Summary of Implementation
+
+- Added `sketch-profiles` and `sketch-profile` Browser row VM kinds.
+- Added deterministic row id helpers for aggregate and member sketch profile projection rows.
+- Surfaced sketch profile ids and indexes from project-content sketch rows.
+- Attached selector-derived `profileProjectionRows` to Browser sketch rows while leaving the current `contentRows` hierarchy unchanged.
+- Reused the existing `SketchProfile:<profileId>` member port identity helper for projection rows.
+- Added focused selector coverage for row identity, member port ids, visual selected-by-row-id state, and no selected-state wording.
+
+#### Files Changed
+
+- `src/app/store/useAppStore.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserRowFamilies.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Browser sketch rows now carry stable hidden projection rows for the sketch's resolved closed-profile collection and individual profile members.
+- The visible Browser tree still shows only the existing `Sketches` and `Sketch` rows until the later rendering phase.
+
+#### Verification Steps
+
+- `cmd /c npm.cmd exec -- vitest run src/app/panels/selectBrowserTreeRows.test.ts --reporter verbose`
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1982 -->
 
 ### [1982] - 2026-05-19 22:50 - `Spaghetti-Editor 8 / Phase 3.6 - Repeat Extrude New Operation Cleanup`

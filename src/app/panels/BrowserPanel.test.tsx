@@ -1599,6 +1599,28 @@ describe('BrowserPanel', () => {
       requestEditorViewportNodeFit: vi.fn(),
       sharedViewerComposition: null,
       sharedViewerCompositionGraphDocumentIds: [],
+      viewportSelectedSketchProfiles: [],
+      extrudeCommandSession: null,
+      setViewportSelectedSketchProfiles: vi.fn((selections) => {
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          viewportSelectedSketchProfiles: selections.map((selection: any) => ({ ...selection })),
+        }
+      }),
+      setExtrudeCommandSelectedProfileSources: vi.fn((selectedProfileSources) => {
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          extrudeCommandSession:
+            currentSpaghettiState.extrudeCommandSession === null
+              ? null
+              : {
+                  ...currentSpaghettiState.extrudeCommandSession,
+                  selectedProfileSources: selectedProfileSources.map((source: any) => ({
+                    ...source,
+                  })),
+                },
+        }
+      }),
     }
 
     currentAppState = {
@@ -8879,6 +8901,294 @@ describe('BrowserPanel', () => {
       graphDocumentId: 'graph-document-1',
       nodeId: 'node-sketch-1',
     })
+  })
+
+  it('renders sketch profiles as expandable Browser children', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 1 comp | 2 profiles',
+          isVisible: true,
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 1,
+          profileCount: 2,
+          profiles: [
+            { profileId: 'profile-a', profileIndex: 0 },
+            { profileId: 'profile-b', profileIndex: 1 },
+          ],
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    expect(findRowMainByLabel('SketchProfiles')).not.toBeNull()
+    expect(findRowMainByLabel('Profile 1')).not.toBeNull()
+    expect(findRowMainByLabel('Profile 2')).not.toBeNull()
+    expect(findRowMainByLabel('SketchProfiles')?.classList.contains('isGraphChildPlainRow')).toBe(
+      true,
+    )
+    expect(findRowMainByLabel('Profile 1')?.classList.contains('isGraphChildPlainRow')).toBe(true)
+    expect(findRowMainByLabel('SketchProfiles')?.textContent?.toLowerCase()).not.toContain(
+      'selected',
+    )
+    expect(findRowMainByLabel('Profile 1')?.textContent?.toLowerCase()).not.toContain('selected')
+    expect(findRowMainByLabel('Profile 2')?.textContent?.toLowerCase()).not.toContain('selected')
+
+    await click(findButtonByLabel('Collapse SketchProfiles children')!)
+
+    expect(findRowMainByLabel('SketchProfiles')).not.toBeNull()
+    expect(findRowMainByLabel('Profile 1')).toBeNull()
+    expect(findRowMainByLabel('Profile 2')).toBeNull()
+
+    await click(findButtonByLabel('Expand SketchProfiles children')!)
+    await click(findButtonByLabel('Collapse Sketch 1 children')!)
+
+    expect(findRowMainByLabel('SketchProfiles')).toBeNull()
+    expect(findRowMainByLabel('Profile 1')).toBeNull()
+    expect(findRowMainByLabel('Profile 2')).toBeNull()
+  })
+
+  it('projects viewport-selected sketch profiles onto Browser profile rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 1 comp | 2 profiles',
+          isVisible: true,
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 1,
+          profileCount: 2,
+          profiles: [
+            { profileId: 'profile-a', profileIndex: 0 },
+            { profileId: 'profile-b', profileIndex: 1 },
+          ],
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+    }
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      viewportSelectedSketchProfiles: [
+        {
+          graphDocumentId: 'graph-document-1',
+          sketchNodeId: 'node-sketch-1',
+          profileId: 'profile-b',
+          portId: 'SketchProfile:profile-b',
+        },
+      ],
+      extrudeCommandSession: {
+        graphDocumentId: 'graph-document-1',
+        selectedProfileSources: [
+          {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-a',
+          },
+        ],
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const profileOneRow = findRowMainByLabel('Profile 1')?.closest('.BrowserTreeRow')
+    const profileTwoRow = findRowMainByLabel('Profile 2')?.closest('.BrowserTreeRow')
+    expect(profileOneRow?.classList.contains('isSelected')).toBe(true)
+    expect(profileTwoRow?.classList.contains('isSelected')).toBe(true)
+    expect(findRowMainByLabel('Profile 1')?.textContent?.toLowerCase()).not.toContain('selected')
+    expect(findRowMainByLabel('Profile 2')?.textContent?.toLowerCase()).not.toContain('selected')
+
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      viewportSelectedSketchProfiles: [],
+      extrudeCommandSession: null,
+    }
+
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(
+      findRowMainByLabel('Profile 1')?.closest('.BrowserTreeRow')?.classList.contains('isSelected'),
+    ).toBe(false)
+    expect(
+      findRowMainByLabel('Profile 2')?.closest('.BrowserTreeRow')?.classList.contains('isSelected'),
+    ).toBe(false)
+  })
+
+  it('selects viewport sketch profiles from Browser profile row clicks', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 1 comp | 2 profiles',
+          isVisible: true,
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 1,
+          profileCount: 2,
+          profiles: [
+            { profileId: 'profile-a', profileIndex: 0 },
+            { profileId: 'profile-b', profileIndex: 1 },
+          ],
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findRowMainByLabel('Profile 2')!)
+
+    expect(currentSpaghettiState.setViewportSelectedSketchProfiles).toHaveBeenCalledWith([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(
+      findRowMainByLabel('Profile 2')?.closest('.BrowserTreeRow')?.classList.contains('isSelected'),
+    ).toBe(true)
+
+    await clickWithModifiers(findRowMainByLabel('Profile 1')!, { shiftKey: true })
+
+    expect(currentSpaghettiState.setViewportSelectedSketchProfiles).toHaveBeenLastCalledWith([
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        portId: 'SketchProfile:profile-a',
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-b',
+        portId: 'SketchProfile:profile-b',
+      },
+    ])
+  })
+
+  it('auto-reveals collapsed Browser sketch profile ancestors for selected viewport profiles', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'project-sketches-root:project-file-1',
+          kind: 'sketches-root',
+          label: 'Sketches',
+          meta: '1 sketch',
+          sketchCount: 1,
+        },
+        {
+          rowId: 'project-sketch:graph-document-1:node-sketch-1:sketch-1',
+          kind: 'sketch',
+          label: 'Sketch 1',
+          meta: 'Graph 1 | XY | 1 comp | 1 profile',
+          isVisible: true,
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          graphDocumentId: 'graph-document-1',
+          nodeId: 'node-sketch-1',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          componentCount: 1,
+          profileCount: 1,
+          profiles: [{ profileId: 'profile-a', profileIndex: 0 }],
+          diagnosticsCount: 0,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-sketch-1',
+        },
+      ],
+    }
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      viewportSelectedSketchProfiles: [
+        {
+          graphDocumentId: 'graph-document-1',
+          sketchNodeId: 'node-sketch-1',
+          profileId: 'profile-a',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findButtonByLabel('Collapse SketchProfiles children')!)
+    expect(findRowMainByLabel('Profile 1')).not.toBeNull()
+
+    await click(findButtonByLabel('Collapse Sketch 1 children')!)
+    expect(findRowMainByLabel('SketchProfiles')).not.toBeNull()
+    expect(findRowMainByLabel('Profile 1')).not.toBeNull()
+    expect(
+      findRowMainByLabel('Profile 1')?.closest('.BrowserTreeRow')?.classList.contains('isSelected'),
+    ).toBe(true)
   })
 
   it('shows a sketch visibility eye and toggles browser sketch visibility from the eyeball', async () => {

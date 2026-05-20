@@ -9734,6 +9734,7 @@ describe('ViewerHost reference loading', () => {
   it('routes viewport object picks into shared explicit selection and clears on empty clicks', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     await seedViewportObjectSelectionGraph([
       {
         slotId: 'slot-baseplate',
@@ -9917,6 +9918,17 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().selectedPartKey).toBeNull()
 
     act(() => {
+      useSpaghettiStore.getState().setViewportSelectedSketchProfiles([
+        {
+          graphDocumentId: 'graph-document-1',
+          sketchNodeId: 'node-sketch-1',
+          profileId: 'profile-a',
+          portId: 'SketchProfile:profile-a',
+        },
+      ])
+    })
+
+    act(() => {
       workspaceSelectionPickHandler?.({
         picks: [],
         ctrlKey: false,
@@ -9925,6 +9937,7 @@ describe('ViewerHost reference loading', () => {
 
     expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
     expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(useSpaghettiStore.getState().viewportSelectedSketchProfiles).toEqual([])
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('surface-clear')
   })
 

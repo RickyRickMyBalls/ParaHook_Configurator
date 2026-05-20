@@ -69,8 +69,11 @@ import {
 } from './browserInteractions'
 import { describeBrowserRow } from './browserRowFamilies'
 import { runBrowserRowAction } from './browserRowActions'
+import { parseSketchProfileMemberPortId } from '../spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract'
 import { selectBrowserGraphRows } from './selectBrowserGraphRows'
 import {
+  buildBrowserSketchProfileRowId,
+  buildBrowserSketchProfilesRowId,
   type BrowserRenderableRowVm,
   type BrowserTreeRowActionVm,
   selectBrowserTreeRows,
@@ -281,6 +284,16 @@ export function useBrowserPanelController(
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const sharedViewerCompositionGraphDocumentIds = useSpaghettiStore(
     selectSharedViewerCompositionGraphDocumentIds,
+  )
+  const viewportSelectedSketchProfiles = useSpaghettiStore(
+    (state) => state.viewportSelectedSketchProfiles,
+  ) ?? []
+  const extrudeCommandSession = useSpaghettiStore((state) => state.extrudeCommandSession)
+  const setViewportSelectedSketchProfiles = useSpaghettiStore(
+    (state) => state.setViewportSelectedSketchProfiles,
+  )
+  const setExtrudeCommandSelectedProfileSources = useSpaghettiStore(
+    (state) => state.setExtrudeCommandSelectedProfileSources,
   )
   const currentProject = useAppStore((state) => state.currentProject)
   const environmentView = useUiPrefsStore((state) => state.view)
@@ -673,6 +686,74 @@ export function useBrowserPanelController(
         ? []
         : [selectedBrowserRowId]
 
+  const viewportSelectedSketchProfileBrowserRows = useMemo(() => {
+    const validSketchProfileRowsById = new Map<
+      string,
+      { sketchRowId: string; sketchProfilesRowId: string }
+    >()
+
+    for (const row of projectContentRows) {
+      if (row.kind !== 'sketch') {
+        continue
+      }
+
+      const sketchProfilesRowId = buildBrowserSketchProfilesRowId(row.graphDocumentId, row.nodeId)
+      for (const profile of row.profiles ?? []) {
+        validSketchProfileRowsById.set(
+          buildBrowserSketchProfileRowId(row.graphDocumentId, row.nodeId, profile.profileId),
+          {
+            sketchRowId: row.rowId,
+            sketchProfilesRowId,
+          },
+        )
+      }
+    }
+
+    const selectedRowIds = new Set<string>()
+    const ancestorRowIds = new Set<string>()
+    const addSelection = (graphDocumentId: string, sketchNodeId: string, profileId: string) => {
+      const rowId = buildBrowserSketchProfileRowId(graphDocumentId, sketchNodeId, profileId)
+      const validRow = validSketchProfileRowsById.get(rowId)
+      if (validRow === undefined) {
+        return
+      }
+      selectedRowIds.add(rowId)
+      ancestorRowIds.add(validRow.sketchRowId)
+      ancestorRowIds.add(validRow.sketchProfilesRowId)
+    }
+
+    for (const selection of viewportSelectedSketchProfiles) {
+      addSelection(selection.graphDocumentId, selection.sketchNodeId, selection.profileId)
+    }
+
+    if (extrudeCommandSession != null) {
+      for (const source of extrudeCommandSession.selectedProfileSources) {
+        const parsed = parseSketchProfileMemberPortId(source.portId)
+        if (parsed === null) {
+          continue
+        }
+        addSelection(extrudeCommandSession.graphDocumentId, source.nodeId, parsed.profileId)
+      }
+    }
+
+    return {
+      selectedRowIds: [...selectedRowIds],
+      ancestorRowIds: [...ancestorRowIds],
+    }
+  }, [extrudeCommandSession, projectContentRows, viewportSelectedSketchProfiles])
+
+  const projectedSelectedBrowserRowIds = useMemo(() => {
+    if (viewportSelectedSketchProfileBrowserRows.selectedRowIds.length === 0) {
+      return selectedBrowserRowIds
+    }
+    return [
+      ...selectedBrowserRowIds,
+      ...viewportSelectedSketchProfileBrowserRows.selectedRowIds.filter(
+        (rowId) => !selectedBrowserRowIds.includes(rowId),
+      ),
+    ]
+  }, [selectedBrowserRowIds, viewportSelectedSketchProfileBrowserRows.selectedRowIds])
+
   const groupedSelectedBrowserRowIds = useMemo(() => {
     const groupedRowIdSet = new Set<string>()
     if (workspaceResolvedContentSelection !== null) {
@@ -699,7 +780,7 @@ export function useBrowserPanelController(
         graphDocumentsById,
         partsVisibility,
         selectedRowId: selectedBrowserRowId,
-        selectedRowIds: selectedBrowserRowIds,
+        selectedRowIds: projectedSelectedBrowserRowIds,
         groupedSelectedRowIds: groupedSelectedBrowserRowIds,
         collapsedContentRowIds,
         expandedGraphDocumentIds,
@@ -724,13 +805,25 @@ export function useBrowserPanelController(
       groupedSelectedBrowserRowIds,
       partsVisibility,
       projectContentRows,
+      projectedSelectedBrowserRowIds,
       referenceWorkspace,
       selectedBrowserRowId,
-      selectedBrowserRowIds,
       sharedViewerComposition,
       sharedViewerCompositionGraphDocumentIds,
     ],
   )
+
+  useEffect(() => {
+    if (viewportSelectedSketchProfileBrowserRows.ancestorRowIds.length === 0) {
+      return
+    }
+
+    const rowIdsToReveal = new Set(viewportSelectedSketchProfileBrowserRows.ancestorRowIds)
+    setCollapsedContentRowIds((currentRowIds) => {
+      const nextRowIds = currentRowIds.filter((rowId) => !rowIdsToReveal.has(rowId))
+      return nextRowIds.length === currentRowIds.length ? currentRowIds : nextRowIds
+    })
+  }, [collapsedContentRowIds, viewportSelectedSketchProfileBrowserRows.ancestorRowIds])
 
   const mountedReferenceContainerRowIds = useMemo(() => {
     const rowIds = new Set<string>()
@@ -2225,6 +2318,10 @@ export function useBrowserPanelController(
         setLocalSelectedBrowserRowId,
         setWorkspaceSelectedTarget,
         setWorkspaceExplicitSelection,
+        viewportSelectedSketchProfiles,
+        extrudeCommandSession,
+        setViewportSelectedSketchProfiles,
+        setExtrudeCommandSelectedProfileSources,
         setActiveSurface,
         activeViewerViewportId,
         selectLight,
@@ -2267,6 +2364,7 @@ export function useBrowserPanelController(
       browserTreeRows,
       closeBrowserOverlays,
       graphDocumentsById,
+      extrudeCommandSession,
       newEditorSpawnPosition,
       requestConsoleContextSync,
       requestConsoleWorkspaceContextHandoff,
@@ -2275,11 +2373,13 @@ export function useBrowserPanelController(
       setHdriEnvironmentBackgroundVisible,
       updateLight,
       setActiveEditorViewportId,
+      setExtrudeCommandSelectedProfileSources,
       setActiveSurface,
       setPartVisibility,
       setReferenceItemVisibility,
       setViewportLocalViewState,
       setWorkspaceExplicitSelection,
+      setViewportSelectedSketchProfiles,
       setWorkspaceSelectedTarget,
       sharedViewerComposition,
       toggleReferenceCategoryExpanded,
@@ -2292,6 +2392,7 @@ export function useBrowserPanelController(
       workspaceResolvedContentSelection,
       workspaceSelectedTarget,
       workspaceSelectionAnchorTarget,
+      viewportSelectedSketchProfiles,
     ],
   )
   const {

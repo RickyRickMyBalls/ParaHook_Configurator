@@ -739,6 +739,10 @@ export type ProjectContentBrowserRowVm =
       plane: 'XY' | 'YZ' | 'XZ'
       componentCount: number
       profileCount: number
+      profiles?: Array<{
+        profileId: string
+        profileIndex: number
+      }>
       diagnosticsCount: number
       authoringGraphDocumentId: string
       authoringNodeId: string
@@ -9969,6 +9973,10 @@ export const selectCurrentProjectContentBrowserRows = (
         plane: feature.plane,
         componentCount,
         profileCount,
+        profiles: feature.outputs.profiles.map((profile) => ({
+          profileId: profile.profileId,
+          profileIndex: profile.profileIndex,
+        })),
         diagnosticsCount,
         authoringGraphDocumentId: documentEntry.graphDocumentId,
         authoringNodeId: node.nodeId,
