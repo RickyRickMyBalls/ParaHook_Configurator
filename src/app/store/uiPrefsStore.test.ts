@@ -2,14 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_ENVIRONMENT_GRADE,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
+  DEFAULT_VIEW_POST_PROCESS_SETTINGS,
   DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
   DEFAULT_VIEW_DISPLAY_MODE,
   DEFAULT_VIEW_EDGE_DISPLAY_MODE,
+  DEFAULT_VIEWPORT_STYLE,
   DEFAULT_VIEW_SETTINGS,
   areEnvironmentLookSnapshotsEqual,
   createEnvironmentLookSnapshot,
+  createViewAmbientOcclusionPresetSettings,
   getEnvironmentPresetDefinition,
   normalizeViewSettings,
+  resolveViewAmbientOcclusionPresetRead,
 } from '../../shared/viewSettingsTypes'
 import { defaultSpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 import {
@@ -277,6 +281,24 @@ describe('uiPrefsStore environment source state', () => {
     expect(invalidEdgeView.edgeDisplayMode).toBe(DEFAULT_VIEW_EDGE_DISPLAY_MODE)
   })
 
+  it('normalizes viewport style as independent view presentation state', () => {
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe(DEFAULT_VIEWPORT_STYLE)
+
+    const validStyleView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      viewportStyle: 'clayStudio',
+    })
+
+    expect(validStyleView.viewportStyle).toBe('clayStudio')
+
+    const invalidStyleView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      viewportStyle: 'glassbox',
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(invalidStyleView.viewportStyle).toBe(DEFAULT_VIEWPORT_STYLE)
+  })
+
   it('keeps the display mode contract synchronized with the legacy wireframe key', () => {
     useUiPrefsStore.getState().setViewKey('displayMode', 'solid')
 
@@ -378,6 +400,128 @@ describe('uiPrefsStore environment source state', () => {
       noiseCleanup: 'low',
       gpuLoad: 'balanced',
     })
+  })
+
+  it('normalizes SSAO post-processing settings as view presentation state', () => {
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
+      DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+    )
+
+    const legacyView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      postProcessing: undefined,
+    })
+
+    expect(legacyView.postProcessing).toEqual(DEFAULT_VIEW_POST_PROCESS_SETTINGS)
+
+    const invalidView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      postProcessing: {
+        ssaoEnabled: 'yes',
+        ssaoIntensity: 99,
+        ssaoRadius: -4,
+        ssaoQuality: 'ultra',
+      },
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(invalidView.postProcessing).toEqual({
+      ssaoEnabled: false,
+      ssaoIntensity: 3,
+      ssaoRadius: 0.05,
+      ssaoQuality: 'medium',
+    })
+
+    const sourceSettings = {
+      ssaoEnabled: true,
+      ssaoIntensity: 1.8,
+      ssaoRadius: 2.4,
+      ssaoQuality: 'high',
+    } as const
+    const cloned = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      postProcessing: sourceSettings,
+    })
+
+    expect(cloned.postProcessing).toEqual(sourceSettings)
+    expect(cloned.postProcessing).not.toBe(sourceSettings)
+  })
+
+  it('updates SSAO post-processing settings through the generic view-setting path', () => {
+    useUiPrefsStore.getState().setViewKey('postProcessing', {
+      ssaoEnabled: true,
+      ssaoIntensity: 1.5,
+      ssaoRadius: 2,
+      ssaoQuality: 'high',
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual({
+      ssaoEnabled: true,
+      ssaoIntensity: 1.5,
+      ssaoRadius: 2,
+      ssaoQuality: 'high',
+    })
+
+    useUiPrefsStore.getState().setView({
+      postProcessing: {
+        ssaoEnabled: false,
+        ssaoIntensity: -1,
+        ssaoRadius: 10,
+        ssaoQuality: 'low',
+      },
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual({
+      ssaoEnabled: false,
+      ssaoIntensity: 0,
+      ssaoRadius: 5,
+      ssaoQuality: 'low',
+    })
+  })
+
+  it('maps ambient occlusion presets through shared post-processing settings', () => {
+    expect(createViewAmbientOcclusionPresetSettings('off')).toEqual(
+      DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+    )
+    expect(createViewAmbientOcclusionPresetSettings('low')).toEqual({
+      ssaoEnabled: true,
+      ssaoIntensity: 0.55,
+      ssaoRadius: 1.15,
+      ssaoQuality: 'low',
+    })
+    expect(createViewAmbientOcclusionPresetSettings('medium')).toEqual({
+      ssaoEnabled: true,
+      ssaoIntensity: 0.82,
+      ssaoRadius: 1.85,
+      ssaoQuality: 'medium',
+    })
+    expect(createViewAmbientOcclusionPresetSettings('high')).toEqual({
+      ssaoEnabled: true,
+      ssaoIntensity: 1.05,
+      ssaoRadius: 2.65,
+      ssaoQuality: 'high',
+    })
+
+    expect(
+      resolveViewAmbientOcclusionPresetRead(
+        createViewAmbientOcclusionPresetSettings('medium'),
+      ),
+    ).toBe('medium')
+    expect(
+      resolveViewAmbientOcclusionPresetRead({
+        ssaoEnabled: true,
+        ssaoIntensity: 1.8,
+        ssaoRadius: 2.5,
+        ssaoQuality: 'high',
+      }),
+    ).toBe('high')
+    expect(
+      resolveViewAmbientOcclusionPresetRead({
+        ssaoEnabled: false,
+        ssaoIntensity: 0.7,
+        ssaoRadius: 0.75,
+        ssaoQuality: 'low',
+      }),
+    ).toBe('off')
   })
 
   it('normalizes viewport highlight settings through the generic view-setting path', () => {

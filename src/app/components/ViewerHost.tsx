@@ -15,7 +15,11 @@ import {
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
-import type { ViewDisplayMode, ViewEdgeDisplayMode } from '../../shared/viewSettingsTypes'
+import type {
+  ViewDisplayMode,
+  ViewEdgeDisplayMode,
+  ViewportStyle,
+} from '../../shared/viewSettingsTypes'
 import { useViewerDisplayModeMenu } from '../useViewerDisplayModeMenu'
 import { useViewerCameraShortcuts } from '../useViewerCameraShortcuts'
 import { useRenderPreviewStatusStore } from '../store/renderPreviewStatusStore'
@@ -325,6 +329,14 @@ const displayModeMenuOptions: Array<{
   { mode: 'renderPreview', label: 'Render Preview', shortLabel: 'PRV' },
 ]
 
+const viewportStyleMenuOptions: Array<{
+  style: ViewportStyle
+  label: string
+  shortLabel: string
+}> = [
+  { style: 'clayStudio', label: 'Clay Studio', shortLabel: 'CLY' },
+]
+
 const edgeDisplayModeMenuOptions: Array<{
   mode: ViewEdgeDisplayMode
   label: string
@@ -476,6 +488,7 @@ export function ViewerHost(props: ViewerHostProps) {
   const displayModeMenu = useViewerDisplayModeMenu(viewportId)
   const displayMode = useUiPrefsStore((state) => state.view.displayMode)
   const edgeDisplayMode = useUiPrefsStore((state) => state.view.edgeDisplayMode)
+  const viewportStyle = useUiPrefsStore((state) => state.view.viewportStyle)
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
@@ -2448,20 +2461,38 @@ export function ViewerHost(props: ViewerHostProps) {
                 </button>
               ))}
             </div>
-            {displayModeMenuOptions.map((option, index) => (
+            {[...displayModeMenuOptions, ...viewportStyleMenuOptions].map((option, index) => (
               <button
-                key={option.mode}
+                key={'mode' in option ? option.mode : option.style}
                 type="button"
                 role="menuitemradio"
-                aria-checked={displayMode === option.mode}
+                aria-checked={
+                  'mode' in option
+                    ? viewportStyle === 'standard' && displayMode === option.mode
+                    : viewportStyle === option.style
+                }
                 className={`ViewportDisplayModeMenuItem ${
-                  displayMode === option.mode ? 'isActive' : ''
+                  (
+                    'mode' in option
+                      ? viewportStyle === 'standard' && displayMode === option.mode
+                      : viewportStyle === option.style
+                  )
+                    ? 'isActive'
+                    : ''
                 }`}
                 style={{
                   '--display-mode-item-index': `${index}`,
-                  '--display-mode-item-count': `${displayModeMenuOptions.length}`,
+                  '--display-mode-item-count': `${
+                    displayModeMenuOptions.length + viewportStyleMenuOptions.length
+                  }`,
                 } as CSSProperties}
-                onClick={() => displayModeMenu.selectDisplayMode(option.mode)}
+                onClick={() => {
+                  if ('mode' in option) {
+                    displayModeMenu.selectDisplayMode(option.mode)
+                    return
+                  }
+                  displayModeMenu.selectViewportStyle(option.style)
+                }}
               >
                 <span className="ViewportDisplayModeMenuItemShort">{option.shortLabel}</span>
                 <span className="ViewportDisplayModeMenuItemLabel">{option.label}</span>

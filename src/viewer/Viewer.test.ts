@@ -4,6 +4,7 @@ import {
   Box3,
   DoubleSide,
   FrontSide,
+  Line,
   LineBasicMaterial,
   LineSegments,
   Mesh,
@@ -72,6 +73,35 @@ const axisGizmoMocks = vi.hoisted(() => ({
   }>,
 }))
 
+const postProcessingExampleMocks = vi.hoisted(() => ({
+  composers: [] as Array<{
+    passes: unknown[]
+    addPass: ReturnType<typeof vi.fn>
+    render: ReturnType<typeof vi.fn>
+    setSize: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+  }>,
+  renderPasses: [] as Array<{
+    scene: unknown
+    camera: unknown
+  }>,
+  outputPasses: [] as Array<{
+    isOutputPass: boolean
+  }>,
+  ssaoPasses: [] as Array<{
+    scene: unknown
+    camera: unknown
+    width: number
+    height: number
+    kernelSize: number
+    kernelRadius: number
+    minDistance: number
+    maxDistance: number
+    setSize: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+  }>,
+}))
+
 vi.mock('three', async () => {
   const actual = await vi.importActual<typeof import('three')>('three')
 
@@ -98,6 +128,94 @@ vi.mock('three', async () => {
   return {
     ...actual,
     WebGLRenderer: MockWebGLRenderer,
+  }
+})
+
+vi.mock('three/examples/jsm/postprocessing/EffectComposer.js', () => {
+  class MockEffectComposer {
+    public readonly passes: unknown[] = []
+    public readonly addPass = vi.fn((pass: unknown) => {
+      this.passes.push(pass)
+    })
+    public readonly render = vi.fn()
+    public readonly setSize = vi.fn()
+    public readonly dispose = vi.fn()
+
+    public constructor() {
+      postProcessingExampleMocks.composers.push(this)
+    }
+  }
+
+  return {
+    EffectComposer: MockEffectComposer,
+  }
+})
+
+vi.mock('three/examples/jsm/postprocessing/RenderPass.js', () => {
+  class MockRenderPass {
+    public scene: unknown
+    public camera: unknown
+
+    public constructor(scene: unknown, camera: unknown) {
+      this.scene = scene
+      this.camera = camera
+      postProcessingExampleMocks.renderPasses.push(this)
+    }
+  }
+
+  return {
+    RenderPass: MockRenderPass,
+  }
+})
+
+vi.mock('three/examples/jsm/postprocessing/OutputPass.js', () => {
+  class MockOutputPass {
+    public readonly isOutputPass = true
+
+    public constructor() {
+      postProcessingExampleMocks.outputPasses.push(this)
+    }
+  }
+
+  return {
+    OutputPass: MockOutputPass,
+  }
+})
+
+vi.mock('three/examples/jsm/postprocessing/SSAOPass.js', () => {
+  class MockSSAOPass {
+    public static OUTPUT = {
+      Default: 0,
+    }
+    public kernelRadius = 8
+    public minDistance = 0.005
+    public maxDistance = 0.1
+    public readonly setSize = vi.fn()
+    public readonly dispose = vi.fn()
+    public scene: unknown
+    public camera: unknown
+    public width: number
+    public height: number
+    public kernelSize: number
+
+    public constructor(
+      scene: unknown,
+      camera: unknown,
+      width = 512,
+      height = 512,
+      kernelSize = 32,
+    ) {
+      this.scene = scene
+      this.camera = camera
+      this.width = width
+      this.height = height
+      this.kernelSize = kernelSize
+      postProcessingExampleMocks.ssaoPasses.push(this)
+    }
+  }
+
+  return {
+    SSAOPass: MockSSAOPass,
   }
 })
 
@@ -566,6 +684,10 @@ describe('Viewer baseline replacement', () => {
   beforeEach(() => {
     cameraControllerMocks.instances.length = 0
     axisGizmoMocks.instances.length = 0
+    postProcessingExampleMocks.composers.length = 0
+    postProcessingExampleMocks.renderPasses.length = 0
+    postProcessingExampleMocks.outputPasses.length = 0
+    postProcessingExampleMocks.ssaoPasses.length = 0
     pointerLockElement = null
     class MockResizeObserver {
       public constructor(callback: ResizeObserverCallback) {
@@ -594,7 +716,9 @@ describe('Viewer baseline replacement', () => {
 
   afterEach(async () => {
     const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
     setRenderPreviewRuntimeFactoryForTests(null)
+    setViewerPostProcessingRuntimeFactoryForTests(null)
     viewer?.dispose()
     container?.remove()
     viewer = null
@@ -3129,6 +3253,170 @@ describe('Viewer baseline replacement', () => {
       .toBe(false)
   })
 
+  it('applies Clay Studio as a rendered-mode presentation override without rebuilding geometry', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      renderer: { toneMappingExposure: number; shadowMap: { enabled: boolean } }
+      scene: { background: { getHexString: () => string } | null }
+      gridGroup: { visible: boolean }
+      axesHelper: { visible: boolean }
+      groundPlane: {
+        visible: boolean
+        material: MeshStandardMaterial
+      }
+      clayStudioContactShadowGroup: {
+        visible: boolean
+        children: Mesh[]
+      }
+      lightsById: Map<string, { intensity: number }>
+      partMeshes: Map<
+        string,
+        {
+          geometry: object
+          material: MeshStandardMaterial
+        }
+      >
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:clay-studio-proof', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    const renderedSettings = {
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered' as const,
+      gridVisible: true,
+      axesVisible: true,
+      ground: {
+        ...DEFAULT_VIEW_SETTINGS.ground,
+        enabled: false,
+      },
+      materials: {
+        ...DEFAULT_VIEW_SETTINGS.materials,
+        presets: DEFAULT_VIEW_SETTINGS.materials.presets.map((preset) =>
+          preset.id === 'default_matte' ? { ...preset, color: '#ff0000' } : preset,
+        ),
+      },
+    }
+
+    runtime.applyViewSettings(renderedSettings)
+
+    const firstMesh = runtime.partMeshes.get('part:clay-studio-proof')
+    const firstGeometry = firstMesh?.geometry
+    expect(firstMesh?.material.color.getHexString()).toBe('ff0000')
+    expect(runtime.gridGroup.visible).toBe(true)
+    expect(runtime.axesHelper.visible).toBe(true)
+    expect(runtime.groundPlane.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(0)
+
+    runtime.applyViewSettings({
+      ...renderedSettings,
+      viewportStyle: 'clayStudio',
+    })
+
+    const clayMesh = runtime.partMeshes.get('part:clay-studio-proof')
+    expect(clayMesh).toBe(firstMesh)
+    expect(clayMesh?.geometry).toBe(firstGeometry)
+    expect(clayMesh?.material.color.getHexString()).toBe('f0eee8')
+    expect(clayMesh?.material.roughness).toBeCloseTo(0.94)
+    expect(clayMesh?.material.emissiveIntensity).toBeCloseTo(0.08)
+    expect(runtime.scene.background?.getHexString()).toBe('e8e8e5')
+    expect(runtime.renderer.toneMappingExposure).toBeCloseTo(1.28)
+    expect(runtime.renderer.shadowMap.enabled).toBe(false)
+    expect(runtime.gridGroup.visible).toBe(false)
+    expect(runtime.axesHelper.visible).toBe(false)
+    expect(runtime.groundPlane.visible).toBe(true)
+    expect(runtime.groundPlane.material.color.getHexString()).toBe('ece9e1')
+    expect(runtime.clayStudioContactShadowGroup.visible).toBe(true)
+    expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(3)
+    const contactShadow = runtime.clayStudioContactShadowGroup.children[0]
+    expect(contactShadow?.userData.clayStudioContactShadow).toBe(true)
+    expect(contactShadow?.userData.partKey).toBe('part:clay-studio-proof')
+    expect(contactShadow?.position.y).toBeGreaterThan(0)
+    expect(contactShadow?.renderOrder).toBe(4)
+    const contactShadowMaterial = contactShadow?.material as MeshBasicMaterial | undefined
+    expect(contactShadowMaterial?.color.getHexString()).toBe('8f8b82')
+    expect(contactShadowMaterial?.transparent).toBe(true)
+    expect(contactShadowMaterial?.depthWrite).toBe(false)
+    expect(contactShadowMaterial?.toneMapped).toBe(false)
+    expect([...runtime.lightsById.keys()]).toEqual([
+      'clay-studio-key',
+      'clay-studio-fill',
+      'clay-studio-ambient',
+      'clay-studio-rim',
+    ])
+    expect(runtime.lightsById.get('clay-studio-key')?.intensity).toBeCloseTo(0.62)
+    expect(runtime.lightsById.get('clay-studio-fill')?.intensity).toBeCloseTo(2.15)
+    expect(runtime.lightsById.get('clay-studio-ambient')?.intensity).toBeCloseTo(0.58)
+    expect(runtime.lightsById.get('clay-studio-rim')?.intensity).toBeCloseTo(0.16)
+
+    runtime.applyViewSettings(renderedSettings)
+
+    const restoredMesh = runtime.partMeshes.get('part:clay-studio-proof')
+    expect(restoredMesh).toBe(firstMesh)
+    expect(restoredMesh?.geometry).toBe(firstGeometry)
+    expect(restoredMesh?.material.color.getHexString()).toBe('ff0000')
+    expect(runtime.renderer.shadowMap.enabled).toBe(true)
+    expect(runtime.gridGroup.visible).toBe(true)
+    expect(runtime.axesHelper.visible).toBe(true)
+    expect(runtime.groundPlane.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(0)
+
+    runtime.applyViewSettings({
+      ...renderedSettings,
+      displayMode: 'renderPreview',
+      viewportStyle: 'clayStudio',
+    })
+
+    const renderPreviewMesh = runtime.partMeshes.get('part:clay-studio-proof')
+    expect(renderPreviewMesh).toBe(firstMesh)
+    expect(renderPreviewMesh?.geometry).toBe(firstGeometry)
+    expect(renderPreviewMesh?.material.color.getHexString()).toBe('ff0000')
+  })
+
   it('keeps selected outlines visible when display edges are off', async () => {
     const { Viewer } = await import('./Viewer')
     const { toViewerRenderablePart } = await import('../shared/buildTypes')
@@ -4593,6 +4881,844 @@ describe('Viewer baseline replacement', () => {
       message: 'WebGL2 is unavailable',
     })
     expect(rasterRenderSpy).toHaveBeenCalled()
+  })
+
+  it('keeps direct raster rendering as the default post-processing fallback path', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    const runtimeFactory = vi.fn()
+    setViewerPostProcessingRuntimeFactoryForTests(runtimeFactory)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      renderLoop: () => void
+      renderer: { render: () => void }
+    }
+    const rasterRenderSpy = vi.spyOn(runtime.renderer, 'render')
+    runtime.renderLoop()
+
+    expect(runtimeFactory).not.toHaveBeenCalled()
+    expect(rasterRenderSpy).toHaveBeenCalled()
+  })
+
+  it('routes enabled post-processing through a disposable, resizable runtime', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    const postProcessingRuntime = {
+      isAvailable: vi.fn(() => true),
+      render: vi.fn(),
+      setSize: vi.fn(),
+      updateSettings: vi.fn(() => true),
+      dispose: vi.fn(),
+    }
+    const runtimeFactory = vi.fn(() => postProcessingRuntime)
+    setViewerPostProcessingRuntimeFactoryForTests(runtimeFactory)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      renderer: { render: () => void }
+    }
+    const rasterRenderSpy = vi.spyOn(runtime.renderer, 'render')
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    })
+
+    runtime.renderLoop()
+
+    expect(runtimeFactory).toHaveBeenCalledTimes(1)
+    expect(postProcessingRuntime.setSize).toHaveBeenCalledWith(800, 600)
+    expect(postProcessingRuntime.render).toHaveBeenCalledTimes(1)
+    expect(rasterRenderSpy).not.toHaveBeenCalled()
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 1024,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 512,
+    })
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    expect(postProcessingRuntime.setSize).toHaveBeenCalledWith(1024, 512)
+
+    viewer.dispose()
+    viewer = null
+
+    expect(postProcessingRuntime.dispose).toHaveBeenCalled()
+  })
+
+  it('passes normalized SSAO settings into the post-processing runtime and updates them live', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    const postProcessingRuntime = {
+      isAvailable: vi.fn(() => true),
+      render: vi.fn(),
+      setSize: vi.fn(),
+      updateSettings: vi.fn(() => true),
+      dispose: vi.fn(),
+    }
+    const runtimeFactory = vi.fn(() => postProcessingRuntime)
+    setViewerPostProcessingRuntimeFactoryForTests(runtimeFactory)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+    }
+    const enabledSettings = {
+      ssaoEnabled: true,
+      ssaoIntensity: 1.5,
+      ssaoRadius: 1.25,
+      ssaoQuality: 'medium' as const,
+    }
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: enabledSettings,
+    })
+    runtime.renderLoop()
+
+    expect(runtimeFactory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postProcessing: enabledSettings,
+      }),
+    )
+
+    const updatedSettings = {
+      ssaoEnabled: true,
+      ssaoIntensity: 2,
+      ssaoRadius: 2.5,
+      ssaoQuality: 'medium' as const,
+    }
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: updatedSettings,
+    })
+
+    expect(postProcessingRuntime.updateSettings).toHaveBeenCalledWith(updatedSettings)
+    expect(postProcessingRuntime.dispose).not.toHaveBeenCalled()
+  })
+
+  it('recreates the post-processing runtime when SSAO quality requires a new kernel', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    const firstRuntime = {
+      isAvailable: vi.fn(() => true),
+      render: vi.fn(),
+      setSize: vi.fn(),
+      updateSettings: vi.fn(() => false),
+      dispose: vi.fn(),
+    }
+    const secondRuntime = {
+      isAvailable: vi.fn(() => true),
+      render: vi.fn(),
+      setSize: vi.fn(),
+      updateSettings: vi.fn(() => true),
+      dispose: vi.fn(),
+    }
+    const runtimeFactory = vi
+      .fn()
+      .mockReturnValueOnce(firstRuntime)
+      .mockReturnValueOnce(secondRuntime)
+    setViewerPostProcessingRuntimeFactoryForTests(runtimeFactory)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+    }
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+        ssaoQuality: 'medium',
+      },
+    })
+    runtime.renderLoop()
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+        ssaoQuality: 'high',
+      },
+    })
+    runtime.renderLoop()
+
+    expect(firstRuntime.updateSettings).toHaveBeenCalled()
+    expect(firstRuntime.dispose).toHaveBeenCalled()
+    expect(runtimeFactory).toHaveBeenCalledTimes(2)
+    expect(secondRuntime.render).toHaveBeenCalled()
+  })
+
+  it('maps SSAO quality, radius, and intensity onto the Three.js SSAO pass', async () => {
+    const { createViewerPostProcessingRuntime } = await import('./postProcessingRuntime')
+    const { Scene, PerspectiveCamera, WebGLRenderer } = await import('three')
+
+    const scene = new Scene()
+    const camera = new PerspectiveCamera()
+    const renderer = new WebGLRenderer()
+    const runtime = createViewerPostProcessingRuntime({
+      renderer,
+      scene,
+      camera,
+      postProcessing: {
+        ssaoEnabled: true,
+        ssaoIntensity: 2,
+        ssaoRadius: 1.5,
+        ssaoQuality: 'high',
+      },
+    })
+
+    const ssaoPass = postProcessingExampleMocks.ssaoPasses[0]!
+    expect(ssaoPass.kernelSize).toBe(64)
+    expect(ssaoPass.kernelRadius).toBe(12)
+    expect(ssaoPass.minDistance).toBeCloseTo(0.005, 6)
+    expect(ssaoPass.maxDistance).toBeCloseTo(0.175, 6)
+    expect(postProcessingExampleMocks.composers[0]?.passes).toEqual([
+      postProcessingExampleMocks.renderPasses[0],
+      ssaoPass,
+      postProcessingExampleMocks.outputPasses[0],
+    ])
+
+    expect(
+      runtime.updateSettings({
+        ssaoEnabled: true,
+        ssaoIntensity: 1,
+        ssaoRadius: 0.5,
+        ssaoQuality: 'high',
+      }),
+    ).toBe(true)
+    expect(ssaoPass.kernelRadius).toBe(4)
+    expect(ssaoPass.minDistance).toBeCloseTo(0.003, 6)
+    expect(ssaoPass.maxDistance).toBeCloseTo(0.1, 6)
+
+    expect(
+      runtime.updateSettings({
+        ssaoEnabled: true,
+        ssaoIntensity: 1,
+        ssaoRadius: 0.5,
+        ssaoQuality: 'low',
+      }),
+    ).toBe(false)
+
+    runtime.dispose()
+    expect(ssaoPass.dispose).toHaveBeenCalled()
+    expect(postProcessingExampleMocks.composers[0]?.dispose).toHaveBeenCalled()
+  })
+
+  it('falls back to direct raster rendering when post-processing setup fails', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    setViewerPostProcessingRuntimeFactoryForTests(() => {
+      throw new Error('composer unavailable')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      renderer: { render: () => void }
+    }
+    const rasterRenderSpy = vi.spyOn(runtime.renderer, 'render')
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    })
+
+    expect(() => runtime.renderLoop()).not.toThrow()
+    expect(rasterRenderSpy).toHaveBeenCalled()
+  })
+
+  it('keeps render preview ahead of the post-processing path', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setRenderPreviewRuntimeFactoryForTests } = await import('./renderPreviewRuntime')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    const postProcessingRuntimeFactory = vi.fn()
+    const renderSample = vi.fn(() => ({
+      completedSamples: 1,
+      targetSamples: 64,
+      complete: false,
+    }))
+    setViewerPostProcessingRuntimeFactoryForTests(postProcessingRuntimeFactory)
+    setRenderPreviewRuntimeFactoryForTests(({ targetSamples = 64 }) => ({
+      targetSamples,
+      isSupported: true,
+      unsupportedReason: null,
+      start: vi.fn(),
+      renderSample,
+      reset: vi.fn(),
+      updateCamera: vi.fn(),
+      updateMaterials: vi.fn(),
+      updateEnvironment: vi.fn(),
+      updateLights: vi.fn(),
+      dispose: vi.fn(),
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+    }
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'renderPreview',
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    })
+
+    runtime.renderLoop()
+
+    expect(renderSample).toHaveBeenCalled()
+    expect(postProcessingRuntimeFactory).not.toHaveBeenCalled()
+  })
+
+  it('preserves topology selection and hover overlay contracts while SSAO is enabled', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const topologyPreview = {
+      faces: [{ faceId: 'face:front', bodyId: 'body:1' }],
+      triangleFaceIds: ['face:front', 'face:front'],
+      edges: [
+        {
+          edgeId: 'edge:bottom',
+          bodyId: 'body:1',
+          faceIds: ['face:front'],
+          polyline: [
+            0, 0, 0,
+            1, 0, 0,
+          ],
+        },
+      ],
+      points: [
+        {
+          pointId: 'point:origin',
+          bodyId: 'body:1',
+          position: [0, 0, 0] as [number, number, number],
+        },
+      ],
+    }
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      setSelectedTopologyEntity: (entity: {
+        kind: 'edge' | 'point' | 'face'
+        partKey: string
+        edgeId?: string
+        pointId?: string
+        faceId?: string
+        bodyId: string
+      } | null) => void
+      setHoveredTopologyEntity: (entity: {
+        kind: 'edge' | 'point' | 'face'
+        partKey: string
+        edgeId?: string
+        pointId?: string
+        faceId?: string
+        bodyId: string
+      } | null) => void
+      selectedTopologyEntityOverlay: unknown
+      hoveredTopologyEntityOverlay: unknown
+      selectedBodyOverlay: unknown
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [
+          toViewerRenderablePart(
+            createTwoTriangleMeshArtifact('part:ssao-topology-overlay'),
+            'part:ssao-topology-overlay',
+            topologyPreview,
+          ),
+        ],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      'part:ssao-topology-overlay',
+    )
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered',
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    })
+    runtime.renderLoop()
+
+    expect(postProcessingExampleMocks.ssaoPasses).toHaveLength(1)
+
+    runtime.setSelectedTopologyEntity({
+      kind: 'face',
+      partKey: 'part:ssao-topology-overlay',
+      faceId: 'face:front',
+      bodyId: 'body:1',
+    })
+    const selectedFace = runtime.selectedTopologyEntityOverlay as Mesh
+    const selectedFaceMaterial = selectedFace.material as MeshBasicMaterial
+    expect(selectedFace).toBeInstanceOf(Mesh)
+    expect(selectedFace.renderOrder).toBe(130)
+    expect(selectedFace.userData.selectionOverlay).toBe(true)
+    expect(selectedFaceMaterial.depthTest).toBe(false)
+    expect(selectedFaceMaterial.depthWrite).toBe(false)
+    expect(selectedFaceMaterial.toneMapped).toBe(false)
+
+    runtime.setHoveredTopologyEntity({
+      kind: 'face',
+      partKey: 'part:ssao-topology-overlay',
+      faceId: 'face:front',
+      bodyId: 'body:1',
+    })
+    const hoveredFace = runtime.hoveredTopologyEntityOverlay as Mesh
+    const hoveredFaceMaterial = hoveredFace.material as MeshBasicMaterial
+    expect(hoveredFace).toBeInstanceOf(Mesh)
+    expect(hoveredFace.renderOrder).toBe(132)
+    expect(hoveredFace.userData.hoverOverlay).toBe(true)
+    expect(hoveredFaceMaterial.depthTest).toBe(false)
+    expect(hoveredFaceMaterial.depthWrite).toBe(false)
+    expect(hoveredFaceMaterial.toneMapped).toBe(false)
+
+    runtime.setSelectedTopologyEntity({
+      kind: 'edge',
+      partKey: 'part:ssao-topology-overlay',
+      edgeId: 'edge:bottom',
+      bodyId: 'body:1',
+    })
+    const selectedEdge = runtime.selectedTopologyEntityOverlay as LineSegments
+    const selectedEdgeMaterial = selectedEdge.material as LineBasicMaterial
+    expect(selectedEdge).toBeInstanceOf(LineSegments)
+    expect(selectedEdge.renderOrder).toBe(135)
+    expect(selectedEdge.userData.selectionOverlay).toBe(true)
+    expect(selectedEdgeMaterial.depthTest).toBe(false)
+    expect(selectedEdgeMaterial.depthWrite).toBe(false)
+    expect(selectedEdgeMaterial.toneMapped).toBe(false)
+
+    runtime.setHoveredTopologyEntity({
+      kind: 'point',
+      partKey: 'part:ssao-topology-overlay',
+      pointId: 'point:origin',
+      bodyId: 'body:1',
+    })
+    const hoveredPoint = runtime.hoveredTopologyEntityOverlay as Mesh
+    const hoveredPointMaterial = hoveredPoint.material as MeshBasicMaterial
+    expect(hoveredPoint).toBeInstanceOf(Mesh)
+    expect(hoveredPoint.renderOrder).toBe(142)
+    expect(hoveredPoint.userData.hoverOverlay).toBe(true)
+    expect(hoveredPointMaterial.depthTest).toBe(false)
+    expect(hoveredPointMaterial.depthWrite).toBe(false)
+    expect(hoveredPointMaterial.toneMapped).toBe(false)
+
+    runtime.setSelectedTopologyEntity(null)
+    const selectedBody = runtime.selectedBodyOverlay as Mesh
+    const selectedBodyMaterial = selectedBody.material as MeshBasicMaterial
+    expect(selectedBody).toBeInstanceOf(Mesh)
+    expect(selectedBody.renderOrder).toBe(128)
+    expect(selectedBody.userData.selectionOverlay).toBe(true)
+    expect(selectedBodyMaterial.depthTest).toBe(false)
+    expect(selectedBodyMaterial.depthWrite).toBe(false)
+    expect(selectedBodyMaterial.toneMapped).toBe(false)
+  })
+
+  it('preserves display-edge depth behavior while SSAO is enabled', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { toViewerRenderablePart } = await import('../shared/buildTypes')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      setViewportRenderLayers: (
+        layers: {
+          baseParts: unknown[]
+          baselineParts: unknown[]
+          overlayParts: unknown[]
+          overlayOpacity: number
+          baselineStyle: { opacity: number; color: string }
+        },
+        visibility: Record<string, boolean>,
+        selectedPartKey?: string | null,
+      ) => void
+      meshEdgeWireframeOverlaysByPartKey: Map<string, LineSegments[]>
+    }
+
+    runtime.setViewportRenderLayers(
+      {
+        baseParts: [toViewerRenderablePart(createArtifact('part:ssao-edge-display', 10))],
+        baselineParts: [],
+        overlayParts: [],
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
+        overlayOpacity: 0.5,
+      },
+      {},
+      null,
+    )
+
+    const ssaoSettings = {
+      ...DEFAULT_VIEW_SETTINGS,
+      displayMode: 'rendered' as const,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    }
+
+    runtime.applyViewSettings({
+      ...ssaoSettings,
+      edgeDisplayMode: 'on',
+    })
+    runtime.renderLoop()
+
+    const xrayOverlay = runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
+    const xrayOverlayMaterial = xrayOverlay?.material as LineBasicMaterial | undefined
+    expect(postProcessingExampleMocks.ssaoPasses).toHaveLength(1)
+    expect(xrayOverlay?.visible).toBe(true)
+    expect(xrayOverlayMaterial?.depthTest).toBe(false)
+    expect(xrayOverlayMaterial?.toneMapped).toBe(false)
+
+    runtime.applyViewSettings({
+      ...ssaoSettings,
+      edgeDisplayMode: 'visibleEdgesOnly',
+    })
+
+    const visibleOnlyOverlay =
+      runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
+    const visibleOnlyMaterial = visibleOnlyOverlay?.material as LineBasicMaterial | undefined
+    expect(visibleOnlyOverlay?.visible).toBe(true)
+    expect(visibleOnlyMaterial?.depthTest).toBe(true)
+    expect(visibleOnlyMaterial?.toneMapped).toBe(false)
+
+    runtime.applyViewSettings({
+      ...ssaoSettings,
+      edgeDisplayMode: 'off',
+    })
+
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]?.visible)
+      .toBe(false)
+  })
+
+  it('preserves sketch and extrude overlay material contracts while SSAO is enabled', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const planeTransform = {
+      offsetMm: 0,
+      translation: { x: 0, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      inPlaneRotationDeg: 0,
+    }
+    const profileVertices = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 },
+      { x: 0, y: 0 },
+    ]
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      setGeometrySketchOverlay: (overlay: unknown) => void
+      setExtrudeCommandPreviewOverlay: (overlay: unknown) => void
+      geometrySketchOverlayGroup: { renderOrder: number; children: unknown[] }
+      extrudeCommandPreviewGroup: { renderOrder: number; children: unknown[] }
+    }
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    })
+    runtime.setGeometrySketchOverlay({
+      nodeId: 'sketch:ssao-proof',
+      mode: 'review',
+      plane: 'XY',
+      planeTransform,
+      drawStage: null,
+      activeTool: null,
+      components: [],
+      profiles: [
+        {
+          profileId: 'profile:selected',
+          vertices: profileVertices,
+        },
+      ],
+      selectedProfileIds: ['profile:selected'],
+      hoveredProfileId: null,
+      drawDraft: null,
+      ui: {
+        snapEnabled: true,
+        snapDistancePx: 10,
+        crosshairSize: 14,
+        startPointVisible: false,
+        startPointSymbolSize: 8,
+        startPointSymbolType: 'crosshair',
+        plinePointVisible: false,
+        plinePointSymbolSize: 8,
+        plinePointSymbolType: 'circle',
+      },
+    })
+    runtime.setExtrudeCommandPreviewOverlay({
+      graphDocumentId: 'graph:ssao-proof',
+      depthMm: 12,
+      profiles: [
+        {
+          sketchNodeId: 'sketch:ssao-proof',
+          profileId: 'profile:selected',
+          plane: 'XY',
+          planeTransform,
+          vertices: profileVertices,
+        },
+      ],
+    })
+    runtime.renderLoop()
+
+    expect(postProcessingExampleMocks.ssaoPasses).toHaveLength(1)
+    expect(runtime.geometrySketchOverlayGroup.renderOrder).toBe(96)
+    const sketchChildren = runtime.geometrySketchOverlayGroup.children as Array<Mesh | Line>
+    expect(sketchChildren.length).toBeGreaterThanOrEqual(2)
+    for (const child of sketchChildren) {
+      const material = child.material as MeshBasicMaterial | LineBasicMaterial
+      expect(material.depthTest).toBe(false)
+      expect(material.toneMapped).toBe(false)
+      expect(child.renderOrder).toBeGreaterThanOrEqual(95)
+    }
+
+    expect(runtime.extrudeCommandPreviewGroup.renderOrder).toBe(93)
+    const extrudeChildren = runtime.extrudeCommandPreviewGroup.children as Array<Mesh | Line>
+    expect(extrudeChildren).toHaveLength(4)
+    const extrudeMeshes = extrudeChildren.filter((child) => child instanceof Mesh) as Mesh[]
+    const extrudeEdges = extrudeChildren.filter((child) => child instanceof Line) as Line[]
+    expect(extrudeMeshes).toHaveLength(3)
+    expect(extrudeEdges).toHaveLength(1)
+    for (const mesh of extrudeMeshes) {
+      const material = mesh.material as MeshBasicMaterial
+      expect(material.depthTest).toBe(true)
+      expect(material.toneMapped).toBe(false)
+      expect(mesh.renderOrder).toBeGreaterThanOrEqual(92)
+    }
+    const edgeMaterial = extrudeEdges[0]?.material as LineBasicMaterial | undefined
+    expect(edgeMaterial?.depthTest).toBe(false)
+    expect(edgeMaterial?.toneMapped).toBe(false)
+    expect(extrudeEdges[0]?.renderOrder).toBe(94)
+  })
+
+  it('keeps the axis HUD render outside the SSAO composer path', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const axisCanvas = document.createElement('canvas')
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
+    }
+    runtime.setAxisOverlayCanvas(axisCanvas)
+    const axisGizmo = axisGizmoMocks.instances.at(-1)
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      axisOverlayEnabled: true,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        ssaoEnabled: true,
+      },
+    })
+    runtime.renderLoop()
+
+    expect(postProcessingExampleMocks.composers[0]?.render).toHaveBeenCalled()
+    expect(axisGizmo?.renderFromCameraQuaternion).toHaveBeenCalled()
   })
 
   it('uses an explicit base fly speed value and keeps boost multiplicative on top of it', async () => {

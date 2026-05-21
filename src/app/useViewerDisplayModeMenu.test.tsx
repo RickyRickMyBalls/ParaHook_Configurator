@@ -3,7 +3,11 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { ViewDisplayMode, ViewEdgeDisplayMode } from '../shared/viewSettingsTypes'
+import type {
+  ViewDisplayMode,
+  ViewEdgeDisplayMode,
+  ViewportStyle,
+} from '../shared/viewSettingsTypes'
 import { useViewerDisplayModeMenu } from './useViewerDisplayModeMenu'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
@@ -21,6 +25,7 @@ const displayModeOptions: ViewDisplayMode[] = [
   'renderPreview',
 ]
 const edgeDisplayModeOptions: ViewEdgeDisplayMode[] = ['on', 'off', 'visibleEdgesOnly']
+const viewportStyleOptions: ViewportStyle[] = ['clayStudio']
 
 function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
   const menu = useViewerDisplayModeMenu(viewportId)
@@ -35,6 +40,11 @@ function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
       {edgeDisplayModeOptions.map((mode) => (
         <button key={mode} type="button" onClick={() => menu.selectEdgeDisplayMode(mode)}>
           {mode}
+        </button>
+      ))}
+      {viewportStyleOptions.map((style) => (
+        <button key={style} type="button" onClick={() => menu.selectViewportStyle(style)}>
+          {style}
         </button>
       ))}
       <button type="button" onClick={menu.close}>
@@ -208,6 +218,69 @@ describe('useViewerDisplayModeMenu', () => {
 
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).not.toBeNull()
+  })
+
+  it('selects Clay Studio through the style view setting contract', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+    useUiPrefsStore.getState().setViewKey('displayMode', 'material')
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const clayStudioButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'clayStudio',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      clayStudioButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
+    expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
+  })
+
+  it('returns to standard viewport style when selecting a normal display mode', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+    useUiPrefsStore.getState().setView({
+      displayMode: 'rendered',
+      viewportStyle: 'clayStudio',
+    })
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const solidButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'solid',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      solidButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('standard')
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('solid')
+    expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
   })
 
   it('closes with Escape without changing the current display mode', () => {

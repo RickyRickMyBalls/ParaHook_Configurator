@@ -1,6 +1,7 @@
 # 0 - Bug Report
 
 ## Doc History
+18. 2026-05-20 16:42:12: Added `Bug 24` for the repeat-Extrude scoped A/D/F composition regression where committing a second Extrude can hide the first accepted Extrude even though both graph objects exist, linking the new detailed report and recording the current strongest read as scoped worker results being treated as whole-scene viewport truth.
 17. 2026-05-02 09:30:37: Added `Bug 23` for the meatball editor disappearing after the model viewport is split right, linking the new detailed report under `docs/Bugs/bug/` and recording the current strongest read as a split between docked meatball ownership, `AppShell` occupancy checks, and the `SpaghettiWindowHost` / `useSpaghettiStore` split reclassification path.
 16. 2026-04-21 11:36:42: Updated `Bug 22` from `[planned]` to `[fixed]` after `Catalog-Gen2-14` closed the imported-reference remount ownership gap at the store-to-current-viewer seam with focused ViewerHost proof for PubParts ZIP-attributed and normal `.obj` accepted-reference paths.
 15. 2026-04-21 11:09:56: Updated `Bug 22` from `[investigating]` to `[planned]` after routing the imported-reference viewport-remount disappearance into `Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration`.
@@ -79,6 +80,7 @@ It is mainly:
 Current practical order:
 
 - `Bug 23` - Meatball editor can disappear after splitting the model viewport right
+- `Bug 24` - Repeat Extrude scoped A/D/F composition can hide the first accepted Extrude when the second scoped build completes
 - `Bug 19` - Worker 11 viewport presentation contract gap still needs symptom-by-symptom classification
 - `Bug 20` - Browser multi-select can glitch after scroll and make shift-range selection unreliable
 - `Bug 11` - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
@@ -97,6 +99,7 @@ Current practical order:
 ## Bug List
 
 - `Bug 23` - `[investigating]` - Meatball editor can disappear after splitting the model viewport right
+- `Bug 24` - `[investigating]` - Repeat Extrude scoped A/D/F composition can hide the first accepted Extrude when the second scoped build completes
 - `Bug 1` - `[open]` - Spaghetti editor toolbar drag bar cannot move high enough
 - `Bug 2` - `[open]` - Spaghetti editor toolbar drag bar is not aligned to the real canvas boundary
 - `Bug 3` - `[open]` - Debug inspector drag bar gets stuck
@@ -116,6 +119,29 @@ Current practical order:
 
 
 ## Current Known Bugs
+
+### Bug 24 - Repeat Extrude scoped A/D/F composition hides first accepted Extrude
+
+Status:
+- `[investigating]`
+
+Problem:
+- after the user extrudes profile 1, then extrudes profile 2, the second Extrude can appear while the first accepted Extrude disappears from the model viewport
+- the latest console shows stable `extrude#1` and `extrude#2` identities, so this is no longer primarily the earlier first-Extrude renaming bug
+- the second worker build is scoped to the changed Extrude and completes with a raw summary of `rebuilt 1, retained 0, evicted 0`
+
+Current strong read:
+- scoped worker rebuilds are valid, but the viewport A/D/F result-composition path may be treating the scoped second-Extrude result as the whole visible scene
+- the accepted bundle/output surface may still retain Object 1, while the accepted final/draft geometry lane and render VM only expose Object 2
+
+Likely ownership:
+- `selectViewportResultState`
+- accepted build bundle versus accepted geometry-result lane composition
+- repeat-Extrude output-entry retention
+- A/D/F viewport mode behavior for scoped results
+
+Related docs:
+- `24_2026-05-20_repeat-extrude-scoped-adf-composition.md`
 
 ### Bug 23 - Meatball editor disappears after splitting the model viewport right
 

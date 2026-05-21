@@ -72,6 +72,596 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2013 -->
+
+### [2013] - 2026-05-21 06:50 - `Properties-3 - Phase 4 - Ground And Contact Presentation Controls`
+
+HUMAN SUMMARY: ``Properties Render now carries the View Toolbar Shadows and Ground setting sets. Standard mode can edit global shadows, selected-light shadow controls, ground visibility, ground height, and ground material from Properties, while Clay Studio keeps those copied controls visibly locked as preset-owned presentation behavior.``
+
+#### Scope / Constraints Honored
+
+- Kept `PropertiesRenderSection.tsx` as the user-facing control/readback owner.
+- Reused existing `ViewSettings.shadowsEnabled`, selected-light shadow fields, `ViewSettings.ground`, environment-light history, and ground history paths.
+- Kept Clay Studio hard-shadow suppression, forced ground, ground material override, and contact-shadow treatment viewer-owned and read-only.
+- Kept `Viewer.ts`, shared `ViewSettings` shape, persistence, graph geometry, material truth, export truth, contact-shadow runtime behavior, and render-preview behavior unchanged.
+
+#### Summary of Implementation
+
+- Added global `Shadows` plus selected-light `Cast Shadow`, `Shadow Bias`, and `Shadow Map` controls under Properties `Render > Shadows`.
+- Added `Ground`, `Ground Height`, and `Material` controls under Properties `Render > Ground`.
+- Added no-selection and unsupported-light readback for selected-light shadow controls.
+- Disabled the copied Shadows and Ground controls while Clay Studio is active and kept the readback copy `Preset Locked`.
+- Added focused Properties tests proving Standard shadow/ground edits stay scoped to the existing settings and Clay Studio locked controls do not write changes.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Standard viewport style can now edit View Toolbar Shadows and Ground settings from Properties `Render`.
+- Clay Studio shows the copied Shadows and Ground controls as locked/read-only and continues using viewer-owned preset behavior.
+- No new ground-contact user setting was added.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2012 -->
+
+### [2012] - 2026-05-21 06:32 - `Properties-3 - Phase 3 - Environment Grade Controls And Clay Studio Policy`
+
+HUMAN SUMMARY: ``Properties Render now exposes the saved Environment Grade controls directly in the Environment group. Standard mode can edit the saved grade, while Clay Studio clearly locks those controls as preset-owned so the UI no longer implies the Clay Studio grade can be changed without changing the viewer runtime policy.``
+
+#### Scope / Constraints Honored
+
+- Kept `PropertiesRenderSection.tsx` as the user-facing control/readback owner.
+- Preserved the existing `ViewSettings.environmentGrade` normalization and persistence path through `uiPrefsStore.setEnvironmentGrade(...)`.
+- Kept Clay Studio on the existing viewer-owned `CLAY_STUDIO_ENVIRONMENT_GRADE` override.
+- Kept environment preset/source, HDRI, lighting, look memory, A/B compare, Clay Studio offset math, graph geometry, material truth, export truth, and render-preview behavior out of scope.
+
+#### Summary of Implementation
+
+- Added `Exposure`, `Contrast`, `Highlights`, `Shadows`, `Whites`, `Blacks`, `Temperature`, `Tint`, and `Saturation` sliders under Properties `Render > Environment`.
+- Enabled the sliders only in Standard viewport style.
+- Disabled the sliders in Clay Studio and updated the readback copy to say `Preset Locked`.
+- Added focused Properties tests proving Standard grade controls write only `environmentGrade` and Clay Studio locked controls do not write grade changes.
+- Closed Phase 3 planning and advanced the Properties render handoff to Phase 4.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Standard viewport style can now edit Environment Grade from Properties `Render`.
+- Clay Studio shows those controls as locked/read-only and continues using the existing viewer-owned Clay Studio grade.
+- No viewer runtime, geometry, material, export, environment preset/source, HDRI, lighting, or render-preview behavior changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+- Preview server HTTP 200 check on `http://127.0.0.1:4173/ParaHook_Configurator/`
+- `git diff --check`
+
+<!-- ENTRY 2011 -->
+
+### [2011] - 2026-05-21 06:20 - `Properties-3 - Phase 2 - Render Section Grouping And Readback`
+
+HUMAN SUMMARY: ``Properties Render now reads as a grouped viewport/render presentation surface instead of one mixed list. Viewport Style, Ambient Occlusion, and Render Preview controls keep their existing behavior, while Environment, Shadows, and Ground appear as passive readback groups so Clay Studio preset-owned behavior is honest without moving runtime ownership out of Model Viewport.``
+
+#### Scope / Constraints Honored
+
+- Kept `PropertiesRenderSection.tsx` as the user-facing control/readback owner.
+- Kept `ViewSettings` fields, persistence, viewer runtime behavior, post-processing runtime behavior, and render-preview runtime behavior unchanged.
+- Kept Environment, Shadows, and Ground readback-only; no active `environmentGrade`, `shadowsEnabled`, or `ground` writes were added.
+- Preserved graph geometry, material truth, export truth, and Model Viewport runtime ownership.
+
+#### Summary of Implementation
+
+- Split Properties `Render` into visible `Viewport Presentation`, `Environment`, `Shadows`, `Ground`, and `Render Preview Quality` groups.
+- Preserved active `Viewport Style`, Ambient Occlusion, and Render Preview quality controls with their existing `setViewKey(...)` writes.
+- Added passive readback rows for Environment grade, Shadows, and Ground that describe Standard versus Clay Studio behavior.
+- Added focused Properties proof that the readback rows appear and that Phase 2 interactions do not mutate `environmentGrade`, `shadowsEnabled`, or `ground`.
+- Closed the Phase 2 planning docs and advanced the Properties render handoff to Phase 3.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render` now displays separate Environment, Shadows, and Ground readback groups.
+- Active render controls keep the same persisted settings behavior as before.
+- No viewer runtime, geometry, material, or export behavior changed.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd run build`
+- Preview server HTTP 200 check on `http://127.0.0.1:4173/ParaHook_Configurator/`
+- `git diff --check`
+
+<!-- ENTRY 2010 -->
+
+### [2010] - 2026-05-20 19:35 - `Model-Viewport-5 - Phase 6.4 - Clay Studio Ground Contact`
+
+HUMAN SUMMARY: ``Clay Studio now adds a presentation-only ground-contact layer so objects read more anchored to the pale viewer floor. The new subtle stacked contact ellipses stay Clay Studio-only and avoid bringing back harsh directional shadows or changing graph/export truth.``
+
+#### Scope / Constraints Honored
+
+- Kept the treatment Clay Studio-only.
+- Kept graph-authored geometry, material presets, export truth, render-preview behavior, and non-Clay rendered shadows unchanged.
+- Avoided new Properties controls, SSGI/WebGPU work, path tracing, and broad AO retuning.
+
+#### Summary of Implementation
+
+- Added a viewer-owned Clay Studio contact-shadow group using subtle stacked translucent ellipse meshes.
+- Projects contact ellipses under visible base meshes onto the presentation ground plane.
+- Clears and hides the contact group outside Clay Studio and during render-preview/non-Clay modes.
+- Disposes cloned contact-shadow materials plus shared contact geometry/material templates through the viewer lifecycle.
+- Extended focused Clay Studio viewer proof to cover the contact layer and its non-Clay cleanup behavior.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Clay Studio now shows soft presentation contact shadows under visible base meshes on the viewer ground plane.
+- Normal rendered mode, render-preview mode, authored geometry, authored materials, and export truth are unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "Clay Studio|scene polish|display mode|SSAO|edge"`
+- `npm.cmd run build`
+- Browser smoke on `http://127.0.0.1:5173/ParaHook_Configurator/` opening Model Viewport with visible canvas surfaces
+- `git diff --check`
+
+<!-- ENTRY 2009 -->
+
+### [2009] - 2026-05-20 18:07 - `Model-Viewport-5 - Phase 6.3 - Clay Studio Lighting And AO Tuning`
+
+HUMAN SUMMARY: ``Clay Studio now reads softer and less harshly side-lit. The tuning pass lowers hard key-light contrast, disables Clay Studio shadow-map participation, adds more fill/ambient light, broadens Ambient Occlusion presets, and mutes Clay Studio display edges without adding new controls.``
+
+#### Scope / Constraints Honored
+
+- Kept the Properties `Viewport Style` and `Ambient Occlusion` control contract unchanged.
+- Kept SSGI/WebGPU, advanced SSAO sliders, grain/noise, render-preview behavior, export rendering, and material-truth changes out of scope.
+- Limited lighting/shadow changes to the Clay Studio presentation branch.
+
+#### Summary of Implementation
+
+- Retuned Clay Studio material, ground, environment grade, key/fill/ambient/rim lighting, and shadow participation for a brighter fill-heavy white-clay read.
+- Disabled Clay Studio hard shadow-map participation while preserving normal rendered-mode shadow behavior outside Clay Studio.
+- Broadened `Low`, `Medium`, and `High` Ambient Occlusion preset radius/intensity mappings.
+- De-emphasized Clay Studio display-edge overlays with a muted gray color and lower opacity.
+- Updated focused viewer and store tests for the tuned values.
+
+#### Files Changed
+
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Clay Studio uses softer fill-heavy lighting, no hard Clay Studio shadow maps, broader AO presets, and muted Clay Studio display-edge overlays.
+- Non-Clay rendered lighting/shadow behavior and render-preview separation are preserved.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "Clay Studio|scene polish|display mode|SSAO|edge"`
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "ambient occlusion|SSAO post-processing"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "ambient occlusion"`
+- `npm.cmd run build`
+- Browser smoke on `http://127.0.0.1:5173/ParaHook_Configurator/` opening Model Viewport with visible canvas surfaces
+- `git diff --check`
+
+<!-- ENTRY 2008 -->
+
+### [2008] - 2026-05-20 17:43 - `Model-Viewport-5 - Phase 6.2 - Ambient Occlusion Output Pass Fix`
+
+HUMAN SUMMARY: ``Ambient Occlusion no longer blacks out the interactive viewport. The SSAO composer now renders through Three.js `OutputPass`, so AO blends into the offscreen beauty buffer before the finished frame is copied to screen.``
+
+#### Scope / Constraints Honored
+
+- Kept the user-facing Properties `Ambient Occlusion` controls unchanged.
+- Kept SSAO presets, Clay Studio presentation, overlay behavior, SSGI/WebGPU work, and advanced tuning out of scope.
+- Fixed the composer output chain instead of weakening the AO presets.
+
+#### Summary of Implementation
+
+- Added `OutputPass` to the interactive post-processing runtime after `SSAOPass`.
+- Preserved the existing `RenderPass` and `SSAOPass` setup/update/dispose lifecycle.
+- Added focused viewer proof that the composer pass order is `RenderPass` -> `SSAOPass` -> `OutputPass`.
+
+#### Files Changed
+
+- `src/viewer/postProcessingRuntime.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Enabling Ambient Occlusion keeps the interactive viewport visible instead of rendering a black screen.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "SSAO|post-processing|axis HUD|render-preview"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "ambient occlusion"`
+- `npm.cmd run build`
+- Browser sanity on `http://127.0.0.1:5173/ParaHook_Configurator/`
+- `git diff --check`
+
+<!-- ENTRY 2007 -->
+
+### [2007] - 2026-05-20 17:35 - `Model-Viewport-5 - Phase 6.2 - Basic Clay Studio And Ambient Occlusion Controls`
+
+HUMAN SUMMARY: ``Properties Render now exposes the first user-facing Ambient Occlusion control. The new `Off`, `Low`, `Medium`, and `High` presets write through shared `ViewSettings.postProcessing` helpers, keep `Viewport Style` separate, and preserve Render Preview settings.``
+
+#### Scope / Constraints Honored
+
+- Kept advanced SSAO strength/radius sliders, status copy, SSGI/WebGPU work, Settings defaults, runtime post-processing changes, and `Shift+D` behavior changes out of scope.
+- Kept user-facing copy as `Ambient Occlusion` instead of technical `SSAO`.
+- Preserved the shipped `Viewport Style` control and all Render Preview quality controls.
+
+#### Summary of Implementation
+
+- Added shared Ambient Occlusion preset/read helpers in `viewSettingsTypes.ts`.
+- Added a Properties `Render` `Ambient Occlusion` `ParaSelect` beside `Viewport Style`.
+- Mapped `Off` to disabled SSAO and `Low` / `Medium` / `High` to normalized post-processing settings.
+- Added focused Properties proof plus shared helper/store proof.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Users can now set Ambient Occlusion to `Off`, `Low`, `Medium`, or `High` from Properties `Render`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "ambient occlusion|viewport style|render preview settings|render quality"`
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "ambient occlusion|SSAO post-processing|generic view-setting path"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2006 -->
+
+### [2006] - 2026-05-20 17:29 - `Model-Viewport-5 - Phase 6.1 - Properties Render Post-Process Placement`
+
+HUMAN SUMMARY: ``Properties Render now has the first Clay Studio placement control. A compact Viewport presentation group exposes `Viewport Style` with `Standard` and `Clay Studio`, writes through the existing view-settings store, and leaves Ambient Occlusion presets for the next phase.``
+
+#### Scope / Constraints Honored
+
+- Kept Ambient Occlusion presets, advanced SSAO sliders/status, Settings defaults, new workspace surfaces, runtime SSAO changes, and `Shift+D` behavior changes out of scope.
+- Kept Properties `Render` as the tuning/readback home while preserving `Shift+D` as the quick style switch.
+- Preserved the existing Render Preview quality controls and reset behavior.
+
+#### Summary of Implementation
+
+- Added a compact `Viewport presentation` group inside `PropertiesRenderSection.tsx`.
+- Added a `Viewport Style` `ParaSelect` with `Standard` and `Clay Studio` labels.
+- Wired style changes through `setViewKey('viewportStyle', ...)`.
+- Added focused Properties proof that the select reflects and writes `view.viewportStyle` without disturbing render-preview settings.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Users can now set `Standard` or `Clay Studio` from Properties `Render`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "Render section|viewport style|render preview settings|render quality"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2005 -->
+
+### [2005] - 2026-05-20 17:15 - `Model-Viewport-5 - Phase 5 - Overlay And Selection Compatibility`
+
+HUMAN SUMMARY: ``SSAO now has focused regression proof around the interactive overlay stack. Topology hover/selection overlays, display-edge modes, sketch and extrude overlays, Render Preview separation, and the axis HUD keep their intended contracts while the SSAO composer path is active.``
+
+#### Scope / Constraints Honored
+
+- Kept Properties controls, SSGI/WebGPU work, new topology generation, snapping/measurement/direct-modeling behavior, Clay Studio material/light tuning, and highlight retuning out of scope.
+- Preserved `Visible edges only` as an intentionally depth-tested edge mode.
+- Avoided private `SSAOPass` surgery because the focused proof did not require a helper-exclusion hook.
+
+#### Summary of Implementation
+
+- Added viewer proof that selected and hovered topology overlays keep high render order and non-depth-tested, non-tone-mapped presentation while SSAO is enabled.
+- Added viewer proof that display-edge `on`, `visibleEdgesOnly`, and `off` behavior remains unchanged under SSAO.
+- Added viewer proof that sketch profile overlays and extrude preview overlays preserve their depth/tone contracts under the SSAO composer path.
+- Added viewer proof that the axis HUD renders outside the SSAO composer path.
+
+#### Files Changed
+
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- No runtime behavior changed; this phase locked the existing SSAO overlay compatibility behavior with focused tests.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "SSAO|post-processing|topology selection and hover|display-edge depth|sketch and extrude overlay|axis HUD"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2004 -->
+
+### [2004] - 2026-05-20 16:47 - `Model-Viewport-5 - Phase 4 - Interactive SSAO Pass`
+
+HUMAN SUMMARY: ``Clay Studio can now use a real interactive WebGL SSAO pass through the post-processing composer path. The viewer maps normalized SSAO quality, radius, and intensity settings into Three.js `SSAOPass` while preserving direct-render fallback and keeping Render Preview isolated.``
+
+#### Scope / Constraints Honored
+
+- Kept Properties controls, SSGI/WebGPU work, `Shift+D` changes, Clay Studio light/material retuning, render-preview/path-tracer changes, and export/render queue behavior out of scope.
+- Kept SSAO settings owned by the existing `ViewSettings.postProcessing` contract.
+- Preserved direct raster rendering as the fallback path and preserved Render Preview ordering ahead of post-processing.
+
+#### Summary of Implementation
+
+- Added Three.js `SSAOPass` ownership inside `postProcessingRuntime`.
+- Mapped `ssaoQuality` to SSAO kernel size, `ssaoRadius` to `kernelRadius`, and `ssaoIntensity` to conservative distance tuning.
+- Added runtime `updateSettings(...)` support so non-kernel settings update without recreating the viewer or geometry.
+- Recreated the post-processing runtime when SSAO quality changes require a new kernel size.
+- Passed normalized post-processing settings from `Viewer` into runtime creation and updates.
+
+#### Files Changed
+
+- `src/viewer/postProcessingRuntime.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Enabling `postProcessing.ssaoEnabled` now creates an SSAO composer path instead of a composer-only pass.
+- Render Preview remains separate and does not create or use the SSAO runtime.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "post-processing|SSAO|render preview"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2003 -->
+
+### [2003] - 2026-05-20 16:38 - `Model-Viewport-5 - Phase 3 - Post-Process Composer Boundary`
+
+HUMAN SUMMARY: ``The viewer now has a safe post-processing composer boundary ready for the later SSAO pass. Direct raster rendering remains the default and fallback path, render preview stays isolated, and the new composer helper resizes and disposes with the existing viewer lifecycle.``
+
+#### Scope / Constraints Honored
+
+- Kept SSAO pass creation, visual tuning, Properties controls, SSGI, `Shift+D` behavior, and render-preview/path-tracer changes out of scope.
+- Kept post-processing opt-in through the existing `ViewSettings.postProcessing` owner.
+- Preserved direct rendering as the default path and fallback when composer setup or rendering fails.
+
+#### Summary of Implementation
+
+- Added a small `postProcessingRuntime` helper that wraps Three.js `EffectComposer` and `RenderPass`.
+- Routed enabled post-processing through a viewer-owned `renderInteractiveFrame(...)` branch.
+- Added setup/render failure handling that falls back to `renderer.render(...)`.
+- Resized the helper from the existing viewer resize path and disposed it before renderer teardown.
+- Kept render preview ahead of post-processing so handled render-preview frames do not create or use the composer runtime.
+
+#### Files Changed
+
+- `src/viewer/postProcessingRuntime.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- `postProcessing.ssaoEnabled` now activates the new composer boundary, but Phase 3 does not add an SSAO effect yet.
+- Direct raster rendering remains unchanged when post-processing is off or unavailable.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "post-processing|render preview"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2002 -->
+
+### [2002] - 2026-05-20 16:05 - `Model-Viewport-5 - Phase 2.1 - Shift+D Clay Studio Wheel Entry`
+
+HUMAN SUMMARY: ``Clay Studio is now selectable from the existing `Shift+D` display wheel. The new radial entry writes the shipped `viewportStyle: 'clayStudio'` setting and switches to rendered mode so the style appears immediately, while normal display-mode choices return the viewport style to `standard` and edge-display controls keep working.``
+
+#### Scope / Constraints Honored
+
+- Kept the work inside the existing `Shift+D` display-wheel action path.
+- Did not add SSAO controls, composer behavior, render-preview behavior, material changes, visual retuning, or Properties/Settings controls.
+- Preserved the existing center edge-display controls.
+
+#### Summary of Implementation
+
+- Added `selectViewportStyle(...)` to `useViewerDisplayModeMenu(...)`.
+- Updated normal display-mode selection to reset `viewportStyle` to `standard`.
+- Added a `Clay Studio` radial wheel entry in `ViewerHost`.
+- Routed the Clay Studio entry through `ViewSettings.viewportStyle` and `displayMode: 'rendered'`.
+- Added focused hook and `ViewerHost` tests for Clay Studio selection, normal-mode reset, and edge-display preservation.
+
+#### Files Changed
+
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Shift+D` now includes a `Clay Studio` radial entry.
+- Selecting Clay Studio sets `viewportStyle` to `clayStudio` and display mode to `rendered`.
+- Selecting any normal display mode from the wheel resets `viewportStyle` to `standard`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/useViewerDisplayModeMenu.test.tsx`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "Clay Studio entry"`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "center edge controls"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2001 -->
+
+### [2001] - 2026-05-20 15:50 - `Model-Viewport-5 - Phase 2 - Clay Studio Viewer Presentation Preset`
+
+HUMAN SUMMARY: ``The model viewport now has a Clay Studio rendered look: pale clay model material, bright neutral background and grade, soft studio lighting, pale ground, and hidden grid/axes while the style is active. It is a runtime presentation override, so project materials, per-part assignments, environment presets, geometry, SSAO settings, and render-preview behavior stay untouched.``
+
+#### Scope / Constraints Honored
+
+- Kept Clay Studio as a viewer presentation style, not a geometry/build/export mode.
+- Did not add SSAO, a post-process composer, UI controls, SSGI, WebGPU behavior, or render-preview/path-tracer overrides.
+- Preserved project material presets, per-part assignments, environment presets, and stored grid/axis preferences.
+
+#### Summary of Implementation
+
+- Added `ViewportStyle`, `VIEWPORT_STYLE_OPTIONS`, `DEFAULT_VIEWPORT_STYLE`, and `isViewportStyle(...)`.
+- Added normalized `ViewSettings.viewportStyle` support with `standard` as the default and `clayStudio` as the new style.
+- Updated UI prefs persistence policy copy paths so viewport style follows `viewSettingsPersistence`.
+- Added viewer-local Clay Studio material, grade/background, ground, and soft light constants.
+- Routed Clay Studio through rendered-mode-only viewer resolution for material, background, ground, lights, and runtime grid/axis suppression.
+- Added focused store, persistence, and viewer proof for normalization, persistence-policy behavior, geometry-preserving style switching, standard restoration, and render-preview exclusion.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `viewportStyle: 'clayStudio'` now gives normal rendered mode a bright clay-studio presentation without rebuilding meshes.
+- Clay Studio hides grid/axes at runtime, enables a pale ground, swaps to soft studio lights, and uses a pale clay material while active.
+- `renderPreview`, `material`, `solid`, `wireframe`, project material truth, and SSAO settings remain unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "Clay Studio"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display modes"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2000 -->
+
+### [2000] - 2026-05-20 15:36 - `Model-Viewport-5 - Phase 1 - Clay Studio And Post-Process Settings Contract`
+
+HUMAN SUMMARY: ``The model viewport now has a stable, persisted SSAO intent contract ready for the later Clay Studio and post-process runtime phases. This does not turn on SSAO yet; it gives the app a normalized `ViewSettings.postProcessing` owner so old views load safely and future controls/runtime code have a clean place to read from.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 1 to the settings contract and persistence-policy behavior.
+- Did not add a post-process composer, SSAO runtime pass, Clay Studio runtime style, UI controls, SSGI fields, or WebGPU behavior.
+- Kept post-processing under view-settings persistence, not environment persistence.
+
+#### Summary of Implementation
+
+- Added `ViewSsaoQuality`, `ViewPostProcessSettings`, SSAO quality options, defaults, and normalization helpers.
+- Added `postProcessing` to `ViewSettings`, `DEFAULT_VIEW_SETTINGS`, and `normalizeViewSettings(...)`.
+- Updated UI prefs view-persistence policy copy paths so persisted SSAO intent follows `viewSettingsPersistence`.
+- Updated the viewer settings clone path to preserve the new field without changing rendering behavior.
+- Added focused store and persistence tests for defaults, invalid input clamping, valid settings cloning, generic view-setting updates, and environment-persistence separation.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/viewer/Viewer.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Persisted and in-memory view settings can now carry SSAO enablement, intensity, radius, and quality as normalized presentation state.
+- Existing persisted views that do not include post-processing settings load with SSAO disabled and safe default values.
+- Viewer runtime output is unchanged until later Model-Viewport-5 phases wire the composer and SSAO pass.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
 <!-- ENTRY 1999 -->
 
 ### [1999] - 2026-05-20 14:04 - `Spaghetti-Editor 9 - Phase 1 - Stable Extrude Part Identity`

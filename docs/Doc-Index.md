@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+298. 2026-05-20 19:53:00: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so view/render presentation controls now have a Properties-owned future planning surface.
+297. 2026-05-20 16:42:12: Added `docs/Bugs/24_2026-05-20_repeat-extrude-scoped-adf-composition.md` to the docs map and refreshed `docs/Bugs/0_Bug_Report.md` so the repeat-Extrude scoped A/D/F composition regression is indexed as `Bug 24`.
 296. 2026-05-20 15:21:44: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md` to the docs map and refreshed the Model Viewport family index so the Pascal-inspired Clay Studio and SSAO viewport-style lane is discoverable beside display-mode, render-preview, and semantic-topology planning.
 295. 2026-05-20 08:00:24: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md` to the docs map and refreshed the Spaghetti editor family index so the repeat-Extrude retained-output repair plan is discoverable beside the active viewport command and build pipeline planning lanes.
 294. 2026-05-20 00:15:48: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md` to the docs map and refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the camera snap shortcut priority repair is discoverable beside the existing `View-Toolbar` future phase ladder.
@@ -884,6 +886,21 @@ Rule notes:
             - `Workspaces/Export/Export-Index.md`
 ###### -------------Layers
             - `Workspaces/Layers/Layers-index.md`
+###### -------------Properties
+            - `Workspaces/Properties/Properties-Gen1-Index.md`
+####### --------------Future
+            - `Workspaces/Properties/Future/Properties-1 - Workspace Umbrella And Focused-Item Property Routing.md`
+            - `Workspaces/Properties/Future/Properties-2 - Shared Properties Workspace Shell And Section Hosting.md`
+            - `Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+####### --------------Materials
+            - `Workspaces/Properties/Materials/Materials-Vision.md`
+            - `Workspaces/Properties/Materials/Materials-Gen1-Index.md`
+######## ---------------Future
+            - `Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
+            - `Workspaces/Properties/Materials/Future/Materials-2 - First Material Editing And Action Flows.md`
+            - `Workspaces/Properties/Materials/Future/Materials-3 - Richer Material Fields And Library Direction.md`
+            - `Workspaces/Properties/Materials/Future/Materials-4 - Materials Content Simplification Cleanup.md`
+            - `Workspaces/Properties/Materials/Future/Materials-5 - Multi Object Material Assignment And Mixed Values.md`
 ###### -------------Model-Viewport
             - `Workspaces/Model-Viewport/Model-Viewport-Index.md`
 ####### --------------Future
@@ -1099,6 +1116,7 @@ Rule notes:
         - `9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md`
         - `10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md`
         - `11_Workspace-7.5-5-Multi-Floating-Spaghetti-Blank-Screen.md`
+        - `24_2026-05-20_repeat-extrude-scoped-adf-composition.md`
 ### ----roadmap
         - `roadmap.md`
         - `Architecture-roadmap.md`

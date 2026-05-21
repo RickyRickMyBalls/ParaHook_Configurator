@@ -10723,4 +10723,51 @@ describe('ViewerHost reference loading', () => {
     expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).not.toBeNull()
     expect(visibleEdgesOnlyButton?.getAttribute('aria-checked')).toBe('true')
   })
+
+  it('renders a Shift+D Clay Studio entry and updates viewport style', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useAppStore.getState().setActiveSurface('viewer')
+      useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-primary')
+      useUiPrefsStore.getState().setViewKey('displayMode', 'material')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const clayStudioButton = Array.from(
+      container.querySelectorAll('.ViewportDisplayModeMenuItem'),
+    ).find((button) => button.textContent?.includes('Clay Studio')) as HTMLButtonElement | undefined
+
+    expect(clayStudioButton).not.toBeUndefined()
+
+    await act(async () => {
+      clayStudioButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
+    expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).toBeNull()
+  })
 })

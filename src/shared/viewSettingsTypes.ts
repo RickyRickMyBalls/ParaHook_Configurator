@@ -29,15 +29,19 @@ export type EnvironmentLookSnapshot = Pick<
 export type ProjectionMode = 'perspective' | 'orthographic'
 export type ViewDisplayMode = 'solid' | 'wireframe' | 'material' | 'rendered' | 'renderPreview'
 export type ViewEdgeDisplayMode = 'on' | 'off' | 'visibleEdgesOnly'
+export type ViewportStyle = 'standard' | 'clayStudio'
 export type RenderPreviewNoiseCleanup = 'off' | 'low' | 'medium' | 'high'
 export type RenderPreviewGpuLoad = 'smooth' | 'balanced' | 'fast'
 export type RenderPreviewQualityPreset = 'fast' | 'balanced' | 'clean' | 'high'
 export type RenderPreviewQualityPresetRead = RenderPreviewQualityPreset | 'custom'
+export type ViewSsaoQuality = 'low' | 'medium' | 'high'
+export type ViewAmbientOcclusionPreset = 'off' | ViewSsaoQuality
 export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
 export type AxisOverlayBackgroundMode = 'none' | 'blur'
 export type GroundMaterialPresetId = 'matte_dark' | 'matte_mid' | 'glossy_studio'
 export const DEFAULT_VIEW_DISPLAY_MODE: ViewDisplayMode = 'rendered'
 export const DEFAULT_VIEW_EDGE_DISPLAY_MODE: ViewEdgeDisplayMode = 'off'
+export const DEFAULT_VIEWPORT_STYLE: ViewportStyle = 'standard'
 export const VIEW_DISPLAY_MODES: readonly ViewDisplayMode[] = [
   'solid',
   'wireframe',
@@ -50,6 +54,10 @@ export const VIEW_EDGE_DISPLAY_MODES: readonly ViewEdgeDisplayMode[] = [
   'off',
   'visibleEdgesOnly',
 ]
+export const VIEWPORT_STYLE_OPTIONS: readonly ViewportStyle[] = [
+  'standard',
+  'clayStudio',
+]
 export const RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS: readonly RenderPreviewNoiseCleanup[] = [
   'off',
   'low',
@@ -60,6 +68,17 @@ export const RENDER_PREVIEW_GPU_LOAD_OPTIONS: readonly RenderPreviewGpuLoad[] = 
   'smooth',
   'balanced',
   'fast',
+]
+export const VIEW_SSAO_QUALITY_OPTIONS: readonly ViewSsaoQuality[] = [
+  'low',
+  'medium',
+  'high',
+]
+export const VIEW_AMBIENT_OCCLUSION_PRESET_OPTIONS: readonly ViewAmbientOcclusionPreset[] = [
+  'off',
+  'low',
+  'medium',
+  'high',
 ]
 export const MIN_RENDER_PREVIEW_TARGET_SAMPLES = 16
 export const MAX_RENDER_PREVIEW_TARGET_SAMPLES = 256
@@ -72,6 +91,13 @@ export const MAX_RENDER_PREVIEW_RENDER_SCALE = 1
 export const DEFAULT_RENDER_PREVIEW_RENDER_SCALE = 1
 export const DEFAULT_RENDER_PREVIEW_NOISE_CLEANUP: RenderPreviewNoiseCleanup = 'off'
 export const DEFAULT_RENDER_PREVIEW_GPU_LOAD: RenderPreviewGpuLoad = 'balanced'
+export const MIN_VIEW_SSAO_INTENSITY = 0
+export const MAX_VIEW_SSAO_INTENSITY = 3
+export const DEFAULT_VIEW_SSAO_INTENSITY = 1
+export const MIN_VIEW_SSAO_RADIUS = 0.05
+export const MAX_VIEW_SSAO_RADIUS = 5
+export const DEFAULT_VIEW_SSAO_RADIUS = 1
+export const DEFAULT_VIEW_SSAO_QUALITY: ViewSsaoQuality = 'medium'
 export const DEFAULT_ENVIRONMENT_BACKGROUND = '#0b0b0f'
 export const STUDIO_ENVIRONMENT_BACKGROUND = '#151922'
 export const DARK_STUDIO_ENVIRONMENT_BACKGROUND = '#06080d'
@@ -156,6 +182,13 @@ export type RenderPreviewSettings = {
   gpuLoad: RenderPreviewGpuLoad
 }
 
+export type ViewPostProcessSettings = {
+  ssaoEnabled: boolean
+  ssaoIntensity: number
+  ssaoRadius: number
+  ssaoQuality: ViewSsaoQuality
+}
+
 export type ViewHighlightSettings = {
   hoverColor: string
   selectedColor: string
@@ -180,11 +213,13 @@ export type ViewSettings = {
   wireframe: boolean
   displayMode: ViewDisplayMode
   edgeDisplayMode: ViewEdgeDisplayMode
+  viewportStyle: ViewportStyle
   envPreset: EnvPreset
   environmentGrade: EnvironmentGradeSettings
   environmentSource: EnvironmentSourceSettings
   ground: GroundSettings
   renderPreview: RenderPreviewSettings
+  postProcessing: ViewPostProcessSettings
   highlights: ViewHighlightSettings
   axisOverlayEnabled: boolean
   axisOverlayStyle: AxisOverlayStyleSettings
@@ -280,6 +315,9 @@ export const isViewEdgeDisplayMode = (value: unknown): value is ViewEdgeDisplayM
   typeof value === 'string' &&
   VIEW_EDGE_DISPLAY_MODES.includes(value as ViewEdgeDisplayMode)
 
+export const isViewportStyle = (value: unknown): value is ViewportStyle =>
+  typeof value === 'string' && VIEWPORT_STYLE_OPTIONS.includes(value as ViewportStyle)
+
 export const isRenderPreviewNoiseCleanup = (
   value: unknown,
 ): value is RenderPreviewNoiseCleanup =>
@@ -290,12 +328,47 @@ export const isRenderPreviewGpuLoad = (value: unknown): value is RenderPreviewGp
   typeof value === 'string' &&
   RENDER_PREVIEW_GPU_LOAD_OPTIONS.includes(value as RenderPreviewGpuLoad)
 
+export const isViewSsaoQuality = (value: unknown): value is ViewSsaoQuality =>
+  typeof value === 'string' && VIEW_SSAO_QUALITY_OPTIONS.includes(value as ViewSsaoQuality)
+
 export const DEFAULT_RENDER_PREVIEW_SETTINGS: RenderPreviewSettings = {
   targetSamples: DEFAULT_RENDER_PREVIEW_TARGET_SAMPLES,
   bounces: DEFAULT_RENDER_PREVIEW_BOUNCES,
   renderScale: DEFAULT_RENDER_PREVIEW_RENDER_SCALE,
   noiseCleanup: DEFAULT_RENDER_PREVIEW_NOISE_CLEANUP,
   gpuLoad: DEFAULT_RENDER_PREVIEW_GPU_LOAD,
+}
+
+export const DEFAULT_VIEW_POST_PROCESS_SETTINGS: ViewPostProcessSettings = {
+  ssaoEnabled: false,
+  ssaoIntensity: DEFAULT_VIEW_SSAO_INTENSITY,
+  ssaoRadius: DEFAULT_VIEW_SSAO_RADIUS,
+  ssaoQuality: DEFAULT_VIEW_SSAO_QUALITY,
+}
+
+const VIEW_AMBIENT_OCCLUSION_PRESET_SETTINGS: Record<
+  ViewAmbientOcclusionPreset,
+  ViewPostProcessSettings
+> = {
+  off: DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+  low: {
+    ssaoEnabled: true,
+    ssaoIntensity: 0.55,
+    ssaoRadius: 1.15,
+    ssaoQuality: 'low',
+  },
+  medium: {
+    ssaoEnabled: true,
+    ssaoIntensity: 0.82,
+    ssaoRadius: 1.85,
+    ssaoQuality: 'medium',
+  },
+  high: {
+    ssaoEnabled: true,
+    ssaoIntensity: 1.05,
+    ssaoRadius: 2.65,
+    ssaoQuality: 'high',
+  },
 }
 
 const normalizeHexColor = (value: unknown, fallback: string): string =>
@@ -455,6 +528,69 @@ export const normalizeRenderPreviewSettings = (
     : fallback.noiseCleanup,
   gpuLoad: isRenderPreviewGpuLoad(settings?.gpuLoad) ? settings.gpuLoad : fallback.gpuLoad,
 })
+
+export const normalizeViewPostProcessSettings = (
+  settings: Partial<ViewPostProcessSettings> | undefined,
+  fallback: ViewPostProcessSettings = DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+): ViewPostProcessSettings => ({
+  ssaoEnabled:
+    typeof settings?.ssaoEnabled === 'boolean'
+      ? settings.ssaoEnabled
+      : fallback.ssaoEnabled,
+  ssaoIntensity: normalizeNumber(
+    settings?.ssaoIntensity,
+    fallback.ssaoIntensity,
+    MIN_VIEW_SSAO_INTENSITY,
+    MAX_VIEW_SSAO_INTENSITY,
+  ),
+  ssaoRadius: normalizeNumber(
+    settings?.ssaoRadius,
+    fallback.ssaoRadius,
+    MIN_VIEW_SSAO_RADIUS,
+    MAX_VIEW_SSAO_RADIUS,
+  ),
+  ssaoQuality: isViewSsaoQuality(settings?.ssaoQuality)
+    ? settings.ssaoQuality
+    : fallback.ssaoQuality,
+})
+
+export const isViewAmbientOcclusionPreset = (
+  value: unknown,
+): value is ViewAmbientOcclusionPreset =>
+  typeof value === 'string' &&
+  VIEW_AMBIENT_OCCLUSION_PRESET_OPTIONS.includes(value as ViewAmbientOcclusionPreset)
+
+export const createViewAmbientOcclusionPresetSettings = (
+  preset: ViewAmbientOcclusionPreset,
+): ViewPostProcessSettings =>
+  normalizeViewPostProcessSettings(VIEW_AMBIENT_OCCLUSION_PRESET_SETTINGS[preset])
+
+export const areViewPostProcessSettingsEqual = (
+  left: ViewPostProcessSettings,
+  right: ViewPostProcessSettings,
+): boolean =>
+  left.ssaoEnabled === right.ssaoEnabled &&
+  left.ssaoIntensity === right.ssaoIntensity &&
+  left.ssaoRadius === right.ssaoRadius &&
+  left.ssaoQuality === right.ssaoQuality
+
+export const resolveViewAmbientOcclusionPresetRead = (
+  settings: ViewPostProcessSettings,
+): ViewAmbientOcclusionPreset => {
+  const normalizedSettings = normalizeViewPostProcessSettings(settings)
+  if (!normalizedSettings.ssaoEnabled) {
+    return 'off'
+  }
+
+  const matchingPreset = VIEW_AMBIENT_OCCLUSION_PRESET_OPTIONS.find((preset) =>
+    areViewPostProcessSettingsEqual(
+      normalizedSettings,
+      VIEW_AMBIENT_OCCLUSION_PRESET_SETTINGS[preset],
+    ),
+  )
+
+  return matchingPreset ?? normalizedSettings.ssaoQuality
+}
 
 export const areRenderPreviewSettingsEqual = (
   left: RenderPreviewSettings,
@@ -701,8 +837,12 @@ export const getEnvironmentPresetDefinition = (
   return BASELINE_ENVIRONMENT_PRESET_DEFINITION
 }
 
-export type LegacyViewSettingsInput = Omit<Partial<ViewSettings>, 'environmentGrade'> & {
+export type LegacyViewSettingsInput = Omit<
+  Partial<ViewSettings>,
+  'environmentGrade' | 'postProcessing'
+> & {
   environmentGrade?: Partial<EnvironmentGradeSettings>
+  postProcessing?: Partial<ViewPostProcessSettings>
   toneMapping?: ToneMappingMode
   exposure?: number
 }
@@ -937,6 +1077,9 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
     ...settings,
     displayMode,
     edgeDisplayMode,
+    viewportStyle: isViewportStyle(settings.viewportStyle)
+      ? settings.viewportStyle
+      : DEFAULT_VIEWPORT_STYLE,
     wireframe: displayMode === 'wireframe',
     envPreset: settings.envPreset ?? DEFAULT_VIEW_SETTINGS.envPreset,
     environmentGrade: normalizedGrade,
@@ -949,6 +1092,7 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
         ? { ...DEFAULT_VIEW_SETTINGS.ground }
         : { ...settings.ground },
     renderPreview: normalizeRenderPreviewSettings(settings.renderPreview),
+    postProcessing: normalizeViewPostProcessSettings(settings.postProcessing),
     highlights: normalizeViewHighlightSettings(settings.highlights),
     axisOverlayStyle:
       settings.axisOverlayStyle === undefined
@@ -1048,6 +1192,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
   wireframe: false,
   displayMode: DEFAULT_VIEW_DISPLAY_MODE,
   edgeDisplayMode: DEFAULT_VIEW_EDGE_DISPLAY_MODE,
+  viewportStyle: DEFAULT_VIEWPORT_STYLE,
   envPreset: 'baseline',
   environmentGrade: cloneEnvironmentGrade(DEFAULT_ENVIRONMENT_GRADE),
   environmentSource: cloneEnvironmentSource(
@@ -1059,6 +1204,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
     materialPresetId: 'matte_mid',
   },
   renderPreview: DEFAULT_RENDER_PREVIEW_SETTINGS,
+  postProcessing: DEFAULT_VIEW_POST_PROCESS_SETTINGS,
   highlights: DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
   axisOverlayEnabled: true,
   axisOverlayStyle: DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS,

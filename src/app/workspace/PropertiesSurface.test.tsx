@@ -7,6 +7,7 @@ import {
   DEFAULT_RENDER_PREVIEW_SETTINGS,
   DEFAULT_VIEW_SETTINGS,
   createRenderPreviewQualityPresetSettings,
+  createViewAmbientOcclusionPresetSettings,
 } from '../../shared/viewSettingsTypes'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
@@ -1715,7 +1716,14 @@ describe('PropertiesSurface', () => {
     expect(materialsTab?.disabled).toBe(true)
     expect(renderTab?.disabled).toBe(false)
     expect(renderTab?.getAttribute('aria-selected')).toBe('true')
+    expect(renderPanel?.textContent).toContain('Viewport presentation')
+    expect(renderPanel?.textContent).toContain('Environment')
+    expect(renderPanel?.textContent).toContain('Shadows')
+    expect(renderPanel?.textContent).toContain('Ground')
     expect(renderPanel?.textContent).toContain('Render Preview quality')
+    expect(renderPanel?.textContent).toContain('Exposure')
+    expect(renderPanel?.textContent).toContain('Contrast')
+    expect(renderPanel?.textContent).toContain('Saturation')
     expect(renderPanel?.textContent).toContain('Samples')
   })
 
@@ -1794,6 +1802,479 @@ describe('PropertiesSurface', () => {
       noiseCleanup: 'medium',
       gpuLoad: 'fast',
     })
+  })
+
+  it('writes viewport style from the Properties Render section', async () => {
+    useUiPrefsStore.getState().setViewKey('viewportStyle', 'clayStudio')
+
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const viewportStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Viewport Style"]',
+    ) as HTMLSelectElement | null
+    const qualityPresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Quality preset"]',
+    ) as HTMLSelectElement | null
+
+    expect(renderPanel?.textContent).toContain('Viewport presentation')
+    expect(renderPanel?.textContent).toContain('Environment')
+    expect(renderPanel?.textContent).toContain('Clay Studio preset')
+    expect(renderPanel?.textContent).toContain('Preset Locked')
+    expect(renderPanel?.textContent).toContain('Hard shadows stay off')
+    expect(renderPanel?.textContent).toContain('Ground is forced on')
+    expect(renderPanel?.textContent).toContain('Render Preview quality')
+    expect(viewportStyleSelect?.value).toBe('clayStudio')
+    expect(qualityPresetSelect?.value).toBe('balanced')
+
+    await act(async () => {
+      if (viewportStyleSelect !== null) {
+        viewportStyleSelect.value = 'standard'
+        viewportStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('standard')
+
+    await act(async () => {
+      if (viewportStyleSelect !== null) {
+        viewportStyleSelect.value = 'clayStudio'
+        viewportStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
+      DEFAULT_RENDER_PREVIEW_SETTINGS,
+    )
+  })
+
+  it('keeps Environment, Shadows, and Ground readback stable while other Render controls change', async () => {
+    const environmentGrade = {
+      ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+      exposure: 1.77,
+      contrast: 1.12,
+    }
+    const ground = {
+      ...DEFAULT_VIEW_SETTINGS.ground,
+      enabled: true,
+      height: 2.5,
+      materialPresetId: 'glossy_studio' as const,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          viewportStyle: 'standard',
+          environmentGrade,
+          shadowsEnabled: false,
+          ground,
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const viewportStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Viewport Style"]',
+    ) as HTMLSelectElement | null
+    const ambientOcclusionSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Ambient Occlusion"]',
+    ) as HTMLSelectElement | null
+    const sampleIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Samples"]',
+    ) as HTMLButtonElement | null
+
+    expect(renderPanel?.textContent).toContain('View settings grade')
+    expect(renderPanel?.textContent).toContain('Uses the saved environment grade')
+    expect(renderPanel?.textContent).toContain('Uses the saved shadow setting')
+    expect(renderPanel?.textContent).toContain('On at 2.50')
+    expect(renderPanel?.textContent).toContain('Selected Light Shadows')
+    expect(renderPanel?.textContent).toContain('Ground Height')
+    expect(
+      renderPanel?.querySelector('[data-properties-render-readback="environment"]'),
+    ).not.toBeNull()
+    expect(
+      renderPanel?.querySelector('[data-properties-render-readback="shadows"]'),
+    ).not.toBeNull()
+    expect(
+      renderPanel?.querySelector('[data-properties-render-readback="ground"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      if (viewportStyleSelect !== null) {
+        viewportStyleSelect.value = 'clayStudio'
+        viewportStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      if (ambientOcclusionSelect !== null) {
+        ambientOcclusionSelect.value = 'medium'
+        ambientOcclusionSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      sampleIncreaseButton?.click()
+    })
+
+    const view = useUiPrefsStore.getState().view
+    expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.shadowsEnabled).toBe(false)
+    expect(view.ground).toEqual(ground)
+    expect(view.viewportStyle).toBe('clayStudio')
+    expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
+    expect(view.renderPreview.targetSamples).toBe(
+      DEFAULT_RENDER_PREVIEW_SETTINGS.targetSamples + 8,
+    )
+  })
+
+  it('writes View Toolbar shadow and ground settings from the Properties Render section', async () => {
+    const environmentGrade = {
+      ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+      exposure: 1.77,
+      contrast: 1.12,
+    }
+    const ground = {
+      ...DEFAULT_VIEW_SETTINGS.ground,
+      enabled: true,
+      height: 2.5,
+      materialPresetId: 'glossy_studio' as const,
+    }
+    const lighting = {
+      selectedLightId: 'key',
+      lights: [
+        {
+          id: 'key',
+          name: 'Key',
+          type: 'directional' as const,
+          enabled: true,
+          color: '#ffffff',
+          intensity: 1.25,
+          castShadow: true,
+          shadowBias: -0.0005,
+          shadowMapSize: 1024,
+        },
+      ],
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          viewportStyle: 'standard',
+          postProcessing: createViewAmbientOcclusionPresetSettings('medium'),
+          environmentGrade,
+          shadowsEnabled: false,
+          ground,
+          lighting,
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const shadowsSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Shadows"]',
+    ) as HTMLSelectElement | null
+    const castShadowSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Cast Shadow"]',
+    ) as HTMLSelectElement | null
+    const shadowBiasIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Shadow Bias"]',
+    ) as HTMLButtonElement | null
+    const shadowMapSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Shadow Map"]',
+    ) as HTMLSelectElement | null
+    const groundSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Ground"]',
+    ) as HTMLSelectElement | null
+    const groundHeightIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Ground Height"]',
+    ) as HTMLButtonElement | null
+    const materialSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Material"]',
+    ) as HTMLSelectElement | null
+
+    expect(shadowsSelect?.value).toBe('off')
+    expect(castShadowSelect?.value).toBe('on')
+    expect(shadowMapSelect?.value).toBe('1024')
+    expect(groundSelect?.value).toBe('on')
+    expect(materialSelect?.value).toBe('glossy_studio')
+
+    await act(async () => {
+      if (shadowsSelect !== null) {
+        shadowsSelect.value = 'on'
+        shadowsSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (castShadowSelect !== null) {
+        castShadowSelect.value = 'off'
+        castShadowSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      shadowBiasIncreaseButton?.click()
+      if (shadowMapSelect !== null) {
+        shadowMapSelect.value = '2048'
+        shadowMapSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (groundSelect !== null) {
+        groundSelect.value = 'off'
+        groundSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      groundHeightIncreaseButton?.click()
+      if (materialSelect !== null) {
+        materialSelect.value = 'matte_dark'
+        materialSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const view = useUiPrefsStore.getState().view
+    const selectedLight = view.lighting.lights.find((light) => light.id === 'key')
+    expect(view.shadowsEnabled).toBe(true)
+    expect(selectedLight?.castShadow).toBe(false)
+    expect(selectedLight?.shadowBias).toBeCloseTo(-0.0004)
+    expect(selectedLight?.shadowMapSize).toBe(2048)
+    expect(view.ground).toEqual({
+      enabled: false,
+      height: 3,
+      materialPresetId: 'matte_dark',
+    })
+    expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
+    expect(view.renderPreview).toEqual(DEFAULT_RENDER_PREVIEW_SETTINGS)
+  })
+
+  it('writes Standard environment grade controls from the Properties Render section only to environmentGrade', async () => {
+    const environmentGrade = {
+      ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+      exposure: 1.77,
+      contrast: 1.12,
+      saturation: 1.08,
+    }
+    const ground = {
+      ...DEFAULT_VIEW_SETTINGS.ground,
+      enabled: true,
+      height: 2.5,
+      materialPresetId: 'glossy_studio' as const,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          viewportStyle: 'standard',
+          postProcessing: createViewAmbientOcclusionPresetSettings('medium'),
+          environmentGrade,
+          shadowsEnabled: false,
+          ground,
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const exposureIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Exposure"]',
+    ) as HTMLButtonElement | null
+    const contrastIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Contrast"]',
+    ) as HTMLButtonElement | null
+    const saturationIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Saturation"]',
+    ) as HTMLButtonElement | null
+
+    expect(renderPanel?.textContent).toContain('View settings grade')
+    expect(renderPanel?.textContent).toContain('Uses the saved environment grade')
+    expect(exposureIncreaseButton?.disabled).toBe(false)
+    expect(contrastIncreaseButton?.disabled).toBe(false)
+    expect(saturationIncreaseButton?.disabled).toBe(false)
+
+    await act(async () => {
+      exposureIncreaseButton?.click()
+      contrastIncreaseButton?.click()
+      saturationIncreaseButton?.click()
+    })
+
+    const view = useUiPrefsStore.getState().view
+    expect(view.environmentGrade).toEqual({
+      ...environmentGrade,
+      exposure: 1.78,
+      contrast: 1.13,
+      saturation: 1.09,
+    })
+    expect(view.viewportStyle).toBe('standard')
+    expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
+    expect(view.renderPreview).toEqual(DEFAULT_RENDER_PREVIEW_SETTINGS)
+    expect(view.shadowsEnabled).toBe(false)
+    expect(view.ground).toEqual(ground)
+  })
+
+  it('locks Environment Grade, Shadows, and Ground controls while Clay Studio is active', async () => {
+    const environmentGrade = {
+      ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+      exposure: 1.77,
+      contrast: 1.12,
+      saturation: 1.08,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          viewportStyle: 'clayStudio',
+          environmentGrade,
+          shadowsEnabled: true,
+          ground: {
+            ...state.view.ground,
+            enabled: true,
+            height: 2.5,
+            materialPresetId: 'glossy_studio',
+          },
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const exposureIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Exposure"]',
+    ) as HTMLButtonElement | null
+    const contrastIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Contrast"]',
+    ) as HTMLButtonElement | null
+    const saturationIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Saturation"]',
+    ) as HTMLButtonElement | null
+    const exposureSlider = container?.querySelector(
+      '.PropertiesRenderSection [role="slider"][aria-label="Exposure"]',
+    ) as HTMLDivElement | null
+    const shadowsSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Shadows"]',
+    ) as HTMLSelectElement | null
+    const castShadowSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Cast Shadow"]',
+    ) as HTMLSelectElement | null
+    const shadowBiasIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Shadow Bias"]',
+    ) as HTMLButtonElement | null
+    const groundSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Ground"]',
+    ) as HTMLSelectElement | null
+    const groundHeightIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Ground Height"]',
+    ) as HTMLButtonElement | null
+    const materialSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Material"]',
+    ) as HTMLSelectElement | null
+
+    expect(renderPanel?.textContent).toContain('Clay Studio preset')
+    expect(renderPanel?.textContent).toContain('Preset Locked')
+    expect(renderPanel?.textContent).toContain('Switch to Standard to edit the saved grade')
+    expect(renderPanel?.textContent).toContain('Hard shadows stay off')
+    expect(renderPanel?.textContent).toContain('Ground is forced on')
+    expect(exposureIncreaseButton?.disabled).toBe(true)
+    expect(contrastIncreaseButton?.disabled).toBe(true)
+    expect(saturationIncreaseButton?.disabled).toBe(true)
+    expect(exposureSlider?.getAttribute('aria-disabled')).toBe('true')
+    expect(shadowsSelect?.disabled).toBe(true)
+    expect(castShadowSelect?.disabled).toBe(true)
+    expect(shadowBiasIncreaseButton?.disabled).toBe(true)
+    expect(groundSelect?.disabled).toBe(true)
+    expect(groundHeightIncreaseButton?.disabled).toBe(true)
+    expect(materialSelect?.disabled).toBe(true)
+
+    await act(async () => {
+      exposureIncreaseButton?.click()
+      contrastIncreaseButton?.click()
+      saturationIncreaseButton?.click()
+      shadowBiasIncreaseButton?.click()
+      groundHeightIncreaseButton?.click()
+    })
+
+    const view = useUiPrefsStore.getState().view
+    expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.viewportStyle).toBe('clayStudio')
+    expect(view.shadowsEnabled).toBe(true)
+    expect(view.ground).toEqual({
+      enabled: true,
+      height: 2.5,
+      materialPresetId: 'glossy_studio',
+    })
+  })
+
+  it('writes ambient occlusion presets from the Properties Render section', async () => {
+    useUiPrefsStore.getState().setViewKey('viewportStyle', 'clayStudio')
+
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const ambientOcclusionSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Ambient Occlusion"]',
+    ) as HTMLSelectElement | null
+    const viewportStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Viewport Style"]',
+    ) as HTMLSelectElement | null
+    const qualityPresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Quality preset"]',
+    ) as HTMLSelectElement | null
+
+    expect(renderPanel?.textContent).toContain('Ambient Occlusion')
+    expect(ambientOcclusionSelect?.value).toBe('off')
+
+    await act(async () => {
+      if (ambientOcclusionSelect !== null) {
+        ambientOcclusionSelect.value = 'low'
+        ambientOcclusionSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
+      createViewAmbientOcclusionPresetSettings('low'),
+    )
+    expect(ambientOcclusionSelect?.value).toBe('low')
+
+    await act(async () => {
+      if (ambientOcclusionSelect !== null) {
+        ambientOcclusionSelect.value = 'high'
+        ambientOcclusionSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
+      createViewAmbientOcclusionPresetSettings('high'),
+    )
+    expect(ambientOcclusionSelect?.value).toBe('high')
+
+    await act(async () => {
+      if (ambientOcclusionSelect !== null) {
+        ambientOcclusionSelect.value = 'off'
+        ambientOcclusionSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
+      createViewAmbientOcclusionPresetSettings('off'),
+    )
+    expect(viewportStyleSelect?.value).toBe('clayStudio')
+    expect(qualityPresetSelect?.value).toBe('balanced')
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
+    expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
+      DEFAULT_RENDER_PREVIEW_SETTINGS,
+    )
   })
 
   it('applies render quality presets and derives Custom from manual divergence', async () => {

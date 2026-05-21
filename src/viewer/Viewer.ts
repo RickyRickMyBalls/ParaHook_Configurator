@@ -127,6 +127,10 @@ import {
 } from './ReferenceTransformMoveSnapHelper'
 import { ReferenceTransformRotateSnapHelper } from './ReferenceTransformRotateSnapHelper'
 import {
+  createViewerPostProcessingRuntime,
+  type ViewerPostProcessingRuntime,
+} from './postProcessingRuntime'
+import {
   getSketchPlaneWorldNormal,
   getSketchPlaneWorldOrigin,
   getSketchPlaneWorldYAxis,
@@ -204,10 +208,22 @@ const DEFAULT_FLY_MODE_TYPE: FlyModeType = 'free-cam'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
 const DISPLAY_EDGE_XRAY_COLOR = '#6f92d9'
 const DISPLAY_EDGE_VISIBLE_COLOR = '#111827'
+const CLAY_STUDIO_EDGE_COLOR = '#8f9692'
 const SEMANTIC_EDGE_XRAY_OPACITY = 0.62
 const SEMANTIC_EDGE_VISIBLE_OPACITY = 0.86
 const MESH_EDGE_XRAY_OPACITY = 0.46
 const MESH_EDGE_VISIBLE_OPACITY = 0.72
+const CLAY_STUDIO_EDGE_XRAY_OPACITY = 0.24
+const CLAY_STUDIO_EDGE_VISIBLE_OPACITY = 0.38
+const CLAY_STUDIO_CONTACT_SHADOW_COLOR = '#8f8b82'
+const CLAY_STUDIO_CONTACT_SHADOW_Y_OFFSET = 0.006
+const CLAY_STUDIO_CONTACT_SHADOW_MIN_RADIUS = 0.42
+const CLAY_STUDIO_CONTACT_SHADOW_HEIGHT_FADE = 8
+const CLAY_STUDIO_CONTACT_SHADOW_RINGS = [
+  { scale: 0.72, opacity: 0.065 },
+  { scale: 1.08, opacity: 0.036 },
+  { scale: 1.48, opacity: 0.018 },
+] as const
 const MESH_EDGE_FALLBACK_THRESHOLD_DEG = 24
 const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
@@ -233,6 +249,81 @@ const SOLID_DISPLAY_MODE_MATERIAL: MaterialPreset = {
   transparent: false,
   doubleSided: true,
 }
+const CLAY_STUDIO_DISPLAY_MODE_MATERIAL: MaterialPreset = {
+  id: 'display_mode_clay_studio',
+  name: 'Clay Studio',
+  color: '#f0eee8',
+  metalness: 0,
+  roughness: 0.94,
+  emissive: '#ffffff',
+  emissiveIntensity: 0.08,
+  opacity: 1,
+  transparent: false,
+  doubleSided: true,
+}
+const CLAY_STUDIO_GROUND_MATERIAL: Omit<MaterialPreset, 'id' | 'name'> = {
+  color: '#ece9e1',
+  metalness: 0,
+  roughness: 0.96,
+  emissive: '#ffffff',
+  emissiveIntensity: 0.06,
+  opacity: 1,
+  transparent: false,
+  doubleSided: true,
+}
+const CLAY_STUDIO_ENVIRONMENT_BACKGROUND = '#e8e8e5'
+const CLAY_STUDIO_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
+  toneMapping: 'aces',
+  exposure: 1.28,
+  contrast: 0.86,
+  highlights: -4,
+  shadows: 36,
+  whites: 16,
+  blacks: 4,
+  temperature: 0,
+  tint: 0,
+  saturation: 0.82,
+}
+const CLAY_STUDIO_LIGHTS: LightSpec[] = [
+  {
+    id: 'clay-studio-key',
+    name: 'Clay Studio Key',
+    type: 'directional',
+    enabled: true,
+    color: '#fffaf2',
+    intensity: 0.62,
+    position: { x: 7, y: 14, z: 9 },
+    target: { x: 0, y: 0.5, z: 0 },
+    castShadow: false,
+  },
+  {
+    id: 'clay-studio-fill',
+    name: 'Clay Studio Fill',
+    type: 'hemisphere',
+    enabled: true,
+    color: '#f7f9ff',
+    intensity: 2.15,
+  },
+  {
+    id: 'clay-studio-ambient',
+    name: 'Clay Studio Ambient',
+    type: 'ambient',
+    enabled: true,
+    color: '#ffffff',
+    intensity: 0.58,
+  },
+  {
+    id: 'clay-studio-rim',
+    name: 'Clay Studio Rim',
+    type: 'directional',
+    enabled: true,
+    color: '#f1f4ff',
+    intensity: 0.16,
+    position: { x: -9, y: 8, z: -8 },
+    target: { x: 0, y: 0.75, z: 0 },
+    castShadow: false,
+  },
+]
 const MATERIAL_DISPLAY_MODE_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
   toneMapping: 'none',
   exposure: 1,
@@ -331,6 +422,9 @@ const cloneViewSettings = (settings: ViewSettings): ViewSettings => ({
   },
   renderPreview: {
     ...settings.renderPreview,
+  },
+  postProcessing: {
+    ...settings.postProcessing,
   },
   highlights: {
     ...settings.highlights,
@@ -532,6 +626,10 @@ export class Viewer {
   private readonly perspectiveCamera: PerspectiveCamera
   private readonly orthographicCamera: OrthographicCamera
   private readonly renderer: WebGLRenderer
+  private postProcessingRuntime: ViewerPostProcessingRuntime | null = null
+  private postProcessingRuntimeUnavailable = false
+  private renderWidth = 1
+  private renderHeight = 1
   private readonly clock: Clock
   private readonly rootGroup: Group
   private readonly geometrySketchOverlayGroup: Group
@@ -540,6 +638,9 @@ export class Viewer {
   private readonly gridGroup: Group
   private readonly groundPlane: Mesh
   private readonly groundPlaneMaterial: MeshStandardMaterial
+  private readonly clayStudioContactShadowGroup: Group
+  private readonly clayStudioContactShadowGeometry: CircleGeometry
+  private readonly clayStudioContactShadowMaterials: MeshBasicMaterial[]
   private readonly minorGridHelper: LineSegments
   private readonly majorGridHelper: LineSegments
   private readonly doubleMajorGridHelper: LineSegments
@@ -776,6 +877,7 @@ export class Viewer {
   private readonly materialModeCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
   private readonly materialModeInspectionLight: HemisphereLight
   private readonly displayModeSolidMaterial: MeshStandardMaterial
+  private readonly displayModeClayStudioMaterial: MeshStandardMaterial
   private readonly assignedPresetByPartKey = new Map<string, MaterialPresetId>()
   private readonly materialFallbackPartKeyByViewerPartKey = new Map<string, string>()
   private environmentTexture: Texture | null = null
@@ -859,6 +961,11 @@ export class Viewer {
     })
     this.displayModeSolidMaterial = new MeshStandardMaterial()
     this.applyPresetToMaterial(this.displayModeSolidMaterial, SOLID_DISPLAY_MODE_MATERIAL)
+    this.displayModeClayStudioMaterial = new MeshStandardMaterial()
+    this.applyPresetToMaterial(
+      this.displayModeClayStudioMaterial,
+      CLAY_STUDIO_DISPLAY_MODE_MATERIAL,
+    )
     this.groundPlane = new Mesh(
       new PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
       this.groundPlaneMaterial,
@@ -869,6 +976,28 @@ export class Viewer {
     this.groundPlane.receiveShadow = true
     this.groundPlane.position.y = DEFAULT_VIEW_SETTINGS.ground.height
     this.scene.add(this.groundPlane)
+    this.clayStudioContactShadowGroup = new Group()
+    this.clayStudioContactShadowGroup.name = 'clay-studio-contact-shadows'
+    this.clayStudioContactShadowGroup.visible = false
+    this.clayStudioContactShadowGeometry = new CircleGeometry(1, 64)
+    this.clayStudioContactShadowMaterials = CLAY_STUDIO_CONTACT_SHADOW_RINGS.map(
+      (ring) =>
+        new MeshBasicMaterial({
+          color: new Color(CLAY_STUDIO_CONTACT_SHADOW_COLOR),
+          transparent: true,
+          opacity: ring.opacity,
+          depthTest: true,
+          depthWrite: false,
+          toneMapped: false,
+          side: DoubleSide,
+        }),
+    )
+    for (const material of this.clayStudioContactShadowMaterials) {
+      material.polygonOffset = true
+      material.polygonOffsetFactor = -1
+      material.polygonOffsetUnits = -1
+    }
+    this.scene.add(this.clayStudioContactShadowGroup)
 
     this.gridGroup = new Group()
     this.minorGridHelper = createGridLayer(
@@ -1336,6 +1465,7 @@ export class Viewer {
     this.refreshSelectedBodyOverlay()
     this.syncSemanticEdgeOverlayVisibility()
     this.refreshGizmoAttachment()
+    this.syncClayStudioContactShadows()
     this.resetRenderPreviewRuntime()
   }
 
@@ -1345,8 +1475,10 @@ export class Viewer {
     this.setProjectionMode(settings.projectionMode)
     this.syncCameraInteractionState()
     this.gridGroup.visible =
-      this.geometrySketchOverlay?.mode === 'draw' ? false : settings.gridVisible
-    this.axesHelper.visible = settings.axesVisible
+      this.geometrySketchOverlay?.mode === 'draw'
+        ? false
+        : settings.gridVisible && !this.resolveClayStudioActive()
+    this.axesHelper.visible = settings.axesVisible && !this.resolveClayStudioActive()
 
     const environmentGrade = this.resolveDisplayModeEnvironmentGrade()
     this.renderer.shadowMap.enabled = this.resolveDisplayModeShadowsEnabled()
@@ -1375,6 +1507,29 @@ export class Viewer {
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     this.syncReferenceTransformRotateSnapPreviewOverlay()
     this.syncRenderPreviewRuntime()
+    this.syncPostProcessingRuntimeState()
+  }
+
+  private syncPostProcessingRuntimeState(): void {
+    if (!this.currentViewSettings.postProcessing.ssaoEnabled) {
+      this.postProcessingRuntimeUnavailable = false
+      this.disposePostProcessingRuntime()
+      return
+    }
+
+    if (this.resolveDisplayMode() === 'renderPreview') {
+      this.disposePostProcessingRuntime()
+      return
+    }
+
+    if (this.postProcessingRuntime !== null) {
+      const canUpdate = this.postProcessingRuntime.updateSettings(
+        this.currentViewSettings.postProcessing,
+      )
+      if (!canUpdate) {
+        this.disposePostProcessingRuntime()
+      }
+    }
   }
 
   private applyEnvironmentSource(settings: ViewSettings): void {
@@ -1387,6 +1542,21 @@ export class Viewer {
         {
           kind: 'preset-color',
           color: getEnvironmentPresetDefinition(settings.envPreset).background,
+        },
+        null,
+      )
+      return
+    }
+
+    if (this.resolveClayStudioActive()) {
+      this.environmentLoadRequestId += 1
+      this.environmentTextureSourcePath = null
+      this.disposeEnvironmentTexture()
+      this.applyEnvironmentLightingContribution(null)
+      this.applyEnvironmentBackgroundTreatment(
+        {
+          kind: 'preset-color',
+          color: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
         },
         null,
       )
@@ -1850,6 +2020,7 @@ export class Viewer {
     for (const [objectId, pivot] of this.contentObjectPivots.entries()) {
       this.applyReferenceTransformOverride(pivot, this.contentObjectTransformOverrides[objectId] ?? null)
     }
+    this.syncClayStudioContactShadows()
     this.refreshGizmoAttachment()
   }
 
@@ -2851,7 +3022,9 @@ export class Viewer {
     this.clearGeometrySketchOverlayGroup(this.geometrySketchOverlayGroup)
     this.geometrySketchDrawHelper.setOverlay(overlay)
     this.gridGroup.visible =
-      overlay?.mode === 'draw' ? false : this.currentViewSettings.gridVisible
+      overlay?.mode === 'draw'
+        ? false
+        : this.currentViewSettings.gridVisible && !this.resolveClayStudioActive()
     if (
       previousOverlayMode === 'draw' &&
       overlay?.mode !== 'draw' &&
@@ -3437,7 +3610,14 @@ export class Viewer {
     this.groundPlane.geometry.dispose()
     this.groundPlaneMaterial.dispose()
     this.displayModeSolidMaterial.dispose()
+    this.displayModeClayStudioMaterial.dispose()
+    this.clearClayStudioContactShadows()
+    this.clayStudioContactShadowGeometry.dispose()
+    for (const material of this.clayStudioContactShadowMaterials) {
+      material.dispose()
+    }
     this.scene.remove(this.groundPlane)
+    this.scene.remove(this.clayStudioContactShadowGroup)
     this.scene.remove(this.materialModeInspectionLight)
 
     for (const material of this.materialCacheByPresetId.values()) {
@@ -3476,6 +3656,7 @@ export class Viewer {
     this.onRuntimeStatsChange = null
     this.onRenderPreviewStatusChange = null
     this.disposeRenderPreviewRuntime()
+    this.disposePostProcessingRuntime()
 
     this.renderer.dispose()
     this.zoomWindowOverlayRoot.remove()
@@ -3543,6 +3724,11 @@ export class Viewer {
     this.materialModeInspectionLight.visible = materialMode
     if (materialMode) {
       this.clearAllLights()
+      return
+    }
+
+    if (this.resolveClayStudioActive()) {
+      this.applyLights(CLAY_STUDIO_LIGHTS)
       return
     }
 
@@ -3999,11 +4185,28 @@ export class Viewer {
 
   private resolveDisplayModeShadowsEnabled(): boolean {
     const mode = this.resolveDisplayMode()
+    if (this.resolveClayStudioActive()) {
+      return false
+    }
     return mode === 'rendered' && this.currentViewSettings.shadowsEnabled
+  }
+
+  private resolveClayStudioActive(): boolean {
+    return (
+      this.currentViewSettings.viewportStyle === 'clayStudio' &&
+      this.resolveDisplayMode() === 'rendered' &&
+      !this.isRenderPreviewModeActive()
+    )
   }
 
   private resolveDisplayModeGroundSettings(): ViewSettings['ground'] {
     const mode = this.resolveDisplayMode()
+    if (this.resolveClayStudioActive()) {
+      return {
+        ...this.currentViewSettings.ground,
+        enabled: true,
+      }
+    }
     if (mode === 'rendered') {
       return this.currentViewSettings.ground
     }
@@ -4014,6 +4217,9 @@ export class Viewer {
   }
 
   private resolveDisplayModeEnvironmentGrade(): EnvironmentGradeSettings {
+    if (this.resolveClayStudioActive()) {
+      return CLAY_STUDIO_ENVIRONMENT_GRADE
+    }
     return this.resolveDisplayMode() === 'material'
       ? MATERIAL_DISPLAY_MODE_ENVIRONMENT_GRADE
       : this.currentViewSettings.environmentGrade
@@ -4055,10 +4261,79 @@ export class Viewer {
     this.applyPresetToMaterial(this.groundPlaneMaterial, {
       id: `ground_${settings.materialPresetId}`,
       name: 'Ground',
-      ...groundMaterialPreset(settings.materialPresetId),
+      ...(this.resolveClayStudioActive()
+        ? CLAY_STUDIO_GROUND_MATERIAL
+        : groundMaterialPreset(settings.materialPresetId)),
     })
     this.groundPlane.castShadow = false
     this.groundPlane.receiveShadow = true
+    this.syncClayStudioContactShadows()
+  }
+
+  private clearClayStudioContactShadows(): void {
+    for (const child of this.clayStudioContactShadowGroup.children) {
+      if (child instanceof Mesh) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((material) => material.dispose())
+        } else {
+          child.material.dispose()
+        }
+      }
+    }
+    this.clayStudioContactShadowGroup.clear()
+  }
+
+  private syncClayStudioContactShadows(): void {
+    this.clearClayStudioContactShadows()
+    const enabled = this.resolveClayStudioActive() && this.groundPlane.visible
+    this.clayStudioContactShadowGroup.visible = enabled
+    if (!enabled) {
+      return
+    }
+
+    const groundY = this.groundPlane.position.y
+    let ringOffset = 0
+    for (const mesh of this.partMeshes.values()) {
+      if (!mesh.visible) {
+        continue
+      }
+      mesh.updateWorldMatrix(true, false)
+      const bounds = new Box3().setFromObject(mesh)
+      if (bounds.isEmpty()) {
+        continue
+      }
+
+      const size = bounds.getSize(new Vector3())
+      const center = bounds.getCenter(new Vector3())
+      const heightAboveGround = Math.max(0, bounds.min.y - groundY)
+      const heightFade = clamp(
+        1 - heightAboveGround / CLAY_STUDIO_CONTACT_SHADOW_HEIGHT_FADE,
+        0.32,
+        1,
+      )
+      const radiusX = Math.max(size.x * 0.58, CLAY_STUDIO_CONTACT_SHADOW_MIN_RADIUS)
+      const radiusZ = Math.max(size.z * 0.58, CLAY_STUDIO_CONTACT_SHADOW_MIN_RADIUS)
+
+      CLAY_STUDIO_CONTACT_SHADOW_RINGS.forEach((ring, index) => {
+        const material = this.clayStudioContactShadowMaterials[index].clone()
+        material.opacity = ring.opacity * heightFade
+        const shadow = new Mesh(this.clayStudioContactShadowGeometry, material)
+        shadow.name = `${mesh.name}:clay-studio-contact-shadow:${index}`
+        shadow.rotation.x = -Math.PI / 2
+        shadow.position.set(
+          center.x,
+          groundY + CLAY_STUDIO_CONTACT_SHADOW_Y_OFFSET + ringOffset * 0.001,
+          center.z,
+        )
+        shadow.scale.set(radiusX * ring.scale, radiusZ * ring.scale, 1)
+        shadow.renderOrder = 4
+        shadow.frustumCulled = false
+        shadow.userData.clayStudioContactShadow = true
+        shadow.userData.partKey = mesh.userData.partKey
+        this.clayStudioContactShadowGroup.add(shadow)
+        ringOffset += 1
+      })
+    }
   }
 
   private createLayerMaterial(
@@ -4331,11 +4606,16 @@ export class Viewer {
   private applyEdgeOverlayPresentation(overlay: LineSegments, visibleEdgesOnly: boolean): void {
     const materials = Array.isArray(overlay.material) ? overlay.material : [overlay.material]
     const isSemanticEdgeOverlay = overlay.userData.semanticEdgeOverlay === true
-    const opacity = isSemanticEdgeOverlay
-      ? (visibleEdgesOnly ? SEMANTIC_EDGE_VISIBLE_OPACITY : SEMANTIC_EDGE_XRAY_OPACITY)
-      : (visibleEdgesOnly ? MESH_EDGE_VISIBLE_OPACITY : MESH_EDGE_XRAY_OPACITY)
+    const clayStudioActive = this.resolveClayStudioActive()
+    const opacity = clayStudioActive
+      ? (visibleEdgesOnly ? CLAY_STUDIO_EDGE_VISIBLE_OPACITY : CLAY_STUDIO_EDGE_XRAY_OPACITY)
+      : isSemanticEdgeOverlay
+        ? (visibleEdgesOnly ? SEMANTIC_EDGE_VISIBLE_OPACITY : SEMANTIC_EDGE_XRAY_OPACITY)
+        : (visibleEdgesOnly ? MESH_EDGE_VISIBLE_OPACITY : MESH_EDGE_XRAY_OPACITY)
     const color =
-      isSemanticEdgeOverlay || visibleEdgesOnly
+      clayStudioActive
+        ? CLAY_STUDIO_EDGE_COLOR
+        : isSemanticEdgeOverlay || visibleEdgesOnly
         ? DISPLAY_EDGE_VISIBLE_COLOR
         : DISPLAY_EDGE_XRAY_COLOR
     for (const material of materials) {
@@ -4361,6 +4641,10 @@ export class Viewer {
   }
 
   private resolveMaterialForPart(partKey: string): ViewerPartMaterial {
+    if (this.resolveClayStudioActive()) {
+      return this.displayModeClayStudioMaterial
+    }
+
     if (this.resolveDisplayMode() === 'solid') {
       return this.displayModeSolidMaterial
     }
@@ -6686,6 +6970,9 @@ export class Viewer {
     const height = Math.max(this.container.clientHeight, 1)
     this.cameraController.setViewportSize(width, height)
     this.renderer.setSize(width, height, false)
+    this.renderWidth = width
+    this.renderHeight = height
+    this.postProcessingRuntime?.setSize(width, height)
     this.resetRenderPreviewRuntime()
   }
 
@@ -7577,10 +7864,67 @@ export class Viewer {
     this.referenceTransformRotateSnapHelper.tick(dt)
     const activeCamera = this.cameraController.getActiveCamera()
     if (!this.renderPreviewSampleFrame()) {
-      this.renderer.render(this.scene, activeCamera)
+      this.renderInteractiveFrame(activeCamera)
     }
     this.refreshRuntimeStats(dt)
     this.axisGizmo?.renderFromCameraQuaternion(activeCamera.quaternion)
+  }
+
+  private renderInteractiveFrame(activeCamera: PerspectiveCamera | OrthographicCamera): void {
+    if (!this.shouldUsePostProcessingRuntime()) {
+      this.renderer.render(this.scene, activeCamera)
+      return
+    }
+
+    const runtime = this.ensurePostProcessingRuntime(activeCamera)
+    if (runtime === null || !runtime.isAvailable()) {
+      this.renderer.render(this.scene, activeCamera)
+      return
+    }
+
+    try {
+      runtime.render(activeCamera)
+    } catch {
+      this.postProcessingRuntimeUnavailable = true
+      this.disposePostProcessingRuntime()
+      this.renderer.render(this.scene, activeCamera)
+    }
+  }
+
+  private shouldUsePostProcessingRuntime(): boolean {
+    return (
+      this.currentViewSettings.postProcessing.ssaoEnabled &&
+      !this.postProcessingRuntimeUnavailable &&
+      this.resolveDisplayMode() !== 'renderPreview'
+    )
+  }
+
+  private ensurePostProcessingRuntime(
+    activeCamera: PerspectiveCamera | OrthographicCamera,
+  ): ViewerPostProcessingRuntime | null {
+    if (this.postProcessingRuntime !== null) {
+      return this.postProcessingRuntime
+    }
+
+    try {
+      const runtime = createViewerPostProcessingRuntime({
+        renderer: this.renderer,
+        scene: this.scene,
+        camera: activeCamera,
+        postProcessing: this.currentViewSettings.postProcessing,
+      })
+      runtime.setSize(this.renderWidth, this.renderHeight)
+      this.postProcessingRuntime = runtime
+      return runtime
+    } catch {
+      this.postProcessingRuntimeUnavailable = true
+      return null
+    }
+  }
+
+  private disposePostProcessingRuntime(): void {
+    this.postProcessingRuntime?.dispose()
+    this.postProcessingRuntime = null
   }
 
   private refreshRuntimeStats(dt: number): void {

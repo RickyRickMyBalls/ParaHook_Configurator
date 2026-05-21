@@ -4,6 +4,7 @@ import { resolveCatalogEnvironmentApplyRequest } from '../catalog/catalogEnviron
 import type { CatalogItemRecord } from '../catalog/catalogItemContract'
 import {
   DEFAULT_VIEW_SETTINGS,
+  DEFAULT_VIEW_POST_PROCESS_SETTINGS,
   createEnvironmentLookSnapshot,
   createHdriEnvironmentSource,
   normalizeViewSettings,
@@ -35,6 +36,7 @@ describe('scene presentation edit-history readiness', () => {
       projectionMode: 'perspective',
       gridVisible: true,
       displayMode: 'rendered',
+      viewportStyle: 'standard',
       wireframe: false,
       ground: {
         enabled: false,
@@ -48,6 +50,12 @@ describe('scene presentation edit-history readiness', () => {
         noiseCleanup: 'off',
         gpuLoad: 'smooth',
       },
+      postProcessing: {
+        ssaoEnabled: false,
+        ssaoIntensity: 0.75,
+        ssaoRadius: 0.5,
+        ssaoQuality: 'low',
+      },
       materials: {
         ...DEFAULT_VIEW_SETTINGS.materials,
         selectedPresetId: 'default_matte',
@@ -58,6 +66,7 @@ describe('scene presentation edit-history readiness', () => {
       projectionMode: 'orthographic',
       gridVisible: false,
       displayMode: 'wireframe',
+      viewportStyle: 'clayStudio',
       wireframe: true,
       envPreset: 'studio',
       environmentGrade: {
@@ -90,6 +99,12 @@ describe('scene presentation edit-history readiness', () => {
         noiseCleanup: 'medium',
         gpuLoad: 'fast',
       },
+      postProcessing: {
+        ssaoEnabled: true,
+        ssaoIntensity: 1.8,
+        ssaoRadius: 2.5,
+        ssaoQuality: 'high',
+      },
       materials: {
         ...DEFAULT_VIEW_SETTINGS.materials,
         selectedPresetId: 'brushed_metal',
@@ -109,9 +124,11 @@ describe('scene presentation edit-history readiness', () => {
     expect(environmentOnlyView.projectionMode).toBe(baseView.projectionMode)
     expect(environmentOnlyView.gridVisible).toBe(baseView.gridVisible)
     expect(environmentOnlyView.displayMode).toBe(baseView.displayMode)
+    expect(environmentOnlyView.viewportStyle).toBe(baseView.viewportStyle)
     expect(environmentOnlyView.wireframe).toBe(baseView.wireframe)
     expect(environmentOnlyView.ground).toEqual(baseView.ground)
     expect(environmentOnlyView.renderPreview).toEqual(baseView.renderPreview)
+    expect(environmentOnlyView.postProcessing).toEqual(baseView.postProcessing)
     expect(environmentOnlyView.materials).toEqual(baseView.materials)
 
     const viewSettingsOnlyView = applyPersistedUiPrefsView(baseView, {
@@ -127,9 +144,11 @@ describe('scene presentation edit-history readiness', () => {
     expect(viewSettingsOnlyView.projectionMode).toBe('orthographic')
     expect(viewSettingsOnlyView.gridVisible).toBe(false)
     expect(viewSettingsOnlyView.displayMode).toBe('wireframe')
+    expect(viewSettingsOnlyView.viewportStyle).toBe('clayStudio')
     expect(viewSettingsOnlyView.wireframe).toBe(true)
     expect(viewSettingsOnlyView.ground).toEqual(persistedView.ground)
     expect(viewSettingsOnlyView.renderPreview).toEqual(persistedView.renderPreview)
+    expect(viewSettingsOnlyView.postProcessing).toEqual(persistedView.postProcessing)
     expect(viewSettingsOnlyView.materials).toEqual(persistedView.materials)
   })
 
@@ -149,10 +168,17 @@ describe('scene presentation edit-history readiness', () => {
     useUiPrefsStore.getState().setView({
       projectionMode: 'orthographic',
       gridVisible: false,
+      viewportStyle: 'clayStudio',
       ground: {
         enabled: true,
         height: 2,
         materialPresetId: 'glossy_studio',
+      },
+      postProcessing: {
+        ssaoEnabled: true,
+        ssaoIntensity: 2.2,
+        ssaoRadius: 1.7,
+        ssaoQuality: 'high',
       },
     })
 
@@ -185,8 +211,10 @@ describe('scene presentation edit-history readiness', () => {
     expect(merged.lighting).toEqual(currentView.lighting)
     expect(merged.projectionMode).toBe(DEFAULT_VIEW_SETTINGS.projectionMode)
     expect(merged.gridVisible).toBe(DEFAULT_VIEW_SETTINGS.gridVisible)
+    expect(merged.viewportStyle).toBe(DEFAULT_VIEW_SETTINGS.viewportStyle)
     expect(merged.ground).toEqual(DEFAULT_VIEW_SETTINGS.ground)
     expect(merged.renderPreview).toEqual(DEFAULT_VIEW_SETTINGS.renderPreview)
+    expect(merged.postProcessing).toEqual(DEFAULT_VIEW_POST_PROCESS_SETTINGS)
     expect(merged.materials).toEqual(DEFAULT_VIEW_SETTINGS.materials)
   })
 

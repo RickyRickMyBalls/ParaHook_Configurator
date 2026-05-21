@@ -3,6 +3,17 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-05-21 07:09:19: Prepped `Properties-3 / Phase 5 - Grid Presentation Controls And Layer System` for implementation against the live `ViewSettings.gridVisible` owner, `uiPrefsPersistence` view-settings copy paths, hard-coded `Viewer.ts` minor/major/double-major grid helpers, and current Properties `Render` group order, locking the first code cut to a three-layer `gridPresentation` contract that keeps `gridVisible` as the top-level on/off setting.
+27. 2026-05-21 06:59:59: Planned `Properties-3 / Phase 5 - Grid Presentation Controls And Layer System` after the user asked to move the View Toolbar `Grid` checkbox into Properties `Render`, setting the next render/presentation handoff around a new `Grid` section with `Grid` on/off, grid height, and a bounded `Grid 1` / `Grid 2` / `Grid 3` layer model for minor, major, and double-major spacing/color/weight controls.
+26. 2026-05-21 06:50:32: Recorded the shipped `Properties-3 / Phase 4 - Ground And Contact Presentation Controls` implementation after Properties `Render > Shadows` and `Render > Ground` gained View Toolbar parity for global shadows, selected-light shadow controls, ground visibility, ground height, and ground material, with Clay Studio keeping those controls locked/read-only as preset-owned presentation behavior.
+25. 2026-05-21 06:40:53: Prepped `Properties-3 / Phase 4 - Ground And Contact Presentation Controls` against the shipped Properties `Render` grouping, existing View Toolbar ground controls, `groundEditHistory` helpers, shared `ViewSettings.ground`, and Clay Studio viewer ground/contact overrides, choosing Standard-mode ground visibility, height, and material controls while leaving Clay Studio contact treatment preset-owned and read-only.
+24. 2026-05-21 06:32:26: Recorded the shipped `Properties-3 / Phase 3 - Environment Grade Controls And Clay Studio Policy` implementation after Properties `Render > Environment` gained Standard-mode Environment Grade sliders, Clay Studio kept those controls `Preset Locked`, and the next active render handoff advanced to `Properties-3 / Phase 4 - Ground And Contact Presentation Controls`.
+23. 2026-05-21 06:28:39: Prepped `Properties-3 / Phase 3 - Environment Grade Controls And Clay Studio Policy` for implementation by choosing the first-pass `Preset Locked` Clay Studio policy, grounding the next cut in the existing `ViewToolbar` grade controls, `uiPrefsStore.setEnvironmentGrade(...)`, environment-look history helpers, and the `Viewer.ts` Clay Studio grade override, while keeping presets, HDRI/source, lighting, and runtime grade math out of scope.
+22. 2026-05-21 06:20:44: Recorded the shipped `Properties-3 / Phase 2 - Render Section Grouping And Readback` implementation after Properties `Render` gained visible `Viewport Presentation`, `Environment`, `Shadows`, `Ground`, and `Render Preview Quality` groups, with Environment/Shadows/Ground staying readback-only and the next active render handoff advancing to `Properties-3 / Phase 3 - Environment Grade Controls And Clay Studio Policy`.
+21. 2026-05-21 06:12:46: Prepped `Properties-3 / Phase 2 - Render Section Grouping And Readback` against the live `PropertiesRenderSection.tsx`, `PropertiesSurface.test.tsx`, shared `ViewSettings` fields, and Clay Studio viewer runtime branches, narrowing the next implementation pass to Properties `Render` grouping and readback rows while deferring active Environment, Shadows, and Ground controls.
+20. 2026-05-20 20:13:19: Recorded the docs-only closeout for `Properties-3 / Phase 1 - ViewSettings And Render Control Inventory`, confirming that the current live implementation exposes `Viewport Style`, Ambient Occlusion, and Render Preview quality in Properties `Render` while Clay Studio environment grade, lighting, hard-shadow suppression, ground forcing, ground material, and contact shadows remain Model Viewport runtime behavior for later readback/grouping phases.
+19. 2026-05-20 20:03:45: Prepped `Properties-3 / Phase 1 - ViewSettings And Render Control Inventory` by grounding the next docs-only pass in the live `ViewSettings` contract, current Properties `Render` section, and Clay Studio viewer overrides, with future Properties `Render` subsections now explicitly aimed at `Viewport Presentation`, `Environment`, `Shadows`, `Ground`, and `Render Preview Quality`.
+18. 2026-05-20 19:53:00: Added `Properties-3 - View And Render Presentation Controls` as the future family plan for organizing viewport/render presentation controls under Properties `Render`, including `Viewport Style`, Ambient Occlusion, Environment Grade Controls, ground/contact presentation, and Render Preview quality while keeping viewer runtime ownership in `Model Viewport`.
 17. 2026-05-10 13:15:16: Expanded the nested materials follow-through by adding explicit `Materials-1` phase-2 and phase-3 planning plus the new `Materials-2` future doc, so the `Properties` umbrella now points at a full foundation ladder and a later editing ladder instead of implying that all post-foundation work still lives inside one materials phase.
 16. 2026-05-10 13:05:32: Added the new standalone `Materials-1` future doc under the nested `Properties/Materials/Future/` home, tightened the active subfamily handoff so the live implementation owner now points at that doc instead of the generation index, and locked the next nested runtime cut to `Phase 1 - Focused Object Intake And Current Material Truth Read`.
 15. 2026-05-10 12:58:35: Recorded the landed `Properties-2 / Phase 3 - Child Section Contract And Shell States` closeout after the shared shell gained an explicit section-facing contract plus shell-owned empty/unsupported/no-section behavior, and advanced the active family handoff out of the shell ladder and into `Materials-1` as the first child-lane runtime owner-mapping pass.
@@ -90,6 +101,7 @@ This file owns the active `Generation 1` family-phase routing for the `Propertie
 Current legal family-phase ladder:
 - `Properties-1` - Workspace Umbrella And Focused-Item Property Routing
 - `Properties-2` - Shared Properties Workspace Shell And Section Hosting
+- `Properties-3` - View And Render Presentation Controls
 
 Current subfamily read:
 - `Materials` is the first active `Properties` subfamily
@@ -115,6 +127,86 @@ Current landed shared-shell follow-on:
 - `Properties-2` is now complete as the first runtime shell ladder
 
 Current next family-level handoff:
+- `Properties-3 - View And Render Presentation Controls` for the render/presentation control organization question
+
+Current render/presentation prep read:
+- `Properties-3 / Phase 1` is complete as a docs-only ViewSettings inventory pass.
+- `Properties-3 / Phase 2` is complete as the first runtime grouping/readback pass.
+- `Properties-3 / Phase 3` is complete as the first Environment Grade controls and Clay Studio locked-policy pass.
+- `Properties-3 / Phase 4` is complete as the View Toolbar Shadows/Ground parity pass.
+- `Properties-3 / Phase 5` is planned as the Grid presentation controls and layer-system pass.
+- Properties `Render` should organize future controls into `Viewport Presentation`, `Environment`, `Shadows`, `Ground`, `Grid`, and `Render Preview Quality`.
+- Clay Studio grade, hard-shadow, and ground/contact behavior should be treated as preset-owned runtime readback until a later phase deliberately changes that policy.
+
+Current next Properties render/presentation phase:
+- `Properties-3 / Phase 5 - Grid Presentation Controls And Layer System`
+
+Current Phase 2 prep read:
+- implement against `src/app/workspace/PropertiesRenderSection.tsx`
+- keep the existing active controls for `Viewport Style`, Ambient Occlusion, and Render Preview quality
+- add `Environment`, `Shadows`, and `Ground` as readback/status groups only
+- do not add active `environmentGrade`, `shadowsEnabled`, or `ground` writes until later phases explicitly own those behavior decisions
+- keep Clay Studio grade, hard-shadow, ground, and contact treatment as Model Viewport runtime preset-owned behavior for this pass
+
+Current Phase 2 landed read:
+- Properties `Render` now visibly separates `Viewport Presentation`, `Environment`, `Shadows`, `Ground`, and `Render Preview Quality`.
+- `Viewport Style`, Ambient Occlusion, and Render Preview quality still write the same existing `ViewSettings` fields.
+- `Environment`, `Shadows`, and `Ground` are passive readback/status groups only.
+- Phase 3 still owns any active Environment Grade policy/control change.
+
+Current Phase 3 prep read:
+- first-pass Clay Studio policy is `Preset Locked`
+- Standard mode should expose active Environment Grade sliders in Properties `Render`
+- Clay Studio should keep the existing `Viewer.ts` `CLAY_STUDIO_ENVIRONMENT_GRADE` override
+- Clay Studio grade controls should be locked/read-only with clear copy instead of silently editing a value that does not affect the Clay Studio look
+- reuse the existing grade field set from `ViewToolbar`: `Exposure`, `Contrast`, `Highlights`, `Shadows`, `Whites`, `Blacks`, `Temperature`, `Tint`, and `Saturation`
+- preserve `uiPrefsStore.setEnvironmentGrade(...)` normalization and persistence
+- do not move environment preset/source, HDRI, lighting, look memory, or A/B compare controls into Properties in Phase 3
+
+Current Phase 3 landed read:
+- Properties `Render > Environment` now exposes the existing Environment Grade field set: `Exposure`, `Contrast`, `Highlights`, `Shadows`, `Whites`, `Blacks`, `Temperature`, `Tint`, and `Saturation`.
+- Standard mode grade sliders write through the existing `uiPrefsStore.setEnvironmentGrade(...)` normalization path.
+- Clay Studio keeps the grade controls disabled and reads as `Preset Locked`.
+- `Viewer.ts` still owns the Clay Studio runtime grade override.
+- Environment preset/source, HDRI, lighting, look memory, A/B compare, and offset math remain out of scope.
+
+Current Phase 4 prep read:
+- Standard mode should expose the existing saved View Toolbar shadow controls in Properties `Render > Shadows`: `Shadows`, selected-light `Cast Shadow`, `Shadow Bias`, and `Shadow Map`.
+- Standard mode should expose the existing saved View Toolbar ground controls in Properties `Render > Ground`: `Ground`, `Ground Height`, and `Material`.
+- Reuse the existing View Toolbar labels, material preset options, environment-light history helpers, and `groundEditHistory` undo helpers where possible.
+- Clay Studio should keep the Shadows and Ground groups visible but locked/read-only because it suppresses hard shadows, forces ground on, retains saved height, uses a preset material, and owns contact treatment in `Viewer.ts`.
+- Do not add a `Ground Contact` control, new `ViewSettings` field, or Clay Studio contact-shadow runtime change in Phase 4.
+- Focus implementation proof on Properties shadow and ground controls writing only `ViewSettings.shadowsEnabled`, selected-light shadow fields, and `ViewSettings.ground`.
+
+Current Phase 4 landed read:
+- Properties `Render > Shadows` now exposes the View Toolbar `Shadows`, selected-light `Cast Shadow`, `Shadow Bias`, and `Shadow Map` controls.
+- Properties `Render > Ground` now exposes the View Toolbar `Ground`, `Ground Height`, and `Material` controls.
+- Standard-mode shadow and ground controls write the existing `ViewSettings` and selected-light fields without changing viewer runtime behavior.
+- Clay Studio keeps the copied Shadows and Ground controls disabled/read-only and reads as `Preset Locked`.
+- Ground contact remains preset-owned with no new user setting.
+
+Current Phase 5 planning read:
+- Add a new Properties `Render > Grid` section after `Ground` and before `Render Preview Quality`.
+- Move the current View Toolbar `Grid` checkbox into Properties as a `ParaSelect` with `Off` / `On`.
+- Add a grid height/offset control for the visible presentation grid without changing ground, sketch planes, graph geometry, or export truth.
+- Treat the current viewer grid runtime as three user-facing layers: `Grid 1` for minor spacing, `Grid 2` for major spacing, and `Grid 3` for double-major spacing.
+- First implementation should use a bounded three-layer model before supporting unlimited custom grid layers.
+- Suggested per-layer controls are `On` / `Off`, spacing, color, opacity/visual weight, and small height offset.
+- True pixel line width should be deferred unless the grid renderer moves to a fat-line implementation, because common WebGL line width support is unreliable.
+- Clay Studio should keep grid suppression preset-owned unless a later Clay Studio policy phase changes that.
+
+Current Phase 5 prep read:
+- Keep `ViewSettings.gridVisible` as the canonical top-level `Grid` on/off setting.
+- Add `ViewSettings.gridPresentation` for grid height, grid size, and exactly three normalized layers.
+- Default `gridPresentation` should reproduce the live viewer grid: size `300`, height `0`, `Grid 1` spacing `1` opacity `0.1`, `Grid 2` spacing `10` opacity `0.3` height offset `0.001`, and `Grid 3` spacing `50` opacity `1` height offset `0.002`.
+- Do not add `gridPresentation.enabled`; that would create a second on/off owner beside `gridVisible`.
+- Carry `gridPresentation` through the existing view-settings persistence policy paths in `uiPrefsPersistence.ts`.
+- Update `Viewer.ts` through a narrow grid-helper sync/rebuild path instead of touching sketch working grids or graph geometry.
+- Disable or lock Properties grid controls while Clay Studio is active, but do not mutate saved grid settings.
+- First implementation should keep the View Toolbar checkbox unless removing it is trivial after the shared `gridVisible` path is proven.
+- Focus proof on Properties scoped writes, settings normalization/persistence, viewer layer rendering defaults/customization, Clay Studio suppression, production build, and `git diff --check`.
+
+Current sibling runtime handoff:
 - `Properties / Materials`
 
 Current next implementation phase inside that handoff:
@@ -153,6 +245,7 @@ Important boundary rule:
 - [ ] `Properties-Gen1-HLG-3. Properties should stay focused-item-aware and downstream from the real owner systems for each property group.`
 - [ ] `Properties-Gen1-HLG-4. Materials should be the first concrete `Properties` subfamily instead of defining the whole workspace identity forever.`
 - [ ] `Properties-Gen1-HLG-5. The umbrella family should leave room for later non-material property groups without pretending they are already planned in detail.`
+- [ ] `Properties-Gen1-HLG-6. Properties should be able to host workspace-level view/render presentation controls without becoming the owner of viewer runtime behavior.`
 
 ### Codex Level Goals
 
@@ -161,6 +254,7 @@ Important boundary rule:
 - [ ] Properties-Gen1-CLG-3. Define the first focused-item property-editing boundary before runtime implementation starts.
 - [ ] Properties-Gen1-CLG-4. Create one standalone `Properties-1` family phase doc when the umbrella needs implementation-ready follow-through beyond the nested materials lane.
 - [ ] Properties-Gen1-CLG-5. Create one shared-shell follow-on family phase so nested property-group lanes can mount into a real `Properties` workspace surface before child-lane runtime behavior widens.
+- [ ] Properties-Gen1-CLG-6. Create one view/render presentation controls family phase so `Viewport Style`, Ambient Occlusion, Environment Grade Controls, ground/contact presentation, and Render Preview quality can be organized under Properties `Render`.
 
 ### `Properties-1`
 
@@ -207,6 +301,24 @@ Landed read:
 - [ ] `Properties-Gen1-HLG-4`
 - [ ] Properties-Gen1-CLG-2.
 - [ ] Properties-Gen1-CLG-3.
+
+### `Properties-3`
+
+- [x] Create the standalone `Future/Properties-3 - View And Render Presentation Controls.md` Family Phase Doc.
+- [x] Organize the existing and planned `ViewSettings` presentation controls under Properties `Render`.
+- [x] Keep `Model Viewport` as the viewer runtime owner.
+- [x] Decide how Clay Studio should interact with Environment Grade Controls.
+- [x] Move View Toolbar Shadows and Ground settings into Properties `Render`.
+- [x] Keep Render Preview quality controls visually separate from interactive viewport presentation controls.
+- [ ] Plan and implement the Properties `Render > Grid` section with a bounded `Grid 1` / `Grid 2` / `Grid 3` layer model.
+- [ ] `Properties-Gen1-HLG-1`
+- [ ] `Properties-Gen1-HLG-2`
+- [ ] `Properties-Gen1-HLG-3`
+- [ ] `Properties-Gen1-HLG-5`
+- [ ] `Properties-Gen1-HLG-6`
+- [ ] Properties-Gen1-CLG-1.
+- [ ] Properties-Gen1-CLG-3.
+- [ ] Properties-Gen1-CLG-6.
 
 ### Phase Prep Notes
 

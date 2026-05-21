@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+152. 2026-05-20 19:53:00: Added `Properties-3 - View And Render Presentation Controls` under the `Properties` workspace family so the Clay Studio and render-presentation control organization question now has a Properties-owned planning surface separate from Model Viewport runtime implementation.
 151. 2026-05-11 15:55:21: Added the new `Workspace-11 - Future Workspace Shell Adoption Contract` future doc and index entry so future workspace surfaces have an explicit shared `ViewportFrame` adoption path for viewport-type, presentation, pop-out, close, and later shell controls instead of copying local titlebar chrome.
 150. 2026-05-10 13:15:16: Expanded the nested `Materials` ladder under `Properties` by adding explicit phase-2 and phase-3 planning to `Materials-1` plus the new `Materials-2 - First Material Editing And Action Flows` future doc, so the workspace family now records a full foundation ladder followed by a separate editing ladder.
 149. 2026-05-10 13:05:32: Added the new standalone nested `Materials-1` future doc under `Workspaces/Properties/Materials/Future/`, tightened the `Properties` family handoff so the active nested implementation owner now points at that doc instead of the generation index, and locked the next cut to `Phase 1 - Focused Object Intake And Current Material Truth Read`.
@@ -1039,10 +1040,14 @@ The right mental model is:
   - dedicated home for the curated repo-backed reusable-asset workspace direction, including hooks, shoes, footpads, HDRIs, and later explicit browse-and-load families without turning the catalog into a second Browser/content owner
 - `Properties`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
-  - dedicated home for the focused-item property workspace umbrella, including the rule that `Materials` is the first nested property-editing subfamily instead of the whole workspace identity forever
+  - dedicated home for the focused-item property workspace umbrella, including the rule that `Materials` is the first nested property-editing subfamily instead of the whole workspace identity forever and `Render` can host workspace-level view/render presentation controls without becoming the viewer runtime owner
   - landed structural umbrella phase:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-1 - Workspace Umbrella And Focused-Item Property Routing.md`
   - current implementation-planning owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+  - current render/presentation handoff:
+    - `Properties-3 / Phase 1 - ViewSettings And Render Control Inventory`
+  - current materials implementation-planning owner:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
   - current next implementation phase:
     - `Materials-1 / Phase 1 - Focused Object Intake And Current Material Truth Read`
