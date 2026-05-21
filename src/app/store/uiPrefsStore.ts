@@ -13,12 +13,18 @@ import type {
 } from '../../shared/viewSettingsTypes'
 import {
   createEnvironmentLookSnapshot,
+  createGeometryDisplaySurfaceStylesFromHighlights,
+  createHighlightsFromGeometryDisplaySurfaceStyles,
+  createHighlightsFromGeometryDisplayStyles,
   createHdriEnvironmentSource,
   createEnvironmentPresetViewPatch,
   DEFAULT_VIEW_SETTINGS,
   isViewDisplayMode,
+  isViewEdgeDisplayMode,
   normalizeViewSettings,
   normalizeEnvironmentGrade,
+  normalizeViewHighlightSettings,
+  viewEdgeDisplayModeToGeometryDisplayEdgeMode,
 } from '../../shared/viewSettingsTypes'
 import {
   areSpaghettiWindowAppearanceEqual,
@@ -59,6 +65,45 @@ const normalizeWorkspacePanelShellPaddingPx = (value: number | undefined): numbe
         MAX_WORKSPACE_PANEL_SHELL_PADDING_PX,
       )
     : DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX
+
+const hasGeometryDisplayEdgeInteractionStyleChanged = (
+  currentView: ViewSettings,
+  nextGeometryDisplay: ViewSettings['geometryDisplay'],
+): boolean =>
+  currentView.geometryDisplay.edges.hover.color !== nextGeometryDisplay.edges.hover.color ||
+  currentView.geometryDisplay.edges.hover.opacity !== nextGeometryDisplay.edges.hover.opacity ||
+  currentView.geometryDisplay.edges.selected.color !== nextGeometryDisplay.edges.selected.color ||
+  currentView.geometryDisplay.edges.selected.opacity !== nextGeometryDisplay.edges.selected.opacity
+
+const hasGeometryDisplaySurfaceInteractionStyleChanged = (
+  currentView: ViewSettings,
+  nextGeometryDisplay: ViewSettings['geometryDisplay'],
+): boolean =>
+  currentView.geometryDisplay.surfaces.hover.color !== nextGeometryDisplay.surfaces.hover.color ||
+  currentView.geometryDisplay.surfaces.hover.opacity !==
+    nextGeometryDisplay.surfaces.hover.opacity ||
+  currentView.geometryDisplay.surfaces.selected.color !==
+    nextGeometryDisplay.surfaces.selected.color ||
+  currentView.geometryDisplay.surfaces.selected.opacity !==
+    nextGeometryDisplay.surfaces.selected.opacity ||
+  currentView.geometryDisplay.surfaces.bodySelected.color !==
+    nextGeometryDisplay.surfaces.bodySelected.color ||
+  currentView.geometryDisplay.surfaces.bodySelected.opacity !==
+    nextGeometryDisplay.surfaces.bodySelected.opacity
+
+const createHighlightsForGeometryDisplayPatch = (
+  currentView: ViewSettings,
+  nextGeometryDisplay: ViewSettings['geometryDisplay'],
+  baseHighlights: ViewSettings['highlights'],
+): ViewSettings['highlights'] => {
+  if (hasGeometryDisplayEdgeInteractionStyleChanged(currentView, nextGeometryDisplay)) {
+    return createHighlightsFromGeometryDisplayStyles(baseHighlights, nextGeometryDisplay)
+  }
+  if (hasGeometryDisplaySurfaceInteractionStyleChanged(currentView, nextGeometryDisplay)) {
+    return createHighlightsFromGeometryDisplaySurfaceStyles(baseHighlights, nextGeometryDisplay)
+  }
+  return baseHighlights
+}
 
 const normalizeEnvironmentIntensity = (value: number | undefined, fallback = 1): number =>
   Number.isFinite(value) ? clamp(value as number, 0, 5) : fallback
@@ -321,6 +366,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   sketchDrawPlinePointSymbolType: 'circle',
   setView: (patch) => {
     const normalizedPatch = { ...patch }
+    const currentView = get().view
     if ('wireframe' in patch && !('displayMode' in patch)) {
       normalizedPatch.displayMode = patch.wireframe ? 'wireframe' : 'rendered'
       normalizedPatch.edgeDisplayMode = patch.wireframe ? 'on' : 'off'
@@ -335,10 +381,40 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
         normalizedPatch.edgeDisplayMode = 'on'
       }
     }
-    set({ view: normalizeViewSettings({ ...get().view, ...normalizedPatch }) })
+    if (
+      'edgeDisplayMode' in normalizedPatch &&
+      !('geometryDisplay' in normalizedPatch) &&
+      isViewEdgeDisplayMode(normalizedPatch.edgeDisplayMode)
+    ) {
+      normalizedPatch.geometryDisplay = {
+        ...currentView.geometryDisplay,
+        edges: {
+          ...currentView.geometryDisplay.edges,
+          mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(normalizedPatch.edgeDisplayMode),
+        },
+      }
+    }
+    if ('geometryDisplay' in normalizedPatch && normalizedPatch.geometryDisplay !== undefined) {
+      normalizedPatch.highlights = createHighlightsForGeometryDisplayPatch(
+        currentView,
+        normalizedPatch.geometryDisplay,
+        normalizedPatch.highlights ?? currentView.highlights,
+      )
+    } else if ('highlights' in normalizedPatch && normalizedPatch.highlights !== undefined) {
+      normalizedPatch.geometryDisplay = createGeometryDisplaySurfaceStylesFromHighlights(
+        currentView.geometryDisplay,
+        normalizeViewHighlightSettings(normalizedPatch.highlights),
+      )
+    }
+    const nextView = normalizeViewSettings({ ...currentView, ...normalizedPatch })
+    if (normalizedPatch.highlights !== undefined) {
+      nextView.highlights = normalizeViewHighlightSettings(normalizedPatch.highlights)
+    }
+    set({ view: nextView })
   },
   setViewKey: (key, value) => {
     const patch: Partial<ViewSettings> = { [key]: value }
+    const currentView = get().view
     if (key === 'wireframe') {
       patch.displayMode = value ? 'wireframe' : 'rendered'
       patch.edgeDisplayMode = value ? 'on' : 'off'
@@ -349,7 +425,49 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
         patch.edgeDisplayMode = 'on'
       }
     }
-    set({ view: normalizeViewSettings({ ...get().view, ...patch }) })
+    if (
+      key === 'edgeDisplayMode' &&
+      isViewEdgeDisplayMode(value)
+    ) {
+      patch.geometryDisplay = {
+        ...currentView.geometryDisplay,
+        edges: {
+          ...currentView.geometryDisplay.edges,
+          mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(value),
+        },
+      }
+    }
+    if (
+      key !== 'geometryDisplay' &&
+      'edgeDisplayMode' in patch &&
+      isViewEdgeDisplayMode(patch.edgeDisplayMode)
+    ) {
+      patch.geometryDisplay = {
+        ...currentView.geometryDisplay,
+        edges: {
+          ...currentView.geometryDisplay.edges,
+          mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(patch.edgeDisplayMode),
+        },
+      }
+    }
+    if (key === 'geometryDisplay' && patch.geometryDisplay !== undefined) {
+      patch.highlights = createHighlightsForGeometryDisplayPatch(
+        currentView,
+        patch.geometryDisplay,
+        currentView.highlights,
+      )
+    }
+    if (key === 'highlights' && patch.highlights !== undefined) {
+      patch.geometryDisplay = createGeometryDisplaySurfaceStylesFromHighlights(
+        currentView.geometryDisplay,
+        normalizeViewHighlightSettings(patch.highlights),
+      )
+    }
+    const nextView = normalizeViewSettings({ ...currentView, ...patch })
+    if (patch.highlights !== undefined) {
+      nextView.highlights = normalizeViewHighlightSettings(patch.highlights)
+    }
+    set({ view: nextView })
   },
   setWorkspaceStartupSurface: (workspaceStartupSurface) => {
     set({ workspaceStartupSurface })

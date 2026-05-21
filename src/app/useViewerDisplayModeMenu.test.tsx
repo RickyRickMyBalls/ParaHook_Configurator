@@ -8,6 +8,10 @@ import type {
   ViewEdgeDisplayMode,
   ViewportStyle,
 } from '../shared/viewSettingsTypes'
+import {
+  CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+  createViewAmbientOcclusionPresetSettings,
+} from '../shared/viewSettingsTypes'
 import { useViewerDisplayModeMenu } from './useViewerDisplayModeMenu'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
@@ -247,10 +251,19 @@ describe('useViewerDisplayModeMenu', () => {
 
     expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
     expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
+    expect(useUiPrefsStore.getState().view.environmentGrade).toEqual(
+      CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+    )
+    expect(useUiPrefsStore.getState().view.shadowsEnabled).toBe(false)
+    expect(useUiPrefsStore.getState().view.ground.enabled).toBe(true)
+    expect(useUiPrefsStore.getState().view.gridVisible).toBe(false)
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
+      createViewAmbientOcclusionPresetSettings('medium'),
+    )
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
   })
 
-  it('returns to standard viewport style when selecting a normal display mode', () => {
+  it('preserves the current render preset when selecting a normal display mode', () => {
     makeActiveViewerShortcutOwner()
     renderHarness()
     useUiPrefsStore.getState().setView({
@@ -278,7 +291,7 @@ describe('useViewerDisplayModeMenu', () => {
       solidButton?.click()
     })
 
-    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('standard')
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
     expect(useUiPrefsStore.getState().view.displayMode).toBe('solid')
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
   })

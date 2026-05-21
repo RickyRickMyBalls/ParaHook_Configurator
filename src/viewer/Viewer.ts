@@ -61,6 +61,7 @@ import {
   type RenderPreviewSettings,
   type ViewDisplayMode,
   type ViewSettings,
+  isViewPostProcessingAoEnabled,
   normalizeRenderPreviewSettings,
 } from '../shared/viewSettingsTypes'
 import type {
@@ -207,28 +208,17 @@ const DEFAULT_FLY_ACTIVATION_MODE: FlyActivationMode = 'right-click'
 const DEFAULT_FLY_MODE_TYPE: FlyModeType = 'free-cam'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
 const DISPLAY_EDGE_XRAY_COLOR = '#6f92d9'
-const DISPLAY_EDGE_VISIBLE_COLOR = '#111827'
-const CLAY_STUDIO_EDGE_COLOR = '#8f9692'
 const SEMANTIC_EDGE_XRAY_OPACITY = 0.62
-const SEMANTIC_EDGE_VISIBLE_OPACITY = 0.86
 const MESH_EDGE_XRAY_OPACITY = 0.46
-const MESH_EDGE_VISIBLE_OPACITY = 0.72
-const CLAY_STUDIO_EDGE_XRAY_OPACITY = 0.24
-const CLAY_STUDIO_EDGE_VISIBLE_OPACITY = 0.38
 const CLAY_STUDIO_CONTACT_SHADOW_COLOR = '#8f8b82'
 const CLAY_STUDIO_CONTACT_SHADOW_Y_OFFSET = 0.006
 const CLAY_STUDIO_CONTACT_SHADOW_MIN_RADIUS = 0.42
-const CLAY_STUDIO_CONTACT_SHADOW_HEIGHT_FADE = 8
 const CLAY_STUDIO_CONTACT_SHADOW_RINGS = [
   { scale: 0.72, opacity: 0.065 },
   { scale: 1.08, opacity: 0.036 },
   { scale: 1.48, opacity: 0.018 },
 ] as const
 const MESH_EDGE_FALLBACK_THRESHOLD_DEG = 24
-const GRID_SIZE = 300
-const GRID_MINOR_STEP = 1
-const GRID_MAJOR_STEP = 10
-const GRID_DOUBLE_MAJOR_STEP = 50
 const GROUND_SIZE = 1000
 const DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 4
 const FLY_CAMERA_BOOST_MULTIPLIER = 3
@@ -272,18 +262,6 @@ const CLAY_STUDIO_GROUND_MATERIAL: Omit<MaterialPreset, 'id' | 'name'> = {
   doubleSided: true,
 }
 const CLAY_STUDIO_ENVIRONMENT_BACKGROUND = '#e8e8e5'
-const CLAY_STUDIO_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
-  toneMapping: 'aces',
-  exposure: 1.28,
-  contrast: 0.86,
-  highlights: -4,
-  shadows: 36,
-  whites: 16,
-  blacks: 4,
-  temperature: 0,
-  tint: 0,
-  saturation: 0.82,
-}
 const CLAY_STUDIO_LIGHTS: LightSpec[] = [
   {
     id: 'clay-studio-key',
@@ -383,7 +361,7 @@ const getGridCoordinates = (size: number, step: number): number[] => {
 const createGridLayer = (
   size: number,
   step: number,
-  color: number,
+  color: string,
   opacity: number,
   excludedSteps: readonly number[] = [],
 ): LineSegments => {
@@ -420,11 +398,32 @@ const cloneViewSettings = (settings: ViewSettings): ViewSettings => ({
   ground: {
     ...settings.ground,
   },
+  geometryDisplay: {
+    surfaces: {
+      ...settings.geometryDisplay.surfaces,
+      customMaterial: {
+        ...settings.geometryDisplay.surfaces.customMaterial,
+      },
+    },
+    edges: {
+      ...settings.geometryDisplay.edges,
+    },
+    points: {
+      ...settings.geometryDisplay.points,
+    },
+  },
+  gridPresentation: {
+    ...settings.gridPresentation,
+    layers: settings.gridPresentation.layers.map((layer) => ({ ...layer })),
+  },
   renderPreview: {
     ...settings.renderPreview,
   },
   postProcessing: {
     ...settings.postProcessing,
+  },
+  contactShadows: {
+    ...settings.contactShadows,
   },
   highlights: {
     ...settings.highlights,
@@ -641,9 +640,7 @@ export class Viewer {
   private readonly clayStudioContactShadowGroup: Group
   private readonly clayStudioContactShadowGeometry: CircleGeometry
   private readonly clayStudioContactShadowMaterials: MeshBasicMaterial[]
-  private readonly minorGridHelper: LineSegments
-  private readonly majorGridHelper: LineSegments
-  private readonly doubleMajorGridHelper: LineSegments
+  private gridHelpers: LineSegments[] = []
   private readonly axesHelper: AxesHelper
   private readonly cameraController: CameraController
   private readonly transformGizmo: TransformGizmo
@@ -876,6 +873,8 @@ export class Viewer {
   private readonly materialCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
   private readonly materialModeCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
   private readonly materialModeInspectionLight: HemisphereLight
+  private readonly customSurfaceMaterial: MeshStandardMaterial
+  private readonly customSurfaceMaterialMode: MeshStandardMaterial
   private readonly displayModeSolidMaterial: MeshStandardMaterial
   private readonly displayModeClayStudioMaterial: MeshStandardMaterial
   private readonly assignedPresetByPartKey = new Map<string, MaterialPresetId>()
@@ -961,6 +960,16 @@ export class Viewer {
     })
     this.displayModeSolidMaterial = new MeshStandardMaterial()
     this.applyPresetToMaterial(this.displayModeSolidMaterial, SOLID_DISPLAY_MODE_MATERIAL)
+    this.customSurfaceMaterial = new MeshStandardMaterial()
+    this.applyPresetToMaterial(
+      this.customSurfaceMaterial,
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial,
+    )
+    this.customSurfaceMaterialMode = new MeshStandardMaterial()
+    this.applyPresetToMaterialModeMaterial(
+      this.customSurfaceMaterialMode,
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial,
+    )
     this.displayModeClayStudioMaterial = new MeshStandardMaterial()
     this.applyPresetToMaterial(
       this.displayModeClayStudioMaterial,
@@ -1000,31 +1009,7 @@ export class Viewer {
     this.scene.add(this.clayStudioContactShadowGroup)
 
     this.gridGroup = new Group()
-    this.minorGridHelper = createGridLayer(
-      GRID_SIZE,
-      GRID_MINOR_STEP,
-      0xffffff,
-      0.1,
-      [GRID_MAJOR_STEP, GRID_DOUBLE_MAJOR_STEP],
-    )
-    this.majorGridHelper = createGridLayer(
-      GRID_SIZE,
-      GRID_MAJOR_STEP,
-      0xffffff,
-      0.3,
-      [GRID_DOUBLE_MAJOR_STEP],
-    )
-    this.doubleMajorGridHelper = createGridLayer(
-      GRID_SIZE,
-      GRID_DOUBLE_MAJOR_STEP,
-      0xffffff,
-      1,
-    )
-    this.majorGridHelper.position.y = 0.001
-    this.doubleMajorGridHelper.position.y = 0.002
-    this.gridGroup.add(this.minorGridHelper)
-    this.gridGroup.add(this.majorGridHelper)
-    this.gridGroup.add(this.doubleMajorGridHelper)
+    this.syncGridPresentation(DEFAULT_VIEW_SETTINGS.gridPresentation)
     this.scene.add(this.gridGroup)
 
     this.axesHelper = new AxesHelper(1.5)
@@ -1474,10 +1459,11 @@ export class Viewer {
 
     this.setProjectionMode(settings.projectionMode)
     this.syncCameraInteractionState()
+    this.syncGridPresentation(settings.gridPresentation)
     this.gridGroup.visible =
       this.geometrySketchOverlay?.mode === 'draw'
         ? false
-        : settings.gridVisible && !this.resolveClayStudioActive()
+        : settings.gridVisible
     this.axesHelper.visible = settings.axesVisible && !this.resolveClayStudioActive()
 
     const environmentGrade = this.resolveDisplayModeEnvironmentGrade()
@@ -1511,7 +1497,7 @@ export class Viewer {
   }
 
   private syncPostProcessingRuntimeState(): void {
-    if (!this.currentViewSettings.postProcessing.ssaoEnabled) {
+    if (!isViewPostProcessingAoEnabled(this.currentViewSettings.postProcessing)) {
       this.postProcessingRuntimeUnavailable = false
       this.disposePostProcessingRuntime()
       return
@@ -1639,6 +1625,39 @@ export class Viewer {
       kind: 'preset',
       intensity: 1,
       rotationDeg: 0,
+    }
+  }
+
+  private clearGridHelpers(): void {
+    for (const helper of this.gridHelpers) {
+      helper.geometry.dispose()
+      if (Array.isArray(helper.material)) {
+        helper.material.forEach((material) => material.dispose())
+      } else {
+        helper.material.dispose()
+      }
+      this.gridGroup.remove(helper)
+    }
+    this.gridHelpers = []
+  }
+
+  private syncGridPresentation(settings: ViewSettings['gridPresentation']): void {
+    this.clearGridHelpers()
+    const enabledLayers = settings.layers.filter((layer) => layer.enabled)
+    const enabledLayerSpacings = enabledLayers.map((layer) => layer.spacing)
+    for (const layer of enabledLayers) {
+      const excludedSteps = enabledLayerSpacings.filter((spacing) => spacing > layer.spacing)
+      const helper = createGridLayer(
+        settings.size,
+        layer.spacing,
+        layer.color,
+        layer.opacity,
+        excludedSteps,
+      )
+      helper.position.y = settings.height + layer.heightOffset
+      helper.userData.gridPresentationLayerId = layer.id
+      this.gridHelpers.push(helper)
+      this.gridGroup.add(helper)
     }
   }
 
@@ -3024,7 +3043,7 @@ export class Viewer {
     this.gridGroup.visible =
       overlay?.mode === 'draw'
         ? false
-        : this.currentViewSettings.gridVisible && !this.resolveClayStudioActive()
+        : this.currentViewSettings.gridVisible
     if (
       previousOverlayMode === 'draw' &&
       overlay?.mode !== 'draw' &&
@@ -3616,8 +3635,12 @@ export class Viewer {
     for (const material of this.clayStudioContactShadowMaterials) {
       material.dispose()
     }
+    this.clearGridHelpers()
+    this.customSurfaceMaterial.dispose()
+    this.customSurfaceMaterialMode.dispose()
     this.scene.remove(this.groundPlane)
     this.scene.remove(this.clayStudioContactShadowGroup)
+    this.scene.remove(this.gridGroup)
     this.scene.remove(this.materialModeInspectionLight)
 
     for (const material of this.materialCacheByPresetId.values()) {
@@ -3961,6 +3984,14 @@ export class Viewer {
   }
 
   private applyMaterialSettings(materials: ViewSettings['materials']): void {
+    this.applyPresetToMaterial(
+      this.customSurfaceMaterial,
+      this.currentViewSettings.geometryDisplay.surfaces.customMaterial,
+    )
+    this.applyPresetToMaterialModeMaterial(
+      this.customSurfaceMaterialMode,
+      this.currentViewSettings.geometryDisplay.surfaces.customMaterial,
+    )
     const presets = materials.presets.length > 0 ? materials.presets : [fallbackPreset()]
     const nextPresetIds = new Set(presets.map((preset) => preset.id))
 
@@ -4183,11 +4214,12 @@ export class Viewer {
     return this.currentViewSettings.edgeDisplayMode === 'visibleEdgesOnly'
   }
 
+  private resolveSurfaceVisible(): boolean {
+    return this.currentViewSettings.geometryDisplay.surfaces.visible
+  }
+
   private resolveDisplayModeShadowsEnabled(): boolean {
     const mode = this.resolveDisplayMode()
-    if (this.resolveClayStudioActive()) {
-      return false
-    }
     return mode === 'rendered' && this.currentViewSettings.shadowsEnabled
   }
 
@@ -4201,12 +4233,6 @@ export class Viewer {
 
   private resolveDisplayModeGroundSettings(): ViewSettings['ground'] {
     const mode = this.resolveDisplayMode()
-    if (this.resolveClayStudioActive()) {
-      return {
-        ...this.currentViewSettings.ground,
-        enabled: true,
-      }
-    }
     if (mode === 'rendered') {
       return this.currentViewSettings.ground
     }
@@ -4217,9 +4243,6 @@ export class Viewer {
   }
 
   private resolveDisplayModeEnvironmentGrade(): EnvironmentGradeSettings {
-    if (this.resolveClayStudioActive()) {
-      return CLAY_STUDIO_ENVIRONMENT_GRADE
-    }
     return this.resolveDisplayMode() === 'material'
       ? MATERIAL_DISPLAY_MODE_ENVIRONMENT_GRADE
       : this.currentViewSettings.environmentGrade
@@ -4285,7 +4308,13 @@ export class Viewer {
 
   private syncClayStudioContactShadows(): void {
     this.clearClayStudioContactShadows()
-    const enabled = this.resolveClayStudioActive() && this.groundPlane.visible
+    const contactShadows = this.currentViewSettings.contactShadows
+    const enabled =
+      this.currentViewSettings.displayMode !== 'renderPreview' &&
+      this.resolveDisplayMode() === 'rendered' &&
+      contactShadows.enabled &&
+      contactShadows.opacity > 0 &&
+      this.groundPlane.visible
     this.clayStudioContactShadowGroup.visible = enabled
     if (!enabled) {
       return
@@ -4294,7 +4323,7 @@ export class Viewer {
     const groundY = this.groundPlane.position.y
     let ringOffset = 0
     for (const mesh of this.partMeshes.values()) {
-      if (!mesh.visible) {
+      if (!mesh.visible || !this.resolveSurfaceVisible()) {
         continue
       }
       mesh.updateWorldMatrix(true, false)
@@ -4307,7 +4336,7 @@ export class Viewer {
       const center = bounds.getCenter(new Vector3())
       const heightAboveGround = Math.max(0, bounds.min.y - groundY)
       const heightFade = clamp(
-        1 - heightAboveGround / CLAY_STUDIO_CONTACT_SHADOW_HEIGHT_FADE,
+        1 - heightAboveGround / contactShadows.heightFade,
         0.32,
         1,
       )
@@ -4316,7 +4345,7 @@ export class Viewer {
 
       CLAY_STUDIO_CONTACT_SHADOW_RINGS.forEach((ring, index) => {
         const material = this.clayStudioContactShadowMaterials[index].clone()
-        material.opacity = ring.opacity * heightFade
+        material.opacity = ring.opacity * heightFade * contactShadows.opacity
         const shadow = new Mesh(this.clayStudioContactShadowGeometry, material)
         shadow.name = `${mesh.name}:clay-studio-contact-shadow:${index}`
         shadow.rotation.x = -Math.PI / 2
@@ -4325,7 +4354,11 @@ export class Viewer {
           groundY + CLAY_STUDIO_CONTACT_SHADOW_Y_OFFSET + ringOffset * 0.001,
           center.z,
         )
-        shadow.scale.set(radiusX * ring.scale, radiusZ * ring.scale, 1)
+        shadow.scale.set(
+          radiusX * ring.scale * contactShadows.spread,
+          radiusZ * ring.scale * contactShadows.spread,
+          1,
+        )
         shadow.renderOrder = 4
         shadow.frustumCulled = false
         shadow.userData.clayStudioContactShadow = true
@@ -4420,11 +4453,13 @@ export class Viewer {
   private applyMeshDisplayModePresentation(mesh: Mesh): void {
     const wireframe = this.shouldUseMaterialWireframeForMesh(mesh)
     this.ensureOwnedMeshMaterialForPresentation(mesh, wireframe)
+    const surfaceVisible = this.resolveSurfaceVisible()
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
     for (const material of materials) {
       if (!(material instanceof MeshStandardMaterial)) {
         continue
       }
+      material.visible = surfaceVisible
       material.wireframe = wireframe
       material.needsUpdate = true
     }
@@ -4605,26 +4640,15 @@ export class Viewer {
 
   private applyEdgeOverlayPresentation(overlay: LineSegments, visibleEdgesOnly: boolean): void {
     const materials = Array.isArray(overlay.material) ? overlay.material : [overlay.material]
-    const isSemanticEdgeOverlay = overlay.userData.semanticEdgeOverlay === true
-    const clayStudioActive = this.resolveClayStudioActive()
-    const opacity = clayStudioActive
-      ? (visibleEdgesOnly ? CLAY_STUDIO_EDGE_VISIBLE_OPACITY : CLAY_STUDIO_EDGE_XRAY_OPACITY)
-      : isSemanticEdgeOverlay
-        ? (visibleEdgesOnly ? SEMANTIC_EDGE_VISIBLE_OPACITY : SEMANTIC_EDGE_XRAY_OPACITY)
-        : (visibleEdgesOnly ? MESH_EDGE_VISIBLE_OPACITY : MESH_EDGE_XRAY_OPACITY)
-    const color =
-      clayStudioActive
-        ? CLAY_STUDIO_EDGE_COLOR
-        : isSemanticEdgeOverlay || visibleEdgesOnly
-        ? DISPLAY_EDGE_VISIBLE_COLOR
-        : DISPLAY_EDGE_XRAY_COLOR
+    const edgeStyle = this.currentViewSettings.geometryDisplay.edges
+    const depthTest = visibleEdgesOnly || edgeStyle.depthMode === 'surface'
     for (const material of materials) {
       if (!(material instanceof LineBasicMaterial)) {
         continue
       }
-      material.color.set(color)
-      material.opacity = opacity
-      material.depthTest = visibleEdgesOnly
+      material.color.set(edgeStyle.color)
+      material.opacity = edgeStyle.opacity
+      material.depthTest = depthTest
       material.depthWrite = false
       material.needsUpdate = true
     }
@@ -4647,6 +4671,12 @@ export class Viewer {
 
     if (this.resolveDisplayMode() === 'solid') {
       return this.displayModeSolidMaterial
+    }
+
+    if (this.currentViewSettings.geometryDisplay.surfaces.source === 'custom') {
+      return this.resolveDisplayMode() === 'material'
+        ? this.customSurfaceMaterialMode
+        : this.customSurfaceMaterial
     }
 
     const materials = this.currentViewSettings.materials
@@ -5339,10 +5369,11 @@ export class Viewer {
     if (selectedMesh === undefined || !selectedMesh.visible) {
       return
     }
+    const bodySelectedStyle = this.currentViewSettings.geometryDisplay.surfaces.bodySelected
     const material = new MeshBasicMaterial({
-      color: new Color(this.currentViewSettings.highlights.bodySelectedColor),
+      color: new Color(bodySelectedStyle.color),
       transparent: true,
-      opacity: this.currentViewSettings.highlights.bodySelectedOpacity,
+      opacity: bodySelectedStyle.opacity,
       depthTest: false,
       depthWrite: false,
       toneMapped: false,
@@ -5394,10 +5425,11 @@ export class Viewer {
       this.selectedTopologyEntity = null
       return
     }
+    const selectedStyle = this.currentViewSettings.geometryDisplay.surfaces.selected
     const material = new MeshBasicMaterial({
-      color: new Color(this.currentViewSettings.highlights.selectedColor),
+      color: new Color(selectedStyle.color),
       transparent: true,
-      opacity: this.currentViewSettings.highlights.surfaceSelectedOpacity,
+      opacity: selectedStyle.opacity,
       depthTest: false,
       depthWrite: false,
       toneMapped: false,
@@ -5451,10 +5483,11 @@ export class Viewer {
       this.hoveredTopologyEntity = null
       return
     }
+    const hoverStyle = this.currentViewSettings.geometryDisplay.surfaces.hover
     const material = new MeshBasicMaterial({
-      color: new Color(this.currentViewSettings.highlights.hoverColor),
+      color: new Color(hoverStyle.color),
       transparent: true,
-      opacity: this.currentViewSettings.highlights.surfaceHoverOpacity,
+      opacity: hoverStyle.opacity,
       depthTest: false,
       depthWrite: false,
       toneMapped: false,
@@ -5492,18 +5525,14 @@ export class Viewer {
       new LineBasicMaterial({
         color: new Color(
           state === 'hover'
-            ? this.currentViewSettings.highlights.hoverColor
-            : this.currentViewSettings.highlights.selectedColor,
+            ? this.currentViewSettings.geometryDisplay.edges.hover.color
+            : this.currentViewSettings.geometryDisplay.edges.selected.color,
         ),
         transparent: true,
         opacity:
           state === 'hover'
-            ? 0.65 + this.currentViewSettings.highlights.hoverGlow * 0.35
-            : 0.7 + this.currentViewSettings.highlights.selectedGlow * 0.3,
-        linewidth:
-          state === 'hover'
-            ? this.currentViewSettings.highlights.edgeHoverThickness
-            : this.currentViewSettings.highlights.edgeSelectedThickness,
+            ? this.currentViewSettings.geometryDisplay.edges.hover.opacity
+            : this.currentViewSettings.geometryDisplay.edges.selected.opacity,
         toneMapped: false,
         depthTest: false,
         depthWrite: false,
@@ -7893,7 +7922,7 @@ export class Viewer {
 
   private shouldUsePostProcessingRuntime(): boolean {
     return (
-      this.currentViewSettings.postProcessing.ssaoEnabled &&
+      isViewPostProcessingAoEnabled(this.currentViewSettings.postProcessing) &&
       !this.postProcessingRuntimeUnavailable &&
       this.resolveDisplayMode() !== 'renderPreview'
     )

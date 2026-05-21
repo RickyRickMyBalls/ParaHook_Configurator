@@ -467,6 +467,77 @@
   gap: 10px;
 }
 
+.PropertiesGeometryDisplayPanel {
+  gap: 0;
+}
+
+.PropertiesGeometryDisplaySubsection {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-block: 10px;
+  border-top: 1px solid rgba(139, 185, 255, 0.14);
+}
+
+.PropertiesGeometryDisplaySubsection:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.PropertiesGeometryDisplaySubsection:last-child {
+  padding-bottom: 0;
+}
+
+.PropertiesGeometryDisplaySubsectionHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.PropertiesGeometryDisplaySubsectionHeader span:first-child {
+  min-width: 0;
+  color: rgba(220, 232, 255, 0.9);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.PropertiesGeometryDisplaySubsectionHeader:hover span:first-child,
+.PropertiesGeometryDisplaySubsectionHeader:focus-visible span:first-child {
+  color: #f3f8ff;
+}
+
+.PropertiesGeometryDisplaySubsectionHeader:focus-visible {
+  outline: 1px solid rgba(139, 185, 255, 0.48);
+  outline-offset: 3px;
+}
+
+.PropertiesGeometryDisplaySubsectionGlyph {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(139, 185, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(139, 185, 255, 0.08);
+  color: rgba(237, 244, 255, 0.92);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .SettingsSurfaceEditorField {
   min-width: 0;
 }

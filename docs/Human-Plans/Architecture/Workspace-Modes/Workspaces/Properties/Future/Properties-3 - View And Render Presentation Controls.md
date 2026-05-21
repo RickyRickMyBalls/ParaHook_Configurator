@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-05-21 07:28:24: Implemented and closed `Properties-3 / Phase 5 - Grid Presentation Controls And Layer System` by adding the normalized `ViewSettings.gridPresentation` contract, carrying it through view-settings persistence policy paths, rebuilding the viewer grid from editable `Grid 1` / `Grid 2` / `Grid 3` presentation layers, and adding Properties `Render > Grid` controls with Clay Studio locked readback.
 11. 2026-05-21 07:09:19: Prepped `Properties-3 / Phase 5 - Grid Presentation Controls And Layer System` for implementation against the live `ViewSettings.gridVisible` seam, `uiPrefsPersistence` view-settings policy, hard-coded `Viewer.ts` minor/major/double-major grid helpers, existing Properties `Render` grouping, and current Viewer/store/Properties test footholds, narrowing the first implementation cut to a three-layer grid presentation contract that preserves `gridVisible` as the top-level on/off owner.
 10. 2026-05-21 06:59:59: Planned `Properties-3 / Phase 5 - Grid Presentation Controls And Layer System` after the user asked to move the View Toolbar grid checkbox into Properties `Render` as a new `Grid` section, expanding the idea into a bounded `Grid 1` / `Grid 2` / `Grid 3` layer model that starts from the current viewer minor, major, and double-major grid layers while keeping graph geometry, sketch working grids, and export truth out of scope.
 9. 2026-05-21 06:50:32: Implemented `Properties-3 / Phase 4 - Ground And Contact Presentation Controls` with View Toolbar parity for Properties `Render > Shadows` and `Render > Ground`, adding Standard-mode global shadow, selected-light shadow, ground visibility, ground height, and ground material controls while keeping Clay Studio shadow/ground/contact behavior visibly `Preset Locked`.
@@ -849,7 +850,7 @@ Implementation closeout:
 - Clay Studio locks the copied Shadows and Ground controls so preset-owned behavior stays honest
 - focused Properties proof passed
 
-## [ ] `Properties-3 / Phase 5` - `Grid Presentation Controls And Layer System`
+## [x] `Properties-3 / Phase 5` - `Grid Presentation Controls And Layer System`
 
 ### Phase 5 Summary
 
@@ -1101,3 +1102,18 @@ Suggested focused commands:
 #### Done Shape
 
 Phase 5 is done when Properties `Render > Grid` exists, the current grid checkbox behavior is represented as a `ParaSelect`, the current minor/major/double-major runtime grid is modeled as `Grid 1`, `Grid 2`, and `Grid 3`, and the user can tune grid visibility, height, spacing, color, and visual weight without affecting geometry, sketch grids, ground, materials, or exports.
+
+Done read:
+- Properties `Render > Grid` now exists between `Ground` and `Render Preview Quality`.
+- `Grid` is represented as an `Off` / `On` `ParaSelect` backed by the existing `ViewSettings.gridVisible` owner.
+- `ViewSettings.gridPresentation` now owns grid height, grid size, and exactly three normalized presentation layers.
+- `Grid 1`, `Grid 2`, and `Grid 3` map to the current minor, major, and double-major grid bands with editable layer enabled state, spacing, color, opacity, and height offset.
+- `Viewer.ts` rebuilds visible grid helpers from the normalized presentation contract while keeping Clay Studio grid suppression and sketch working grids unchanged.
+- Clay Studio shows the saved grid settings but locks Properties grid controls because the preset suppresses visible grid rendering.
+- old persisted view settings without `gridPresentation` normalize to the default current grid look.
+
+Implementation closeout:
+- complete as of 2026-05-21 07:28:24
+- the first cut keeps the existing View Toolbar checkbox as a duplicate shared `gridVisible` control
+- true browser-stable pixel line width remains deferred; this phase uses opacity/color as the editable visual-weight path
+- focused Properties, store/persistence, and Viewer grid-runtime proof passed

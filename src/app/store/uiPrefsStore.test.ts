@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_ENVIRONMENT_GRADE,
+  DEFAULT_GRID_PRESENTATION_SETTINGS,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
+  DEFAULT_VIEW_CONTACT_SHADOW_SETTINGS,
   DEFAULT_VIEW_POST_PROCESS_SETTINGS,
   DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
   DEFAULT_VIEW_DISPLAY_MODE,
@@ -103,6 +105,68 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
       kind: 'preset',
       label: 'Baseline',
+    })
+  })
+
+  it('defaults and normalizes grid presentation as view-only presentation state', () => {
+    expect(useUiPrefsStore.getState().view.gridPresentation).toEqual(
+      DEFAULT_GRID_PRESENTATION_SETTINGS,
+    )
+
+    const legacyView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      gridPresentation: undefined,
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(legacyView.gridPresentation).toEqual(DEFAULT_GRID_PRESENTATION_SETTINGS)
+
+    const normalized = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      gridPresentation: {
+        height: 999,
+        size: -10,
+        layers: [
+          {
+            id: 'grid1',
+            enabled: false,
+            spacing: 0,
+            color: 'not-a-color',
+            opacity: 2,
+            heightOffset: 1,
+          },
+          {
+            id: 'grid2',
+            spacing: 12,
+            color: '#ff00aa',
+            opacity: 0.45,
+            heightOffset: 0.025,
+          },
+        ],
+      },
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(normalized.gridPresentation).toEqual({
+      height: 25,
+      size: 25,
+      layers: [
+        {
+          id: 'grid1',
+          enabled: false,
+          spacing: 0.1,
+          color: '#ffffff',
+          opacity: 1,
+          heightOffset: 0.05,
+        },
+        {
+          id: 'grid2',
+          enabled: true,
+          spacing: 12,
+          color: '#ff00aa',
+          opacity: 0.45,
+          heightOffset: 0.025,
+        },
+        DEFAULT_GRID_PRESENTATION_SETTINGS.layers[2],
+      ],
     })
   })
 
@@ -272,6 +336,7 @@ describe('uiPrefsStore environment source state', () => {
     })
 
     expect(validEdgeView.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(validEdgeView.geometryDisplay.edges.mode).toBe('visibleOnly')
 
     const invalidEdgeView = normalizeViewSettings({
       ...structuredClone(DEFAULT_VIEW_SETTINGS),
@@ -279,6 +344,164 @@ describe('uiPrefsStore environment source state', () => {
     } as unknown as Parameters<typeof normalizeViewSettings>[0])
 
     expect(invalidEdgeView.edgeDisplayMode).toBe(DEFAULT_VIEW_EDGE_DISPLAY_MODE)
+    expect(invalidEdgeView.geometryDisplay.edges.mode).toBe('off')
+  })
+
+  it('normalizes geometry display settings as the surface edge and point shell', () => {
+    const normalized = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      edgeDisplayMode: 'off',
+      geometryDisplay: {
+        surfaces: { visible: false },
+        edges: {
+          mode: 'all',
+          color: '#00ffaa',
+          opacity: 2,
+          depthMode: 'surface',
+        },
+        points: { visible: false },
+      },
+    })
+
+    expect(normalized.geometryDisplay).toEqual({
+      surfaces: {
+        visible: false,
+        source: 'materialSet',
+        customMaterial: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial,
+        hover: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.hover,
+        selected: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected,
+        bodySelected: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.bodySelected,
+      },
+      edges: {
+        mode: 'all',
+        color: '#00ffaa',
+        opacity: 1,
+        depthMode: 'surface',
+        hover: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover,
+        selected: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected,
+      },
+      points: { visible: false },
+    })
+    expect(normalized.edgeDisplayMode).toBe('on')
+
+    const legacyEdgeOnlyView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      edgeDisplayMode: 'visibleEdgesOnly',
+      geometryDisplay: undefined,
+    })
+
+    expect(legacyEdgeOnlyView.geometryDisplay.edges.mode).toBe('visibleOnly')
+    expect(legacyEdgeOnlyView.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(legacyEdgeOnlyView.geometryDisplay.edges.color).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color,
+    )
+
+    const customSurfaceView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      geometryDisplay: {
+        ...structuredClone(DEFAULT_VIEW_SETTINGS.geometryDisplay),
+        surfaces: {
+          visible: true,
+          source: 'custom',
+          customMaterial: {
+            ...DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial,
+            color: '#ff00aa',
+            metalness: 2,
+            roughness: -1,
+            emissive: 'pink',
+            emissiveIntensity: 8,
+            opacity: -2,
+            transparent: true,
+            doubleSided: false,
+          },
+          hover: {
+            color: '#00ffaa',
+            opacity: 2,
+          },
+          selected: {
+            color: 'blue',
+            opacity: -1,
+          },
+          bodySelected: {
+            color: '#123abc',
+            opacity: 2,
+          },
+        },
+      },
+    } as unknown as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(customSurfaceView.geometryDisplay.surfaces).toEqual({
+      visible: true,
+      source: 'custom',
+      customMaterial: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial,
+        color: '#ff00aa',
+        metalness: 1,
+        roughness: 0,
+        emissive: '#ffffff',
+        emissiveIntensity: 2,
+        opacity: 0,
+        transparent: true,
+        doubleSided: false,
+      },
+      hover: {
+        color: '#00ffaa',
+        opacity: 0.9,
+      },
+      selected: {
+        color: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected.color,
+        opacity: 0.05,
+      },
+      bodySelected: {
+        color: '#123abc',
+        opacity: 0.85,
+      },
+    })
+    expect(customSurfaceView.highlights).toMatchObject({
+      hoverColor: '#00ffaa',
+      surfaceHoverOpacity: 0.9,
+      selectedColor: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected.color,
+      surfaceSelectedOpacity: 0.05,
+      bodySelectedColor: '#123abc',
+      bodySelectedOpacity: 0.85,
+    })
+  })
+
+  it('keeps geometry display surface styles synchronized with legacy highlights', () => {
+    useUiPrefsStore.getState().setViewKey('geometryDisplay', {
+      ...useUiPrefsStore.getState().view.geometryDisplay,
+      surfaces: {
+        ...useUiPrefsStore.getState().view.geometryDisplay.surfaces,
+        hover: { color: '#00ffaa', opacity: 0.33 },
+        selected: { color: '#ff00aa', opacity: 0.44 },
+        bodySelected: { color: '#123abc', opacity: 0.55 },
+      },
+    })
+
+    expect(useUiPrefsStore.getState().view.highlights).toMatchObject({
+      hoverColor: '#00ffaa',
+      surfaceHoverOpacity: 0.33,
+      selectedColor: '#ff00aa',
+      surfaceSelectedOpacity: 0.44,
+      bodySelectedColor: '#123abc',
+      bodySelectedOpacity: 0.55,
+    })
+
+    useUiPrefsStore.getState().setViewKey('highlights', {
+      ...useUiPrefsStore.getState().view.highlights,
+      hoverColor: '#111111',
+      surfaceHoverOpacity: 0.22,
+      selectedColor: '#222222',
+      surfaceSelectedOpacity: 0.66,
+      bodySelectedColor: '#333333',
+      bodySelectedOpacity: 0.77,
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces).toMatchObject({
+      hover: { color: '#111111', opacity: 0.22 },
+      selected: { color: '#222222', opacity: 0.66 },
+      bodySelected: { color: '#333333', opacity: 0.77 },
+    })
   })
 
   it('normalizes viewport style as independent view presentation state', () => {
@@ -311,12 +534,14 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(true)
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('all')
 
     useUiPrefsStore.getState().setViewKey('wireframe', false)
 
     expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('off')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('off')
   })
 
   it('keeps explicit edge display mode independent from non-wireframe display modes', () => {
@@ -326,6 +551,7 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('visibleOnly')
   })
 
   it('normalizes render-preview quality settings as presentation state', () => {
@@ -414,28 +640,59 @@ describe('uiPrefsStore environment source state', () => {
 
     expect(legacyView.postProcessing).toEqual(DEFAULT_VIEW_POST_PROCESS_SETTINGS)
 
+    const legacyEnabledView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      postProcessing: {
+        ssaoEnabled: true,
+      },
+    } as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(legacyEnabledView.postProcessing).toEqual({
+      ...DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+      aoType: 'basicSsao',
+      ssaoEnabled: true,
+    })
+
+    const legacyDisabledView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      postProcessing: {
+        ssaoEnabled: false,
+      },
+    } as Parameters<typeof normalizeViewSettings>[0])
+
+    expect(legacyDisabledView.postProcessing).toEqual(DEFAULT_VIEW_POST_PROCESS_SETTINGS)
+
     const invalidView = normalizeViewSettings({
       ...structuredClone(DEFAULT_VIEW_SETTINGS),
       postProcessing: {
+        aoType: 'strange',
         ssaoEnabled: 'yes',
         ssaoIntensity: 99,
         ssaoRadius: -4,
         ssaoQuality: 'ultra',
+        ssaoContactBias: 99,
+        ssaoDistanceThreshold: -1,
       },
     } as unknown as Parameters<typeof normalizeViewSettings>[0])
 
     expect(invalidView.postProcessing).toEqual({
+      aoType: 'off',
       ssaoEnabled: false,
-      ssaoIntensity: 3,
-      ssaoRadius: 0.05,
+      ssaoIntensity: 25,
+      ssaoRadius: 0,
       ssaoQuality: 'medium',
+      ssaoContactBias: 0.1,
+      ssaoDistanceThreshold: 0,
     })
 
     const sourceSettings = {
+      aoType: 'sao',
       ssaoEnabled: true,
       ssaoIntensity: 1.8,
       ssaoRadius: 2.4,
       ssaoQuality: 'high',
+      ssaoContactBias: 0.004,
+      ssaoDistanceThreshold: 0.15,
     } as const
     const cloned = normalizeViewSettings({
       ...structuredClone(DEFAULT_VIEW_SETTINGS),
@@ -448,33 +705,89 @@ describe('uiPrefsStore environment source state', () => {
 
   it('updates SSAO post-processing settings through the generic view-setting path', () => {
     useUiPrefsStore.getState().setViewKey('postProcessing', {
+      aoType: 'sao',
       ssaoEnabled: true,
       ssaoIntensity: 1.5,
       ssaoRadius: 2,
       ssaoQuality: 'high',
+      ssaoContactBias: 0.004,
+      ssaoDistanceThreshold: 0.18,
     })
 
     expect(useUiPrefsStore.getState().view.postProcessing).toEqual({
+      aoType: 'sao',
       ssaoEnabled: true,
       ssaoIntensity: 1.5,
       ssaoRadius: 2,
       ssaoQuality: 'high',
+      ssaoContactBias: 0.004,
+      ssaoDistanceThreshold: 0.18,
     })
 
     useUiPrefsStore.getState().setView({
       postProcessing: {
+        aoType: 'off',
         ssaoEnabled: false,
         ssaoIntensity: -1,
         ssaoRadius: 10,
         ssaoQuality: 'low',
+        ssaoContactBias: -1,
+        ssaoDistanceThreshold: 10,
       },
     })
 
     expect(useUiPrefsStore.getState().view.postProcessing).toEqual({
+      aoType: 'off',
       ssaoEnabled: false,
       ssaoIntensity: 0,
-      ssaoRadius: 5,
+      ssaoRadius: 10,
       ssaoQuality: 'low',
+      ssaoContactBias: 0,
+      ssaoDistanceThreshold: 2,
+    })
+  })
+
+  it('normalizes contact shadows as view presentation state', () => {
+    expect(useUiPrefsStore.getState().view.contactShadows).toEqual(
+      DEFAULT_VIEW_CONTACT_SHADOW_SETTINGS,
+    )
+
+    const legacyView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      contactShadows: undefined,
+    })
+
+    expect(legacyView.contactShadows).toEqual(DEFAULT_VIEW_CONTACT_SHADOW_SETTINGS)
+
+    const invalidView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      contactShadows: {
+        enabled: true,
+        opacity: 2,
+        spread: 0,
+        heightFade: 99,
+      },
+    })
+
+    expect(invalidView.contactShadows).toEqual({
+      enabled: true,
+      opacity: 1,
+      spread: 0.5,
+      heightFade: 16,
+    })
+
+    useUiPrefsStore.getState().setViewKey('contactShadows', {
+      enabled: true,
+      opacity: 0.42,
+      spread: 1.5,
+      heightFade: 6,
+    })
+
+    expect(useUiPrefsStore.getState().view.contactShadows).toEqual({
+      enabled: true,
+      opacity: 0.42,
+      spread: 1.5,
+      heightFade: 6,
     })
   })
 
@@ -483,22 +796,31 @@ describe('uiPrefsStore environment source state', () => {
       DEFAULT_VIEW_POST_PROCESS_SETTINGS,
     )
     expect(createViewAmbientOcclusionPresetSettings('low')).toEqual({
+      aoType: 'basicSsao',
       ssaoEnabled: true,
       ssaoIntensity: 0.55,
       ssaoRadius: 1.15,
       ssaoQuality: 'low',
+      ssaoContactBias: 0.0021,
+      ssaoDistanceThreshold: 0.06625,
     })
     expect(createViewAmbientOcclusionPresetSettings('medium')).toEqual({
+      aoType: 'basicSsao',
       ssaoEnabled: true,
       ssaoIntensity: 0.82,
       ssaoRadius: 1.85,
       ssaoQuality: 'medium',
+      ssaoContactBias: 0.00264,
+      ssaoDistanceThreshold: 0.0865,
     })
     expect(createViewAmbientOcclusionPresetSettings('high')).toEqual({
+      aoType: 'basicSsao',
       ssaoEnabled: true,
       ssaoIntensity: 1.05,
       ssaoRadius: 2.65,
       ssaoQuality: 'high',
+      ssaoContactBias: 0.0031,
+      ssaoDistanceThreshold: 0.10375,
     })
 
     expect(
@@ -508,18 +830,41 @@ describe('uiPrefsStore environment source state', () => {
     ).toBe('medium')
     expect(
       resolveViewAmbientOcclusionPresetRead({
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoIntensity: 1.8,
         ssaoRadius: 2.5,
         ssaoQuality: 'high',
+        ssaoContactBias: 0.0031,
+        ssaoDistanceThreshold: 0.10375,
       }),
-    ).toBe('high')
+    ).toBe('custom')
     expect(
       resolveViewAmbientOcclusionPresetRead({
+        ...createViewAmbientOcclusionPresetSettings('high'),
+        ssaoDistanceThreshold: 0.2,
+      }),
+    ).toBe('custom')
+    expect(
+      resolveViewAmbientOcclusionPresetRead({
+        aoType: 'sao',
+        ssaoEnabled: true,
+        ssaoIntensity: 1.8,
+        ssaoRadius: 2.5,
+        ssaoQuality: 'high',
+        ssaoContactBias: 0.0031,
+        ssaoDistanceThreshold: 0.10375,
+      }),
+    ).toBe('custom')
+    expect(
+      resolveViewAmbientOcclusionPresetRead({
+        aoType: 'off',
         ssaoEnabled: false,
         ssaoIntensity: 0.7,
         ssaoRadius: 0.75,
         ssaoQuality: 'low',
+        ssaoContactBias: 0.1,
+        ssaoDistanceThreshold: 2,
       }),
     ).toBe('off')
   })
@@ -557,6 +902,72 @@ describe('uiPrefsStore environment source state', () => {
       surfaceHoverOpacity: 0.9,
       surfaceSelectedOpacity: 0.05,
       bodySelectedOpacity: 0.85,
+    })
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      hover: {
+        color: '#ffffff',
+        opacity: 1,
+      },
+      selected: {
+        color: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected.color,
+        opacity: 0.7,
+      },
+    })
+  })
+
+  it('bridges geometry display edge interaction styles with legacy highlight settings', () => {
+    useUiPrefsStore.getState().setViewKey('geometryDisplay', {
+      ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+      edges: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+        hover: {
+          color: '#00ffaa',
+          opacity: 0.93,
+        },
+        selected: {
+          color: '#ff00aa',
+          opacity: 0.82,
+        },
+      },
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      hover: {
+        color: '#00ffaa',
+        opacity: 0.93,
+      },
+      selected: {
+        color: '#ff00aa',
+        opacity: 0.82,
+      },
+    })
+    expect(useUiPrefsStore.getState().view.highlights).toMatchObject({
+      hoverColor: '#00ffaa',
+      selectedColor: '#ff00aa',
+      hoverGlow: 0.8,
+      selectedGlow: (0.82 - 0.7) / 0.3,
+    })
+
+    const legacyPhase4View = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      geometryDisplay: {
+        ...structuredClone(DEFAULT_VIEW_SETTINGS.geometryDisplay),
+        edges: {
+          mode: 'all',
+          color: '#ffffff',
+          opacity: 2,
+          depthMode: 'surface',
+        },
+      },
+    })
+
+    expect(legacyPhase4View.geometryDisplay.edges).toEqual({
+      mode: 'all',
+      color: '#ffffff',
+      opacity: 1,
+      depthMode: 'surface',
+      hover: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover,
+      selected: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected,
     })
   })
 

@@ -29,13 +29,19 @@ export type EnvironmentLookSnapshot = Pick<
 export type ProjectionMode = 'perspective' | 'orthographic'
 export type ViewDisplayMode = 'solid' | 'wireframe' | 'material' | 'rendered' | 'renderPreview'
 export type ViewEdgeDisplayMode = 'on' | 'off' | 'visibleEdgesOnly'
+export type ViewGeometryDisplayEdgeMode = 'off' | 'visibleOnly' | 'all'
+export type ViewGeometryDisplayEdgeDepthMode = 'surface' | 'xray'
+export type ViewGeometryDisplaySurfaceSource = 'materialSet' | 'custom'
 export type ViewportStyle = 'standard' | 'clayStudio'
+export type RenderPresetId = ViewportStyle
 export type RenderPreviewNoiseCleanup = 'off' | 'low' | 'medium' | 'high'
 export type RenderPreviewGpuLoad = 'smooth' | 'balanced' | 'fast'
 export type RenderPreviewQualityPreset = 'fast' | 'balanced' | 'clean' | 'high'
 export type RenderPreviewQualityPresetRead = RenderPreviewQualityPreset | 'custom'
 export type ViewSsaoQuality = 'low' | 'medium' | 'high'
+export type ViewAmbientOcclusionType = 'off' | 'basicSsao' | 'sao'
 export type ViewAmbientOcclusionPreset = 'off' | ViewSsaoQuality
+export type ViewAmbientOcclusionPresetRead = ViewAmbientOcclusionPreset | 'custom'
 export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
 export type AxisOverlayBackgroundMode = 'none' | 'blur'
 export type GroundMaterialPresetId = 'matte_dark' | 'matte_mid' | 'glossy_studio'
@@ -54,10 +60,24 @@ export const VIEW_EDGE_DISPLAY_MODES: readonly ViewEdgeDisplayMode[] = [
   'off',
   'visibleEdgesOnly',
 ]
+export const VIEW_GEOMETRY_DISPLAY_EDGE_MODES: readonly ViewGeometryDisplayEdgeMode[] = [
+  'off',
+  'visibleOnly',
+  'all',
+]
+export const VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES: readonly ViewGeometryDisplayEdgeDepthMode[] = [
+  'surface',
+  'xray',
+]
+export const VIEW_GEOMETRY_DISPLAY_SURFACE_SOURCES: readonly ViewGeometryDisplaySurfaceSource[] = [
+  'materialSet',
+  'custom',
+]
 export const VIEWPORT_STYLE_OPTIONS: readonly ViewportStyle[] = [
   'standard',
   'clayStudio',
 ]
+export const VIEW_RENDER_PRESET_OPTIONS: readonly RenderPresetId[] = VIEWPORT_STYLE_OPTIONS
 export const RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS: readonly RenderPreviewNoiseCleanup[] = [
   'off',
   'low',
@@ -73,6 +93,11 @@ export const VIEW_SSAO_QUALITY_OPTIONS: readonly ViewSsaoQuality[] = [
   'low',
   'medium',
   'high',
+]
+export const VIEW_AMBIENT_OCCLUSION_TYPE_OPTIONS: readonly ViewAmbientOcclusionType[] = [
+  'off',
+  'basicSsao',
+  'sao',
 ]
 export const VIEW_AMBIENT_OCCLUSION_PRESET_OPTIONS: readonly ViewAmbientOcclusionPreset[] = [
   'off',
@@ -92,12 +117,37 @@ export const DEFAULT_RENDER_PREVIEW_RENDER_SCALE = 1
 export const DEFAULT_RENDER_PREVIEW_NOISE_CLEANUP: RenderPreviewNoiseCleanup = 'off'
 export const DEFAULT_RENDER_PREVIEW_GPU_LOAD: RenderPreviewGpuLoad = 'balanced'
 export const MIN_VIEW_SSAO_INTENSITY = 0
-export const MAX_VIEW_SSAO_INTENSITY = 3
+export const MAX_VIEW_SSAO_INTENSITY = 25
 export const DEFAULT_VIEW_SSAO_INTENSITY = 1
-export const MIN_VIEW_SSAO_RADIUS = 0.05
-export const MAX_VIEW_SSAO_RADIUS = 5
+export const MIN_VIEW_SSAO_RADIUS = 0
+export const MAX_VIEW_SSAO_RADIUS = 25
 export const DEFAULT_VIEW_SSAO_RADIUS = 1
 export const DEFAULT_VIEW_SSAO_QUALITY: ViewSsaoQuality = 'medium'
+export const MIN_VIEW_SSAO_CONTACT_BIAS = 0
+export const MAX_VIEW_SSAO_CONTACT_BIAS = 0.1
+export const DEFAULT_VIEW_SSAO_CONTACT_BIAS = 0.003
+export const MIN_VIEW_SSAO_DISTANCE_THRESHOLD = 0
+export const MAX_VIEW_SSAO_DISTANCE_THRESHOLD = 2
+export const DEFAULT_VIEW_SSAO_DISTANCE_THRESHOLD = 0.1
+export const DEFAULT_VIEW_AMBIENT_OCCLUSION_TYPE: ViewAmbientOcclusionType = 'off'
+export const MIN_GRID_PRESENTATION_HEIGHT = -25
+export const MAX_GRID_PRESENTATION_HEIGHT = 25
+export const MIN_GRID_PRESENTATION_SIZE = 25
+export const MAX_GRID_PRESENTATION_SIZE = 1000
+export const MIN_GRID_PRESENTATION_SPACING = 0.1
+export const MAX_GRID_PRESENTATION_SPACING = 100
+export const MIN_GRID_PRESENTATION_OPACITY = 0
+export const MAX_GRID_PRESENTATION_OPACITY = 1
+export const MIN_GRID_PRESENTATION_HEIGHT_OFFSET = -0.05
+export const MAX_GRID_PRESENTATION_HEIGHT_OFFSET = 0.05
+export const MIN_CONTACT_SHADOW_OPACITY = 0
+export const MAX_CONTACT_SHADOW_OPACITY = 1
+export const MIN_CONTACT_SHADOW_SPREAD = 0.5
+export const MAX_CONTACT_SHADOW_SPREAD = 2
+export const MIN_CONTACT_SHADOW_HEIGHT_FADE = 1
+export const MAX_CONTACT_SHADOW_HEIGHT_FADE = 16
+export const MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY = 0
+export const MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY = 1
 export const DEFAULT_ENVIRONMENT_BACKGROUND = '#0b0b0f'
 export const STUDIO_ENVIRONMENT_BACKGROUND = '#151922'
 export const DARK_STUDIO_ENVIRONMENT_BACKGROUND = '#06080d'
@@ -174,6 +224,23 @@ export type GroundSettings = {
   materialPresetId: GroundMaterialPresetId
 }
 
+export type GridPresentationLayerId = 'grid1' | 'grid2' | 'grid3'
+
+export type GridPresentationLayerSettings = {
+  id: GridPresentationLayerId
+  enabled: boolean
+  spacing: number
+  color: string
+  opacity: number
+  heightOffset: number
+}
+
+export type GridPresentationSettings = {
+  height: number
+  size: number
+  layers: GridPresentationLayerSettings[]
+}
+
 export type RenderPreviewSettings = {
   targetSamples: number
   bounces: number
@@ -183,10 +250,52 @@ export type RenderPreviewSettings = {
 }
 
 export type ViewPostProcessSettings = {
+  aoType: ViewAmbientOcclusionType
   ssaoEnabled: boolean
   ssaoIntensity: number
   ssaoRadius: number
   ssaoQuality: ViewSsaoQuality
+  ssaoContactBias: number
+  ssaoDistanceThreshold: number
+}
+
+export type ViewContactShadowSettings = {
+  enabled: boolean
+  opacity: number
+  spread: number
+  heightFade: number
+}
+
+export type ViewGeometryDisplaySettings = {
+  surfaces: {
+    visible: boolean
+    source: ViewGeometryDisplaySurfaceSource
+    customMaterial: MaterialPreset
+    hover: ViewGeometryDisplaySurfaceStyle
+    selected: ViewGeometryDisplaySurfaceStyle
+    bodySelected: ViewGeometryDisplaySurfaceStyle
+  }
+  edges: {
+    mode: ViewGeometryDisplayEdgeMode
+    color: string
+    opacity: number
+    depthMode: ViewGeometryDisplayEdgeDepthMode
+    hover: ViewGeometryDisplayEdgeInteractionStyle
+    selected: ViewGeometryDisplayEdgeInteractionStyle
+  }
+  points: {
+    visible: boolean
+  }
+}
+
+export type ViewGeometryDisplaySurfaceStyle = {
+  color: string
+  opacity: number
+}
+
+export type ViewGeometryDisplayEdgeInteractionStyle = {
+  color: string
+  opacity: number
 }
 
 export type ViewHighlightSettings = {
@@ -213,13 +322,16 @@ export type ViewSettings = {
   wireframe: boolean
   displayMode: ViewDisplayMode
   edgeDisplayMode: ViewEdgeDisplayMode
+  geometryDisplay: ViewGeometryDisplaySettings
   viewportStyle: ViewportStyle
   envPreset: EnvPreset
   environmentGrade: EnvironmentGradeSettings
   environmentSource: EnvironmentSourceSettings
   ground: GroundSettings
+  gridPresentation: GridPresentationSettings
   renderPreview: RenderPreviewSettings
   postProcessing: ViewPostProcessSettings
+  contactShadows: ViewContactShadowSettings
   highlights: ViewHighlightSettings
   axisOverlayEnabled: boolean
   axisOverlayStyle: AxisOverlayStyleSettings
@@ -249,6 +361,20 @@ const cloneLightingSettings = (
 ): ViewSettings['lighting'] => ({
   selectedLightId: lighting.selectedLightId,
   lights: lighting.lights.map(cloneLightSpec),
+})
+
+const cloneGridPresentationLayer = (
+  layer: GridPresentationLayerSettings,
+): GridPresentationLayerSettings => ({
+  ...layer,
+})
+
+const cloneGridPresentationSettings = (
+  settings: GridPresentationSettings,
+): GridPresentationSettings => ({
+  height: settings.height,
+  size: settings.size,
+  layers: settings.layers.map(cloneGridPresentationLayer),
 })
 
 const normalizeMaterialPreset = (preset: MaterialPresetInput): MaterialPreset => ({
@@ -299,6 +425,19 @@ const normalizeNumber = (
   return Math.min(max, Math.max(min, normalizedValue))
 }
 
+const GRID_PRESENTATION_LAYER_IDS: readonly GridPresentationLayerId[] = [
+  'grid1',
+  'grid2',
+  'grid3',
+]
+
+const isGridPresentationLayerId = (value: unknown): value is GridPresentationLayerId =>
+  typeof value === 'string' &&
+  GRID_PRESENTATION_LAYER_IDS.includes(value as GridPresentationLayerId)
+
+const normalizeHexColor = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value.toLowerCase() : fallback
+
 const normalizeInteger = (
   value: number | undefined,
   fallback: number,
@@ -315,8 +454,105 @@ export const isViewEdgeDisplayMode = (value: unknown): value is ViewEdgeDisplayM
   typeof value === 'string' &&
   VIEW_EDGE_DISPLAY_MODES.includes(value as ViewEdgeDisplayMode)
 
+export const isViewGeometryDisplayEdgeMode = (
+  value: unknown,
+): value is ViewGeometryDisplayEdgeMode =>
+  typeof value === 'string' &&
+  VIEW_GEOMETRY_DISPLAY_EDGE_MODES.includes(value as ViewGeometryDisplayEdgeMode)
+
+export const isViewGeometryDisplayEdgeDepthMode = (
+  value: unknown,
+): value is ViewGeometryDisplayEdgeDepthMode =>
+  typeof value === 'string' &&
+  VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES.includes(value as ViewGeometryDisplayEdgeDepthMode)
+
+export const isViewGeometryDisplaySurfaceSource = (
+  value: unknown,
+): value is ViewGeometryDisplaySurfaceSource =>
+  typeof value === 'string' &&
+  VIEW_GEOMETRY_DISPLAY_SURFACE_SOURCES.includes(value as ViewGeometryDisplaySurfaceSource)
+
 export const isViewportStyle = (value: unknown): value is ViewportStyle =>
   typeof value === 'string' && VIEWPORT_STYLE_OPTIONS.includes(value as ViewportStyle)
+
+export const isViewRenderPresetId = (value: unknown): value is RenderPresetId =>
+  typeof value === 'string' && VIEW_RENDER_PRESET_OPTIONS.includes(value as RenderPresetId)
+
+export const createDisplayModeViewPatch = (
+  displayMode: ViewDisplayMode,
+): Pick<ViewSettings, 'displayMode'> => ({
+  displayMode,
+})
+
+export const geometryDisplayEdgeModeToViewEdgeDisplayMode = (
+  mode: ViewGeometryDisplayEdgeMode,
+): ViewEdgeDisplayMode => {
+  if (mode === 'all') {
+    return 'on'
+  }
+  if (mode === 'visibleOnly') {
+    return 'visibleEdgesOnly'
+  }
+  return 'off'
+}
+
+export const viewEdgeDisplayModeToGeometryDisplayEdgeMode = (
+  mode: ViewEdgeDisplayMode,
+): ViewGeometryDisplayEdgeMode => {
+  if (mode === 'on') {
+    return 'all'
+  }
+  if (mode === 'visibleEdgesOnly') {
+    return 'visibleOnly'
+  }
+  return 'off'
+}
+
+export const createRenderPresetViewPatch = (
+  renderPresetId: RenderPresetId,
+  currentView: Pick<ViewSettings, 'displayMode' | 'ground' | 'gridPresentation'>,
+): Pick<
+  ViewSettings,
+  | 'displayMode'
+  | 'viewportStyle'
+  | 'environmentGrade'
+  | 'shadowsEnabled'
+  | 'ground'
+  | 'gridVisible'
+  | 'gridPresentation'
+  | 'postProcessing'
+  | 'contactShadows'
+> => {
+  if (renderPresetId === 'clayStudio') {
+    return {
+      viewportStyle: renderPresetId,
+      displayMode: 'rendered',
+      environmentGrade: { ...CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE },
+      shadowsEnabled: false,
+      ground: {
+        ...currentView.ground,
+        enabled: true,
+      },
+      gridVisible: false,
+      gridPresentation: cloneGridPresentationSettings(currentView.gridPresentation),
+      postProcessing: createViewAmbientOcclusionPresetSettings('medium'),
+      contactShadows: {
+        ...CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
+      },
+    }
+  }
+  return {
+    viewportStyle: renderPresetId,
+    displayMode: currentView.displayMode,
+    environmentGrade: cloneEnvironmentGrade(DEFAULT_VIEW_SETTINGS.environmentGrade),
+    shadowsEnabled: DEFAULT_VIEW_SETTINGS.shadowsEnabled,
+    ground: { ...DEFAULT_VIEW_SETTINGS.ground },
+    gridVisible: DEFAULT_VIEW_SETTINGS.gridVisible,
+    gridPresentation: cloneGridPresentationSettings(DEFAULT_VIEW_SETTINGS.gridPresentation),
+    postProcessing: normalizeViewPostProcessSettings(DEFAULT_VIEW_SETTINGS.postProcessing),
+    contactShadows: normalizeViewContactShadowSettings(DEFAULT_VIEW_SETTINGS.contactShadows),
+  }
+}
 
 export const isRenderPreviewNoiseCleanup = (
   value: unknown,
@@ -331,6 +567,12 @@ export const isRenderPreviewGpuLoad = (value: unknown): value is RenderPreviewGp
 export const isViewSsaoQuality = (value: unknown): value is ViewSsaoQuality =>
   typeof value === 'string' && VIEW_SSAO_QUALITY_OPTIONS.includes(value as ViewSsaoQuality)
 
+export const isViewAmbientOcclusionType = (
+  value: unknown,
+): value is ViewAmbientOcclusionType =>
+  typeof value === 'string' &&
+  VIEW_AMBIENT_OCCLUSION_TYPE_OPTIONS.includes(value as ViewAmbientOcclusionType)
+
 export const DEFAULT_RENDER_PREVIEW_SETTINGS: RenderPreviewSettings = {
   targetSamples: DEFAULT_RENDER_PREVIEW_TARGET_SAMPLES,
   bounces: DEFAULT_RENDER_PREVIEW_BOUNCES,
@@ -340,10 +582,40 @@ export const DEFAULT_RENDER_PREVIEW_SETTINGS: RenderPreviewSettings = {
 }
 
 export const DEFAULT_VIEW_POST_PROCESS_SETTINGS: ViewPostProcessSettings = {
+  aoType: DEFAULT_VIEW_AMBIENT_OCCLUSION_TYPE,
   ssaoEnabled: false,
   ssaoIntensity: DEFAULT_VIEW_SSAO_INTENSITY,
   ssaoRadius: DEFAULT_VIEW_SSAO_RADIUS,
   ssaoQuality: DEFAULT_VIEW_SSAO_QUALITY,
+  ssaoContactBias: DEFAULT_VIEW_SSAO_CONTACT_BIAS,
+  ssaoDistanceThreshold: DEFAULT_VIEW_SSAO_DISTANCE_THRESHOLD,
+}
+
+export const DEFAULT_VIEW_CONTACT_SHADOW_SETTINGS: ViewContactShadowSettings = {
+  enabled: false,
+  opacity: 1,
+  spread: 1,
+  heightFade: 8,
+}
+
+export const CLAY_STUDIO_CONTACT_SHADOW_SETTINGS: ViewContactShadowSettings = {
+  enabled: true,
+  opacity: 1,
+  spread: 1,
+  heightFade: 8,
+}
+
+export const CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
+  toneMapping: 'aces',
+  exposure: 1.28,
+  contrast: 0.86,
+  highlights: -4,
+  shadows: 36,
+  whites: 16,
+  blacks: 4,
+  temperature: 0,
+  tint: 0,
+  saturation: 0.82,
 }
 
 const VIEW_AMBIENT_OCCLUSION_PRESET_SETTINGS: Record<
@@ -352,27 +624,33 @@ const VIEW_AMBIENT_OCCLUSION_PRESET_SETTINGS: Record<
 > = {
   off: DEFAULT_VIEW_POST_PROCESS_SETTINGS,
   low: {
+    aoType: 'basicSsao',
     ssaoEnabled: true,
     ssaoIntensity: 0.55,
     ssaoRadius: 1.15,
     ssaoQuality: 'low',
+    ssaoContactBias: 0.0021,
+    ssaoDistanceThreshold: 0.06625,
   },
   medium: {
+    aoType: 'basicSsao',
     ssaoEnabled: true,
     ssaoIntensity: 0.82,
     ssaoRadius: 1.85,
     ssaoQuality: 'medium',
+    ssaoContactBias: 0.00264,
+    ssaoDistanceThreshold: 0.0865,
   },
   high: {
+    aoType: 'basicSsao',
     ssaoEnabled: true,
     ssaoIntensity: 1.05,
     ssaoRadius: 2.65,
     ssaoQuality: 'high',
+    ssaoContactBias: 0.0031,
+    ssaoDistanceThreshold: 0.10375,
   },
 }
-
-const normalizeHexColor = (value: unknown, fallback: string): string =>
-  typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value.toLowerCase() : fallback
 
 export const DEFAULT_VIEW_HIGHLIGHT_SETTINGS: ViewHighlightSettings = {
   hoverColor: '#f5f7fb',
@@ -529,29 +807,80 @@ export const normalizeRenderPreviewSettings = (
   gpuLoad: isRenderPreviewGpuLoad(settings?.gpuLoad) ? settings.gpuLoad : fallback.gpuLoad,
 })
 
+const resolveViewAmbientOcclusionType = (
+  settings: Partial<ViewPostProcessSettings> | undefined,
+  fallback: ViewPostProcessSettings = DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+): ViewAmbientOcclusionType => {
+  if (isViewAmbientOcclusionType(settings?.aoType)) {
+    return settings.aoType
+  }
+  if (typeof settings?.ssaoEnabled === 'boolean') {
+    return settings.ssaoEnabled ? 'basicSsao' : 'off'
+  }
+  return fallback.aoType
+}
+
 export const normalizeViewPostProcessSettings = (
   settings: Partial<ViewPostProcessSettings> | undefined,
   fallback: ViewPostProcessSettings = DEFAULT_VIEW_POST_PROCESS_SETTINGS,
-): ViewPostProcessSettings => ({
-  ssaoEnabled:
-    typeof settings?.ssaoEnabled === 'boolean'
-      ? settings.ssaoEnabled
-      : fallback.ssaoEnabled,
-  ssaoIntensity: normalizeNumber(
-    settings?.ssaoIntensity,
-    fallback.ssaoIntensity,
-    MIN_VIEW_SSAO_INTENSITY,
-    MAX_VIEW_SSAO_INTENSITY,
+): ViewPostProcessSettings => {
+  const aoType = resolveViewAmbientOcclusionType(settings, fallback)
+  return {
+    aoType,
+    ssaoEnabled: aoType !== 'off',
+    ssaoIntensity: normalizeNumber(
+      settings?.ssaoIntensity,
+      fallback.ssaoIntensity,
+      MIN_VIEW_SSAO_INTENSITY,
+      MAX_VIEW_SSAO_INTENSITY,
+    ),
+    ssaoRadius: normalizeNumber(
+      settings?.ssaoRadius,
+      fallback.ssaoRadius,
+      MIN_VIEW_SSAO_RADIUS,
+      MAX_VIEW_SSAO_RADIUS,
+    ),
+    ssaoQuality: isViewSsaoQuality(settings?.ssaoQuality)
+      ? settings.ssaoQuality
+      : fallback.ssaoQuality,
+    ssaoContactBias: normalizeNumber(
+      settings?.ssaoContactBias,
+      fallback.ssaoContactBias,
+      MIN_VIEW_SSAO_CONTACT_BIAS,
+      MAX_VIEW_SSAO_CONTACT_BIAS,
+    ),
+    ssaoDistanceThreshold: normalizeNumber(
+      settings?.ssaoDistanceThreshold,
+      fallback.ssaoDistanceThreshold,
+      MIN_VIEW_SSAO_DISTANCE_THRESHOLD,
+      MAX_VIEW_SSAO_DISTANCE_THRESHOLD,
+    ),
+  }
+}
+
+export const normalizeViewContactShadowSettings = (
+  settings: Partial<ViewContactShadowSettings> | undefined,
+  fallback: ViewContactShadowSettings = DEFAULT_VIEW_CONTACT_SHADOW_SETTINGS,
+): ViewContactShadowSettings => ({
+  enabled: typeof settings?.enabled === 'boolean' ? settings.enabled : fallback.enabled,
+  opacity: normalizeNumber(
+    settings?.opacity,
+    fallback.opacity,
+    MIN_CONTACT_SHADOW_OPACITY,
+    MAX_CONTACT_SHADOW_OPACITY,
   ),
-  ssaoRadius: normalizeNumber(
-    settings?.ssaoRadius,
-    fallback.ssaoRadius,
-    MIN_VIEW_SSAO_RADIUS,
-    MAX_VIEW_SSAO_RADIUS,
+  spread: normalizeNumber(
+    settings?.spread,
+    fallback.spread,
+    MIN_CONTACT_SHADOW_SPREAD,
+    MAX_CONTACT_SHADOW_SPREAD,
   ),
-  ssaoQuality: isViewSsaoQuality(settings?.ssaoQuality)
-    ? settings.ssaoQuality
-    : fallback.ssaoQuality,
+  heightFade: normalizeNumber(
+    settings?.heightFade,
+    fallback.heightFade,
+    MIN_CONTACT_SHADOW_HEIGHT_FADE,
+    MAX_CONTACT_SHADOW_HEIGHT_FADE,
+  ),
 })
 
 export const isViewAmbientOcclusionPreset = (
@@ -565,21 +894,33 @@ export const createViewAmbientOcclusionPresetSettings = (
 ): ViewPostProcessSettings =>
   normalizeViewPostProcessSettings(VIEW_AMBIENT_OCCLUSION_PRESET_SETTINGS[preset])
 
+export const isViewBasicSsaoEnabled = (settings: ViewPostProcessSettings): boolean =>
+  settings.aoType === 'basicSsao'
+
+export const isViewPostProcessingAoEnabled = (settings: ViewPostProcessSettings): boolean =>
+  settings.aoType !== 'off'
+
 export const areViewPostProcessSettingsEqual = (
   left: ViewPostProcessSettings,
   right: ViewPostProcessSettings,
 ): boolean =>
+  left.aoType === right.aoType &&
   left.ssaoEnabled === right.ssaoEnabled &&
   left.ssaoIntensity === right.ssaoIntensity &&
   left.ssaoRadius === right.ssaoRadius &&
-  left.ssaoQuality === right.ssaoQuality
+  left.ssaoQuality === right.ssaoQuality &&
+  left.ssaoContactBias === right.ssaoContactBias &&
+  left.ssaoDistanceThreshold === right.ssaoDistanceThreshold
 
 export const resolveViewAmbientOcclusionPresetRead = (
   settings: ViewPostProcessSettings,
-): ViewAmbientOcclusionPreset => {
+): ViewAmbientOcclusionPresetRead => {
   const normalizedSettings = normalizeViewPostProcessSettings(settings)
-  if (!normalizedSettings.ssaoEnabled) {
+  if (normalizedSettings.aoType === 'off') {
     return 'off'
+  }
+  if (!isViewBasicSsaoEnabled(normalizedSettings)) {
+    return 'custom'
   }
 
   const matchingPreset = VIEW_AMBIENT_OCCLUSION_PRESET_OPTIONS.find((preset) =>
@@ -589,7 +930,7 @@ export const resolveViewAmbientOcclusionPresetRead = (
     ),
   )
 
-  return matchingPreset ?? normalizedSettings.ssaoQuality
+  return matchingPreset ?? 'custom'
 }
 
 export const areRenderPreviewSettingsEqual = (
@@ -645,6 +986,233 @@ const normalizeViewEdgeDisplayMode = (
 
   return displayMode === 'wireframe' ? 'on' : DEFAULT_VIEW_EDGE_DISPLAY_MODE
 }
+
+export const normalizeViewGeometryDisplayCustomMaterial = (
+  material: Partial<MaterialPreset> | undefined,
+  fallback: MaterialPreset = DEFAULT_VIEW_GEOMETRY_DISPLAY_CUSTOM_SURFACE_MATERIAL,
+): MaterialPreset => ({
+  id:
+    typeof material?.id === 'string' && material.id.trim().length > 0
+      ? material.id
+      : fallback.id,
+  name:
+    typeof material?.name === 'string' && material.name.trim().length > 0
+      ? material.name
+      : fallback.name,
+  color: normalizeHexColor(material?.color, fallback.color),
+  metalness: normalizeNumber(material?.metalness, fallback.metalness, 0, 1),
+  roughness: normalizeNumber(material?.roughness, fallback.roughness, 0, 1),
+  emissive: normalizeHexColor(material?.emissive, fallback.emissive),
+  emissiveIntensity: normalizeNumber(
+    material?.emissiveIntensity,
+    fallback.emissiveIntensity,
+    0,
+    2,
+  ),
+  opacity: normalizeNumber(material?.opacity, fallback.opacity, 0, 1),
+  transparent:
+    typeof material?.transparent === 'boolean'
+      ? material.transparent
+      : fallback.transparent,
+  doubleSided:
+    typeof material?.doubleSided === 'boolean'
+      ? material.doubleSided
+      : fallback.doubleSided,
+})
+
+const normalizeViewGeometryDisplaySurfaceStyle = (
+  style: Partial<ViewGeometryDisplaySurfaceStyle> | undefined,
+  fallback: ViewGeometryDisplaySurfaceStyle,
+  minOpacity: number,
+  maxOpacity: number,
+): ViewGeometryDisplaySurfaceStyle => ({
+  color: normalizeHexColor(style?.color, fallback.color),
+  opacity: normalizeNumber(style?.opacity, fallback.opacity, minOpacity, maxOpacity),
+})
+
+const normalizeViewGeometryDisplayEdgeInteractionStyle = (
+  style: Partial<ViewGeometryDisplayEdgeInteractionStyle> | undefined,
+  fallback: ViewGeometryDisplayEdgeInteractionStyle,
+): ViewGeometryDisplayEdgeInteractionStyle => ({
+  color: normalizeHexColor(style?.color, fallback.color),
+  opacity: normalizeNumber(style?.opacity, fallback.opacity, 0, 1),
+})
+
+export const normalizeViewGeometryDisplaySettings = (
+  settings: LegacyViewSettingsInput['geometryDisplay'] | undefined,
+  fallback: ViewGeometryDisplaySettings = DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS,
+  legacyEdgeDisplayMode?: ViewEdgeDisplayMode,
+): ViewGeometryDisplaySettings => ({
+  surfaces: {
+    visible:
+      typeof settings?.surfaces?.visible === 'boolean'
+        ? settings.surfaces.visible
+        : fallback.surfaces.visible,
+    source: isViewGeometryDisplaySurfaceSource(settings?.surfaces?.source)
+      ? settings.surfaces.source
+      : fallback.surfaces.source,
+    customMaterial: normalizeViewGeometryDisplayCustomMaterial(
+      settings?.surfaces?.customMaterial,
+      fallback.surfaces.customMaterial,
+    ),
+    hover: normalizeViewGeometryDisplaySurfaceStyle(
+      settings?.surfaces?.hover,
+      fallback.surfaces.hover,
+      0.05,
+      0.9,
+    ),
+    selected: normalizeViewGeometryDisplaySurfaceStyle(
+      settings?.surfaces?.selected,
+      fallback.surfaces.selected,
+      0.05,
+      0.95,
+    ),
+    bodySelected: normalizeViewGeometryDisplaySurfaceStyle(
+      settings?.surfaces?.bodySelected,
+      fallback.surfaces.bodySelected,
+      0.05,
+      0.85,
+    ),
+  },
+  edges: {
+    mode: isViewGeometryDisplayEdgeMode(settings?.edges?.mode)
+      ? settings.edges.mode
+      : legacyEdgeDisplayMode === undefined
+        ? fallback.edges.mode
+        : viewEdgeDisplayModeToGeometryDisplayEdgeMode(legacyEdgeDisplayMode),
+    color: normalizeHexColor(settings?.edges?.color, fallback.edges.color),
+    opacity: normalizeNumber(
+      settings?.edges?.opacity,
+      fallback.edges.opacity,
+      MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
+      MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
+    ),
+    depthMode: isViewGeometryDisplayEdgeDepthMode(settings?.edges?.depthMode)
+      ? settings.edges.depthMode
+      : fallback.edges.depthMode,
+    hover: normalizeViewGeometryDisplayEdgeInteractionStyle(
+      settings?.edges?.hover,
+      fallback.edges.hover,
+    ),
+    selected: normalizeViewGeometryDisplayEdgeInteractionStyle(
+      settings?.edges?.selected,
+      fallback.edges.selected,
+    ),
+  },
+  points: {
+    visible:
+      typeof settings?.points?.visible === 'boolean'
+        ? settings.points.visible
+        : fallback.points.visible,
+  },
+})
+
+const createGeometryDisplayFallbackFromHighlights = (
+  highlights: ViewHighlightSettings,
+): ViewGeometryDisplaySettings => ({
+  ...DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS,
+  surfaces: {
+    ...DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS.surfaces,
+    hover: {
+      color: highlights.hoverColor,
+      opacity: highlights.surfaceHoverOpacity,
+    },
+    selected: {
+      color: highlights.selectedColor,
+      opacity: highlights.surfaceSelectedOpacity,
+    },
+    bodySelected: {
+      color: highlights.bodySelectedColor,
+      opacity: highlights.bodySelectedOpacity,
+    },
+  },
+  edges: {
+    ...DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS.edges,
+    hover: {
+      color: highlights.hoverColor,
+      opacity: 0.65 + highlights.hoverGlow * 0.35,
+    },
+    selected: {
+      color: highlights.selectedColor,
+      opacity: 0.7 + highlights.selectedGlow * 0.3,
+    },
+  },
+})
+
+export const createHighlightsFromGeometryDisplaySurfaceStyles = (
+  highlights: ViewHighlightSettings,
+  geometryDisplay: Pick<ViewGeometryDisplaySettings, 'surfaces'>,
+): ViewHighlightSettings =>
+  normalizeViewHighlightSettings({
+    ...highlights,
+    hoverColor: geometryDisplay.surfaces.hover.color,
+    surfaceHoverOpacity: geometryDisplay.surfaces.hover.opacity,
+    selectedColor: geometryDisplay.surfaces.selected.color,
+    surfaceSelectedOpacity: geometryDisplay.surfaces.selected.opacity,
+    bodySelectedColor: geometryDisplay.surfaces.bodySelected.color,
+    bodySelectedOpacity: geometryDisplay.surfaces.bodySelected.opacity,
+  })
+
+const edgeInteractionOpacityToGlow = (
+  opacity: number,
+  baseOpacity: number,
+  glowRange: number,
+): number => Number(normalizeNumber((opacity - baseOpacity) / glowRange, 0, 0, 1).toFixed(6))
+
+export const createHighlightsFromGeometryDisplayStyles = (
+  highlights: ViewHighlightSettings,
+  geometryDisplay: Pick<ViewGeometryDisplaySettings, 'surfaces' | 'edges'>,
+): ViewHighlightSettings => {
+  const surfaceHighlights = createHighlightsFromGeometryDisplaySurfaceStyles(
+    highlights,
+    geometryDisplay,
+  )
+  return normalizeViewHighlightSettings({
+    ...surfaceHighlights,
+    hoverColor: geometryDisplay.edges.hover.color,
+    selectedColor: geometryDisplay.edges.selected.color,
+    hoverGlow: edgeInteractionOpacityToGlow(geometryDisplay.edges.hover.opacity, 0.65, 0.35),
+    selectedGlow: edgeInteractionOpacityToGlow(
+      geometryDisplay.edges.selected.opacity,
+      0.7,
+      0.3,
+    ),
+  })
+}
+
+export const createGeometryDisplaySurfaceStylesFromHighlights = (
+  geometryDisplay: ViewGeometryDisplaySettings,
+  highlights: ViewHighlightSettings,
+): ViewGeometryDisplaySettings =>
+  normalizeViewGeometryDisplaySettings({
+    ...geometryDisplay,
+    surfaces: {
+      ...geometryDisplay.surfaces,
+      hover: {
+        color: highlights.hoverColor,
+        opacity: highlights.surfaceHoverOpacity,
+      },
+      selected: {
+        color: highlights.selectedColor,
+        opacity: highlights.surfaceSelectedOpacity,
+      },
+      bodySelected: {
+        color: highlights.bodySelectedColor,
+        opacity: highlights.bodySelectedOpacity,
+      },
+    },
+    edges: {
+      ...geometryDisplay.edges,
+      hover: {
+        color: highlights.hoverColor,
+        opacity: 0.65 + highlights.hoverGlow * 0.35,
+      },
+      selected: {
+        color: highlights.selectedColor,
+        opacity: 0.7 + highlights.selectedGlow * 0.3,
+      },
+    },
+  })
 
 const BASELINE_ENVIRONMENT_PRESET_LIGHTING: ViewSettings['lighting'] = {
   selectedLightId: 'key',
@@ -839,10 +1407,39 @@ export const getEnvironmentPresetDefinition = (
 
 export type LegacyViewSettingsInput = Omit<
   Partial<ViewSettings>,
-  'environmentGrade' | 'postProcessing'
+  | 'environmentGrade'
+  | 'gridPresentation'
+  | 'postProcessing'
+  | 'contactShadows'
+  | 'geometryDisplay'
 > & {
   environmentGrade?: Partial<EnvironmentGradeSettings>
+  gridPresentation?: Partial<GridPresentationSettings> & {
+    layers?: Array<Partial<GridPresentationLayerSettings>>
+  }
   postProcessing?: Partial<ViewPostProcessSettings>
+  contactShadows?: Partial<ViewContactShadowSettings>
+  geometryDisplay?: {
+    surfaces?: {
+      visible?: boolean
+      source?: ViewGeometryDisplaySurfaceSource
+      customMaterial?: Partial<MaterialPreset>
+      hover?: Partial<ViewGeometryDisplaySurfaceStyle>
+      selected?: Partial<ViewGeometryDisplaySurfaceStyle>
+      bodySelected?: Partial<ViewGeometryDisplaySurfaceStyle>
+    }
+    edges?: {
+      mode?: ViewGeometryDisplayEdgeMode
+      color?: string
+      opacity?: number
+      depthMode?: ViewGeometryDisplayEdgeDepthMode
+      hover?: Partial<ViewGeometryDisplayEdgeInteractionStyle>
+      selected?: Partial<ViewGeometryDisplayEdgeInteractionStyle>
+    }
+    points?: {
+      visible?: boolean
+    }
+  }
   toneMapping?: ToneMappingMode
   exposure?: number
 }
@@ -867,6 +1464,57 @@ export const normalizeEnvironmentGrade = (
     ),
     tint: normalizeEnvironmentGradeValue(grade?.tint, fallback.tint, -100, 100),
     saturation: normalizeEnvironmentGradeValue(grade?.saturation, fallback.saturation, 0, 3),
+  }
+}
+
+const normalizeGridPresentationLayer = (
+  layer: Partial<GridPresentationLayerSettings> | undefined,
+  fallback: GridPresentationLayerSettings,
+): GridPresentationLayerSettings => ({
+  id: isGridPresentationLayerId(layer?.id) ? layer.id : fallback.id,
+  enabled: typeof layer?.enabled === 'boolean' ? layer.enabled : fallback.enabled,
+  spacing: normalizeNumber(
+    layer?.spacing,
+    fallback.spacing,
+    MIN_GRID_PRESENTATION_SPACING,
+    MAX_GRID_PRESENTATION_SPACING,
+  ),
+  color: normalizeHexColor(layer?.color, fallback.color),
+  opacity: normalizeNumber(
+    layer?.opacity,
+    fallback.opacity,
+    MIN_GRID_PRESENTATION_OPACITY,
+    MAX_GRID_PRESENTATION_OPACITY,
+  ),
+  heightOffset: normalizeNumber(
+    layer?.heightOffset,
+    fallback.heightOffset,
+    MIN_GRID_PRESENTATION_HEIGHT_OFFSET,
+    MAX_GRID_PRESENTATION_HEIGHT_OFFSET,
+  ),
+})
+
+export const normalizeGridPresentationSettings = (
+  settings: LegacyViewSettingsInput['gridPresentation'] | undefined,
+): GridPresentationSettings => {
+  const sourceLayers = Array.isArray(settings?.layers) ? settings.layers : []
+  return {
+    height: normalizeNumber(
+      settings?.height,
+      DEFAULT_GRID_PRESENTATION_SETTINGS.height,
+      MIN_GRID_PRESENTATION_HEIGHT,
+      MAX_GRID_PRESENTATION_HEIGHT,
+    ),
+    size: normalizeNumber(
+      settings?.size,
+      DEFAULT_GRID_PRESENTATION_SETTINGS.size,
+      MIN_GRID_PRESENTATION_SIZE,
+      MAX_GRID_PRESENTATION_SIZE,
+    ),
+    layers: DEFAULT_GRID_PRESENTATION_SETTINGS.layers.map((fallbackLayer) => {
+      const matchingLayer = sourceLayers.find((layer) => layer?.id === fallbackLayer.id)
+      return normalizeGridPresentationLayer(matchingLayer, fallbackLayer)
+    }),
   }
 }
 
@@ -1072,11 +1720,30 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
   )
   const displayMode = normalizeViewDisplayMode(settings.displayMode, settings.wireframe)
   const edgeDisplayMode = normalizeViewEdgeDisplayMode(settings.edgeDisplayMode, displayMode)
+  const normalizedHighlights = normalizeViewHighlightSettings(settings.highlights)
+  let geometryDisplay = normalizeViewGeometryDisplaySettings(
+    settings.geometryDisplay,
+    createGeometryDisplayFallbackFromHighlights(normalizedHighlights),
+    edgeDisplayMode,
+  )
+  if (
+    settings.geometryDisplay?.edges?.mode === DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS.edges.mode &&
+    edgeDisplayMode !== geometryDisplayEdgeModeToViewEdgeDisplayMode(geometryDisplay.edges.mode)
+  ) {
+    geometryDisplay = {
+      ...geometryDisplay,
+      edges: {
+        ...geometryDisplay.edges,
+        mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(edgeDisplayMode),
+      },
+    }
+  }
   const normalizedView: ViewSettings = {
     ...DEFAULT_VIEW_SETTINGS,
     ...settings,
     displayMode,
-    edgeDisplayMode,
+    edgeDisplayMode: geometryDisplayEdgeModeToViewEdgeDisplayMode(geometryDisplay.edges.mode),
+    geometryDisplay,
     viewportStyle: isViewportStyle(settings.viewportStyle)
       ? settings.viewportStyle
       : DEFAULT_VIEWPORT_STYLE,
@@ -1091,9 +1758,14 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
       settings.ground === undefined
         ? { ...DEFAULT_VIEW_SETTINGS.ground }
         : { ...settings.ground },
+    gridPresentation: normalizeGridPresentationSettings(settings.gridPresentation),
     renderPreview: normalizeRenderPreviewSettings(settings.renderPreview),
     postProcessing: normalizeViewPostProcessSettings(settings.postProcessing),
-    highlights: normalizeViewHighlightSettings(settings.highlights),
+    contactShadows: normalizeViewContactShadowSettings(settings.contactShadows),
+    highlights: createHighlightsFromGeometryDisplaySurfaceStyles(
+      normalizedHighlights,
+      geometryDisplay,
+    ),
     axisOverlayStyle:
       settings.axisOverlayStyle === undefined
         ? { ...DEFAULT_VIEW_SETTINGS.axisOverlayStyle }
@@ -1130,6 +1802,87 @@ export const DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS: AxisOverlayStyleSettings = {
   labelSize: 'medium',
   backgroundMode: 'none',
   backgroundOpacity: 0,
+}
+
+export const DEFAULT_GRID_PRESENTATION_SETTINGS: GridPresentationSettings = {
+  height: 0,
+  size: 300,
+  layers: [
+    {
+      id: 'grid1',
+      enabled: true,
+      spacing: 1,
+      color: '#ffffff',
+      opacity: 0.1,
+      heightOffset: 0,
+    },
+    {
+      id: 'grid2',
+      enabled: true,
+      spacing: 10,
+      color: '#ffffff',
+      opacity: 0.3,
+      heightOffset: 0.001,
+    },
+    {
+      id: 'grid3',
+      enabled: true,
+      spacing: 50,
+      color: '#ffffff',
+      opacity: 1,
+      heightOffset: 0.002,
+    },
+  ],
+}
+
+export const DEFAULT_VIEW_GEOMETRY_DISPLAY_CUSTOM_SURFACE_MATERIAL: MaterialPreset = {
+  id: 'geometry_display_surface_custom',
+  name: 'Custom Surface',
+  color: '#5f83d6',
+  metalness: 0.06,
+  roughness: 0.84,
+  emissive: '#ffffff',
+  emissiveIntensity: 0,
+  opacity: 1,
+  transparent: false,
+  doubleSided: true,
+}
+
+export const DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS: ViewGeometryDisplaySettings = {
+  surfaces: {
+    visible: true,
+    source: 'materialSet',
+    customMaterial: DEFAULT_VIEW_GEOMETRY_DISPLAY_CUSTOM_SURFACE_MATERIAL,
+    hover: {
+      color: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.hoverColor,
+      opacity: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.surfaceHoverOpacity,
+    },
+    selected: {
+      color: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.selectedColor,
+      opacity: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.surfaceSelectedOpacity,
+    },
+    bodySelected: {
+      color: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.bodySelectedColor,
+      opacity: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.bodySelectedOpacity,
+    },
+  },
+  edges: {
+    mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(DEFAULT_VIEW_EDGE_DISPLAY_MODE),
+    color: '#6f92d9',
+    opacity: 0.62,
+    depthMode: 'xray',
+    hover: {
+      color: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.hoverColor,
+      opacity: 0.65 + DEFAULT_VIEW_HIGHLIGHT_SETTINGS.hoverGlow * 0.35,
+    },
+    selected: {
+      color: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.selectedColor,
+      opacity: 0.7 + DEFAULT_VIEW_HIGHLIGHT_SETTINGS.selectedGlow * 0.3,
+    },
+  },
+  points: {
+    visible: true,
+  },
 }
 
 export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
@@ -1192,6 +1945,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
   wireframe: false,
   displayMode: DEFAULT_VIEW_DISPLAY_MODE,
   edgeDisplayMode: DEFAULT_VIEW_EDGE_DISPLAY_MODE,
+  geometryDisplay: DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS,
   viewportStyle: DEFAULT_VIEWPORT_STYLE,
   envPreset: 'baseline',
   environmentGrade: cloneEnvironmentGrade(DEFAULT_ENVIRONMENT_GRADE),
@@ -1203,8 +1957,10 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
     height: 0,
     materialPresetId: 'matte_mid',
   },
+  gridPresentation: cloneGridPresentationSettings(DEFAULT_GRID_PRESENTATION_SETTINGS),
   renderPreview: DEFAULT_RENDER_PREVIEW_SETTINGS,
   postProcessing: DEFAULT_VIEW_POST_PROCESS_SETTINGS,
+  contactShadows: DEFAULT_VIEW_CONTACT_SHADOW_SETTINGS,
   highlights: DEFAULT_VIEW_HIGHLIGHT_SETTINGS,
   axisOverlayEnabled: true,
   axisOverlayStyle: DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS,

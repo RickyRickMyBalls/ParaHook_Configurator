@@ -43,6 +43,12 @@ describe('scene presentation edit-history readiness', () => {
         height: 0,
         materialPresetId: 'matte_mid',
       },
+      gridPresentation: {
+        ...DEFAULT_VIEW_SETTINGS.gridPresentation,
+        height: 0.5,
+        size: 250,
+        layers: DEFAULT_VIEW_SETTINGS.gridPresentation.layers.map((layer) => ({ ...layer })),
+      },
       renderPreview: {
         targetSamples: 32,
         bounces: 4,
@@ -51,10 +57,19 @@ describe('scene presentation edit-history readiness', () => {
         gpuLoad: 'smooth',
       },
       postProcessing: {
+        aoType: 'off',
         ssaoEnabled: false,
         ssaoIntensity: 0.75,
         ssaoRadius: 0.5,
         ssaoQuality: 'low',
+        ssaoContactBias: DEFAULT_VIEW_SETTINGS.postProcessing.ssaoContactBias,
+        ssaoDistanceThreshold: DEFAULT_VIEW_SETTINGS.postProcessing.ssaoDistanceThreshold,
+      },
+      contactShadows: {
+        enabled: false,
+        opacity: 0.25,
+        spread: 0.75,
+        heightFade: 4,
       },
       materials: {
         ...DEFAULT_VIEW_SETTINGS.materials,
@@ -92,6 +107,16 @@ describe('scene presentation edit-history readiness', () => {
         height: 1.25,
         materialPresetId: 'glossy_studio',
       },
+      gridPresentation: {
+        ...DEFAULT_VIEW_SETTINGS.gridPresentation,
+        height: 3,
+        size: 400,
+        layers: DEFAULT_VIEW_SETTINGS.gridPresentation.layers.map((layer) =>
+          layer.id === 'grid1'
+            ? { ...layer, color: '#ff00aa', opacity: 0.25, spacing: 2 }
+            : { ...layer },
+        ),
+      },
       renderPreview: {
         targetSamples: 128,
         bounces: 9,
@@ -100,10 +125,19 @@ describe('scene presentation edit-history readiness', () => {
         gpuLoad: 'fast',
       },
       postProcessing: {
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoIntensity: 1.8,
         ssaoRadius: 2.5,
         ssaoQuality: 'high',
+        ssaoContactBias: DEFAULT_VIEW_SETTINGS.postProcessing.ssaoContactBias,
+        ssaoDistanceThreshold: DEFAULT_VIEW_SETTINGS.postProcessing.ssaoDistanceThreshold,
+      },
+      contactShadows: {
+        enabled: true,
+        opacity: 0.7,
+        spread: 1.4,
+        heightFade: 10,
       },
       materials: {
         ...DEFAULT_VIEW_SETTINGS.materials,
@@ -127,8 +161,10 @@ describe('scene presentation edit-history readiness', () => {
     expect(environmentOnlyView.viewportStyle).toBe(baseView.viewportStyle)
     expect(environmentOnlyView.wireframe).toBe(baseView.wireframe)
     expect(environmentOnlyView.ground).toEqual(baseView.ground)
+    expect(environmentOnlyView.gridPresentation).toEqual(baseView.gridPresentation)
     expect(environmentOnlyView.renderPreview).toEqual(baseView.renderPreview)
     expect(environmentOnlyView.postProcessing).toEqual(baseView.postProcessing)
+    expect(environmentOnlyView.contactShadows).toEqual(baseView.contactShadows)
     expect(environmentOnlyView.materials).toEqual(baseView.materials)
 
     const viewSettingsOnlyView = applyPersistedUiPrefsView(baseView, {
@@ -147,8 +183,10 @@ describe('scene presentation edit-history readiness', () => {
     expect(viewSettingsOnlyView.viewportStyle).toBe('clayStudio')
     expect(viewSettingsOnlyView.wireframe).toBe(true)
     expect(viewSettingsOnlyView.ground).toEqual(persistedView.ground)
+    expect(viewSettingsOnlyView.gridPresentation).toEqual(persistedView.gridPresentation)
     expect(viewSettingsOnlyView.renderPreview).toEqual(persistedView.renderPreview)
     expect(viewSettingsOnlyView.postProcessing).toEqual(persistedView.postProcessing)
+    expect(viewSettingsOnlyView.contactShadows).toEqual(persistedView.contactShadows)
     expect(viewSettingsOnlyView.materials).toEqual(persistedView.materials)
   })
 
@@ -175,10 +213,19 @@ describe('scene presentation edit-history readiness', () => {
         materialPresetId: 'glossy_studio',
       },
       postProcessing: {
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoIntensity: 2.2,
         ssaoRadius: 1.7,
         ssaoQuality: 'high',
+        ssaoContactBias: 0.006,
+        ssaoDistanceThreshold: 0.18,
+      },
+      contactShadows: {
+        enabled: true,
+        opacity: 0.5,
+        spread: 1.25,
+        heightFade: 7,
       },
     })
 
@@ -213,8 +260,10 @@ describe('scene presentation edit-history readiness', () => {
     expect(merged.gridVisible).toBe(DEFAULT_VIEW_SETTINGS.gridVisible)
     expect(merged.viewportStyle).toBe(DEFAULT_VIEW_SETTINGS.viewportStyle)
     expect(merged.ground).toEqual(DEFAULT_VIEW_SETTINGS.ground)
+    expect(merged.gridPresentation).toEqual(DEFAULT_VIEW_SETTINGS.gridPresentation)
     expect(merged.renderPreview).toEqual(DEFAULT_VIEW_SETTINGS.renderPreview)
     expect(merged.postProcessing).toEqual(DEFAULT_VIEW_POST_PROCESS_SETTINGS)
+    expect(merged.contactShadows).toEqual(DEFAULT_VIEW_SETTINGS.contactShadows)
     expect(merged.materials).toEqual(DEFAULT_VIEW_SETTINGS.materials)
   })
 

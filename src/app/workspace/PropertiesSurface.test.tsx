@@ -4,10 +4,13 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
+  CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
   DEFAULT_VIEW_SETTINGS,
   createRenderPreviewQualityPresetSettings,
   createViewAmbientOcclusionPresetSettings,
+  type GridPresentationSettings,
 } from '../../shared/viewSettingsTypes'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
@@ -1720,11 +1723,25 @@ describe('PropertiesSurface', () => {
     expect(renderPanel?.textContent).toContain('Environment')
     expect(renderPanel?.textContent).toContain('Shadows')
     expect(renderPanel?.textContent).toContain('Ground')
+    expect(renderPanel?.textContent).toContain('Grid')
     expect(renderPanel?.textContent).toContain('Render Preview quality')
     expect(renderPanel?.textContent).toContain('Exposure')
     expect(renderPanel?.textContent).toContain('Contrast')
     expect(renderPanel?.textContent).toContain('Saturation')
     expect(renderPanel?.textContent).toContain('Samples')
+    const renderGroupHeaders = Array.from(
+      renderPanel?.querySelectorAll('.SettingsSurfaceGroupHeader') ?? [],
+    )
+    const viewportPresentationHeader = renderGroupHeaders.find((header) =>
+      header.textContent?.includes('Viewport presentation'),
+    )
+    const shadowsHeader = renderGroupHeaders.find((header) =>
+      header.textContent?.includes('Shadows'),
+    )
+    expect(viewportPresentationHeader?.nextElementSibling?.textContent).not.toContain(
+      'Ambient Occlusion',
+    )
+    expect(shadowsHeader?.nextElementSibling?.textContent).toContain('Ambient Occlusion')
   })
 
   it('keeps render active when the focused target cannot open materials yet', async () => {
@@ -1805,15 +1822,16 @@ describe('PropertiesSurface', () => {
   })
 
   it('writes viewport style from the Properties Render section', async () => {
-    useUiPrefsStore.getState().setViewKey('viewportStyle', 'clayStudio')
-
     await renderSurface()
 
     const renderPanel = container?.querySelector(
       '#properties-section-panel-render',
     ) as HTMLDivElement | null
+    const displayModeSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Display Mode"]',
+    ) as HTMLSelectElement | null
     const viewportStyleSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Viewport Style"]',
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Render Preset"]',
     ) as HTMLSelectElement | null
     const qualityPresetSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Quality preset"]',
@@ -1821,22 +1839,12 @@ describe('PropertiesSurface', () => {
 
     expect(renderPanel?.textContent).toContain('Viewport presentation')
     expect(renderPanel?.textContent).toContain('Environment')
-    expect(renderPanel?.textContent).toContain('Clay Studio preset')
-    expect(renderPanel?.textContent).toContain('Preset Locked')
-    expect(renderPanel?.textContent).toContain('Hard shadows stay off')
-    expect(renderPanel?.textContent).toContain('Ground is forced on')
+    expect(renderPanel?.textContent).toContain('View settings grade')
+    expect(renderPanel?.textContent).toContain('Uses the saved environment grade')
     expect(renderPanel?.textContent).toContain('Render Preview quality')
-    expect(viewportStyleSelect?.value).toBe('clayStudio')
+    expect(displayModeSelect?.value).toBe('rendered')
+    expect(viewportStyleSelect?.value).toBe('standard')
     expect(qualityPresetSelect?.value).toBe('balanced')
-
-    await act(async () => {
-      if (viewportStyleSelect !== null) {
-        viewportStyleSelect.value = 'standard'
-        viewportStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-    })
-
-    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('standard')
 
     await act(async () => {
       if (viewportStyleSelect !== null) {
@@ -1845,13 +1853,47 @@ describe('PropertiesSurface', () => {
       }
     })
 
+    const clayView = useUiPrefsStore.getState().view
+    expect(clayView.viewportStyle).toBe('clayStudio')
+    expect(clayView.displayMode).toBe('rendered')
+    expect(clayView.environmentGrade).toEqual(CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE)
+    expect(clayView.shadowsEnabled).toBe(false)
+    expect(clayView.ground.enabled).toBe(true)
+    expect(clayView.gridVisible).toBe(false)
+    expect(clayView.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
+
+    await act(async () => {
+      if (displayModeSelect !== null) {
+        displayModeSelect.value = 'wireframe'
+        displayModeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
     expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
     expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
       DEFAULT_RENDER_PREVIEW_SETTINGS,
     )
+
+    await act(async () => {
+      if (viewportStyleSelect !== null) {
+        viewportStyleSelect.value = 'standard'
+        viewportStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const standardView = useUiPrefsStore.getState().view
+    expect(standardView.viewportStyle).toBe('standard')
+    expect(standardView.displayMode).toBe('wireframe')
+    expect(standardView.environmentGrade).toEqual(DEFAULT_VIEW_SETTINGS.environmentGrade)
+    expect(standardView.shadowsEnabled).toBe(DEFAULT_VIEW_SETTINGS.shadowsEnabled)
+    expect(standardView.ground).toEqual(DEFAULT_VIEW_SETTINGS.ground)
+    expect(standardView.gridVisible).toBe(DEFAULT_VIEW_SETTINGS.gridVisible)
+    expect(standardView.gridPresentation).toEqual(DEFAULT_VIEW_SETTINGS.gridPresentation)
+    expect(standardView.postProcessing).toEqual(DEFAULT_VIEW_SETTINGS.postProcessing)
   })
 
-  it('keeps Environment, Shadows, and Ground readback stable while other Render controls change', async () => {
+  it('applies built-in render preset values without disturbing other Render controls', async () => {
     const environmentGrade = {
       ...DEFAULT_VIEW_SETTINGS.environmentGrade,
       exposure: 1.77,
@@ -1863,6 +1905,11 @@ describe('PropertiesSurface', () => {
       height: 2.5,
       materialPresetId: 'glossy_studio' as const,
     }
+    const gridPresentation: GridPresentationSettings = {
+      ...DEFAULT_VIEW_SETTINGS.gridPresentation,
+      height: 1.5,
+      layers: DEFAULT_VIEW_SETTINGS.gridPresentation.layers.map((layer) => ({ ...layer })),
+    }
 
     await act(async () => {
       useUiPrefsStore.setState((state) => ({
@@ -1872,6 +1919,8 @@ describe('PropertiesSurface', () => {
           environmentGrade,
           shadowsEnabled: false,
           ground,
+          gridVisible: true,
+          gridPresentation,
         },
       }))
     })
@@ -1882,7 +1931,7 @@ describe('PropertiesSurface', () => {
       '#properties-section-panel-render',
     ) as HTMLDivElement | null
     const viewportStyleSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Viewport Style"]',
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Render Preset"]',
     ) as HTMLSelectElement | null
     const ambientOcclusionSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Ambient Occlusion"]',
@@ -1895,8 +1944,10 @@ describe('PropertiesSurface', () => {
     expect(renderPanel?.textContent).toContain('Uses the saved environment grade')
     expect(renderPanel?.textContent).toContain('Uses the saved shadow setting')
     expect(renderPanel?.textContent).toContain('On at 2.50')
+    expect(renderPanel?.textContent).toContain('On at 1.5')
     expect(renderPanel?.textContent).toContain('Selected Light Shadows')
     expect(renderPanel?.textContent).toContain('Ground Height')
+    expect(renderPanel?.textContent).toContain('Grid Height')
     expect(
       renderPanel?.querySelector('[data-properties-render-readback="environment"]'),
     ).not.toBeNull()
@@ -1905,6 +1956,9 @@ describe('PropertiesSurface', () => {
     ).not.toBeNull()
     expect(
       renderPanel?.querySelector('[data-properties-render-readback="ground"]'),
+    ).not.toBeNull()
+    expect(
+      renderPanel?.querySelector('[data-properties-render-readback="grid"]'),
     ).not.toBeNull()
 
     await act(async () => {
@@ -1926,11 +1980,17 @@ describe('PropertiesSurface', () => {
     })
 
     const view = useUiPrefsStore.getState().view
-    expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.environmentGrade).toEqual(CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE)
     expect(view.shadowsEnabled).toBe(false)
-    expect(view.ground).toEqual(ground)
+    expect(view.ground).toEqual({
+      ...ground,
+      enabled: true,
+    })
+    expect(view.gridVisible).toBe(false)
+    expect(view.gridPresentation).toEqual(gridPresentation)
     expect(view.viewportStyle).toBe('clayStudio')
     expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
+    expect(view.contactShadows).toEqual(CLAY_STUDIO_CONTACT_SHADOW_SETTINGS)
     expect(view.renderPreview.targetSamples).toBe(
       DEFAULT_RENDER_PREVIEW_SETTINGS.targetSamples + 8,
     )
@@ -1981,6 +2041,9 @@ describe('PropertiesSurface', () => {
 
     await renderSurface()
 
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
     const shadowsSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Shadows"]',
     ) as HTMLSelectElement | null
@@ -1993,6 +2056,21 @@ describe('PropertiesSurface', () => {
     const shadowMapSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Shadow Map"]',
     ) as HTMLSelectElement | null
+    const contactShadowsSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Contact Shadows"]',
+    ) as HTMLSelectElement | null
+    const queryContactOpacityIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase Contact Opacity"]',
+      ) as HTMLButtonElement | null
+    const queryContactSpreadIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase Contact Spread"]',
+      ) as HTMLButtonElement | null
+    const queryContactHeightFadeIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase Contact Height Fade"]',
+      ) as HTMLButtonElement | null
     const groundSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Ground"]',
     ) as HTMLSelectElement | null
@@ -2006,6 +2084,12 @@ describe('PropertiesSurface', () => {
     expect(shadowsSelect?.value).toBe('off')
     expect(castShadowSelect?.value).toBe('on')
     expect(shadowMapSelect?.value).toBe('1024')
+    expect(contactShadowsSelect?.value).toBe('off')
+    expect(renderPanel?.textContent).toContain('Contact Shadows')
+    expect(renderPanel?.textContent).not.toContain('Contact Opacity')
+    expect(renderPanel?.textContent).not.toContain('Contact Spread')
+    expect(renderPanel?.textContent).not.toContain('Contact Height Fade')
+    expect(queryContactOpacityIncreaseButton()).toBeNull()
     expect(groundSelect?.value).toBe('on')
     expect(materialSelect?.value).toBe('glossy_studio')
 
@@ -2023,6 +2107,20 @@ describe('PropertiesSurface', () => {
         shadowMapSelect.value = '2048'
         shadowMapSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
+      if (contactShadowsSelect !== null) {
+        contactShadowsSelect.value = 'on'
+        contactShadowsSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(renderPanel?.textContent).toContain('Contact Opacity')
+    expect(renderPanel?.textContent).toContain('Contact Spread')
+    expect(renderPanel?.textContent).toContain('Contact Height Fade')
+
+    await act(async () => {
+      queryContactOpacityIncreaseButton()?.click()
+      queryContactSpreadIncreaseButton()?.click()
+      queryContactHeightFadeIncreaseButton()?.click()
       if (groundSelect !== null) {
         groundSelect.value = 'off'
         groundSelect.dispatchEvent(new Event('change', { bubbles: true }))
@@ -2040,12 +2138,144 @@ describe('PropertiesSurface', () => {
     expect(selectedLight?.castShadow).toBe(false)
     expect(selectedLight?.shadowBias).toBeCloseTo(-0.0004)
     expect(selectedLight?.shadowMapSize).toBe(2048)
+    expect(view.contactShadows).toEqual({
+      enabled: true,
+      opacity: 1,
+      spread: 1.01,
+      heightFade: 8.5,
+    })
     expect(view.ground).toEqual({
       enabled: false,
       height: 3,
       materialPresetId: 'matte_dark',
     })
     expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
+    expect(view.renderPreview).toEqual(DEFAULT_RENDER_PREVIEW_SETTINGS)
+  })
+
+  it('writes View Toolbar grid settings from the Properties Render section', async () => {
+    const environmentGrade = {
+      ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+      exposure: 1.77,
+      contrast: 1.12,
+    }
+    const ground = {
+      ...DEFAULT_VIEW_SETTINGS.ground,
+      enabled: true,
+      height: 2.5,
+      materialPresetId: 'glossy_studio' as const,
+    }
+
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          viewportStyle: 'standard',
+          postProcessing: createViewAmbientOcclusionPresetSettings('medium'),
+          environmentGrade,
+          shadowsEnabled: false,
+          ground,
+          gridVisible: false,
+          gridPresentation: {
+            ...DEFAULT_VIEW_SETTINGS.gridPresentation,
+            height: 1.5,
+            size: 300,
+            layers: DEFAULT_VIEW_SETTINGS.gridPresentation.layers.map((layer) => ({ ...layer })),
+          },
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const gridSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Grid"]',
+    ) as HTMLSelectElement | null
+    const gridHeightIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid Height"]',
+    ) as HTMLButtonElement | null
+    const gridSizeIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid Size"]',
+    ) as HTMLButtonElement | null
+    const grid1LayerSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Grid 1 Layer"]',
+    ) as HTMLSelectElement | null
+    const grid1SpacingIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid 1 Spacing"]',
+    ) as HTMLButtonElement | null
+    const grid1ColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Grid 1 Color"]',
+    ) as HTMLInputElement | null
+    const grid1ColorExpandButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Expand Grid 1 color controls"]',
+    ) as HTMLButtonElement | null
+    const grid1OpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid 1 Opacity"]',
+    ) as HTMLButtonElement | null
+    const grid1HeightOffsetIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid 1 Height Offset"]',
+    ) as HTMLButtonElement | null
+
+    expect(gridSelect?.value).toBe('off')
+    expect(grid1LayerSelect?.value).toBe('on')
+    expect(grid1ColorInput?.value).toBe('#ffffff')
+    expect(grid1ColorExpandButton?.getAttribute('aria-expanded')).toBe('false')
+
+    await act(async () => {
+      grid1ColorExpandButton?.click()
+      if (gridSelect !== null) {
+        gridSelect.value = 'on'
+        gridSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      gridHeightIncreaseButton?.click()
+      gridSizeIncreaseButton?.click()
+      if (grid1LayerSelect !== null) {
+        grid1LayerSelect.value = 'off'
+        grid1LayerSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      grid1SpacingIncreaseButton?.click()
+      if (grid1ColorInput !== null) {
+        const valueSetter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set
+        valueSetter?.call(grid1ColorInput, '#ff00aa')
+        grid1ColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      grid1OpacityIncreaseButton?.click()
+      grid1HeightOffsetIncreaseButton?.click()
+    })
+
+    const expandedGrid1ColorControls = container?.querySelector(
+      '.PropertiesRenderSection [aria-label="Expanded Grid 1 color controls"]',
+    )
+    const grid1RedIncreaseButton = expandedGrid1ColorControls?.querySelector(
+      'button[aria-label="Increase R"]',
+    ) as HTMLButtonElement | null
+
+    expect(grid1ColorExpandButton?.getAttribute('aria-expanded')).toBe('true')
+    expect(expandedGrid1ColorControls).not.toBeNull()
+    expect(
+      expandedGrid1ColorControls?.querySelector('[data-selected-material-color-control="hue"]'),
+    ).not.toBeNull()
+    expect(grid1RedIncreaseButton?.disabled).toBe(false)
+
+    const view = useUiPrefsStore.getState().view
+    const grid1 = view.gridPresentation.layers.find((layer) => layer.id === 'grid1')
+    expect(view.gridVisible).toBe(true)
+    expect(view.gridPresentation.height).toBe(2)
+    expect(view.gridPresentation.size).toBe(325)
+    expect(grid1).toMatchObject({
+      enabled: false,
+      spacing: 1.1,
+      color: '#ff00aa',
+      opacity: 0.15,
+      heightOffset: 0.001,
+    })
+    expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.shadowsEnabled).toBe(false)
+    expect(view.ground).toEqual(ground)
     expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
     expect(view.renderPreview).toEqual(DEFAULT_RENDER_PREVIEW_SETTINGS)
   })
@@ -2118,7 +2348,7 @@ describe('PropertiesSurface', () => {
     expect(view.ground).toEqual(ground)
   })
 
-  it('locks Environment Grade, Shadows, and Ground controls while Clay Studio is active', async () => {
+  it('keeps neutral render controls editable after a Clay Studio preset is active', async () => {
     const environmentGrade = {
       ...DEFAULT_VIEW_SETTINGS.environmentGrade,
       exposure: 1.77,
@@ -2138,6 +2368,13 @@ describe('PropertiesSurface', () => {
             enabled: true,
             height: 2.5,
             materialPresetId: 'glossy_studio',
+          },
+          gridVisible: true,
+          gridPresentation: {
+            ...DEFAULT_VIEW_SETTINGS.gridPresentation,
+            height: 1.5,
+            size: 300,
+            layers: DEFAULT_VIEW_SETTINGS.gridPresentation.layers.map((layer) => ({ ...layer })),
           },
         },
       }))
@@ -2178,40 +2415,87 @@ describe('PropertiesSurface', () => {
     const materialSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Material"]',
     ) as HTMLSelectElement | null
+    const gridSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Grid"]',
+    ) as HTMLSelectElement | null
+    const gridHeightIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid Height"]',
+    ) as HTMLButtonElement | null
+    const grid1LayerSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Grid 1 Layer"]',
+    ) as HTMLSelectElement | null
+    const grid1SpacingIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Grid 1 Spacing"]',
+    ) as HTMLButtonElement | null
+    const grid1ColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Grid 1 Color"]',
+    ) as HTMLInputElement | null
+    const grid1ColorExpandButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Expand Grid 1 color controls"]',
+    ) as HTMLButtonElement | null
 
-    expect(renderPanel?.textContent).toContain('Clay Studio preset')
-    expect(renderPanel?.textContent).toContain('Preset Locked')
-    expect(renderPanel?.textContent).toContain('Switch to Standard to edit the saved grade')
-    expect(renderPanel?.textContent).toContain('Hard shadows stay off')
-    expect(renderPanel?.textContent).toContain('Ground is forced on')
-    expect(exposureIncreaseButton?.disabled).toBe(true)
-    expect(contrastIncreaseButton?.disabled).toBe(true)
-    expect(saturationIncreaseButton?.disabled).toBe(true)
-    expect(exposureSlider?.getAttribute('aria-disabled')).toBe('true')
-    expect(shadowsSelect?.disabled).toBe(true)
-    expect(castShadowSelect?.disabled).toBe(true)
-    expect(shadowBiasIncreaseButton?.disabled).toBe(true)
-    expect(groundSelect?.disabled).toBe(true)
-    expect(groundHeightIncreaseButton?.disabled).toBe(true)
-    expect(materialSelect?.disabled).toBe(true)
+    expect(renderPanel?.textContent).toContain('View settings grade')
+    expect(renderPanel?.textContent).toContain('Uses the saved environment grade')
+    expect(renderPanel?.textContent).toContain('Uses the saved shadow setting')
+    expect(renderPanel?.textContent).toContain('Uses the saved ground setting')
+    expect(renderPanel?.textContent).toContain('Uses the saved grid presentation setting')
+    expect(renderPanel?.textContent).not.toContain('Preset Locked')
+    expect(exposureIncreaseButton?.disabled).toBe(false)
+    expect(contrastIncreaseButton?.disabled).toBe(false)
+    expect(saturationIncreaseButton?.disabled).toBe(false)
+    expect(exposureSlider?.getAttribute('aria-disabled')).not.toBe('true')
+    expect(shadowsSelect?.disabled).toBe(false)
+    expect(castShadowSelect?.disabled).toBe(false)
+    expect(shadowBiasIncreaseButton?.disabled).toBe(false)
+    expect(groundSelect?.disabled).toBe(false)
+    expect(groundHeightIncreaseButton?.disabled).toBe(false)
+    expect(materialSelect?.disabled).toBe(false)
+    expect(gridSelect?.disabled).toBe(false)
+    expect(gridHeightIncreaseButton?.disabled).toBe(false)
+    expect(grid1LayerSelect?.disabled).toBe(false)
+    expect(grid1SpacingIncreaseButton?.disabled).toBe(false)
+    expect(grid1ColorExpandButton?.disabled).toBe(false)
+    expect(grid1ColorInput?.disabled).toBe(false)
 
     await act(async () => {
+      if (shadowsSelect !== null) {
+        shadowsSelect.value = 'off'
+        shadowsSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (groundSelect !== null) {
+        groundSelect.value = 'off'
+        groundSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (gridSelect !== null) {
+        gridSelect.value = 'off'
+        gridSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
       exposureIncreaseButton?.click()
       contrastIncreaseButton?.click()
       saturationIncreaseButton?.click()
       shadowBiasIncreaseButton?.click()
       groundHeightIncreaseButton?.click()
+      gridHeightIncreaseButton?.click()
+      grid1SpacingIncreaseButton?.click()
     })
 
     const view = useUiPrefsStore.getState().view
-    expect(view.environmentGrade).toEqual(environmentGrade)
+    expect(view.environmentGrade).toEqual({
+      ...environmentGrade,
+      exposure: 1.78,
+      contrast: 1.13,
+      saturation: 1.09,
+    })
     expect(view.viewportStyle).toBe('clayStudio')
-    expect(view.shadowsEnabled).toBe(true)
+    expect(view.shadowsEnabled).toBe(false)
     expect(view.ground).toEqual({
-      enabled: true,
-      height: 2.5,
+      enabled: false,
+      height: 3,
       materialPresetId: 'glossy_studio',
     })
+    expect(view.gridVisible).toBe(false)
+    expect(view.gridPresentation.height).toBe(2)
+    expect(view.gridPresentation.layers.find((layer) => layer.id === 'grid1')?.spacing).toBe(1.1)
   })
 
   it('writes ambient occlusion presets from the Properties Render section', async () => {
@@ -2222,18 +2506,106 @@ describe('PropertiesSurface', () => {
     const renderPanel = container?.querySelector(
       '#properties-section-panel-render',
     ) as HTMLDivElement | null
-    const ambientOcclusionSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Ambient Occlusion"]',
+    const aoTypeSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="AO Type"]',
     ) as HTMLSelectElement | null
+    const queryAmbientOcclusionSelect = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection .ParaSelectNative[aria-label="Ambient Occlusion"]',
+      ) as HTMLSelectElement | null
+    const queryAoIntensityIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase AO Intensity"]',
+      ) as HTMLButtonElement | null
+    const queryAoRadiusIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase AO Radius"]',
+      ) as HTMLButtonElement | null
+    const queryAoQualitySelect = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection .ParaSelectNative[aria-label="AO Quality"]',
+      ) as HTMLSelectElement | null
+    const queryAoContactBiasIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase AO Contact Bias"]',
+      ) as HTMLButtonElement | null
+    const queryAoDistanceThresholdIncreaseButton = () =>
+      container?.querySelector(
+        '.PropertiesRenderSection button[aria-label="Increase AO Distance Threshold"]',
+      ) as HTMLButtonElement | null
     const viewportStyleSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Viewport Style"]',
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Render Preset"]',
     ) as HTMLSelectElement | null
     const qualityPresetSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Quality preset"]',
     ) as HTMLSelectElement | null
 
-    expect(renderPanel?.textContent).toContain('Ambient Occlusion')
-    expect(ambientOcclusionSelect?.value).toBe('off')
+    expect(renderPanel?.textContent).toContain('AO Type')
+    expect(renderPanel?.textContent).not.toContain('Ambient Occlusion')
+    expect(renderPanel?.textContent).not.toContain('AO Intensity')
+    expect(renderPanel?.textContent).not.toContain('AO Radius')
+    expect(renderPanel?.textContent).not.toContain('AO Quality')
+    expect(renderPanel?.textContent).not.toContain('AO Contact Bias')
+    expect(renderPanel?.textContent).not.toContain('AO Distance Threshold')
+    expect(aoTypeSelect?.value).toBe('off')
+    expect(queryAmbientOcclusionSelect()).toBeNull()
+    expect(
+      Array.from(aoTypeSelect?.options ?? []).map((option) => option.value),
+    ).toEqual(['off', 'basicSsao', 'sao'])
+    expect(
+      Array.from(aoTypeSelect?.options ?? []).map((option) => option.textContent),
+    ).not.toContain('GTAO')
+
+    await act(async () => {
+      if (aoTypeSelect !== null) {
+        aoTypeSelect.value = 'basicSsao'
+        aoTypeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual({
+      ...DEFAULT_VIEW_SETTINGS.postProcessing,
+      aoType: 'basicSsao',
+      ssaoEnabled: true,
+    })
+    expect(aoTypeSelect?.value).toBe('basicSsao')
+    let ambientOcclusionSelect = queryAmbientOcclusionSelect()
+    let aoQualitySelect = queryAoQualitySelect()
+    expect(ambientOcclusionSelect?.value).toBe('custom')
+    expect(renderPanel?.textContent).toContain('AO Intensity')
+    expect(renderPanel?.textContent).toContain('AO Radius')
+    expect(renderPanel?.textContent).toContain('AO Quality')
+    expect(renderPanel?.textContent).toContain('AO Contact Bias')
+    expect(renderPanel?.textContent).toContain('AO Distance Threshold')
+
+    await act(async () => {
+      if (aoTypeSelect !== null) {
+        aoTypeSelect.value = 'sao'
+        aoTypeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.postProcessing).toEqual({
+      ...DEFAULT_VIEW_SETTINGS.postProcessing,
+      aoType: 'sao',
+      ssaoEnabled: true,
+    })
+    expect(aoTypeSelect?.value).toBe('sao')
+    expect(queryAmbientOcclusionSelect()).toBeNull()
+    expect(queryAoContactBiasIncreaseButton()).toBeNull()
+    expect(renderPanel?.textContent).toContain('AO Intensity')
+    expect(renderPanel?.textContent).toContain('AO Radius')
+    expect(renderPanel?.textContent).toContain('AO Quality')
+    expect(renderPanel?.textContent).toContain('AO Distance Threshold')
+
+    await act(async () => {
+      if (aoTypeSelect !== null) {
+        aoTypeSelect.value = 'basicSsao'
+        aoTypeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    ambientOcclusionSelect = queryAmbientOcclusionSelect()
 
     await act(async () => {
       if (ambientOcclusionSelect !== null) {
@@ -2245,7 +2617,31 @@ describe('PropertiesSurface', () => {
     expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
       createViewAmbientOcclusionPresetSettings('low'),
     )
+    expect(aoTypeSelect?.value).toBe('basicSsao')
     expect(ambientOcclusionSelect?.value).toBe('low')
+    aoQualitySelect = queryAoQualitySelect()
+    expect(aoQualitySelect?.value).toBe('low')
+
+    await act(async () => {
+      queryAoIntensityIncreaseButton()?.click()
+      queryAoRadiusIncreaseButton()?.click()
+      queryAoContactBiasIncreaseButton()?.click()
+      queryAoDistanceThresholdIncreaseButton()?.click()
+      if (aoQualitySelect !== null) {
+        aoQualitySelect.value = 'high'
+        aoQualitySelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const customPostProcessing = useUiPrefsStore.getState().view.postProcessing
+    expect(customPostProcessing.aoType).toBe('basicSsao')
+    expect(customPostProcessing.ssaoEnabled).toBe(true)
+    expect(customPostProcessing.ssaoIntensity).toBeCloseTo(0.56)
+    expect(customPostProcessing.ssaoRadius).toBeCloseTo(1.16)
+    expect(customPostProcessing.ssaoQuality).toBe('high')
+    expect(customPostProcessing.ssaoContactBias).toBeCloseTo(0.0022)
+    expect(customPostProcessing.ssaoDistanceThreshold).toBeCloseTo(0.06725)
+    expect(ambientOcclusionSelect?.value).toBe('custom')
 
     await act(async () => {
       if (ambientOcclusionSelect !== null) {
@@ -2257,6 +2653,7 @@ describe('PropertiesSurface', () => {
     expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
       createViewAmbientOcclusionPresetSettings('high'),
     )
+    expect(aoTypeSelect?.value).toBe('basicSsao')
     expect(ambientOcclusionSelect?.value).toBe('high')
 
     await act(async () => {
@@ -2269,12 +2666,369 @@ describe('PropertiesSurface', () => {
     expect(useUiPrefsStore.getState().view.postProcessing).toEqual(
       createViewAmbientOcclusionPresetSettings('off'),
     )
+    expect(aoTypeSelect?.value).toBe('off')
     expect(viewportStyleSelect?.value).toBe('clayStudio')
     expect(qualityPresetSelect?.value).toBe('balanced')
     expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
     expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
       DEFAULT_RENDER_PREVIEW_SETTINGS,
     )
+  })
+
+  it('writes geometry display visibility from the Properties Render section', async () => {
+    await renderSurface()
+
+    const surfacesSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Surfaces"]',
+    ) as HTMLSelectElement | null
+    const edgesSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]',
+    ) as HTMLSelectElement | null
+    const surfaceSourceSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Surface Source"]',
+    ) as HTMLSelectElement | null
+    const pointsSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Points"]',
+    ) as HTMLSelectElement | null
+
+    expect(surfacesSelect?.value).toBe('on')
+    expect(surfaceSourceSelect?.value).toBe('materialSet')
+    expect(edgesSelect?.value).toBe('off')
+    expect(pointsSelect?.value).toBe('on')
+    expect(container?.textContent).not.toContain('Surface Metalness')
+    expect(Array.from(edgesSelect?.options ?? []).map((option) => option.value)).toEqual([
+      'off',
+      'visibleOnly',
+      'all',
+    ])
+
+    await act(async () => {
+      if (surfacesSelect !== null) {
+        surfacesSelect.value = 'off'
+        surfacesSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (edgesSelect !== null) {
+        edgesSelect.value = 'visibleOnly'
+        edgesSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (pointsSelect !== null) {
+        pointsSelect.value = 'off'
+        pointsSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay).toEqual({
+      surfaces: {
+        visible: false,
+        source: 'materialSet',
+        customMaterial: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial,
+        hover: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.hover,
+        selected: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected,
+        bodySelected: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.bodySelected,
+      },
+      edges: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+        mode: 'visibleOnly',
+      },
+      points: { visible: false },
+    })
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+  })
+
+  it('collapses Geometry Display subsections without changing saved display settings', async () => {
+    await renderSurface()
+
+    const surfacesToggle = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Toggle Surfaces controls"]',
+    ) as HTMLButtonElement | null
+    const edgesToggle = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Toggle Edges controls"]',
+    ) as HTMLButtonElement | null
+    const pointsToggle = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Toggle Points controls"]',
+    ) as HTMLButtonElement | null
+
+    expect(surfacesToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(edgesToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(pointsToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Surfaces"]'),
+    ).not.toBeNull()
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]'),
+    ).not.toBeNull()
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Points"]'),
+    ).not.toBeNull()
+
+    const initialGeometryDisplay = structuredClone(useUiPrefsStore.getState().view.geometryDisplay)
+
+    await act(async () => {
+      surfacesToggle?.click()
+      edgesToggle?.click()
+      pointsToggle?.click()
+    })
+
+    expect(surfacesToggle?.getAttribute('aria-expanded')).toBe('false')
+    expect(edgesToggle?.getAttribute('aria-expanded')).toBe('false')
+    expect(pointsToggle?.getAttribute('aria-expanded')).toBe('false')
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Surfaces"]'),
+    ).toBeNull()
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]'),
+    ).toBeNull()
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Points"]'),
+    ).toBeNull()
+    expect(useUiPrefsStore.getState().view.geometryDisplay).toEqual(initialGeometryDisplay)
+
+    await act(async () => {
+      edgesToggle?.click()
+    })
+
+    expect(edgesToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]'),
+    ).not.toBeNull()
+  })
+
+  it('writes default edge display styles only while Edges is enabled', async () => {
+    await renderSurface()
+
+    const edgesSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]',
+    ) as HTMLSelectElement | null
+
+    expect(edgesSelect?.value).toBe('off')
+    expect(container?.textContent).not.toContain('Edge Opacity')
+    expect(container?.textContent).not.toContain('Edge Depth')
+    expect(container?.textContent).not.toContain('Edge Hover Opacity')
+    expect(container?.textContent).not.toContain('Edge Selected Opacity')
+
+    await act(async () => {
+      if (edgesSelect !== null) {
+        edgesSelect.value = 'all'
+        edgesSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const edgeColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Edge Color"]',
+    ) as HTMLInputElement | null
+    const edgeOpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Edge Opacity"]',
+    ) as HTMLButtonElement | null
+    const edgeDepthSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Depth"]',
+    ) as HTMLSelectElement | null
+    const edgeHoverColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Edge Hover Color"]',
+    ) as HTMLInputElement | null
+    const edgeHoverOpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Edge Hover Opacity"]',
+    ) as HTMLButtonElement | null
+    const edgeSelectedColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Edge Selected Color"]',
+    ) as HTMLInputElement | null
+    const edgeSelectedOpacityDecreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Decrease Edge Selected Opacity"]',
+    ) as HTMLButtonElement | null
+
+    expect(edgeColorInput?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color)
+    expect(edgeDepthSelect?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.depthMode)
+    expect(edgeHoverColorInput?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover.color)
+    expect(edgeSelectedColorInput?.value).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected.color,
+    )
+
+    await act(async () => {
+      if (edgeColorInput !== null) {
+        edgeColorInput.value = '#00ffaa'
+        edgeColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      if (edgeHoverColorInput !== null) {
+        edgeHoverColorInput.value = '#ffaa00'
+        edgeHoverColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      if (edgeSelectedColorInput !== null) {
+        edgeSelectedColorInput.value = '#aa00ff'
+        edgeSelectedColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      edgeOpacityIncreaseButton?.click()
+      edgeHoverOpacityIncreaseButton?.click()
+      edgeSelectedOpacityDecreaseButton?.click()
+      if (edgeDepthSelect !== null) {
+        edgeDepthSelect.value = 'surface'
+        edgeDepthSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toEqual({
+      mode: 'all',
+      color: '#00ffaa',
+      opacity: 0.63,
+      depthMode: 'surface',
+      hover: {
+        color: '#ffaa00',
+        opacity: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover.opacity + 0.01,
+      },
+      selected: {
+        color: '#aa00ff',
+        opacity: 0.87,
+      },
+    })
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.highlights).toMatchObject({
+      hoverColor: '#ffaa00',
+      selectedColor: '#aa00ff',
+    })
+
+  })
+
+  it('writes custom surface display material without changing project material truth', async () => {
+    const initialMaterials = structuredClone(useUiPrefsStore.getState().view.materials)
+
+    await renderSurface()
+
+    const surfaceSourceSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Surface Source"]',
+    ) as HTMLSelectElement | null
+
+    await act(async () => {
+      if (surfaceSourceSelect !== null) {
+        surfaceSourceSelect.value = 'custom'
+        surfaceSourceSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const surfaceMetalnessIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Surface Metalness"]',
+    ) as HTMLButtonElement | null
+    const surfaceOpacityDecreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Decrease Surface Opacity"]',
+    ) as HTMLButtonElement | null
+    const surfaceTransparencySelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Surface Transparency"]',
+    ) as HTMLSelectElement | null
+    const surfaceRenderingSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Surface Rendering"]',
+    ) as HTMLSelectElement | null
+    const surfaceColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Surface Color"]',
+    ) as HTMLInputElement | null
+
+    expect(container?.textContent).toContain('Surface Metalness')
+    expect(surfaceColorInput?.value).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.customMaterial.color,
+    )
+
+    await act(async () => {
+      if (surfaceColorInput !== null) {
+        surfaceColorInput.value = '#ff00aa'
+        surfaceColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      surfaceMetalnessIncreaseButton?.click()
+      surfaceOpacityDecreaseButton?.click()
+      if (surfaceTransparencySelect !== null) {
+        surfaceTransparencySelect.value = 'transparent'
+        surfaceTransparencySelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (surfaceRenderingSelect !== null) {
+        surfaceRenderingSelect.value = 'front'
+        surfaceRenderingSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces).toMatchObject({
+      source: 'custom',
+      customMaterial: {
+        color: '#ff00aa',
+        metalness: 0.07,
+        opacity: 0.99,
+        transparent: true,
+        doubleSided: false,
+      },
+    })
+    expect(useUiPrefsStore.getState().view.materials).toEqual(initialMaterials)
+
+    await act(async () => {
+      if (surfaceSourceSelect !== null) {
+        surfaceSourceSelect.value = 'materialSet'
+        surfaceSourceSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(container?.textContent).not.toContain('Surface Metalness')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces.customMaterial.color).toBe(
+      '#ff00aa',
+    )
+    expect(useUiPrefsStore.getState().view.materials).toEqual(initialMaterials)
+  })
+
+  it('writes surface interaction styles from Geometry Display and updates highlight bridge', async () => {
+    await renderSurface()
+
+    const surfaceHoverColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Surface Hover Color"]',
+    ) as HTMLInputElement | null
+    const surfaceSelectedColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Surface Selected Color"]',
+    ) as HTMLInputElement | null
+    const bodySelectedColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Body Selected Color"]',
+    ) as HTMLInputElement | null
+    const surfaceHoverOpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Surface Hover Opacity"]',
+    ) as HTMLButtonElement | null
+    const surfaceSelectedOpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Surface Selected Opacity"]',
+    ) as HTMLButtonElement | null
+    const bodySelectedOpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Body Selected Opacity"]',
+    ) as HTMLButtonElement | null
+
+    expect(surfaceHoverColorInput?.value).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.hover.color,
+    )
+    expect(surfaceSelectedColorInput?.value).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected.color,
+    )
+    expect(bodySelectedColorInput?.value).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.bodySelected.color,
+    )
+
+    await act(async () => {
+      if (surfaceHoverColorInput !== null) {
+        surfaceHoverColorInput.value = '#00ffaa'
+        surfaceHoverColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      if (surfaceSelectedColorInput !== null) {
+        surfaceSelectedColorInput.value = '#ff00aa'
+        surfaceSelectedColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      if (bodySelectedColorInput !== null) {
+        bodySelectedColorInput.value = '#123abc'
+        bodySelectedColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      surfaceHoverOpacityIncreaseButton?.click()
+      surfaceSelectedOpacityIncreaseButton?.click()
+      bodySelectedOpacityIncreaseButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces).toMatchObject({
+      hover: { color: '#00ffaa', opacity: 0.27 },
+      selected: { color: '#ff00aa', opacity: 0.59 },
+      bodySelected: { color: '#123abc', opacity: 0.43 },
+    })
+    expect(useUiPrefsStore.getState().view.highlights).toMatchObject({
+      hoverColor: '#00ffaa',
+      surfaceHoverOpacity: 0.27,
+      selectedColor: '#ff00aa',
+      surfaceSelectedOpacity: 0.59,
+      bodySelectedColor: '#123abc',
+      bodySelectedOpacity: 0.43,
+    })
   })
 
   it('applies render quality presets and derives Custom from manual divergence', async () => {

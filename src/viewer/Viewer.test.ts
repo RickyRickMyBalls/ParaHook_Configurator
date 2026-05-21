@@ -100,6 +100,25 @@ const postProcessingExampleMocks = vi.hoisted(() => ({
     setSize: ReturnType<typeof vi.fn>
     dispose: ReturnType<typeof vi.fn>
   }>,
+  saoPasses: [] as Array<{
+    scene: unknown
+    camera: unknown
+    resolution: unknown
+    params: {
+      output: number
+      saoBias: number
+      saoIntensity: number
+      saoScale: number
+      saoKernelRadius: number
+      saoMinResolution: number
+      saoBlur: boolean
+      saoBlurRadius: number
+      saoBlurStdDev: number
+      saoBlurDepthCutoff: number
+    }
+    setSize: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+  }>,
 }))
 
 vi.mock('three', async () => {
@@ -216,6 +235,44 @@ vi.mock('three/examples/jsm/postprocessing/SSAOPass.js', () => {
 
   return {
     SSAOPass: MockSSAOPass,
+  }
+})
+
+vi.mock('three/examples/jsm/postprocessing/SAOPass.js', () => {
+  class MockSAOPass {
+    public static OUTPUT = {
+      Default: 0,
+      SAO: 1,
+      Normal: 2,
+    }
+    public readonly params = {
+      output: 0,
+      saoBias: 0.5,
+      saoIntensity: 0.18,
+      saoScale: 1,
+      saoKernelRadius: 100,
+      saoMinResolution: 0,
+      saoBlur: true,
+      saoBlurRadius: 8,
+      saoBlurStdDev: 4,
+      saoBlurDepthCutoff: 0.01,
+    }
+    public readonly setSize = vi.fn()
+    public readonly dispose = vi.fn()
+    public scene: unknown
+    public camera: unknown
+    public resolution: unknown
+
+    public constructor(scene: unknown, camera: unknown, resolution: unknown) {
+      this.scene = scene
+      this.camera = camera
+      this.resolution = resolution
+      postProcessingExampleMocks.saoPasses.push(this)
+    }
+  }
+
+  return {
+    SAOPass: MockSAOPass,
   }
 })
 
@@ -688,6 +745,7 @@ describe('Viewer baseline replacement', () => {
     postProcessingExampleMocks.renderPasses.length = 0
     postProcessingExampleMocks.outputPasses.length = 0
     postProcessingExampleMocks.ssaoPasses.length = 0
+    postProcessingExampleMocks.saoPasses.length = 0
     pointerLockElement = null
     class MockResizeObserver {
       public constructor(callback: ResizeObserverCallback) {
@@ -2397,9 +2455,11 @@ describe('Viewer baseline replacement', () => {
       renderer: { toneMappingExposure: number; domElement: HTMLCanvasElement }
       scene: { background: { getHexString: () => string } | null }
       lightsById: Map<string, { intensity: number }>
-      minorGridHelper: { material: { opacity: number } }
-      majorGridHelper: { material: { opacity: number } }
-      doubleMajorGridHelper: { material: { opacity: number } }
+      gridHelpers: Array<{
+        material: { opacity: number; color: { getHexString: () => string } }
+        position: { y: number }
+        userData: { gridPresentationLayerId?: string }
+      }>
     }
 
     expect(runtime.renderer.toneMappingExposure).toBe(DEFAULT_VIEW_SETTINGS.environmentGrade.exposure)
@@ -2410,9 +2470,13 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.scene.background?.getHexString()).toBe('0b0b0f')
     expect([...runtime.lightsById.keys()]).toEqual(['key', 'fill', 'rim'])
     expect(runtime.lightsById.get('rim')?.intensity).toBe(0.42)
-    expect(runtime.minorGridHelper.material.opacity).toBe(0.1)
-    expect(runtime.majorGridHelper.material.opacity).toBe(0.3)
-    expect(runtime.doubleMajorGridHelper.material.opacity).toBe(1)
+    expect(runtime.gridHelpers.map((helper) => helper.userData.gridPresentationLayerId)).toEqual([
+      'grid1',
+      'grid2',
+      'grid3',
+    ])
+    expect(runtime.gridHelpers.map((helper) => helper.material.opacity)).toEqual([0.1, 0.3, 1])
+    expect(runtime.gridHelpers.map((helper) => helper.position.y)).toEqual([0, 0.001, 0.002])
 
     runtime.applyViewSettings({
       ...DEFAULT_VIEW_SETTINGS,
@@ -2883,7 +2947,7 @@ describe('Viewer baseline replacement', () => {
           metalness: number
         }
       }
-      minorGridHelper: { material: { opacity: number } }
+      gridHelpers: Array<{ material: { opacity: number } }>
       scene: { background: { getHexString: () => string } | null }
     }
 
@@ -2914,8 +2978,98 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.groundPlane.material.color.getHexString()).toBe('777f8d')
     expect(runtime.groundPlane.material.roughness).toBe(0.26)
     expect(runtime.groundPlane.material.metalness).toBe(0.04)
-    expect(runtime.minorGridHelper.material.opacity).toBe(0.1)
+    expect(runtime.gridHelpers[0]?.material.opacity).toBe(0.1)
     expect(runtime.scene.background?.getHexString()).toBe('0b0b0f')
+  })
+
+  it('builds editable grid presentation layers from the shared view seam', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      gridHelpers: Array<{
+        material: { opacity: number; color: { getHexString: () => string } }
+        position: { y: number }
+        userData: { gridPresentationLayerId?: string }
+      }>
+      gridGroup: { visible: boolean }
+    }
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      gridVisible: true,
+      gridPresentation: {
+        height: 2,
+        size: 125,
+        layers: [
+          {
+            id: 'grid1',
+            enabled: true,
+            spacing: 2,
+            color: '#ff00aa',
+            opacity: 0.2,
+            heightOffset: 0.01,
+          },
+          {
+            id: 'grid2',
+            enabled: false,
+            spacing: 10,
+            color: '#00ffaa',
+            opacity: 0.4,
+            heightOffset: 0.02,
+          },
+          {
+            id: 'grid3',
+            enabled: true,
+            spacing: 25,
+            color: '#3366ff',
+            opacity: 0.8,
+            heightOffset: 0.03,
+          },
+        ],
+      },
+    })
+
+    expect(runtime.gridGroup.visible).toBe(true)
+    expect(runtime.gridHelpers.map((helper) => helper.userData.gridPresentationLayerId)).toEqual([
+      'grid1',
+      'grid3',
+    ])
+    expect(runtime.gridHelpers.map((helper) => helper.material.opacity)).toEqual([0.2, 0.8])
+    expect(runtime.gridHelpers.map((helper) => helper.material.color.getHexString())).toEqual([
+      'ff00aa',
+      '3366ff',
+    ])
+    expect(runtime.gridHelpers.map((helper) => helper.position.y)).toEqual([2.01, 2.03])
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      gridVisible: false,
+      gridPresentation: {
+        ...DEFAULT_VIEW_SETTINGS.gridPresentation,
+        height: -1,
+        layers: DEFAULT_VIEW_SETTINGS.gridPresentation.layers.map((layer) => ({ ...layer })),
+      },
+    })
+
+    expect(runtime.gridGroup.visible).toBe(false)
+    expect(runtime.gridHelpers.map((helper) => helper.position.y)).toEqual([-1, -0.999, -0.998])
   })
 
   it('uses whole-object material fallback keys when rendered imported parts lack exact assignments', async () => {
@@ -3165,6 +3319,45 @@ describe('Viewer baseline replacement', () => {
 
     runtime.applyViewSettings({
       ...materialSettings,
+      displayMode: 'rendered',
+      geometryDisplay: {
+        ...materialSettings.geometryDisplay,
+        surfaces: {
+          ...materialSettings.geometryDisplay.surfaces,
+          source: 'custom',
+          customMaterial: {
+            ...materialSettings.geometryDisplay.surfaces.customMaterial,
+            color: '#00ffaa',
+            metalness: 0.72,
+            roughness: 0.18,
+            opacity: 0.44,
+            transparent: true,
+            doubleSided: false,
+          },
+        },
+      },
+    })
+
+    const customSurfaceMesh = runtime.partMeshes.get('part:display-mode-proof')
+    const customSurfaceMaterial = customSurfaceMesh?.material as MeshStandardMaterial | undefined
+    expect(customSurfaceMesh).toBe(firstMesh)
+    expect(customSurfaceMesh?.geometry).toBe(firstGeometry)
+    expect(customSurfaceMaterial?.color.getHexString()).toBe('00ffaa')
+    expect(customSurfaceMaterial?.metalness).toBeCloseTo(0.72)
+    expect(customSurfaceMaterial?.roughness).toBeCloseTo(0.18)
+    expect(customSurfaceMaterial?.opacity).toBeCloseTo(0.44)
+    expect(customSurfaceMaterial?.transparent).toBe(true)
+
+    runtime.applyViewSettings(materialSettings)
+
+    expect(runtime.partMeshes.get('part:display-mode-proof')).toBe(firstMesh)
+    expect(runtime.partMeshes.get('part:display-mode-proof')?.geometry).toBe(firstGeometry)
+    expect(runtime.partMeshes.get('part:display-mode-proof')?.material.color.getHexString()).toBe(
+      'ff0000',
+    )
+
+    runtime.applyViewSettings({
+      ...materialSettings,
       displayMode: 'solid',
     })
 
@@ -3201,7 +3394,7 @@ describe('Viewer baseline replacement', () => {
       runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]
         ?.material as LineBasicMaterial | undefined
     expect(xrayOverlayMaterial?.color.getHexString()).toBe('6f92d9')
-    expect(xrayOverlayMaterial?.opacity).toBeLessThan(0.5)
+    expect(xrayOverlayMaterial?.opacity).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.opacity)
     expect(xrayOverlayMaterial?.depthTest).toBe(false)
     expect(
       (
@@ -3213,10 +3406,43 @@ describe('Viewer baseline replacement', () => {
 
     runtime.applyViewSettings({
       ...materialSettings,
-      displayMode: 'wireframe',
-      edgeDisplayMode: 'off',
+      displayMode: 'solid',
+      edgeDisplayMode: 'on',
+      geometryDisplay: {
+        ...materialSettings.geometryDisplay,
+        surfaces: {
+          ...materialSettings.geometryDisplay.surfaces,
+          visible: false,
+        },
+        edges: {
+          ...materialSettings.geometryDisplay.edges,
+          mode: 'all',
+        },
+      },
     })
 
+    const hiddenSurfaceMaterial = runtime.partMeshes.get('part:display-mode-proof')
+      ?.material as MeshStandardMaterial | undefined
+    expect(hiddenSurfaceMaterial?.visible).toBe(false)
+    expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]?.visible)
+      .toBe(true)
+
+    runtime.applyViewSettings({
+      ...materialSettings,
+      displayMode: 'wireframe',
+      edgeDisplayMode: 'off',
+      geometryDisplay: {
+        ...materialSettings.geometryDisplay,
+        edges: {
+          ...materialSettings.geometryDisplay.edges,
+          mode: 'off',
+        },
+      },
+    })
+
+    const restoredSurfaceMaterial = runtime.partMeshes.get('part:display-mode-proof')
+      ?.material as MeshStandardMaterial | undefined
+    expect(restoredSurfaceMaterial?.visible).toBe(true)
     expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:display-mode-proof')?.[0]?.visible)
       .toBe(false)
     expect(runtime.partMeshes.get('part:display-mode-proof')?.material.wireframe).toBe(false)
@@ -3233,8 +3459,12 @@ describe('Viewer baseline replacement', () => {
     const visibleEdgesOnlyOverlayMaterial =
       visibleEdgesOnlyOverlay?.material as LineBasicMaterial | undefined
     expect(visibleEdgesOnlyOverlay?.visible).toBe(true)
-    expect(visibleEdgesOnlyOverlayMaterial?.color.getHexString()).toBe('111827')
-    expect(visibleEdgesOnlyOverlayMaterial?.opacity).toBeGreaterThan(0.7)
+    expect(visibleEdgesOnlyOverlayMaterial?.color.getHexString()).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color.slice(1),
+    )
+    expect(visibleEdgesOnlyOverlayMaterial?.opacity).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.opacity,
+    )
     expect(visibleEdgesOnlyOverlayMaterial?.depthTest).toBe(true)
     expect(edgesOnlyMesh?.material.wireframe).toBe(false)
     expect(edgesOnlyMesh?.material.transparent).toBe(false)
@@ -3256,7 +3486,11 @@ describe('Viewer baseline replacement', () => {
   it('applies Clay Studio as a rendered-mode presentation override without rebuilding geometry', async () => {
     const { Viewer } = await import('./Viewer')
     const { toViewerRenderablePart } = await import('../shared/buildTypes')
-    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const {
+      CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
+      CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+      DEFAULT_VIEW_SETTINGS,
+    } = await import('../shared/viewSettingsTypes')
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -3351,10 +3585,22 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.clayStudioContactShadowGroup.visible).toBe(false)
     expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(0)
 
-    runtime.applyViewSettings({
+    const clayPresetSettings = {
       ...renderedSettings,
-      viewportStyle: 'clayStudio',
-    })
+      viewportStyle: 'clayStudio' as const,
+      environmentGrade: CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+      shadowsEnabled: false,
+      ground: {
+        ...renderedSettings.ground,
+        enabled: true,
+      },
+      gridVisible: false,
+      contactShadows: {
+        ...CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
+      },
+    }
+
+    runtime.applyViewSettings(clayPresetSettings)
 
     const clayMesh = runtime.partMeshes.get('part:clay-studio-proof')
     expect(clayMesh).toBe(firstMesh)
@@ -3392,6 +3638,26 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.lightsById.get('clay-studio-ambient')?.intensity).toBeCloseTo(0.58)
     expect(runtime.lightsById.get('clay-studio-rim')?.intensity).toBeCloseTo(0.16)
 
+    runtime.applyViewSettings({
+      ...clayPresetSettings,
+      environmentGrade: {
+        ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+        exposure: 1.67,
+      },
+      shadowsEnabled: true,
+      gridVisible: true,
+      ground: {
+        ...clayPresetSettings.ground,
+        enabled: false,
+      },
+    })
+
+    expect(runtime.renderer.toneMappingExposure).toBeCloseTo(1.67)
+    expect(runtime.renderer.shadowMap.enabled).toBe(true)
+    expect(runtime.gridGroup.visible).toBe(true)
+    expect(runtime.groundPlane.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.visible).toBe(false)
+
     runtime.applyViewSettings(renderedSettings)
 
     const restoredMesh = runtime.partMeshes.get('part:clay-studio-proof')
@@ -3402,6 +3668,47 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.gridGroup.visible).toBe(true)
     expect(runtime.axesHelper.visible).toBe(true)
     expect(runtime.groundPlane.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.visible).toBe(false)
+    expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(0)
+
+    runtime.applyViewSettings({
+      ...renderedSettings,
+      viewportStyle: 'standard',
+      ground: {
+        ...renderedSettings.ground,
+        enabled: true,
+      },
+      contactShadows: {
+        enabled: true,
+        opacity: 0.5,
+        spread: 1.5,
+        heightFade: 4,
+      },
+    })
+
+    expect(runtime.clayStudioContactShadowGroup.visible).toBe(true)
+    expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(3)
+    const standardContactShadow = runtime.clayStudioContactShadowGroup.children[0]
+    const standardContactMaterial = standardContactShadow?.material as MeshBasicMaterial | undefined
+    expect(standardContactMaterial?.opacity).toBeGreaterThan(0)
+    expect(standardContactMaterial?.opacity).toBeLessThan(0.065)
+    expect(standardContactShadow?.scale.x).toBeGreaterThan(contactShadow?.scale.x ?? 0)
+
+    runtime.applyViewSettings({
+      ...renderedSettings,
+      displayMode: 'renderPreview',
+      ground: {
+        ...renderedSettings.ground,
+        enabled: true,
+      },
+      contactShadows: {
+        enabled: true,
+        opacity: 1,
+        spread: 1,
+        heightFade: 8,
+      },
+    })
+
     expect(runtime.clayStudioContactShadowGroup.visible).toBe(false)
     expect(runtime.clayStudioContactShadowGroup.children).toHaveLength(0)
 
@@ -3682,10 +3989,14 @@ describe('Viewer baseline replacement', () => {
     expect(semanticOverlay?.visible).toBe(true)
     expect(semanticOverlay?.geometry.getAttribute('position').count).toBe(8)
     expect((semanticOverlay?.material as LineBasicMaterial | undefined)?.color.getHexString()).toBe(
-      '111827',
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color.slice(1),
     )
-    expect((semanticOverlay?.material as LineBasicMaterial | undefined)?.opacity)
-      .toBeGreaterThan((meshOnlyOverlay?.material as LineBasicMaterial | undefined)?.opacity ?? 1)
+    expect((semanticOverlay?.material as LineBasicMaterial | undefined)?.opacity).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.opacity,
+    )
+    expect((meshOnlyOverlay?.material as LineBasicMaterial | undefined)?.opacity).toBe(
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.opacity,
+    )
     expect(runtime.semanticEdgeOverlaysByPartKey.has('part:mesh-only')).toBe(false)
     expect(runtime.meshEdgeWireframeOverlaysByPartKey.has('part:semantic-wireframe')).toBe(false)
     expect(meshOnlyOverlay).toBeInstanceOf(LineSegments)
@@ -3995,7 +4306,7 @@ describe('Viewer baseline replacement', () => {
       DEFAULT_VIEW_SETTINGS.highlights.selectedColor.slice(1),
     )
     expect((semanticOverlay?.material as LineBasicMaterial | undefined)?.color.getHexString()).toBe(
-      '111827',
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color.slice(1),
     )
 
     runtime.setSelectedTopologyEntity({
@@ -4022,10 +4333,10 @@ describe('Viewer baseline replacement', () => {
     const selectedFaceMaterial = (runtime.selectedTopologyEntityOverlay as Mesh)
       .material as MeshBasicMaterial
     expect(selectedFaceMaterial.color.getHexString()).toBe(
-      DEFAULT_VIEW_SETTINGS.highlights.selectedColor.slice(1),
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected.color.slice(1),
     )
     expect(selectedFaceMaterial.opacity).toBe(
-      DEFAULT_VIEW_SETTINGS.highlights.surfaceSelectedOpacity,
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.selected.opacity,
     )
     expect(runtime.selectedBodyOverlay).toBeNull()
 
@@ -4047,11 +4358,86 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.selectedBodyOverlay).toBeInstanceOf(Mesh)
     const selectedBodyMaterial = (runtime.selectedBodyOverlay as Mesh).material as MeshBasicMaterial
     expect(selectedBodyMaterial.color.getHexString()).toBe(
-      DEFAULT_VIEW_SETTINGS.highlights.bodySelectedColor.slice(1),
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.bodySelected.color.slice(1),
     )
     expect(selectedBodyMaterial.opacity).toBe(
-      DEFAULT_VIEW_SETTINGS.highlights.bodySelectedOpacity,
+      DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.bodySelected.opacity,
     )
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      geometryDisplay: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+        surfaces: {
+          ...DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces,
+          hover: { color: '#00ffaa', opacity: 0.31 },
+          selected: { color: '#ff00aa', opacity: 0.47 },
+          bodySelected: { color: '#123abc', opacity: 0.53 },
+        },
+      },
+    })
+
+    runtime.setSelectedTopologyEntity({
+      kind: 'face',
+      partKey: 'part:topology-edge-pick',
+      faceId: 'face:front',
+      bodyId: 'body:1',
+    })
+    const customSelectedFaceMaterial = (runtime.selectedTopologyEntityOverlay as Mesh)
+      .material as MeshBasicMaterial
+    expect(customSelectedFaceMaterial.color.getHexString()).toBe('ff00aa')
+    expect(customSelectedFaceMaterial.opacity).toBe(0.47)
+
+    runtime.setHoveredTopologyEntity({
+      kind: 'face',
+      partKey: 'part:topology-edge-pick',
+      faceId: 'face:front',
+      bodyId: 'body:1',
+    })
+    const customHoveredFaceMaterial = (runtime.hoveredTopologyEntityOverlay as Mesh)
+      .material as MeshBasicMaterial
+    expect(customHoveredFaceMaterial.color.getHexString()).toBe('00ffaa')
+    expect(customHoveredFaceMaterial.opacity).toBe(0.31)
+
+    runtime.setSelectedTopologyEntity(null)
+    const customSelectedBodyMaterial = (runtime.selectedBodyOverlay as Mesh)
+      .material as MeshBasicMaterial
+    expect(customSelectedBodyMaterial.color.getHexString()).toBe('123abc')
+    expect(customSelectedBodyMaterial.opacity).toBe(0.53)
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      geometryDisplay: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+        edges: {
+          ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+          hover: { color: '#ffaa00', opacity: 0.44 },
+          selected: { color: '#aa00ff', opacity: 0.72 },
+        },
+      },
+    })
+
+    runtime.setSelectedTopologyEntity({
+      kind: 'edge',
+      partKey: 'part:topology-edge-pick',
+      edgeId: 'edge:bottom',
+      bodyId: 'body:1',
+    })
+    const customSelectedEdgeMaterial = (runtime.selectedTopologyEntityOverlay as LineSegments)
+      .material as LineBasicMaterial
+    expect(customSelectedEdgeMaterial.color.getHexString()).toBe('aa00ff')
+    expect(customSelectedEdgeMaterial.opacity).toBe(0.72)
+
+    runtime.setHoveredTopologyEntity({
+      kind: 'edge',
+      partKey: 'part:topology-edge-pick',
+      edgeId: 'edge:bottom',
+      bodyId: 'body:1',
+    })
+    const customHoveredEdgeMaterial = (runtime.hoveredTopologyEntityOverlay as LineSegments)
+      .material as LineBasicMaterial
+    expect(customHoveredEdgeMaterial.color.getHexString()).toBe('ffaa00')
+    expect(customHoveredEdgeMaterial.opacity).toBe(0.44)
   })
 
   it('keeps material mode on neutral inspection lighting when environment lighting changes', async () => {
@@ -4956,6 +5342,7 @@ describe('Viewer baseline replacement', () => {
       ...DEFAULT_VIEW_SETTINGS,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao' as const,
         ssaoEnabled: true,
       },
     })
@@ -4983,6 +5370,49 @@ describe('Viewer baseline replacement', () => {
     viewer = null
 
     expect(postProcessingRuntime.dispose).toHaveBeenCalled()
+  })
+
+  it('keeps post-processing disabled when the AO type is Off', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const { setViewerPostProcessingRuntimeFactoryForTests } = await import('./postProcessingRuntime')
+
+    const runtimeFactory = vi.fn()
+    setViewerPostProcessingRuntimeFactoryForTests(runtimeFactory)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderLoop: () => void
+      renderer: { render: () => void }
+    }
+    const rasterRenderSpy = vi.spyOn(runtime.renderer, 'render')
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      postProcessing: {
+        ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'off',
+        ssaoEnabled: true,
+      },
+    })
+    runtime.renderLoop()
+
+    expect(runtimeFactory).not.toHaveBeenCalled()
+    expect(rasterRenderSpy).toHaveBeenCalled()
   })
 
   it('passes normalized SSAO settings into the post-processing runtime and updates them live', async () => {
@@ -5020,10 +5450,13 @@ describe('Viewer baseline replacement', () => {
       renderLoop: () => void
     }
     const enabledSettings = {
+      aoType: 'basicSsao' as const,
       ssaoEnabled: true,
       ssaoIntensity: 1.5,
       ssaoRadius: 1.25,
       ssaoQuality: 'medium' as const,
+      ssaoContactBias: 0.004,
+      ssaoDistanceThreshold: 0.14,
     }
     runtime.applyViewSettings({
       ...DEFAULT_VIEW_SETTINGS,
@@ -5038,10 +5471,13 @@ describe('Viewer baseline replacement', () => {
     )
 
     const updatedSettings = {
+      aoType: 'basicSsao' as const,
       ssaoEnabled: true,
       ssaoIntensity: 2,
       ssaoRadius: 2.5,
       ssaoQuality: 'medium' as const,
+      ssaoContactBias: 0.006,
+      ssaoDistanceThreshold: 0.2,
     }
     runtime.applyViewSettings({
       ...DEFAULT_VIEW_SETTINGS,
@@ -5100,6 +5536,7 @@ describe('Viewer baseline replacement', () => {
       ...DEFAULT_VIEW_SETTINGS,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao' as const,
         ssaoEnabled: true,
         ssaoQuality: 'medium',
       },
@@ -5109,6 +5546,7 @@ describe('Viewer baseline replacement', () => {
       ...DEFAULT_VIEW_SETTINGS,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoQuality: 'high',
       },
@@ -5121,7 +5559,7 @@ describe('Viewer baseline replacement', () => {
     expect(secondRuntime.render).toHaveBeenCalled()
   })
 
-  it('maps SSAO quality, radius, and intensity onto the Three.js SSAO pass', async () => {
+  it('maps SSAO quality, radius, bias, and threshold onto the Three.js SSAO pass', async () => {
     const { createViewerPostProcessingRuntime } = await import('./postProcessingRuntime')
     const { Scene, PerspectiveCamera, WebGLRenderer } = await import('three')
 
@@ -5133,18 +5571,21 @@ describe('Viewer baseline replacement', () => {
       scene,
       camera,
       postProcessing: {
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoIntensity: 2,
         ssaoRadius: 1.5,
         ssaoQuality: 'high',
+        ssaoContactBias: 0.007,
+        ssaoDistanceThreshold: 0.19,
       },
     })
 
     const ssaoPass = postProcessingExampleMocks.ssaoPasses[0]!
     expect(ssaoPass.kernelSize).toBe(64)
     expect(ssaoPass.kernelRadius).toBe(12)
-    expect(ssaoPass.minDistance).toBeCloseTo(0.005, 6)
-    expect(ssaoPass.maxDistance).toBeCloseTo(0.175, 6)
+    expect(ssaoPass.minDistance).toBeCloseTo(0.007, 6)
+    expect(ssaoPass.maxDistance).toBeCloseTo(0.19, 6)
     expect(postProcessingExampleMocks.composers[0]?.passes).toEqual([
       postProcessingExampleMocks.renderPasses[0],
       ssaoPass,
@@ -5153,10 +5594,13 @@ describe('Viewer baseline replacement', () => {
 
     expect(
       runtime.updateSettings({
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoIntensity: 1,
         ssaoRadius: 0.5,
         ssaoQuality: 'high',
+        ssaoContactBias: 0.003,
+        ssaoDistanceThreshold: 0.1,
       }),
     ).toBe(true)
     expect(ssaoPass.kernelRadius).toBe(4)
@@ -5165,15 +5609,87 @@ describe('Viewer baseline replacement', () => {
 
     expect(
       runtime.updateSettings({
+        aoType: 'basicSsao',
         ssaoEnabled: true,
         ssaoIntensity: 1,
         ssaoRadius: 0.5,
         ssaoQuality: 'low',
+        ssaoContactBias: 0.003,
+        ssaoDistanceThreshold: 0.1,
       }),
     ).toBe(false)
 
     runtime.dispose()
     expect(ssaoPass.dispose).toHaveBeenCalled()
+    expect(postProcessingExampleMocks.composers[0]?.dispose).toHaveBeenCalled()
+  })
+
+  it('maps SAO settings onto the Three.js SAO pass', async () => {
+    const { createViewerPostProcessingRuntime } = await import('./postProcessingRuntime')
+    const { Scene, PerspectiveCamera, WebGLRenderer } = await import('three')
+
+    const scene = new Scene()
+    const camera = new PerspectiveCamera()
+    const renderer = new WebGLRenderer()
+    const runtime = createViewerPostProcessingRuntime({
+      renderer,
+      scene,
+      camera,
+      postProcessing: {
+        aoType: 'sao',
+        ssaoEnabled: true,
+        ssaoIntensity: 2,
+        ssaoRadius: 1.5,
+        ssaoQuality: 'high',
+        ssaoContactBias: 0.007,
+        ssaoDistanceThreshold: 0.19,
+      },
+    })
+
+    const saoPass = postProcessingExampleMocks.saoPasses[0]!
+    expect(postProcessingExampleMocks.ssaoPasses).toHaveLength(0)
+    expect(saoPass.params.saoIntensity).toBeCloseTo(0.36, 6)
+    expect(saoPass.params.saoScale).toBeCloseTo(1.9, 6)
+    expect(saoPass.params.saoKernelRadius).toBeCloseTo(48, 6)
+    expect(saoPass.params.saoBlurRadius).toBe(12)
+    expect(postProcessingExampleMocks.composers[0]?.passes).toEqual([
+      postProcessingExampleMocks.renderPasses[0],
+      saoPass,
+      postProcessingExampleMocks.outputPasses[0],
+    ])
+
+    runtime.setSize(320, 240)
+    expect(saoPass.setSize).toHaveBeenCalledWith(320, 240)
+
+    expect(
+      runtime.updateSettings({
+        aoType: 'sao',
+        ssaoEnabled: true,
+        ssaoIntensity: 1,
+        ssaoRadius: 0.5,
+        ssaoQuality: 'low',
+        ssaoContactBias: 0.003,
+        ssaoDistanceThreshold: 0.1,
+      }),
+    ).toBe(true)
+    expect(saoPass.params.saoIntensity).toBeCloseTo(0.18, 6)
+    expect(saoPass.params.saoKernelRadius).toBeCloseTo(16, 6)
+    expect(saoPass.params.saoBlurRadius).toBe(4)
+
+    expect(
+      runtime.updateSettings({
+        aoType: 'basicSsao',
+        ssaoEnabled: true,
+        ssaoIntensity: 1,
+        ssaoRadius: 0.5,
+        ssaoQuality: 'low',
+        ssaoContactBias: 0.003,
+        ssaoDistanceThreshold: 0.1,
+      }),
+    ).toBe(false)
+
+    runtime.dispose()
+    expect(saoPass.dispose).toHaveBeenCalled()
     expect(postProcessingExampleMocks.composers[0]?.dispose).toHaveBeenCalled()
   })
 
@@ -5211,6 +5727,7 @@ describe('Viewer baseline replacement', () => {
       ...DEFAULT_VIEW_SETTINGS,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao',
         ssaoEnabled: true,
       },
     })
@@ -5270,6 +5787,7 @@ describe('Viewer baseline replacement', () => {
       displayMode: 'renderPreview',
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao',
         ssaoEnabled: true,
       },
     })
@@ -5383,6 +5901,7 @@ describe('Viewer baseline replacement', () => {
       displayMode: 'rendered',
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao',
         ssaoEnabled: true,
       },
     })
@@ -5518,6 +6037,7 @@ describe('Viewer baseline replacement', () => {
       displayMode: 'rendered' as const,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao' as const,
         ssaoEnabled: true,
       },
     }
@@ -5525,6 +6045,15 @@ describe('Viewer baseline replacement', () => {
     runtime.applyViewSettings({
       ...ssaoSettings,
       edgeDisplayMode: 'on',
+      geometryDisplay: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+        edges: {
+          ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+          color: '#00ffaa',
+          opacity: 0.37,
+          depthMode: 'xray',
+        },
+      },
     })
     runtime.renderLoop()
 
@@ -5532,20 +6061,56 @@ describe('Viewer baseline replacement', () => {
     const xrayOverlayMaterial = xrayOverlay?.material as LineBasicMaterial | undefined
     expect(postProcessingExampleMocks.ssaoPasses).toHaveLength(1)
     expect(xrayOverlay?.visible).toBe(true)
+    expect(xrayOverlayMaterial?.color.getHexString()).toBe('00ffaa')
+    expect(xrayOverlayMaterial?.opacity).toBe(0.37)
     expect(xrayOverlayMaterial?.depthTest).toBe(false)
     expect(xrayOverlayMaterial?.toneMapped).toBe(false)
 
     runtime.applyViewSettings({
       ...ssaoSettings,
       edgeDisplayMode: 'visibleEdgesOnly',
+      geometryDisplay: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+        edges: {
+          ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+          color: '#ff00aa',
+          opacity: 0.51,
+          depthMode: 'xray',
+        },
+      },
     })
 
     const visibleOnlyOverlay =
       runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
     const visibleOnlyMaterial = visibleOnlyOverlay?.material as LineBasicMaterial | undefined
     expect(visibleOnlyOverlay?.visible).toBe(true)
+    expect(visibleOnlyMaterial?.color.getHexString()).toBe('ff00aa')
+    expect(visibleOnlyMaterial?.opacity).toBe(0.51)
     expect(visibleOnlyMaterial?.depthTest).toBe(true)
     expect(visibleOnlyMaterial?.toneMapped).toBe(false)
+
+    runtime.applyViewSettings({
+      ...ssaoSettings,
+      edgeDisplayMode: 'on',
+      geometryDisplay: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+        edges: {
+          ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+          mode: 'all',
+          color: '#123abc',
+          opacity: 0.44,
+          depthMode: 'surface',
+        },
+      },
+    })
+
+    const surfaceDepthOverlay =
+      runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
+    const surfaceDepthMaterial = surfaceDepthOverlay?.material as LineBasicMaterial | undefined
+    expect(surfaceDepthOverlay?.visible).toBe(true)
+    expect(surfaceDepthMaterial?.color.getHexString()).toBe('123abc')
+    expect(surfaceDepthMaterial?.opacity).toBe(0.44)
+    expect(surfaceDepthMaterial?.depthTest).toBe(true)
 
     runtime.applyViewSettings({
       ...ssaoSettings,
@@ -5602,6 +6167,7 @@ describe('Viewer baseline replacement', () => {
       ...DEFAULT_VIEW_SETTINGS,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao',
         ssaoEnabled: true,
       },
     })
@@ -5712,6 +6278,7 @@ describe('Viewer baseline replacement', () => {
       axisOverlayEnabled: true,
       postProcessing: {
         ...DEFAULT_VIEW_SETTINGS.postProcessing,
+        aoType: 'basicSsao',
         ssaoEnabled: true,
       },
     })

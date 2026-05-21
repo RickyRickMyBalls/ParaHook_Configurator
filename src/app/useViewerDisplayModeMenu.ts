@@ -4,6 +4,10 @@ import type {
   ViewEdgeDisplayMode,
   ViewportStyle,
 } from '../shared/viewSettingsTypes'
+import {
+  createDisplayModeViewPatch,
+  createRenderPresetViewPatch,
+} from '../shared/viewSettingsTypes'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
@@ -71,21 +75,15 @@ export function useViewerDisplayModeMenu(
     isOpen,
     close: () => setIsOpen(false),
     selectDisplayMode: (mode) => {
-      useUiPrefsStore.getState().setView({
-        displayMode: mode,
-        viewportStyle: 'standard',
-      })
+      useUiPrefsStore.getState().setView(createDisplayModeViewPatch(mode))
       setIsOpen(false)
     },
     selectEdgeDisplayMode: (mode) => {
       useUiPrefsStore.getState().setViewKey('edgeDisplayMode', mode)
     },
     selectViewportStyle: (style) => {
-      const currentDisplayMode = useUiPrefsStore.getState().view.displayMode
-      useUiPrefsStore.getState().setView({
-        viewportStyle: style,
-        displayMode: style === 'clayStudio' ? 'rendered' : currentDisplayMode,
-      })
+      const currentView = useUiPrefsStore.getState().view
+      useUiPrefsStore.getState().setView(createRenderPresetViewPatch(style, currentView))
       setIsOpen(false)
     },
   }

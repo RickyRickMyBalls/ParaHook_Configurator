@@ -4,6 +4,9 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+301. 2026-05-21 14:47:01: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so the new Surfaces / Edges / Points render-display planning ladder is discoverable.
+300. 2026-05-21 08:59:48: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so upcoming user-provided Render section feature and organization phases have a dedicated planning surface.
+299. 2026-05-21 07:49:21: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so the Shift+D and Properties Render viewport-style consolidation plan is discoverable as the next render-preset planning surface.
 298. 2026-05-20 19:53:00: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so view/render presentation controls now have a Properties-owned future planning surface.
 297. 2026-05-20 16:42:12: Added `docs/Bugs/24_2026-05-20_repeat-extrude-scoped-adf-composition.md` to the docs map and refreshed `docs/Bugs/0_Bug_Report.md` so the repeat-Extrude scoped A/D/F composition regression is indexed as `Bug 24`.
 296. 2026-05-20 15:21:44: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md` to the docs map and refreshed the Model Viewport family index so the Pascal-inspired Clay Studio and SSAO viewport-style lane is discoverable beside display-mode, render-preview, and semantic-topology planning.
@@ -892,6 +895,9 @@ Rule notes:
             - `Workspaces/Properties/Future/Properties-1 - Workspace Umbrella And Focused-Item Property Routing.md`
             - `Workspaces/Properties/Future/Properties-2 - Shared Properties Workspace Shell And Section Hosting.md`
             - `Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+            - `Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+            - `Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md`
+            - `Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
 ####### --------------Materials
             - `Workspaces/Properties/Materials/Materials-Vision.md`
             - `Workspaces/Properties/Materials/Materials-Gen1-Index.md`

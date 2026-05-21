@@ -3,6 +3,44 @@
 ## Doc Header
 
 ### Doc History
+190. 2026-05-21 16:51:07: Added the `Properties-6 / Phase 5.N` edge follow-up ladder to the workspace-mode read so Geometry Display can clean up edge presets, add a real `Hidden Line` preset, and defer hidden-line styling until the renderer path is proven.
+189. 2026-05-21 16:39:01: Removed unsupported edge thickness from the shipped Properties Geometry Display controls and settings after confirming the current viewer line renderer cannot reliably honor it, leaving edge color, opacity, and depth as the editable edge presentation settings.
+188. 2026-05-21 16:29:39: Recorded `Properties-6 / Phase 5 - Edge Hover And Highlight Styles` as shipped with saved edge hover/selected color, opacity, and thickness controls, legacy highlight bridging, and viewer topology edge overlay consumption while preserving point styling and helper overlays for later phases.
+187. 2026-05-21 16:20:27: Prepped `Properties-6 / Phase 5 - Edge Hover And Highlight Styles` as the next Geometry Display implementation handoff, keeping it to semantic/topology edge hover and selected color, opacity, and thickness controls bridged through the existing highlight settings while preserving point styling and helper overlays.
+186. 2026-05-21 16:15:00: Recorded the Properties Geometry Display organization refinement after the `Surfaces`, `Edges`, and `Points` control groups became independently collapsible while preserving the current geometry-display settings owner.
+185. 2026-05-21 16:03:46: Recorded `Properties-6 / Phase 4 - Edge Visibility And Default Style` as shipped with saved default edge color, opacity, thickness, and depth settings, condensed Properties controls, normal edge-overlay viewer consumption, and edge hover/selected styling left for Phase 5.
+184. 2026-05-21 15:55:04: Prepped `Properties-6 / Phase 4 - Edge Visibility And Default Style` as the next geometry-display implementation handoff, keeping it to default display-edge color, opacity, thickness, and depth settings plus normal edge-overlay consumption while leaving edge hover/selected styling and render-preset recipes for later phases.
+183. 2026-05-21 15:52:21: Recorded `Properties-6 / Phase 3 - Surface Hover And Highlight Styles` as shipped with Geometry Display surface hover, selected face, and selected body color/opacity controls, a two-way `ViewSettings.highlights` compatibility bridge, and viewer body/face overlay consumption while leaving edge and point styling in later phases.
+182. 2026-05-21 15:38:55: Prepped `Properties-6 / Phase 3 - Surface Hover And Highlight Styles` as the next geometry-display implementation handoff, keeping it to surface hover, selected face, and selected body color/opacity controls bridged through existing `ViewSettings.highlights` and viewer overlay paths.
+181. 2026-05-21 15:33:44: Recorded `Properties-6 / Phase 2 - Surface Source And Custom Default Material` as shipped with the `Material Set / Custom` surface source, custom display-material controls, custom material persistence, and viewer-only generated surface override behavior while keeping project material truth unchanged.
+180. 2026-05-21 15:27:16: Prepped `Properties-6 / Phase 2 - Surface Source And Custom Default Material` as the next geometry-display implementation handoff, keeping it to a display-only `Material Set / Custom` surface source, a `MaterialPreset`-shaped custom surface material, condensed Geometry Display controls, and generated-surface viewer override behavior without project material mutation.
+179. 2026-05-21 15:04:04: Recorded `Properties-6 / Phase 1 - Geometry Display Contract And Section Shell` as shipped with the saved Geometry Display contract, Properties Render section controls, edge compatibility bridge, and generated-surface viewer visibility while keeping styling, custom material display, point runtime unification, and render recipes in later phases.
+178. 2026-05-21 14:55:14: Prepped `Properties-6 / Phase 1 - Geometry Display Contract And Section Shell` as the next geometry-display implementation handoff, keeping the first cut to the saved contract, Properties section, Surfaces / Edges / Points visibility controls, edge-mode compatibility, and safe viewer consumption.
+177. 2026-05-21 14:47:01: Added `Properties-6 - Geometry Display Surfaces Edges And Points` under the Properties workspace family so user-editable surface, edge, and point visibility/styling plus Wireframe/Clay Studio recipe migration have a dedicated planning surface.
+176. 2026-05-21 14:19:49: Added the next Properties-5 Ambient Occlusion phase ladder after `Properties-5 / Phase 2.4`, preserving GTAO as the next render-section feature-detail handoff and parking AO comparison, engine-specific controls, ground-contact AO, resolution/performance, and stacking decisions as later phases.
+175. 2026-05-21 13:39:41: Recorded the shipped `Properties-5 / Phase 2.3 - SAOPass AO Type` implementation and advanced the render-section feature-detail handoff to `Properties-5 / Phase 2.4 - GTAOPass AO Type`.
+174. 2026-05-21 13:28:30: Split the AO engine handoff so `Properties-5 / Phase 2.3` now owns `SAOPass AO Type` and `Properties-5 / Phase 2.4` owns the later `GTAOPass AO Type` contract.
+173. 2026-05-21 13:24:53: Prepped `Properties-5 / Phase 2.3 - AO Engine Candidate Comparison` as the current render-section feature-detail handoff, prioritizing a real `SAO` runtime option after the AO type selector and keeping broader AO candidates out of the shipped UI until proven.
+172. 2026-05-21 12:58:09: Recorded the shipped `Properties-5 / Phase 2.2 - Ambient Occlusion Type Select` implementation and advanced the render-section feature-detail handoff back to the AO Resolution / Scale runtime contract.
+171. 2026-05-21 12:28:09: Prepped `Properties-5 / Phase 2.2 - Ambient Occlusion Type Select` as the current render-section feature-detail implementation handoff, with `Off` and `Basic SSAO` as the first working AO type choices.
+170. 2026-05-21 10:34:32: Recorded the shipped `Properties-5 / Phase 2 - Advanced Ambient Occlusion Controls` implementation and advanced the render-section feature-detail handoff to the AO Resolution / Scale runtime contract.
+169. 2026-05-21 10:13:04: Prepped `Properties-5 / Phase 2 - Advanced Ambient Occlusion Controls` as the next render-section feature-detail handoff, narrowing implementation to supported SSAO Contact Bias and Distance Threshold controls and reserving AO Resolution / Scale for a follow-up runtime-contract phase.
+168. 2026-05-21 09:48:54: Recorded the shipped `Properties-5 / Phase 1 - Basic Ambient Occlusion Controls` implementation and advanced the render-section feature-detail handoff to advanced Ambient Occlusion controls.
+167. 2026-05-21 09:33:47: Prepped `Properties-5 / Phase 1 - Basic Ambient Occlusion Controls` for implementation around AO Intensity, Radius, Quality, custom preset readback, and focused Properties/store/viewer proof.
+166. 2026-05-21 09:29:43: Added the Properties `Render > Shadows` Ambient Occlusion control ladder to `Properties-5`, with Phase 1 for AO Intensity, Radius, and Quality and Phase 2 for advanced falloff, distance, and resolution controls.
+165. 2026-05-21 09:22:52: Recorded the shipped `Properties-4 / Phase 4.1 - First Remaining Setting Extraction` implementation after Contact Shadows became neutral saved Properties Render settings with Shadows controls, built-in preset recipe writes, and viewer setting consumption.
+164. 2026-05-21 09:13:14: Prepped `Properties-4 / Phase 4.1 - First Remaining Setting Extraction` for implementation as the contact-shadow extraction slice under Properties `Render > Shadows`, with neutral saved settings, preset recipe writes, viewer consumption, and focused proof.
+163. 2026-05-21 09:10:13: Recorded the shipped docs-only `Properties-4 / Phase 4 - Remaining Render Presentation Contracts` closeout after the remaining hidden render-presentation ingredients were classified and `Contact Shadows` became the next `Properties-4 / Phase 4.1` extraction target.
+162. 2026-05-21 09:07:24: Revised the Properties render-preset consolidation handoff so `Properties-4` owns the remaining hidden presentation-setting extraction ladder through `Properties-4 / Phase 4.1` follow-ups instead of depending on `Properties-5`.
+161. 2026-05-21 09:02:03: Prepped `Properties-4 / Phase 4 - Remaining Render Presentation Contracts` as the current render-preset consolidation handoff for classifying remaining runtime-only presentation values before new Properties `Render` controls are planned in `Properties-5`.
+160. 2026-05-21 08:59:48: Added `Properties-5 - Render Section Detail And Feature Organization` under the Properties workspace family so upcoming user-provided Render section feature and organization phases have a dedicated future planning surface.
+159. 2026-05-21 08:49:27: Recorded the shipped `Properties-4 / Phase 3 - Visible Preset Values For Existing Render Controls` implementation after built-in render presets began applying visible neutral Properties Render settings and the viewer started honoring saved environment grade, hard shadows, ground visibility, and grid visibility for preset-applied rendered views.
+158. 2026-05-21 08:39:12: Re-prepped `Properties-4 / Phase 3 - Visible Preset Values For Existing Render Controls` so the next render/presentation cut is framed around neutral Properties Render settings that built-in presets apply, rather than Clay Studio-specific override extraction.
+157. 2026-05-21 08:26:39: Prepped `Properties-4 / Phase 3 - Visible Preset Values For Existing Render Controls` for implementation, keeping the current render/presentation handoff on Phase 3 while narrowing the next cut to preset-applied values for already-visible Properties Render controls and deferring Clay Studio material, background, lighting, edge styling, and contact-shadow contracts.
+156. 2026-05-21 08:21:41: Recorded the shipped `Properties-4 / Phase 2 - Shared Built-In Preset Selection Path` implementation after the Properties render/presentation contract gained shared render-preset helpers, separate Properties `Display Mode` and `Render Preset` controls, shared Shift+D/Properties Clay Studio selection, and display-mode choices that preserve preset-owned render settings.
+155. 2026-05-21 08:10:51: Prepped `Properties-4 / Phase 2 - Shared Built-In Preset Selection Path` for implementation, narrowing the next Properties render/presentation cut to a legacy-backed render-preset helper, visible Properties `Display Mode` and `Render Preset` controls, shared Shift+D/Properties Clay Studio selection behavior, and normal display-mode choices that no longer clear preset-owned render settings.
+154. 2026-05-21 08:06:38: Recorded the docs-only `Properties-4 / Phase 1 - Preset Inventory And Vocabulary` closeout and advanced the Properties render/presentation handoff to `Properties-4 / Phase 2 - Shared Built-In Preset Selection Path`, with `Clay Studio` now planned as a render-preset recipe made from normal Properties Render settings rather than a separate display mode.
+153. 2026-05-21 07:49:21: Added `Properties-4 - Render Presets And Viewport Style Consolidation` under the `Properties` workspace family so Shift+D viewport styles and Properties Render viewport-style selection now have a shared render-preset consolidation planning surface.
 152. 2026-05-20 19:53:00: Added `Properties-3 - View And Render Presentation Controls` under the `Properties` workspace family so the Clay Studio and render-presentation control organization question now has a Properties-owned planning surface separate from Model Viewport runtime implementation.
 151. 2026-05-11 15:55:21: Added the new `Workspace-11 - Future Workspace Shell Adoption Contract` future doc and index entry so future workspace surfaces have an explicit shared `ViewportFrame` adoption path for viewport-type, presentation, pop-out, close, and later shell controls instead of copying local titlebar chrome.
 150. 2026-05-10 13:15:16: Expanded the nested `Materials` ladder under `Properties` by adding explicit phase-2 and phase-3 planning to `Materials-1` plus the new `Materials-2 - First Material Editing And Action Flows` future doc, so the workspace family now records a full foundation ladder followed by a separate editing ladder.
@@ -1043,10 +1081,37 @@ The right mental model is:
   - dedicated home for the focused-item property workspace umbrella, including the rule that `Materials` is the first nested property-editing subfamily instead of the whole workspace identity forever and `Render` can host workspace-level view/render presentation controls without becoming the viewer runtime owner
   - landed structural umbrella phase:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-1 - Workspace Umbrella And Focused-Item Property Routing.md`
-  - current implementation-planning owner:
+  - landed render-control organization owner:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
-  - current render/presentation handoff:
-    - `Properties-3 / Phase 1 - ViewSettings And Render Control Inventory`
+  - current implementation-planning owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md`
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+  - current render-preset consolidation handoff:
+    - `Properties-4 / Phase 5 - Preset Match And Custom Readback`
+  - current render-section feature-detail handoff:
+    - `Properties-5 / Phase 2.4 - GTAOPass AO Type`
+  - later render-section AO ladder:
+    - `Properties-5 / Phase 2.5 - AO Engine Visual Comparison And Default Direction`
+    - `Properties-5 / Phase 2.6 - Engine-Specific AO Settings And Generic AO Contract`
+    - `Properties-5 / Phase 2.7 - Ground Contact AO Decision`
+    - `Properties-5 / Phase 2.8 - AO Resolution Scale And Performance Controls`
+    - `Properties-5 / Phase 2.9 - AO Stacking And Preset Recipes`
+  - current geometry-display handoff:
+    - `Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup`
+  - later geometry-display ladder:
+    - `Properties-6 / Phase 1 - Geometry Display Contract And Section Shell` - shipped first section shell and visibility contract
+    - `Properties-6 / Phase 2 - Surface Source And Custom Default Material` - shipped custom surface display material
+    - `Properties-6 / Phase 3 - Surface Hover And Highlight Styles` - shipped surface hover/selected overlay styling controls
+    - `Properties-6 / Phase 4 - Edge Visibility And Default Style` - shipped default display-edge styling controls
+    - `Properties-6 / Phase 5 - Edge Hover And Highlight Styles`
+    - `Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime`
+    - `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep`
+    - `Properties-6 / Phase 6 - Point Visibility And Default Style`
+    - `Properties-6 / Phase 7 - Point Hover And Highlight Styles`
+    - `Properties-6 / Phase 8 - Wireframe And Clay Studio Recipe Integration`
+    - `Properties-6 / Phase 9 - Custom Readback And Preset Handoff`
+    - `Properties-6 / Phase 10 - Presentation Branch Cleanup`
   - current materials implementation-planning owner:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Materials/Future/Materials-1 - Workspace Foundation And Material Owner Read.md`
   - current next implementation phase:

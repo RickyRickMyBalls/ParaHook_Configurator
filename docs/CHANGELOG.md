@@ -72,6 +72,839 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2034 -->
+
+### [2034] - 2026-05-21 16:40 - `Properties-6 - Edge Thickness Control Removal`
+
+HUMAN SUMMARY: ``Geometry Display no longer exposes or saves edge thickness settings. The current viewer uses Three.js basic line rendering, which cannot reliably render non-1px line widths in the browser, so edge styling now honestly keeps color, opacity, and depth until a future fat-line renderer exists.``
+
+#### Scope / Constraints Honored
+
+- Removed only Geometry Display edge thickness settings and controls.
+- Preserved edge visibility mode, edge color, edge opacity, edge depth, edge hover color/opacity, and edge selected color/opacity.
+- Preserved legacy highlight thickness fields outside Geometry Display for existing Settings compatibility.
+- Did not introduce a fat-line renderer, custom mesh edge renderer, or topology behavior changes.
+
+#### Summary of Implementation
+
+- Removed `geometryDisplay.edges.thickness` and edge hover/selected interaction thickness from the shared view settings contract.
+- Removed `Edge Thickness`, `Edge Hover Thickness`, and `Edge Selected Thickness` controls from Properties `Render > Geometry Display`.
+- Removed viewer `LineBasicMaterial.linewidth` writes from Geometry Display edge overlay paths.
+- Updated focused store, Properties, and viewer tests to prove edge color, opacity, and depth remain the supported editable edge settings.
+- Updated Properties-6 planning docs to mark edge thickness deferred until a supported renderer exists.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Edge thickness controls are no longer visible in Properties `Render > Geometry Display`.
+- Saved Geometry Display edge settings no longer include thickness fields.
+- Existing edge color, opacity, depth, hover color/opacity, and selected color/opacity controls remain available when `Edges` is enabled.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|highlight|edge interaction"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "edge display|Geometry Display|geometry display|surface interaction"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "topology edge picks|display-edge depth|semantic edge overlays"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2033 -->
+
+### [2033] - 2026-05-21 16:29 - `Properties-6 - Phase 5 - Edge Hover And Highlight Styles`
+
+HUMAN SUMMARY: ``Properties Render Geometry Display now owns edge hover and selected styling. Edge interaction overlays have saved color, opacity, and thickness settings, the Edges subsection exposes the controls only when edges are enabled, and the viewer uses those settings for topology edge hover/selection overlays.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5 to semantic/topology edge hover and selected styling.
+- Preserved point styling, surface styling, sketch/extrude helper overlays, transform/gizmo overlays, selection routing, render-preset recipes, and graph/export truth.
+- Preserved the existing `edgeDisplayMode` bridge and Phase 4 default display-edge styling.
+
+#### Summary of Implementation
+
+- Extended `geometryDisplay.edges` with saved `hover` and `selected` color, opacity, and thickness styles.
+- Added `Edge Hover Color`, `Edge Hover Opacity`, `Edge Hover Thickness`, `Edge Selected Color`, `Edge Selected Opacity`, and `Edge Selected Thickness` controls to the `Edges` Geometry Display subsection.
+- Kept edge interaction controls hidden while `Edges` is `Off`.
+- Added a targeted bridge between Geometry Display edge interaction styles and existing highlight edge fields without letting unrelated default edge edits overwrite hover/selected colors.
+- Routed viewer topology edge hover and selected overlays through `geometryDisplay.edges.hover` and `geometryDisplay.edges.selected`.
+- Added focused store, Properties, and viewer proof for the new owner and bridge behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Geometry Display > Edges` now exposes hover and selected edge color, opacity, and thickness controls when `Edges` is enabled.
+- Topology edge hover and selected overlays now use the saved Geometry Display edge interaction styles.
+- Point overlays still use the existing point highlight fields.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|highlight|edge interaction"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "edge display|Geometry Display|geometry display|surface interaction"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "topology edge picks|display-edge depth|semantic edge overlays"`
+- `npm.cmd run build`
+- Browser verification attempted, but the in-app browser backend reported `Browser is not available: iab`.
+
+<!-- ENTRY 2032 -->
+
+### [2032] - 2026-05-21 16:15 - `Properties-6 - Geometry Display Collapsible Subsections`
+
+HUMAN SUMMARY: ``Properties Render Geometry Display now groups its controls into collapsible Surfaces, Edges, and Points subsections. The groups stay open by default, preserve the existing settings contract, and only change the organization of the control surface.``
+
+#### Scope / Constraints Honored
+
+- Kept the change to Properties `Render > Geometry Display` organization only.
+- Preserved the existing `geometryDisplay` data contract, default values, and viewer behavior.
+- Left new surface, edge, and point styling fields out of this refinement.
+
+#### Summary of Implementation
+
+- Added local expanded/collapsed state for the `Surfaces`, `Edges`, and `Points` Geometry Display subsections.
+- Grouped existing surface controls, edge controls, and point controls under independent subsection headers.
+- Kept all subsections expanded by default so existing workflows and tests continue to find the controls immediately.
+- Added focused Properties coverage proving the subsections fold without changing saved Geometry Display settings.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Geometry Display` now lets the user collapse or expand `Surfaces`, `Edges`, and `Points` separately.
+- Collapsing a subsection hides only its controls and does not write or reset render settings.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "Geometry Display|geometry display"`
+- `npm.cmd run build`
+- Browser verification attempted, but the in-app browser backend reported `Browser is not available: iab`.
+
+<!-- ENTRY 2031 -->
+
+### [2031] - 2026-05-21 16:03 - `Properties-6 - Phase 4 - Edge Visibility And Default Style`
+
+HUMAN SUMMARY: ``Properties Render Geometry Display now owns default display-edge styling. Edges keep the existing Off / Visible Only / All mode bridge, and when edges are enabled the user can edit edge color, opacity, thickness, and depth while hover/selected edge styling stays reserved for the next phase.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 4 to default display-edge appearance only.
+- Preserved the existing `geometryDisplay.edges.mode` / `edgeDisplayMode` compatibility bridge.
+- Left edge hover/selected styling, point styling, sketch/extrude helper overlays, transform/gizmo overlays, selection outlines, Wireframe recipes, and Clay Studio recipes out of this phase.
+- Kept `thickness` as a saved setting even though current browser line rendering may clamp `LineBasicMaterial.linewidth`.
+
+#### Summary of Implementation
+
+- Extended `geometryDisplay.edges` with normalized `color`, `opacity`, `thickness`, and `depthMode` fields.
+- Added Properties `Render > Geometry Display` controls for `Edge Color`, `Edge Opacity`, `Edge Thickness`, and `Edge Depth`.
+- Hid edge style controls while `Edges` is `Off`, keeping the `Edges` selector visible.
+- Preserved legacy edge-mode writes while keeping the new default edge style fields intact.
+- Routed normal semantic and mesh display-edge overlays through `geometryDisplay.edges`.
+- Added focused store, Properties, and viewer proof for the new edge style owner.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Geometry Display` now exposes default edge color, opacity, thickness, and depth controls whenever `Edges` is not `Off`.
+- Normal viewer display-edge overlays now use the saved Geometry Display edge style fields.
+- Edge hover and selected overlays still use the existing highlight settings.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|edge display"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display modes"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display-edge depth|semantic edge overlays"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2030 -->
+
+### [2030] - 2026-05-21 15:52 - `Properties-6 - Phase 3 - Surface Hover And Highlight Styles`
+
+HUMAN SUMMARY: ``Properties Render Geometry Display now owns surface hover, selected face, and selected body color/opacity styling. Those settings stay bridged to the existing highlight fields for compatibility, and the viewer body/face overlays now read the new surface style owner while edge and point styling stay in later phases.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 3 to surface interaction styling only.
+- Preserved topology selection behavior, hover picking, graph geometry, material truth, export truth, edge highlight styling, and point highlight styling.
+- Kept full material-like hover/selected surface styles out of this phase, using color plus opacity as the first honest control shape.
+
+#### Summary of Implementation
+
+- Extended `geometryDisplay.surfaces` with normalized `hover`, `selected`, and `bodySelected` color/opacity style objects.
+- Defaulted and bridged the new surface style fields with existing `ViewSettings.highlights` surface fields.
+- Added Properties `Render > Geometry Display` controls for surface hover, selected face, and selected body colors/opacities.
+- Updated viewer face-hover, face-selected, and body-selected overlay materials to read from `geometryDisplay.surfaces`.
+- Added focused store, Properties, and viewer proof for the new style owner and compatibility bridge.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Geometry Display` now exposes surface hover, selected face, and selected body color/opacity controls.
+- Changing those controls updates both `geometryDisplay.surfaces` and the legacy highlight bridge fields.
+- Viewer surface hover and selection overlays now consume the Geometry Display surface style settings.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|surface styles"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|surface interaction"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "returns topology edge picks"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display modes"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2029 -->
+
+### [2029] - 2026-05-21 15:33 - `Properties-6 - Phase 2 - Surface Source And Custom Default Material`
+
+HUMAN SUMMARY: ``Properties Render Geometry Display now lets Surfaces use either the current Material Set or a Custom display material. The custom material is saved as viewport presentation state, renders generated part surfaces through the viewer, and leaves project material truth unchanged.``
+
+#### Scope / Constraints Honored
+
+- Kept the custom surface material under `ViewSettings.geometryDisplay`, not `ViewSettings.materials`.
+- Preserved project material presets, selected material id, per-part assignments, graph truth, material authoring truth, and export behavior.
+- Kept hover/selected styling, edge styling, point styling, Wireframe recipes, Clay Studio recipes, and custom preset saving out of this phase.
+
+#### Summary of Implementation
+
+- Extended `geometryDisplay.surfaces` with `source: 'materialSet' | 'custom'` and a normalized `customMaterial`.
+- Added `Surface Source` to Properties `Render > Geometry Display`.
+- Added condensed custom surface controls for color, emissive color, metalness, roughness, opacity, emissive intensity, transparency, and rendering.
+- Kept custom surface controls hidden while `Surface Source` is `Material Set`.
+- Added viewer custom-surface materials and routed generated part meshes through them only when `Surface Source` is `Custom`.
+- Preserved Phase 1 surface visibility and edge-overlay behavior when custom surfaces are active.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Geometry Display` now includes `Surface Source`.
+- Choosing `Custom` reveals a compact display-material editor for generated part surfaces.
+- Choosing `Material Set` keeps the existing assigned-material rendering path.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|custom surface"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display modes"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2028 -->
+
+### [2028] - 2026-05-21 15:04 - `Properties-6 - Phase 1 - Geometry Display Contract And Section Shell`
+
+HUMAN SUMMARY: ``Properties Render now has a Geometry Display section for Surfaces, Edges, and Points. The new saved contract controls generated surface visibility, bridges edge choices into the existing viewer edge mode, and keeps point runtime rendering deferred until the point systems have one clean owner.``
+
+#### Scope / Constraints Honored
+
+- Kept the first phase to saved visibility settings and the section shell.
+- Preserved material assignments, graph geometry, selection truth, export truth, and display-mode edge behavior.
+- Did not add custom surface material controls, color styling, hover/highlight editors, Wireframe recipe rewrites, Clay Studio recipe rewrites, or broad point-system unification.
+
+#### Summary of Implementation
+
+- Added normalized `ViewSettings.geometryDisplay` settings for `surfaces.visible`, `edges.mode`, and `points.visible`.
+- Persisted and restored the new geometry-display settings through the existing view-settings policy paths.
+- Added Properties `Render > Geometry Display` after `Viewport Presentation` with `Surfaces`, `Edges`, and `Points` controls.
+- Synced `geometryDisplay.edges.mode` with legacy `edgeDisplayMode` so existing viewer edge rendering and display-mode migration stay compatible.
+- Applied generated surface visibility through mesh material presentation so edge overlays can remain visible when surfaces are hidden.
+- Left the saved `Points` setting visible in Properties while deferring runtime point rendering to later point-owner phases.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render` now includes `Geometry Display` controls.
+- Turning `Surfaces` off hides generated part surface materials without removing the mesh or edge overlays.
+- `Edges` now exposes compact `Off / Visible Only / All` choices through the new section while preserving the old edge runtime path.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|display mode|edge display"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|ambient occlusion|shadow and ground settings"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display mode"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2027 -->
+
+### [2027] - 2026-05-21 14:39 - `Properties-5 - Phase 2.3.2 - Condensed Contact Shadow Settings`
+
+HUMAN SUMMARY: ``Properties Render Shadows now keeps Contact Shadows tuning collapsed while Contact Shadows is Off. The on/off selector stays visible, and opacity, spread, and height-fade controls appear only after Contact Shadows is enabled.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing saved `ViewSettings.contactShadows` fields intact.
+- Kept Contact Shadows separate from Ambient Occlusion and real shadow-map settings.
+- Did not change the viewer contact-shadow runtime, Clay Studio recipe values, graph geometry, material truth, real light truth, or export behavior.
+
+#### Summary of Implementation
+
+- Hid `Contact Opacity`, `Contact Spread`, and `Contact Height Fade` while Contact Shadows is `Off`.
+- Kept the `Contact Shadows` selector always visible so the feature can be re-enabled from the collapsed state.
+- Updated focused Properties proof for the collapsed Off state and the expanded On state.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Shadows` now shows only the Contact Shadows selector while contact shadows are off.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "shadow and ground settings|ambient occlusion"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2026 -->
+
+### [2026] - 2026-05-21 14:35 - `Properties-5 - Phase 2.3.1 - Condensed AO Settings`
+
+HUMAN SUMMARY: ``Properties Render Shadows now keeps Ambient Occlusion settings collapsed when AO Type is Off. Basic SSAO shows the preset plus full SSAO tuning set, while SAO shows only the shared runtime controls it currently uses.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing saved AO type and tuning fields intact.
+- Kept `Off`, `Basic SSAO`, and `SAO` as the only shipped AO type choices.
+- Kept the Basic SSAO preset select from writing SAO-specific presets.
+- Did not add new SAO-only persisted fields, GTAO/N8AO options, AO stacking, graph geometry changes, material truth changes, or export behavior.
+
+#### Summary of Implementation
+
+- Hid the `Ambient Occlusion`, `AO Intensity`, `AO Radius`, `AO Quality`, `AO Contact Bias`, and `AO Distance Threshold` controls while AO Type is `Off`.
+- Kept the Basic SSAO preset selector and all existing SSAO tuning controls visible for `Basic SSAO`.
+- Kept SAO condensed to the shared controls the SAO runtime maps today: intensity, radius, quality, and distance threshold.
+- Hid SSAO-only `AO Contact Bias` and the Basic SSAO preset select while `SAO` is active.
+- Updated focused Properties proof for the collapsed Off state, Basic SSAO expansion, and SAO-specific visible control set.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Shadows` now shows only `AO Type` when AO is off, reducing visual noise.
+- SAO no longer presents the Basic SSAO preset select or SSAO-only contact-bias control.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "ambient occlusion"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2025 -->
+
+### [2025] - 2026-05-21 13:39 - `Properties-5 - Phase 2.3 - SAOPass AO Type`
+
+HUMAN SUMMARY: ``Properties Render Shadows now has SAO as a real AO Type option backed by Three.js SAOPass. Basic SSAO remains the baseline path, Off still disables AO runtime creation, and GTAO/N8AO/custom ground contact AO stay out of the UI until their own runtime phases are proven.``
+
+#### Scope / Constraints Honored
+
+- Added only the supported `SAO` AO type, not placeholder type labels.
+- Kept `Basic SSAO` and `Off` behavior intact.
+- Kept `GTAO`, `N8AO`, custom `Ground Contact AO`, AO stacking, saved custom render presets, graph geometry, material truth, real light truth, and export behavior out of scope.
+- Reused the current saved AO tuning fields for first-pass SAO mapping instead of renaming `ssao*` storage in this phase.
+
+#### Summary of Implementation
+
+- Added `sao` to the saved AO type contract and Properties `AO Type` labels.
+- Updated post-processing runtime gating so any non-off AO type can create the runtime.
+- Added a Three.js `SAOPass` branch with intensity, scale, kernel radius, and blur settings mapped from the existing AO controls.
+- Preserved the existing `SSAOPass` branch for `Basic SSAO` and made AO type changes request runtime recreation.
+- Updated AO preset readback so `SAO` reads as `Custom`, while strength presets continue to return to `Basic SSAO`.
+- Added focused store, Properties, and viewer runtime proof for the new SAO path and for keeping unsupported AO engines out of the UI.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/postProcessingRuntime.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts src/app/workspace/PropertiesSurface.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2024 -->
+
+### [2024] - 2026-05-21 12:58 - `Properties-5 - Phase 2.2 - Ambient Occlusion Type Select`
+
+HUMAN SUMMARY: ``Properties Render Shadows now has an AO Type selector with Off and Basic SSAO as real saved options. Basic SSAO keeps the current SSAO composer path, while Off cleanly disables runtime AO and legacy saved ssaoEnabled views migrate into the new type field.``
+
+#### Scope / Constraints Honored
+
+- Kept `Off` and `Basic SSAO` as the only shipped AO type choices.
+- Kept `SAO`, `GTAO`, `N8AO`, and `Ground Contact AO` as planned candidates instead of exposing dead UI options.
+- Kept the existing Ambient Occlusion preset select as the Basic SSAO preset/readback control.
+- Preserved graph geometry, material truth, export behavior, Contact Shadows, and saved custom render-preset management.
+
+#### Summary of Implementation
+
+- Added saved `ViewPostProcessSettings.aoType` with normalization and legacy `ssaoEnabled` migration.
+- Added the Properties `Render > Shadows` `AO Type` ParaSelect.
+- Updated AO presets so `Off` writes `aoType: 'off'` and AO strength presets write `aoType: 'basicSsao'`.
+- Updated the viewer post-processing gate so only Basic SSAO creates the current SSAO runtime.
+- Added focused store, Properties, and viewer proof for migration, writes, and runtime gating.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2023 -->
+
+### [2023] - 2026-05-21 11:10 - `Properties-5 - AO Experiment Range Expansion`
+
+HUMAN SUMMARY: ``The AO tuning controls now have wider experiment ranges so Properties Render Shadows does not clamp the look as quickly. AO Intensity, Radius, Contact Bias, and Distance Threshold all allow broader values while keeping non-negative runtime-safe floors.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing AO setting owners under `ViewSettings.postProcessing`.
+- Kept lower bounds non-negative for SSAO radius and distance values.
+- Did not change AO presets, Contact Shadows, custom preset management, graph geometry, material truth, or export behavior.
+
+#### Summary of Implementation
+
+- Expanded AO Intensity max from `10` to `25`.
+- Expanded AO Radius from `0.05`-`5` to `0`-`25`.
+- Expanded AO Contact Bias max from `0.02` to `0.1`.
+- Expanded AO Distance Threshold from `0.025`-`0.35` to `0`-`2`.
+- Updated AO normalization test expectations.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2022 -->
+
+### [2022] - 2026-05-21 11:02 - `Properties-5 - AO Intensity Range Expansion`
+
+HUMAN SUMMARY: ``AO Intensity can now be pushed much harder from Properties Render Shadows. The saved SSAO intensity range now tops out at 10 instead of 3 so darker ambient occlusion experiments are possible without adding a new control.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing `AO Intensity` control and saved `ViewSettings.postProcessing.ssaoIntensity` owner.
+- Did not change AO presets, Contact Shadows, AO radius, AO bias, AO distance threshold, or AO resolution-scale behavior.
+
+#### Summary of Implementation
+
+- Raised `MAX_VIEW_SSAO_INTENSITY` from `3` to `10`.
+- Updated the normalization test expectation for clamped invalid AO intensity.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2021 -->
+
+### [2021] - 2026-05-21 10:34 - `Properties-5 - Phase 2 - Advanced Ambient Occlusion Controls`
+
+HUMAN SUMMARY: ``Properties Render Shadows now has the first advanced Ambient Occlusion controls. AO Contact Bias and AO Distance Threshold are saved render settings, show in the Properties AO cluster, and drive the viewer SSAO min/max distance thresholds directly.``
+
+#### Scope / Constraints Honored
+
+- Kept advanced AO controls under the existing `ViewSettings.postProcessing` owner.
+- Kept Contact Shadows separate under `ViewSettings.contactShadows`.
+- Left AO Resolution / Scale, saved custom render presets, graph geometry, material truth, real light truth, and export behavior out of scope.
+
+#### Summary of Implementation
+
+- Added saved `ssaoContactBias` and `ssaoDistanceThreshold` fields with defaults, clamping, preset values, and custom-readback participation.
+- Added Properties `Render > Shadows` sliders for `AO Contact Bias` and `AO Distance Threshold`.
+- Updated the SSAO runtime so saved values drive `SSAOPass.minDistance` and `SSAOPass.maxDistance`.
+- Added focused store, Properties, viewer runtime, and build proof.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/postProcessingRuntime.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2020 -->
+
+### [2020] - 2026-05-21 09:48 - `Properties-5 - Phase 1 - Basic Ambient Occlusion Controls`
+
+HUMAN SUMMARY: ``Properties Render now exposes the first direct Ambient Occlusion tuning controls. The Shadows section keeps the quick Ambient Occlusion preset select, adds AO Intensity, AO Radius, and AO Quality controls, and shows Custom when enabled AO values no longer match a built-in preset.``
+
+#### Scope / Constraints Honored
+
+- Kept Ambient Occlusion under the existing saved `ViewSettings.postProcessing` owner.
+- Preserved the existing `Off / Low / Medium / High` preset writes.
+- Kept Contact Shadows separate from AO and did not add advanced AO falloff, distance-threshold, resolution-scale, saved custom preset, graph, material, light, or export behavior.
+
+#### Summary of Implementation
+
+- Added `Custom` readback for diverged enabled Ambient Occlusion settings.
+- Added Properties `Render > Shadows` controls for `AO Intensity`, `AO Radius`, and `AO Quality`.
+- Added focused Properties and store proof for preset writes, manual AO tuning, and custom readback while relying on the existing viewer SSAO runtime update proof.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2019 -->
+
+### [2019] - 2026-05-21 09:22 - `Properties-4 - Phase 4.1 - First Remaining Setting Extraction`
+
+HUMAN SUMMARY: ``Contact Shadows are now normal Properties Render settings instead of a hidden Clay Studio-only viewer behavior. Clay Studio writes the saved contact-shadow values as part of its preset recipe, and users can edit Contact Shadows, Opacity, Spread, and Height Fade in Properties > Render > Shadows.``
+
+#### Scope / Constraints Honored
+
+- Kept contact shadows as viewer-only presentation settings, not graph geometry, real material truth, real light truth, or export content.
+- Did not add contact-shadow color, ring count, ring-ratio, y-offset, per-object controls, saved custom presets, Background, Presentation Material, Lighting, or Edge controls.
+- Preserved separate `Display Mode` and `Render Preset` concepts.
+
+#### Summary of Implementation
+
+- Added normalized `ViewSettings.contactShadows` state with default and Clay Studio recipe values.
+- Added Properties `Render > Shadows` controls for `Contact Shadows`, `Contact Opacity`, `Contact Spread`, and `Contact Height Fade`.
+- Updated built-in render-preset helpers so Clay Studio enables contact shadows and Standard resets them to defaults.
+- Updated the viewer contact-shadow rings to consume saved contact-shadow settings instead of requiring Clay Studio identity.
+- Added focused store, persistence, Properties, and viewer proof.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2018 -->
+
+### [2018] - 2026-05-21 08:55 - `Properties-4 - Phase 3 - Shadows Ambient Occlusion Placement`
+
+HUMAN SUMMARY: ``Ambient Occlusion now lives in the Properties Render Shadows section instead of the top viewport-presentation cluster. The setting still writes the same saved post-processing values; it is just grouped with hard shadows and selected-light shadow controls where the shadow/contact-depth idea belongs.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing `ViewSettings.postProcessing` ownership and Ambient Occlusion preset behavior.
+- Did not change viewer post-processing runtime behavior, render-preset recipes, graph geometry, material truth, sketch grids, or export behavior.
+
+#### Summary of Implementation
+
+- Moved the `Ambient Occlusion` `ParaSelect` from `Viewport presentation` into the `Shadows` group in Properties `Render`.
+- Added focused Properties proof that Ambient Occlusion is no longer in the viewport-presentation panel and now appears in the Shadows group.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2017 -->
+
+### [2017] - 2026-05-21 08:49 - `Properties-4 - Phase 3 - Visible Preset Values For Existing Render Controls`
+
+HUMAN SUMMARY: ``Render presets now visibly apply the first normal Properties Render settings instead of hiding those values behind Clay Studio behavior. Clay Studio is still a preset, but its hard shadows, ground, grid, environment grade, and Ambient Occlusion choices now land as editable saved settings.``
+
+#### Scope / Constraints Honored
+
+- Kept `ViewSettings.viewportStyle` as the legacy render-preset backing field.
+- Kept runtime-only presentation values deferred until they have neutral setting owners: presentation material, presentation ground material, background, lighting rig, edge styling, contact-shadow controls, axes suppression, custom readback, saved custom presets, and storage renaming.
+- Preserved graph geometry, sketch truth, material authoring truth, export behavior, and render-preview runtime behavior.
+
+#### Summary of Implementation
+
+- Added shared built-in render-preset recipe values for the visible render settings owned by Properties `Render`.
+- Made Clay Studio selection write rendered display mode, Clay grade values, hard shadows off, ground on, grid off, and Ambient Occlusion `Medium`.
+- Made Standard selection write the default visible render recipe while preserving the current display mode.
+- Removed Clay Studio edit locks from Environment Grade, Shadows, Ground, and Grid controls so users can tune those neutral settings after applying a preset.
+- Changed the viewer to consume saved environment grade, saved hard-shadow state, saved ground visibility, and saved grid visibility for preset-applied rendered views.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 2016 -->
+
+### [2016] - 2026-05-21 08:21 - `Properties-4 - Phase 2 - Shared Built-In Preset Selection Path`
+
+HUMAN SUMMARY: ``Properties Render now separates `Display Mode` from `Render Preset`, while Shift+D and Properties use the same Clay Studio selection helper. Normal Shift+D display-mode choices no longer clear preset-owned render settings, so Clay Studio can behave like a preset recipe instead of a magical one-way mode reset.``
+
+#### Scope / Constraints Honored
+
+- Kept `ViewSettings.viewportStyle` as the legacy backing field instead of introducing a persisted storage rename.
+- Kept Clay Studio runtime rendering behavior in `Viewer.ts` unchanged for this phase.
+- Deferred Clay Studio ingredient extraction, saved custom presets, and custom preset readback.
+- Preserved graph geometry, material authoring truth, sketch grids, export behavior, and render-preview runtime behavior.
+
+#### Summary of Implementation
+
+- Added shared render-preset and display-mode patch helpers around the existing view-settings contract.
+- Updated Shift+D display-mode selection so normal display modes write only `displayMode` and preserve the current render preset.
+- Routed Shift+D Clay Studio selection through the shared render-preset helper.
+- Added a Properties `Render > Viewport Presentation` `Display Mode` select.
+- Renamed the Properties preset control from `Viewport Style` to `Render Preset`.
+- Routed Properties `Render Preset` changes through the shared render-preset helper.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Properties `Render` now shows `Display Mode` and `Render Preset` as separate controls.
+- Selecting Clay Studio from Shift+D or Properties now flows through the same helper and sets the view to rendered Clay Studio.
+- Selecting a normal display mode from Shift+D preserves the selected render preset instead of forcing Standard.
+- Selecting a display mode from Properties preserves the selected render preset.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- --run src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Clay Studio"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2015 -->
+
+### [2015] - 2026-05-21 07:38 - `Properties-3 - Phase 5 - Grid Color Row Follow-Up`
+
+HUMAN SUMMARY: ``Grid layer colors now use the same expandable Properties color row system as Materials Base color and Emissive color. The shared row keeps the native color swatch and adds the Hue, Saturation, Brightness, R, G, and B slider controls for each grid layer. ``
+
+#### Scope / Constraints Honored
+
+- Reused the existing Materials color-row interaction pattern instead of inventing a separate grid-only picker.
+- Kept `ViewSettings.gridPresentation.layers[].color` as the saved grid color owner.
+- Kept graph geometry, sketch grids, material truth, exports, viewer grid rendering, and Clay Studio grid suppression unchanged.
+
+#### Summary of Implementation
+
+- Extracted the Materials expandable color row into `PropertiesColorControl`.
+- Rewired Materials Base color and Emissive color to use the shared control.
+- Replaced the Grid layer native color-only field with the shared expandable color row.
+- Kept Clay Studio locking on both the color swatch and expand button for Grid colors.
+- Added focused Properties proof that Grid color rows expand and expose the shared color slider controls.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesColorControl.tsx`
+- `src/app/workspace/PropertiesMaterialsSectionContent.tsx`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Grid layer color controls now expand into the same rich color slider row used by Materials.
+- Existing Grid color values and writes remain unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+
+<!-- ENTRY 2014 -->
+
+### [2014] - 2026-05-21 07:28 - `Properties-3 - Phase 5 - Grid Presentation Controls And Layer System`
+
+HUMAN SUMMARY: ``Properties Render now carries the model-viewport Grid controls as a first-class section. The saved grid on/off setting remains `ViewSettings.gridVisible`, while the new `ViewSettings.gridPresentation` contract gives the viewer and Properties shared height, size, color, spacing, opacity, and layer-offset controls for `Grid 1`, `Grid 2`, and `Grid 3`. ``
+
+#### Scope / Constraints Honored
+
+- Kept `ViewSettings.gridVisible` as the only top-level grid on/off owner.
+- Added `gridPresentation` only for grid shape and styling, not geometry truth.
+- Kept Clay Studio grid suppression viewer-owned and Properties controls locked/read-only while active.
+- Left graph geometry, sketch working grids, sketch-plane pick grids, ground, materials, exports, axis overlay, and true fat-line rendering unchanged.
+- Kept the existing View Toolbar checkbox in place as a duplicate shared `gridVisible` control for the first pass.
+
+#### Summary of Implementation
+
+- Added normalized `GridPresentationSettings` and default `Grid 1` / `Grid 2` / `Grid 3` layer settings that reproduce the current minor, major, and double-major grid.
+- Carried `gridPresentation` through view-settings persistence policy paths.
+- Replaced the viewer's fixed minor/major/double-major grid helpers with a narrow sync/rebuild path driven by normalized grid presentation settings.
+- Added Properties `Render > Grid` with `Grid`, `Grid Height`, `Grid Size`, layer enable, spacing, color, opacity, and height-offset controls.
+- Added focused tests for Properties scoped writes and Clay Studio locking, shared settings normalization/persistence policy, and viewer grid layer defaults/customization.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-3 - View And Render Presentation Controls.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Standard viewport style can now edit the saved grid visibility and presentation-layer settings from Properties `Render`.
+- The model viewport grid now reflects saved grid height, size, layer spacing, layer color, layer opacity, and layer height offsets.
+- Clay Studio still suppresses the visible grid and now shows the saved grid controls as locked/read-only in Properties.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/viewer/Viewer.test.ts src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts`
+
 <!-- ENTRY 2013 -->
 
 ### [2013] - 2026-05-21 06:50 - `Properties-3 - Phase 4 - Ground And Contact Presentation Controls`
