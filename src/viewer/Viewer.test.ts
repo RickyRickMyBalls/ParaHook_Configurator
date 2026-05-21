@@ -6,6 +6,7 @@ import {
   FrontSide,
   Line,
   LineBasicMaterial,
+  LineDashedMaterial,
   LineSegments,
   Mesh,
   MeshBasicMaterial,
@@ -6015,6 +6016,7 @@ describe('Viewer baseline replacement', () => {
         selectedPartKey?: string | null,
       ) => void
       meshEdgeWireframeOverlaysByPartKey: Map<string, LineSegments[]>
+      meshHiddenLineOverlaysByPartKey: Map<string, LineSegments[]>
     }
 
     runtime.setViewportRenderLayers(
@@ -6059,8 +6061,11 @@ describe('Viewer baseline replacement', () => {
 
     const xrayOverlay = runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
     const xrayOverlayMaterial = xrayOverlay?.material as LineBasicMaterial | undefined
+    const hiddenLineOverlay =
+      runtime.meshHiddenLineOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
     expect(postProcessingExampleMocks.ssaoPasses).toHaveLength(1)
     expect(xrayOverlay?.visible).toBe(true)
+    expect(hiddenLineOverlay?.visible).toBe(false)
     expect(xrayOverlayMaterial?.color.getHexString()).toBe('00ffaa')
     expect(xrayOverlayMaterial?.opacity).toBe(0.37)
     expect(xrayOverlayMaterial?.depthTest).toBe(false)
@@ -6088,6 +6093,8 @@ describe('Viewer baseline replacement', () => {
     expect(visibleOnlyMaterial?.opacity).toBe(0.51)
     expect(visibleOnlyMaterial?.depthTest).toBe(true)
     expect(visibleOnlyMaterial?.toneMapped).toBe(false)
+    expect(runtime.meshHiddenLineOverlaysByPartKey.get('part:ssao-edge-display')?.[0]?.visible)
+      .toBe(false)
 
     runtime.applyViewSettings({
       ...ssaoSettings,
@@ -6096,21 +6103,77 @@ describe('Viewer baseline replacement', () => {
         ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
         edges: {
           ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+          preset: 'xray',
           mode: 'all',
           color: '#123abc',
           opacity: 0.44,
-          depthMode: 'surface',
+          depthMode: 'xray',
+          hiddenEdges: true,
+          lineStyle: 'solid',
+          hiddenLine: {
+            color: '#ffcc00',
+            opacity: 0.29,
+            dashSize: 0.24,
+            gapSize: 0.16,
+          },
         },
       },
     })
 
-    const surfaceDepthOverlay =
+    const solidHiddenLineOverlay =
+      runtime.meshHiddenLineOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
+    const solidHiddenLineMaterial =
+      solidHiddenLineOverlay?.material as LineDashedMaterial | undefined
+    expect(solidHiddenLineOverlay?.visible).toBe(true)
+    expect(solidHiddenLineMaterial?.color.getHexString()).toBe('ffcc00')
+    expect(solidHiddenLineMaterial?.opacity).toBe(0.29)
+    expect(solidHiddenLineMaterial?.depthTest).toBe(false)
+    expect(solidHiddenLineMaterial?.dashSize).toBe(1000000)
+    expect(solidHiddenLineMaterial?.gapSize).toBe(0)
+
+    runtime.applyViewSettings({
+      ...ssaoSettings,
+      edgeDisplayMode: 'on',
+      geometryDisplay: {
+        ...DEFAULT_VIEW_SETTINGS.geometryDisplay,
+        edges: {
+          ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+          preset: 'hiddenLine',
+          mode: 'all',
+          color: '#123abc',
+          opacity: 0.44,
+          depthMode: 'xray',
+          hiddenEdges: true,
+          lineStyle: 'dashed',
+          hiddenLine: {
+            color: '#ffcc00',
+            opacity: 0.29,
+            dashSize: 0.24,
+            gapSize: 0.16,
+          },
+        },
+      },
+    })
+
+    const hiddenLineSolidOverlay =
       runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
-    const surfaceDepthMaterial = surfaceDepthOverlay?.material as LineBasicMaterial | undefined
-    expect(surfaceDepthOverlay?.visible).toBe(true)
-    expect(surfaceDepthMaterial?.color.getHexString()).toBe('123abc')
-    expect(surfaceDepthMaterial?.opacity).toBe(0.44)
-    expect(surfaceDepthMaterial?.depthTest).toBe(true)
+    const hiddenLineSolidMaterial =
+      hiddenLineSolidOverlay?.material as LineBasicMaterial | undefined
+    const hiddenLineDashedOverlay =
+      runtime.meshHiddenLineOverlaysByPartKey.get('part:ssao-edge-display')?.[0]
+    const hiddenLineDashedMaterial =
+      hiddenLineDashedOverlay?.material as LineDashedMaterial | undefined
+    expect(hiddenLineSolidOverlay?.visible).toBe(true)
+    expect(hiddenLineSolidMaterial?.color.getHexString()).toBe('123abc')
+    expect(hiddenLineSolidMaterial?.opacity).toBe(0.44)
+    expect(hiddenLineSolidMaterial?.depthTest).toBe(true)
+    expect(hiddenLineDashedOverlay?.visible).toBe(true)
+    expect(hiddenLineDashedMaterial).toBeInstanceOf(LineDashedMaterial)
+    expect(hiddenLineDashedMaterial?.color.getHexString()).toBe('ffcc00')
+    expect(hiddenLineDashedMaterial?.opacity).toBe(0.29)
+    expect(hiddenLineDashedMaterial?.depthTest).toBe(false)
+    expect(hiddenLineDashedMaterial?.dashSize).toBe(0.24)
+    expect(hiddenLineDashedMaterial?.gapSize).toBe(0.16)
 
     runtime.applyViewSettings({
       ...ssaoSettings,
@@ -6118,6 +6181,8 @@ describe('Viewer baseline replacement', () => {
     })
 
     expect(runtime.meshEdgeWireframeOverlaysByPartKey.get('part:ssao-edge-display')?.[0]?.visible)
+      .toBe(false)
+    expect(runtime.meshHiddenLineOverlaysByPartKey.get('part:ssao-edge-display')?.[0]?.visible)
       .toBe(false)
   })
 

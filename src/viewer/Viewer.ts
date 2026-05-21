@@ -20,6 +20,7 @@ import {
   Light,
   Line,
   LineBasicMaterial,
+  LineDashedMaterial,
   LineLoop,
   LineSegments,
   MathUtils,
@@ -681,7 +682,9 @@ export class Viewer {
   private readonly overlayPartMeshes = new Map<string, Mesh>()
   private readonly partSelectionOutlines = new Map<string, LineSegments>()
   private readonly semanticEdgeOverlaysByPartKey = new Map<string, LineSegments>()
+  private readonly semanticHiddenLineOverlaysByPartKey = new Map<string, LineSegments>()
   private readonly meshEdgeWireframeOverlaysByPartKey = new Map<string, LineSegments[]>()
+  private readonly meshHiddenLineOverlaysByPartKey = new Map<string, LineSegments[]>()
   private readonly topologyEdgePickTargetsByPartKey = new Map<string, LineSegments[]>()
   private readonly topologyPointPickTargetsByPartKey = new Map<string, Points[]>()
   private selectedTopologyEntity: SelectedTopologyEntity | null = null
@@ -4214,6 +4217,11 @@ export class Viewer {
     return this.currentViewSettings.edgeDisplayMode === 'visibleEdgesOnly'
   }
 
+  private resolveHiddenLineEdges(): boolean {
+    const edgeStyle = this.currentViewSettings.geometryDisplay.edges
+    return edgeStyle.hiddenEdges && edgeStyle.depthMode === 'xray'
+  }
+
   private resolveSurfaceVisible(): boolean {
     return this.currentViewSettings.geometryDisplay.surfaces.visible
   }
@@ -4500,6 +4508,17 @@ export class Viewer {
     overlay.userData.semanticEdgeOverlay = true
     mesh.add(overlay)
     this.semanticEdgeOverlaysByPartKey.set(partKey, overlay)
+    const hiddenOverlay = this.createHiddenLineEdgeOverlay(
+      geometry.clone(),
+      `${partKey}:semantic-hidden-line-overlay`,
+      94,
+      {
+        partKey,
+        semanticHiddenLineOverlay: true,
+      },
+    )
+    mesh.add(hiddenOverlay)
+    this.semanticHiddenLineOverlaysByPartKey.set(partKey, hiddenOverlay)
   }
 
   private attachMeshEdgeWireframeOverlay(partKey: string, mesh: Mesh): void {
@@ -4533,6 +4552,47 @@ export class Viewer {
     const overlays = this.meshEdgeWireframeOverlaysByPartKey.get(partKey) ?? []
     overlays.push(overlay)
     this.meshEdgeWireframeOverlaysByPartKey.set(partKey, overlays)
+    const hiddenOverlay = this.createHiddenLineEdgeOverlay(
+      geometry.clone(),
+      `${partKey}:mesh-hidden-line-overlay`,
+      89,
+      {
+        partKey,
+        meshHiddenLineOverlay: true,
+      },
+    )
+    mesh.add(hiddenOverlay)
+    const hiddenOverlays = this.meshHiddenLineOverlaysByPartKey.get(partKey) ?? []
+    hiddenOverlays.push(hiddenOverlay)
+    this.meshHiddenLineOverlaysByPartKey.set(partKey, hiddenOverlays)
+  }
+
+  private createHiddenLineEdgeOverlay(
+    geometry: BufferGeometry,
+    name: string,
+    renderOrder: number,
+    userData: Record<string, unknown>,
+  ): LineSegments {
+    const overlay = new LineSegments(
+      geometry,
+      new LineDashedMaterial({
+        color: new Color(DISPLAY_EDGE_XRAY_COLOR),
+        transparent: true,
+        opacity: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.opacity,
+        dashSize: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.dashSize,
+        gapSize: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.gapSize,
+        toneMapped: false,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    )
+    overlay.computeLineDistances()
+    overlay.name = name
+    overlay.visible = false
+    overlay.renderOrder = renderOrder
+    overlay.frustumCulled = false
+    Object.assign(overlay.userData, userData)
+    return overlay
   }
 
   private attachTopologyEdgePickTargets(partKey: string, mesh: Mesh): void {
@@ -4615,15 +4675,34 @@ export class Viewer {
 
   private syncSemanticEdgeOverlayVisibility(): void {
     const visible = this.resolveEdgeOverlayVisible()
-    const visibleEdgesOnly = this.resolveVisibleEdgesOnly()
+    const hiddenLineEdges = this.resolveHiddenLineEdges()
+    const visibleEdgesOnly = this.resolveVisibleEdgesOnly() || hiddenLineEdges
     for (const overlay of this.semanticEdgeOverlaysByPartKey.values()) {
       this.applyEdgeOverlayPresentation(overlay, visibleEdgesOnly)
       overlay.visible = visible && overlay.parent?.visible !== false
+    }
+    for (const overlay of this.semanticHiddenLineOverlaysByPartKey.values()) {
+      this.applyHiddenLineEdgeOverlayPresentation(overlay)
+      overlay.visible =
+        visible &&
+        hiddenLineEdges &&
+        this.resolveSurfaceVisible() &&
+        overlay.parent?.visible !== false
     }
     for (const overlays of this.meshEdgeWireframeOverlaysByPartKey.values()) {
       for (const overlay of overlays) {
         this.applyEdgeOverlayPresentation(overlay, visibleEdgesOnly)
         overlay.visible = visible && overlay.parent?.visible !== false
+      }
+    }
+    for (const overlays of this.meshHiddenLineOverlaysByPartKey.values()) {
+      for (const overlay of overlays) {
+        this.applyHiddenLineEdgeOverlayPresentation(overlay)
+        overlay.visible =
+          visible &&
+          hiddenLineEdges &&
+          this.resolveSurfaceVisible() &&
+          overlay.parent?.visible !== false
       }
     }
     for (const targets of this.topologyEdgePickTargetsByPartKey.values()) {
@@ -4649,6 +4728,24 @@ export class Viewer {
       material.color.set(edgeStyle.color)
       material.opacity = edgeStyle.opacity
       material.depthTest = depthTest
+      material.depthWrite = false
+      material.needsUpdate = true
+    }
+  }
+
+  private applyHiddenLineEdgeOverlayPresentation(overlay: LineSegments): void {
+    const materials = Array.isArray(overlay.material) ? overlay.material : [overlay.material]
+    const edgeStyle = this.currentViewSettings.geometryDisplay.edges
+    const hiddenLineStyle = this.currentViewSettings.geometryDisplay.edges.hiddenLine
+    for (const material of materials) {
+      if (!(material instanceof LineDashedMaterial)) {
+        continue
+      }
+      material.color.set(hiddenLineStyle.color)
+      material.opacity = hiddenLineStyle.opacity
+      material.dashSize = edgeStyle.lineStyle === 'dashed' ? hiddenLineStyle.dashSize : 1000000
+      material.gapSize = edgeStyle.lineStyle === 'dashed' ? hiddenLineStyle.gapSize : 0
+      material.depthTest = false
       material.depthWrite = false
       material.needsUpdate = true
     }
@@ -4862,7 +4959,9 @@ export class Viewer {
     this.overlayPartMeshes.clear()
     this.partSelectionOutlines.clear()
     this.semanticEdgeOverlaysByPartKey.clear()
+    this.semanticHiddenLineOverlaysByPartKey.clear()
     this.meshEdgeWireframeOverlaysByPartKey.clear()
+    this.meshHiddenLineOverlaysByPartKey.clear()
     this.topologyEdgePickTargetsByPartKey.clear()
     this.topologyPointPickTargetsByPartKey.clear()
     for (const pivot of this.contentObjectPivots.values()) {

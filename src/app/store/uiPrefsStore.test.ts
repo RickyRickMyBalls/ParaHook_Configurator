@@ -16,6 +16,7 @@ import {
   getEnvironmentPresetDefinition,
   normalizeViewSettings,
   resolveViewAmbientOcclusionPresetRead,
+  resolveViewGeometryDisplayEdgePresetRead,
 } from '../../shared/viewSettingsTypes'
 import { defaultSpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
 import {
@@ -336,6 +337,7 @@ describe('uiPrefsStore environment source state', () => {
     })
 
     expect(validEdgeView.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(validEdgeView.geometryDisplay.edges.preset).toBe('visibleOnly')
     expect(validEdgeView.geometryDisplay.edges.mode).toBe('visibleOnly')
 
     const invalidEdgeView = normalizeViewSettings({
@@ -344,6 +346,7 @@ describe('uiPrefsStore environment source state', () => {
     } as unknown as Parameters<typeof normalizeViewSettings>[0])
 
     expect(invalidEdgeView.edgeDisplayMode).toBe(DEFAULT_VIEW_EDGE_DISPLAY_MODE)
+    expect(invalidEdgeView.geometryDisplay.edges.preset).toBe('off')
     expect(invalidEdgeView.geometryDisplay.edges.mode).toBe('off')
   })
 
@@ -373,16 +376,20 @@ describe('uiPrefsStore environment source state', () => {
         bodySelected: DEFAULT_VIEW_SETTINGS.geometryDisplay.surfaces.bodySelected,
       },
       edges: {
-        mode: 'all',
+        preset: 'visibleOnly',
+        mode: 'visibleOnly',
         color: '#00ffaa',
         opacity: 1,
         depthMode: 'surface',
+        hiddenEdges: false,
+        lineStyle: 'solid',
+        hiddenLine: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine,
         hover: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover,
         selected: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected,
       },
       points: { visible: false },
     })
-    expect(normalized.edgeDisplayMode).toBe('on')
+    expect(normalized.edgeDisplayMode).toBe('visibleEdgesOnly')
 
     const legacyEdgeOnlyView = normalizeViewSettings({
       ...structuredClone(DEFAULT_VIEW_SETTINGS),
@@ -390,11 +397,77 @@ describe('uiPrefsStore environment source state', () => {
       geometryDisplay: undefined,
     })
 
+    expect(legacyEdgeOnlyView.geometryDisplay.edges.preset).toBe('visibleOnly')
     expect(legacyEdgeOnlyView.geometryDisplay.edges.mode).toBe('visibleOnly')
     expect(legacyEdgeOnlyView.edgeDisplayMode).toBe('visibleEdgesOnly')
     expect(legacyEdgeOnlyView.geometryDisplay.edges.color).toBe(
       DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color,
     )
+
+    const hiddenLineView = normalizeViewSettings({
+      ...structuredClone(DEFAULT_VIEW_SETTINGS),
+      geometryDisplay: {
+        ...structuredClone(DEFAULT_VIEW_SETTINGS.geometryDisplay),
+        edges: {
+          ...structuredClone(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges),
+          preset: 'hiddenLine',
+          hiddenEdges: undefined,
+          lineStyle: undefined,
+          hiddenLine: {
+            color: 'not-a-color',
+            opacity: 2,
+            dashSize: -1,
+            gapSize: 99,
+          },
+        },
+      },
+    })
+
+    expect(hiddenLineView.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+      hiddenLine: {
+        color: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.color,
+        opacity: 1,
+        dashSize: 0.01,
+        gapSize: 1,
+      },
+    })
+    expect(hiddenLineView.edgeDisplayMode).toBe('on')
+    expect(resolveViewGeometryDisplayEdgePresetRead(hiddenLineView.geometryDisplay.edges)).toBe(
+      'hiddenLine',
+    )
+
+    expect(
+      resolveViewGeometryDisplayEdgePresetRead({
+        ...hiddenLineView.geometryDisplay.edges,
+        depthMode: 'surface',
+        hiddenEdges: false,
+        lineStyle: 'dashed',
+      }),
+    ).toBe('custom')
+    expect(
+      resolveViewGeometryDisplayEdgePresetRead({
+        ...hiddenLineView.geometryDisplay.edges,
+        hiddenEdges: false,
+        lineStyle: 'dashed',
+      }),
+    ).toBe('xray')
+    const restyledHiddenLineEdges = {
+      ...hiddenLineView.geometryDisplay.edges,
+      color: '#ff00aa',
+      opacity: 0.14,
+      hiddenLine: {
+        color: '#00ffaa',
+        opacity: 0.35,
+        dashSize: 0.42,
+        gapSize: 0.24,
+      },
+    }
+    expect(resolveViewGeometryDisplayEdgePresetRead(restyledHiddenLineEdges)).toBe('hiddenLine')
 
     const customSurfaceView = normalizeViewSettings({
       ...structuredClone(DEFAULT_VIEW_SETTINGS),
@@ -534,6 +607,7 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(true)
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('xray')
     expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('all')
 
     useUiPrefsStore.getState().setViewKey('wireframe', false)
@@ -541,6 +615,7 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('off')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('off')
     expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('off')
   })
 
@@ -551,6 +626,7 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('visibleOnly')
     expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('visibleOnly')
   })
 
@@ -962,10 +1038,14 @@ describe('uiPrefsStore environment source state', () => {
     })
 
     expect(legacyPhase4View.geometryDisplay.edges).toEqual({
-      mode: 'all',
+      preset: 'visibleOnly',
+      mode: 'visibleOnly',
       color: '#ffffff',
       opacity: 1,
       depthMode: 'surface',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+      hiddenLine: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine,
       hover: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover,
       selected: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected,
     })

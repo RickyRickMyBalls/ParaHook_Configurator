@@ -7,6 +7,8 @@ import {
   MAX_CONTACT_SHADOW_OPACITY,
   MAX_CONTACT_SHADOW_SPREAD,
   MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
+  MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE,
+  MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE,
   MAX_GRID_PRESENTATION_HEIGHT,
   MAX_GRID_PRESENTATION_HEIGHT_OFFSET,
   MAX_GRID_PRESENTATION_OPACITY,
@@ -31,6 +33,8 @@ import {
   MIN_CONTACT_SHADOW_OPACITY,
   MIN_CONTACT_SHADOW_SPREAD,
   MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
+  MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE,
+  MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE,
   MIN_VIEW_SSAO_CONTACT_BIAS,
   MIN_VIEW_SSAO_DISTANCE_THRESHOLD,
   MIN_VIEW_SSAO_INTENSITY,
@@ -42,7 +46,8 @@ import {
   VIEW_AMBIENT_OCCLUSION_TYPE_OPTIONS,
   VIEW_DISPLAY_MODES,
   VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES,
-  VIEW_GEOMETRY_DISPLAY_EDGE_MODES,
+  VIEW_GEOMETRY_DISPLAY_EDGE_LINE_STYLES,
+  VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS,
   VIEW_GEOMETRY_DISPLAY_SURFACE_SOURCES,
   VIEW_RENDER_PRESET_OPTIONS,
   VIEW_SSAO_QUALITY_OPTIONS,
@@ -53,8 +58,13 @@ import {
   isViewAmbientOcclusionPreset,
   isViewAmbientOcclusionType,
   isViewDisplayMode,
+  geometryDisplayEdgePresetToDepthMode,
+  geometryDisplayEdgePresetToHiddenEdges,
+  geometryDisplayEdgePresetToLineStyle,
+  geometryDisplayEdgePresetToMode,
   isViewGeometryDisplayEdgeDepthMode,
-  isViewGeometryDisplayEdgeMode,
+  isViewGeometryDisplayEdgeLineStyle,
+  isViewGeometryDisplayEdgePreset,
   isViewGeometryDisplaySurfaceSource,
   isViewRenderPresetId,
   isRenderPreviewGpuLoad,
@@ -63,6 +73,7 @@ import {
   normalizeRenderPreviewSettings,
   resolveRenderPreviewQualityPresetRead,
   resolveViewAmbientOcclusionPresetRead,
+  resolveViewGeometryDisplayEdgePresetRead,
   type EnvironmentGradeSettings,
   type EnvironmentLookSnapshot,
   type GroundMaterialPresetId,
@@ -83,7 +94,9 @@ import {
   type ViewDisplayMode,
   type ViewGeometryDisplayEdgeDepthMode,
   type ViewGeometryDisplayEdgeInteractionStyle,
-  type ViewGeometryDisplayEdgeMode,
+  type ViewGeometryDisplayHiddenLineStyle,
+  type ViewGeometryDisplayEdgeLineStyle,
+  type ViewGeometryDisplayEdgePresetRead,
   type ViewGeometryDisplaySurfaceSource,
   type ViewGeometryDisplaySettings,
   type ViewGeometryDisplaySurfaceStyle,
@@ -139,15 +152,22 @@ const RENDER_PRESET_LABELS: Record<RenderPresetId, string> = {
   clayStudio: 'Clay Studio',
 }
 
-const GEOMETRY_DISPLAY_EDGE_LABELS: Record<ViewGeometryDisplayEdgeMode, string> = {
+const GEOMETRY_DISPLAY_EDGE_PRESET_LABELS: Record<ViewGeometryDisplayEdgePresetRead, string> = {
   off: 'Off',
   visibleOnly: 'Visible Only',
-  all: 'All',
+  xray: 'Xray',
+  hiddenLine: 'Hidden Line',
+  custom: 'Custom',
 }
 
 const GEOMETRY_DISPLAY_EDGE_DEPTH_LABELS: Record<ViewGeometryDisplayEdgeDepthMode, string> = {
   surface: 'Surface',
   xray: 'Xray',
+}
+
+const GEOMETRY_DISPLAY_EDGE_LINE_STYLE_LABELS: Record<ViewGeometryDisplayEdgeLineStyle, string> = {
+  solid: 'Solid',
+  dashed: 'Dashed',
 }
 
 const GEOMETRY_DISPLAY_SURFACE_SOURCE_LABELS: Record<ViewGeometryDisplaySurfaceSource, string> = {
@@ -203,14 +223,30 @@ const renderPresetOptions = VIEW_RENDER_PRESET_OPTIONS.map((value) => ({
   label: RENDER_PRESET_LABELS[value],
 }))
 
-const geometryDisplayEdgeOptions = VIEW_GEOMETRY_DISPLAY_EDGE_MODES.map((value) => ({
-  value,
-  label: GEOMETRY_DISPLAY_EDGE_LABELS[value],
-}))
+const geometryDisplayEdgePresetOptions: Array<{
+  value: ViewGeometryDisplayEdgePresetRead
+  label: string
+}> = [
+  ...VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS.map((value) => ({
+    value,
+    label: GEOMETRY_DISPLAY_EDGE_PRESET_LABELS[value],
+  })),
+  { value: 'custom', label: GEOMETRY_DISPLAY_EDGE_PRESET_LABELS.custom },
+]
 
 const geometryDisplayEdgeDepthOptions = VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES.map((value) => ({
   value,
   label: GEOMETRY_DISPLAY_EDGE_DEPTH_LABELS[value],
+}))
+
+const geometryDisplayHiddenEdgesOptions = [
+  { value: 'off', label: 'Off' },
+  { value: 'on', label: 'On' },
+]
+
+const geometryDisplayEdgeLineStyleOptions = VIEW_GEOMETRY_DISPLAY_EDGE_LINE_STYLES.map((value) => ({
+  value,
+  label: GEOMETRY_DISPLAY_EDGE_LINE_STYLE_LABELS[value],
 }))
 
 const geometryDisplaySurfaceSourceOptions = VIEW_GEOMETRY_DISPLAY_SURFACE_SOURCES.map((value) => ({
@@ -272,6 +308,7 @@ const formatGridSpacing = (value: number): string =>
   value >= 10 ? `${Math.round(value)}` : Number(value.toFixed(2)).toString()
 const formatGridOpacity = (value: number): string => `${Math.round(value * 100)}%`
 const formatMaterialPercent = (value: number): string => `${Math.round(value * 100)}%`
+const formatMaterialNumber = (value: number): string => value.toFixed(2)
 const formatGridHeightOffset = (value: number): string => value.toFixed(3)
 const formatEnvironmentGradeMultiplierValue = (value: number): string =>
   `${Number(value.toFixed(2)).toString()}x`
@@ -311,6 +348,7 @@ function PropertiesRenderSectionContent() {
   const [surfaceSelectedColorExpanded, setSurfaceSelectedColorExpanded] = useState(false)
   const [bodySelectedColorExpanded, setBodySelectedColorExpanded] = useState(false)
   const [edgeColorExpanded, setEdgeColorExpanded] = useState(false)
+  const [hiddenEdgeColorExpanded, setHiddenEdgeColorExpanded] = useState(false)
   const [edgeHoverColorExpanded, setEdgeHoverColorExpanded] = useState(false)
   const [edgeSelectedColorExpanded, setEdgeSelectedColorExpanded] = useState(false)
   const [expandedGeometryDisplaySubsections, setExpandedGeometryDisplaySubsections] = useState<
@@ -439,15 +477,19 @@ function PropertiesRenderSectionContent() {
     })
   }
 
-  const updateEdgeVisibility = (value: string) => {
-    if (!isViewGeometryDisplayEdgeMode(value)) {
+  const updateEdgePreset = (value: string) => {
+    if (!isViewGeometryDisplayEdgePreset(value)) {
       return
     }
     const currentEdges = useUiPrefsStore.getState().view.geometryDisplay.edges
     updateGeometryDisplay({
       edges: {
         ...currentEdges,
-        mode: value,
+        preset: value,
+        mode: geometryDisplayEdgePresetToMode(value),
+        depthMode: geometryDisplayEdgePresetToDepthMode(value),
+        hiddenEdges: geometryDisplayEdgePresetToHiddenEdges(value),
+        lineStyle: geometryDisplayEdgePresetToLineStyle(value),
       },
     })
   }
@@ -478,11 +520,50 @@ function PropertiesRenderSectionContent() {
     })
   }
 
+  const updateHiddenLineStyle = (patch: Partial<ViewGeometryDisplayHiddenLineStyle>) => {
+    const currentEdges = useUiPrefsStore.getState().view.geometryDisplay.edges
+    updateGeometryDisplay({
+      edges: {
+        ...currentEdges,
+        hiddenLine: {
+          ...currentEdges.hiddenLine,
+          ...patch,
+        },
+      },
+    })
+  }
+
   const updateEdgeDepth = (value: string) => {
     if (!isViewGeometryDisplayEdgeDepthMode(value)) {
       return
     }
-    updateEdgeStyle({ depthMode: value })
+    updateEdgeStyle({
+      depthMode: value,
+      hiddenEdges:
+        value === 'surface'
+          ? false
+          : useUiPrefsStore.getState().view.geometryDisplay.edges.hiddenEdges,
+    })
+  }
+
+  const updateHiddenEdges = (value: string) => {
+    if (value !== 'off' && value !== 'on') {
+      return
+    }
+    updateEdgeStyle({
+      hiddenEdges: value === 'on',
+      lineStyle:
+        value === 'on'
+          ? useUiPrefsStore.getState().view.geometryDisplay.edges.lineStyle
+          : 'solid',
+    })
+  }
+
+  const updateEdgeLineStyle = (value: string) => {
+    if (!isViewGeometryDisplayEdgeLineStyle(value)) {
+      return
+    }
+    updateEdgeStyle({ lineStyle: value })
   }
 
   const updatePointVisibility = (value: string) => {
@@ -701,6 +782,9 @@ function PropertiesRenderSectionContent() {
 
   const qualityPresetRead = resolveRenderPreviewQualityPresetRead(renderPreview)
   const ambientOcclusionRead = resolveViewAmbientOcclusionPresetRead(postProcessing)
+  const geometryDisplayEdgePresetRead = resolveViewGeometryDisplayEdgePresetRead(
+    geometryDisplay.edges,
+  )
   const selectedLight =
     lighting.lights.find((light) => light.id === lighting.selectedLightId) ?? null
   const selectedLightSupportsShadow =
@@ -996,15 +1080,15 @@ function PropertiesRenderSectionContent() {
             >
               <div className="SettingsSurfaceEditorField PropertiesRenderControl">
                 <ParaSelect
-                  label="Edges"
-                  value={geometryDisplay.edges.mode}
-                  options={geometryDisplayEdgeOptions}
-                  onChange={updateEdgeVisibility}
+                  label="Edge Preset"
+                  value={geometryDisplayEdgePresetRead}
+                  options={geometryDisplayEdgePresetOptions}
+                  onChange={updateEdgePreset}
                   menuMode="custom"
                   capGlyph="chevron"
                 />
               </div>
-              {geometryDisplay.edges.mode !== 'off' ? (
+              {geometryDisplay.edges.preset !== 'off' ? (
                 <>
                   <div className="SettingsSurfaceEditorField PropertiesRenderControl">
                     <PropertiesColorControl
@@ -1040,6 +1124,84 @@ function PropertiesRenderSectionContent() {
                       capGlyph="chevron"
                     />
                   </div>
+                  {geometryDisplay.edges.depthMode === 'xray' ? (
+                    <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                      <ParaSelect
+                        label="Hidden Edges"
+                        value={geometryDisplay.edges.hiddenEdges ? 'on' : 'off'}
+                        options={geometryDisplayHiddenEdgesOptions}
+                        onChange={updateHiddenEdges}
+                        menuMode="custom"
+                        capGlyph="chevron"
+                      />
+                    </div>
+                  ) : null}
+                  {geometryDisplay.edges.hiddenEdges ? (
+                    <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                      <ParaSelect
+                        label="Line Style"
+                        value={geometryDisplay.edges.lineStyle}
+                        options={geometryDisplayEdgeLineStyleOptions}
+                        onChange={updateEdgeLineStyle}
+                        menuMode="custom"
+                        capGlyph="chevron"
+                      />
+                    </div>
+                  ) : null}
+                  {geometryDisplay.edges.hiddenEdges ? (
+                    <>
+                      <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                        <PropertiesColorControl
+                          id="hidden-edge-color"
+                          label="Hidden Edge Color"
+                          value={geometryDisplay.edges.hiddenLine.color}
+                          isExpanded={hiddenEdgeColorExpanded}
+                          onExpandedChange={setHiddenEdgeColorExpanded}
+                          onChange={(color) => updateHiddenLineStyle({ color })}
+                          nativeInputLabel="Hidden Edge Color"
+                          expandButtonLabel="Expand hidden edge color controls"
+                          expandedControlsLabel="Expanded hidden edge color controls"
+                        />
+                      </div>
+                      <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                        <ParaSlider
+                          label="Hidden Edge Opacity"
+                          value={geometryDisplay.edges.hiddenLine.opacity}
+                          min={MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY}
+                          max={MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY}
+                          step={0.01}
+                          formatValue={formatMaterialPercent}
+                          onChange={(opacity) => updateHiddenLineStyle({ opacity })}
+                        />
+                      </div>
+                      {geometryDisplay.edges.lineStyle === 'dashed' ? (
+                        <>
+                          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                            <ParaSlider
+                              label="Dash Length"
+                              value={geometryDisplay.edges.hiddenLine.dashSize}
+                              min={MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE}
+                              max={MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE}
+                              step={0.01}
+                              formatValue={formatMaterialNumber}
+                              onChange={(dashSize) => updateHiddenLineStyle({ dashSize })}
+                            />
+                          </div>
+                          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                            <ParaSlider
+                              label="Gap Length"
+                              value={geometryDisplay.edges.hiddenLine.gapSize}
+                              min={MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE}
+                              max={MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE}
+                              step={0.01}
+                              formatValue={formatMaterialNumber}
+                              onChange={(gapSize) => updateHiddenLineStyle({ gapSize })}
+                            />
+                          </div>
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
                   <div className="SettingsSurfaceEditorField PropertiesRenderControl">
                     <PropertiesColorControl
                       id="edge-hover-color"

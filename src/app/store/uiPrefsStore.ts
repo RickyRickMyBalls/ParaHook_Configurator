@@ -19,6 +19,11 @@ import {
   createHdriEnvironmentSource,
   createEnvironmentPresetViewPatch,
   DEFAULT_VIEW_SETTINGS,
+  geometryDisplayEdgeModeAndDepthToPreset,
+  geometryDisplayEdgePresetToDepthMode,
+  geometryDisplayEdgePresetToHiddenEdges,
+  geometryDisplayEdgePresetToLineStyle,
+  geometryDisplayEdgePresetToMode,
   isViewDisplayMode,
   isViewEdgeDisplayMode,
   normalizeViewSettings,
@@ -90,6 +95,25 @@ const hasGeometryDisplaySurfaceInteractionStyleChanged = (
     nextGeometryDisplay.surfaces.bodySelected.color ||
   currentView.geometryDisplay.surfaces.bodySelected.opacity !==
     nextGeometryDisplay.surfaces.bodySelected.opacity
+
+const createGeometryDisplayEdgePresetPatch = (
+  edgeDisplayMode: ViewSettings['edgeDisplayMode'],
+): Pick<
+  ViewSettings['geometryDisplay']['edges'],
+  'preset' | 'mode' | 'depthMode' | 'hiddenEdges' | 'lineStyle'
+> => {
+  const preset = geometryDisplayEdgeModeAndDepthToPreset(
+    viewEdgeDisplayModeToGeometryDisplayEdgeMode(edgeDisplayMode),
+    edgeDisplayMode === 'visibleEdgesOnly' ? 'surface' : 'xray',
+  )
+  return {
+    preset,
+    mode: geometryDisplayEdgePresetToMode(preset),
+    depthMode: geometryDisplayEdgePresetToDepthMode(preset),
+    hiddenEdges: geometryDisplayEdgePresetToHiddenEdges(preset),
+    lineStyle: geometryDisplayEdgePresetToLineStyle(preset),
+  }
+}
 
 const createHighlightsForGeometryDisplayPatch = (
   currentView: ViewSettings,
@@ -390,7 +414,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
         ...currentView.geometryDisplay,
         edges: {
           ...currentView.geometryDisplay.edges,
-          mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(normalizedPatch.edgeDisplayMode),
+          ...createGeometryDisplayEdgePresetPatch(normalizedPatch.edgeDisplayMode),
         },
       }
     }
@@ -433,7 +457,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
         ...currentView.geometryDisplay,
         edges: {
           ...currentView.geometryDisplay.edges,
-          mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(value),
+          ...createGeometryDisplayEdgePresetPatch(value),
         },
       }
     }
@@ -446,7 +470,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
         ...currentView.geometryDisplay,
         edges: {
           ...currentView.geometryDisplay.edges,
-          mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(patch.edgeDisplayMode),
+          ...createGeometryDisplayEdgePresetPatch(patch.edgeDisplayMode),
         },
       }
     }

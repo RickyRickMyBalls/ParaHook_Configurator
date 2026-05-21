@@ -43,34 +43,58 @@ Do not use it for:
 
 <div class="calendar-week-strip">
   <div class="calendar-week-card phase-workspace-foundation">
-    <strong>May 1</strong>
-    <p>Edit History parity expanded through child restore points, node create/delete history, and timeline grouping before Spaghetti overlay O-mode groundwork opened.</p>
+    <strong>May 13</strong>
+    <p>Settings-3 added the Console input priority command with owner-backed preference mutation and focused Console proof.</p>
   </div>
   <div class="calendar-week-card phase-workspace-foundation">
-    <strong>May 2</strong>
-    <p>Spaghetti overlay ownership, Settings shell/defaults, left-dock cleanup, viewport chrome, and Nodes-6 resizing all landed in one dense editor sprint.</p>
+    <strong>May 17</strong>
+    <p>Staged Console priority, authoritative sketch Extrude fixes, and STEP writer/export handoff closed the gap between command flow and export proof.</p>
   </div>
-  <div class="calendar-week-card phase-build-fix">
-    <strong>May 5</strong>
-    <p>Cleanup Gen3 extraction took over with App root facades, browser policy slices, transform ownership, history adapters, and sketch session seams.</p>
+  <div class="calendar-week-card phase-parity">
+    <strong>May 18</strong>
+    <p>Export surfaces, titlebar split menus, and Model-Viewport-4 semantic topology display/selection formed the main runway.</p>
   </div>
-  <div class="calendar-week-card phase-split-polish">
-    <strong>May 9</strong>
-    <p>Workspace-9 turned corner split gestures into a real resize lane with radius settings, continuity proof, and restore toggles.</p>
+  <div class="calendar-week-card phase-transform">
+    <strong>May 19</strong>
+    <p>Spaghetti command authoring accelerated through Extrude sessions, profile picking, Console prompt unification, and Browser SketchProfile projection.</p>
   </div>
-  <div class="calendar-week-card phase-workspace-foundation">
-    <strong>May 10</strong>
-    <p>Properties and Materials became the main runway, from workspace mounting and section tabs into material targets, presets, compact controls, and multi-object assignment.</p>
-  </div>
-  <div class="calendar-week-card phase-workspace-foundation">
-    <strong>May 11</strong>
-    <p>Materials mixed-value editing, shared workspace shells, Settings input priority, and Model Viewport display/render-preview phases all landed in one major sweep.</p>
+  <div class="calendar-week-card phase-parity">
+    <strong>May 20</strong>
+    <p>Repeat Extrude retention repairs and priority-aware camera snaps gave way to the Model-Viewport-5 Clay Studio and ambient-occlusion sprint.</p>
   </div>
   <div class="calendar-week-card phase-workspace-foundation">
-    <strong>May 12</strong>
-    <p>Settings-2 opened the Key Bindings lane with shortcut source mapping, normalized preset reads, a dedicated section route, and grouped shortcut rendering.</p>
+    <strong>May 21</strong>
+    <p>Properties Render became the active lane with presets, Shadows/AO controls, SAO, condensed controls, and Geometry Display surface/edge work.</p>
   </div>
 </div>
+
+## Activity
+
+<section class="activity-section" data-activity-graph data-activity-start="2026-03-04" data-activity-end="2026-05-21">
+  <div class="activity-head">
+    <div>
+      <h3>Git Lines Changed By Day</h3>
+      <p>Daily committed line activity from <code>git log --numstat</code>, stacked as additions and deletions. The default view shows the latest 7 days, with 1M, All, and custom date controls available back to the repo start.</p>
+    </div>
+    <div class="activity-controls" aria-label="Activity range">
+      <button class="activity-range-button" type="button" data-activity-range="7d" aria-pressed="true">7D</button>
+      <button class="activity-range-button" type="button" data-activity-range="1m" aria-pressed="false">1M</button>
+      <button class="activity-range-button" type="button" data-activity-range="all" aria-pressed="false">All</button>
+      <label class="activity-date-control">From <input type="date" data-activity-from min="2026-03-04" max="2026-05-21" value="2026-05-15"></label>
+      <label class="activity-date-control">To <input type="date" data-activity-to min="2026-03-04" max="2026-05-21" value="2026-05-21"></label>
+      <button class="activity-range-button" type="button" data-activity-range="custom" aria-pressed="false">Custom</button>
+    </div>
+  </div>
+  <div class="activity-legend">
+    <span class="activity-legend-added">Added</span>
+    <span class="activity-legend-deleted">Deleted</span>
+  </div>
+  <div class="activity-summary" data-activity-summary></div>
+  <div class="activity-plot" data-activity-max>
+    <div class="activity-bars" data-activity-bars></div>
+  </div>
+  <script type="application/json" data-activity-data>[{"date":"2026-03-04","add":32519,"del":2,"commits":3},{"date":"2026-03-05","add":42868,"del":5560,"commits":1},{"date":"2026-03-10","add":34922,"del":22188,"commits":1},{"date":"2026-03-13","add":34080,"del":8069,"commits":1},{"date":"2026-03-16","add":2748,"del":234,"commits":1},{"date":"2026-03-17","add":832062,"del":4622,"commits":6},{"date":"2026-03-19","add":36234,"del":4713,"commits":2},{"date":"2026-03-20","add":25033,"del":1394,"commits":3},{"date":"2026-03-21","add":7172,"del":4157,"commits":1},{"date":"2026-03-22","add":51886,"del":25793,"commits":5},{"date":"2026-03-23","add":11018,"del":1054,"commits":3},{"date":"2026-03-25","add":25752,"del":6213,"commits":5},{"date":"2026-03-26","add":20334,"del":9389,"commits":2},{"date":"2026-03-27","add":22665,"del":4082,"commits":7},{"date":"2026-03-28","add":19642,"del":3201,"commits":1},{"date":"2026-03-29","add":1613,"del":309,"commits":1},{"date":"2026-03-30","add":16558,"del":2317,"commits":3},{"date":"2026-03-31","add":18390,"del":3939,"commits":2},{"date":"2026-04-01","add":12505,"del":1957,"commits":4},{"date":"2026-04-02","add":11237,"del":879,"commits":2},{"date":"2026-04-03","add":30102,"del":11606,"commits":3},{"date":"2026-04-04","add":18282,"del":580,"commits":1},{"date":"2026-04-05","add":14691,"del":1804,"commits":1},{"date":"2026-04-06","add":52732,"del":46811,"commits":1},{"date":"2026-04-07","add":14486,"del":4912,"commits":1},{"date":"2026-04-08","add":5942,"del":491,"commits":1},{"date":"2026-04-09","add":17021,"del":5311,"commits":2},{"date":"2026-04-10","add":27402,"del":1673,"commits":3},{"date":"2026-04-12","add":27560,"del":3687,"commits":5},{"date":"2026-04-13","add":29448,"del":13191,"commits":4},{"date":"2026-04-14","add":19794,"del":981,"commits":3},{"date":"2026-04-15","add":3882,"del":130,"commits":2},{"date":"2026-04-16","add":36170,"del":1703,"commits":3},{"date":"2026-04-17","add":958898,"del":4311,"commits":2},{"date":"2026-04-18","add":855275,"del":794179,"commits":3},{"date":"2026-04-19","add":26052,"del":91429,"commits":1},{"date":"2026-04-20","add":12014,"del":627,"commits":1},{"date":"2026-04-21","add":2225840,"del":265,"commits":1},{"date":"2026-04-22","add":102019,"del":1579,"commits":1},{"date":"2026-05-01","add":17808,"del":7454,"commits":1},{"date":"2026-05-05","add":23823,"del":55804,"commits":3},{"date":"2026-05-09","add":8924,"del":3443,"commits":2},{"date":"2026-05-10","add":17302,"del":395,"commits":3},{"date":"2026-05-11","add":13199,"del":1025,"commits":6},{"date":"2026-05-12","add":5981,"del":253,"commits":2},{"date":"2026-05-17","add":3246,"del":43,"commits":2},{"date":"2026-05-18","add":12011,"del":467,"commits":4},{"date":"2026-05-19","add":14799,"del":674,"commits":6},{"date":"2026-05-20","add":3431,"del":74,"commits":1},{"date":"2026-05-21","add":15708,"del":766,"commits":2}]</script>
+</section>
 
 ## April 2026
 
@@ -2366,7 +2390,7 @@ Do not use it for:
   <div class="month-header">
     <div>
       <h3>May 2026</h3>
-      <p>Opened with Edit History and Spaghetti overlay work, then moved through Nodes-6 hardening, Cleanup Gen3 extraction, Workspace-9 corner split gestures, Properties and Materials buildout, Model Viewport display/render-preview work, and Settings-2 Key Bindings.</p>
+      <p>Opened with Edit History and Spaghetti overlay work, then moved through Nodes-6 hardening, Cleanup Gen3 extraction, Workspace-9 corner split gestures, Properties and Materials buildout, Model Viewport display/render-preview work, Settings key binding and input priority work, export and topology work, Spaghetti command authoring, Clay Studio/AO, and Properties render/geometry display controls.</p>
     </div>
   </div>
 
@@ -2492,8 +2516,15 @@ Do not use it for:
       <div class="day-diff"><span class="day-diff-neutral">4 changelog entries</span></div>
       <div class="day-tag">Settings-2 Key Bindings start</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">13</div>
+    <div class="day phase-workspace-foundation" data-target="may-13">
+      <div class="day-head"><div class="day-number">13</div><div class="day-title">Console Priority</div></div>
+      <ul class="day-bullets">
+        <li>Console input priority command</li>
+        <li>Owner-backed preference mutation</li>
+        <li>Parser and ConsoleDock proof</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">1 changelog entry</span></div>
+      <div class="day-tag">Settings-3 command priority</div>
     </div>
     <div class="day empty">
       <div class="day-number">14</div>
@@ -2505,20 +2536,55 @@ Do not use it for:
       <div class="day-number">16</div>
     </div>
 
-    <div class="day empty">
-      <div class="day-number">17</div>
+    <div class="day phase-workspace-foundation" data-target="may-17">
+      <div class="day-head"><div class="day-number">17</div><div class="day-title">Export Proof</div></div>
+      <ul class="day-bullets">
+        <li>Staged console priority tree</li>
+        <li>Authoritative sketch extrude proof</li>
+        <li>STEP writer and export handoff</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">6 changelog entries</span></div>
+      <div class="day-tag">Settings, B-rep, and export proof</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">18</div>
+    <div class="day phase-parity" data-target="may-18">
+      <div class="day-head"><div class="day-number">18</div><div class="day-title">Topology</div></div>
+      <ul class="day-bullets">
+        <li>Export workspace shell</li>
+        <li>Titlebar split menus</li>
+        <li>Semantic topology display and selection</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">26 changelog entries</span></div>
+      <div class="day-tag">Export, titlebar, and topology sprint</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">19</div>
+    <div class="day phase-transform" data-target="may-19">
+      <div class="day-head"><div class="day-number">19</div><div class="day-title">Extrude Authoring</div></div>
+      <ul class="day-bullets">
+        <li>Spaghetti split pane closeout</li>
+        <li>Viewport Extrude command authoring</li>
+        <li>Sketch profile Browser projection</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">40 changelog entries</span></div>
+      <div class="day-tag">Spaghetti command authoring and profile selection</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">20</div>
+    <div class="day phase-parity" data-target="may-20">
+      <div class="day-head"><div class="day-number">20</div><div class="day-title">Clay Studio</div></div>
+      <ul class="day-bullets">
+        <li>Profile-first Extrude handoff</li>
+        <li>Repeat Extrude retention repairs</li>
+        <li>Clay Studio and AO runtime</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">21 changelog entries</span></div>
+      <div class="day-tag">Repeat Extrude and Clay Studio buildout</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">21</div>
+    <div class="day phase-workspace-foundation" data-target="may-21">
+      <div class="day-head"><div class="day-number">21</div><div class="day-title">Geometry Display</div></div>
+      <ul class="day-bullets">
+        <li>Properties Render controls</li>
+        <li>Ambient occlusion and SAO</li>
+        <li>Geometry Display surfaces and edges</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">26 changelog entries</span></div>
+      <div class="day-tag">Properties render and geometry display sprint</div>
     </div>
     <div class="day empty">
       <div class="day-number">22</div>
@@ -2814,6 +2880,214 @@ Do not use it for:
       <li>`Settings-2 - Phase 3 - Key Bindings Section Entry And Routing`</li>
       <li>`Settings-2 - Phase 2 - Shared Shortcut Read Model And Mode Normalization`</li>
       <li>`Settings-2 - Phase 1 - Shortcut Inventory Source Map`</li>
+    </ul>
+  </details>
+  </details>
+
+  </details>
+
+  <details class="calendar-week-details">
+  <summary>Week of May 13-17</summary>
+
+  <details class="calendar-day-details" id="may-13">
+  <summary>May 13 - Wednesday</summary>
+  <ul>
+    <li>Added the Settings-3 console input priority command path from the changelog entry for the day.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 1 entry.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (1)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Settings-3 - Phase 6 - Console Input Priority Command`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-17">
+  <summary>May 17 - Sunday</summary>
+  <ul>
+    <li>Moved from staged console input priority into authoritative sketch extrude proof and STEP export handoff.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 6 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (6)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Model-Viewport 1.3 - Phase 11 - Export Handoff Status, Verification, And 1.3 Closeout`</li>
+      <li>`Model-Viewport 1.3 - Phase 10 - STEP Writer Adapter And Worker Export Operation`</li>
+      <li>`Spaghetti-Editor 6 - Phase 2.1 - Circle Sketch Extrude Authoritative Runtime Fix`</li>
+      <li>`Spaghetti-Editor 6 - Sketch Circle Extrude Display And Authoritative Proof`</li>
+      <li>`Spaghetti-Editor 6 - Phase 2 - Revision Matching And Worker Supersession`</li>
+      <li>`Settings-3 - Phase 7 - Staged Console Input Priority Tree`</li>
+    </ul>
+  </details>
+  </details>
+
+  </details>
+
+  <details class="calendar-week-details">
+  <summary>Week of May 18-21</summary>
+
+  <details class="calendar-day-details" id="may-18">
+  <summary>May 18 - Monday</summary>
+  <ul>
+    <li>Built the Export workspace path, nested titlebar split menus, Model-Viewport topology display packets, semantic wireframe, edge display, hover/selection hierarchy, and Spaghetti split pane chrome.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 26 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (26)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Spaghetti-Editor 7 - Phase 1 - Split Pane Chrome Fit`</li>
+      <li>`Model-Viewport-4 - Phase 9.5 - Topology Subselection Zoom Framing`</li>
+      <li>`Model-Viewport-4 - Phase 9.4 - Highlight-Key Topology Subselection Suppression`</li>
+      <li>`Model-Viewport-4 - Phase 9.3 - Topology Subselection Outline Suppression`</li>
+      <li>`Model-Viewport-4 - Phase 9.2 - Passive Semantic Edge Selection Color`</li>
+      <li>`Model-Viewport-4 - Phase 9.1 - Artifact Preview Topology Carry-Through`</li>
+      <li>`Model-Viewport-4 - Phase 9 - Sketch Extrude Topology Preview Generation`</li>
+      <li>`Model-Viewport-4 - Phase 8 - Hover And Selection Highlight Hierarchy`</li>
+      <li>`Model-Viewport-4 - Phase 7 - Edge Display Visual Correctness And Polish`</li>
+      <li>`Model-Viewport-4 - Phase 6.1 - Visible Edges Only Depth Semantics`</li>
+      <li>`Model-Viewport-4 - Phase 6 - Edge Visibility Controls In Shift-D Display Wheel`</li>
+      <li>`Model-Viewport-4 - Phase 5 - Mesh Edge Wireframe Fallback And Closeout`</li>
+      <li>`Model-Viewport-4 - Phase 4 - Edge And Point Selection Presentation`</li>
+      <li>`Model-Viewport-4 - Phase 3 - Semantic Wireframe Mode`</li>
+      <li>`Model-Viewport-4 - Phase 2 - Face Selection From Triangle Hits`</li>
+      <li>`Model-Viewport-4 - Phase 1 - Semantic Topology Display Packet Contract`</li>
+      <li>`Titlebar-1 - Follow-Up - Forgiving Split Workspace Type Submenu`</li>
+      <li>`Titlebar-1 - Phase 3 - Regression Proof And Closeout`</li>
+      <li>`Titlebar-1 - Phase 2 - Selected Workspace Split Action`</li>
+      <li>`Titlebar-1 - Phase 1 - Nested Split Direction Menu`</li>
+      <li>`Export-2 - Phase 2 - Workspace Header Export Action Placement`</li>
+      <li>`Export-2 - Phase 1 - Top Panel Export Action Placement`</li>
+      <li>`Export-1 - Phase 4 - Project File, Spaghetti File, And Later Export Neighbors`</li>
+      <li>`Export-1 - Phase 3 - Format-Specific Settings And Detail Controls`</li>
+      <li>`Export-1 - Phase 2 - Target Collection And Selection Integration`</li>
+      <li>`Export-1 - Phase 1 - Workspace Surface, STEP Action, And Honest Format Shell`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-19">
+  <summary>May 19 - Tuesday</summary>
+  <ul>
+    <li>Closed Spaghetti-Editor 7 split-pane work, expanded Spaghetti-Editor 8 viewport command authoring and Extrude profile picking, unified Console-2 prompts, and projected SketchProfile rows into Browser selection flows.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 40 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (40)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Sketch - 3 Phase 4 - Outside-Extrude Empty Viewport Deselect`</li>
+      <li>`Sketch - 3 Phase 4 - Browser Profile Interaction Proof`</li>
+      <li>`Sketch - 3 Phase 3 - Viewport Selection Visual Sync`</li>
+      <li>`Sketch - 3 Phase 2 - Browser Profile Type-Color Border`</li>
+      <li>`Sketch - 3 Phase 2 - Sketch Profile Row Chrome Cleanup`</li>
+      <li>`Sketch - 3 Phase 2 - Expandable SketchProfiles Browser Tree Projection`</li>
+      <li>`Sketch - 3 Phase 1 - Browser Row Model And Identity Contract`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.6 - Repeat Extrude New Operation Cleanup`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.6 - Extrude Output Preview Wiring Follow-Up`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.6 - Extrude Commit Cancel Proof And Phase 3 Closeout`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5C - Extrude Depth Preview Volume And Value Feedback`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5B Follow-Up - Selected Profile Color`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5B Follow-Up - Toggle Multi-Profile Selection`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5A Follow-Up - Singular Profile Wire Rendering`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5B - Viewport Profile Hover And Preselection`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5A - Live Extrude Node And Profile Auto-Wiring Contract`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.5 - Profile Picking Count And Preview State`</li>
+      <li>`Spaghetti-Editor 8 / Phase 3.4 - Model Viewport Extrude Toolbar Shell`</li>
+      <li>`Spaghetti-Editor 8 - Extrude Input Priority Shortcut Repair`</li>
+      <li>`Spaghetti-Editor 8 - Extrude Shortcut Entry Repair`</li>
+      <li>`Console-2 - Phase 4 - Viewport Handoff Regression Proof And Closeout`</li>
+      <li>`Console-2 - Phase 3 - Root Callability Display Guardrails`</li>
+      <li>`Console-2 - Phase 2 - Scoped Mode Labeling And Priority Proof`</li>
+      <li>`Console-2 - Phase 1 - Root Prompt Source Unification`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.3 - Viewport Shortcut Modal Guarding`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.2A - Extrude Select Profiles Console Prompt`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.2 Follow-Up - Root Extrude Visible Waiting State`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.2 - Real Extrude Session Owner And Command Tree`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.1 - Atomic Extrude Graph Commit Repair`</li>
+      <li>`Spaghetti-Editor 8 - Phase 5 - Background Node Layout And Arrangement Modes`</li>
+      <li>`Spaghetti-Editor 8 - Phase 4 - Build Path Projection Handoff`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3 - Root Extrude Command And Authoring Core`</li>
+      <li>`Spaghetti-Editor 8 - Phase 2 - Shared Command To Graph Authoring Seam`</li>
+      <li>`Spaghetti-Editor 8 - Phase 1 - Viewport Command Commit Contract`</li>
+      <li>`Spaghetti-Editor 8 - Phase 2 - Root Sketch Command Entry`</li>
+      <li>`Spaghetti-Editor 7 - Phase 4 - Narrow Pane Visual Proof And Closeout`</li>
+      <li>`OO - Phase 13 - Remove Vendored Replicad Artifacts`</li>
+      <li>`Spaghetti-Editor 7 - Phase 3 Follow-Up - Split Pane Essentials Body`</li>
+      <li>`Spaghetti-Editor 7 - Phase 3 - Split Pane Local Minus Rule`</li>
+      <li>`Spaghetti-Editor 7 - Phase 2 - Split Pane e And + Mode Behavior`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-20">
+  <summary>May 20 - Wednesday</summary>
+  <ul>
+    <li>Finished profile-first Extrude handoff repairs, hardened repeat-Extrude retained output behavior, added priority-aware camera snaps, and built Model-Viewport-5 Clay Studio plus SSAO/AO presentation.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 21 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (21)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Model-Viewport-5 - Phase 6.4 - Clay Studio Ground Contact`</li>
+      <li>`Model-Viewport-5 - Phase 6.3 - Clay Studio Lighting And AO Tuning`</li>
+      <li>`Model-Viewport-5 - Phase 6.2 - Ambient Occlusion Output Pass Fix`</li>
+      <li>`Model-Viewport-5 - Phase 6.2 - Basic Clay Studio And Ambient Occlusion Controls`</li>
+      <li>`Model-Viewport-5 - Phase 6.1 - Properties Render Post-Process Placement`</li>
+      <li>`Model-Viewport-5 - Phase 5 - Overlay And Selection Compatibility`</li>
+      <li>`Model-Viewport-5 - Phase 4 - Interactive SSAO Pass`</li>
+      <li>`Model-Viewport-5 - Phase 3 - Post-Process Composer Boundary`</li>
+      <li>`Model-Viewport-5 - Phase 2.1 - Shift+D Clay Studio Wheel Entry`</li>
+      <li>`Model-Viewport-5 - Phase 2 - Clay Studio Viewer Presentation Preset`</li>
+      <li>`Model-Viewport-5 - Phase 1 - Clay Studio And Post-Process Settings Contract`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - Stable Extrude Part Identity`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - New Branch Preview Retains Accepted Siblings`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - Auto Final Build Loop Guard`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - Extrude Accept Edit History Follow-Up`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - Repeat Extrude Command Interaction Release Follow-Up`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - Repeat Extrude Committed Artifact Retention Follow-Up`</li>
+      <li>`Spaghetti-Editor 9 - Phase 1 - Retain Existing Output Entries During Repeat Extrude`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.7 - Profile-First Extrude Depth Prompt Clear`</li>
+      <li>`View-Toolbar 9 - Phase 1 - Priority-Aware Camera Snap Shortcuts`</li>
+      <li>`Spaghetti-Editor 8 - Phase 3.7 - Profile-First Extrude Numeric Depth Handoff`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-21">
+  <summary>May 21 - Thursday</summary>
+  <ul>
+    <li>Expanded Properties Render through preset values, Shadows/AO controls, SAO support, condensed AO/contact settings, and Geometry Display surface/edge controls up through Hidden Line runtime.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 26 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (26)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime`</li>
+      <li>`Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup`</li>
+      <li>`Properties-6 - Edge Thickness Control Removal`</li>
+      <li>`Properties-6 - Phase 5 - Edge Hover And Highlight Styles`</li>
+      <li>`Properties-6 - Geometry Display Collapsible Subsections`</li>
+      <li>`Properties-6 - Phase 4 - Edge Visibility And Default Style`</li>
+      <li>`Properties-6 - Phase 3 - Surface Hover And Highlight Styles`</li>
+      <li>`Properties-6 - Phase 2 - Surface Source And Custom Default Material`</li>
+      <li>`Properties-6 - Phase 1 - Geometry Display Contract And Section Shell`</li>
+      <li>`Properties-5 - Phase 2.3.2 - Condensed Contact Shadow Settings`</li>
+      <li>`Properties-5 - Phase 2.3.1 - Condensed AO Settings`</li>
+      <li>`Properties-5 - Phase 2.3 - SAOPass AO Type`</li>
+      <li>`Properties-5 - Phase 2.2 - Ambient Occlusion Type Select`</li>
+      <li>`Properties-5 - AO Experiment Range Expansion`</li>
+      <li>`Properties-5 - AO Intensity Range Expansion`</li>
+      <li>`Properties-5 - Phase 2 - Advanced Ambient Occlusion Controls`</li>
+      <li>`Properties-5 - Phase 1 - Basic Ambient Occlusion Controls`</li>
+      <li>`Properties-4 - Phase 4.1 - First Remaining Setting Extraction`</li>
+      <li>`Properties-4 - Phase 3 - Shadows Ambient Occlusion Placement`</li>
+      <li>`Properties-4 - Phase 3 - Visible Preset Values For Existing Render Controls`</li>
+      <li>`Properties-4 - Phase 2 - Shared Built-In Preset Selection Path`</li>
+      <li>`Properties-3 - Phase 5 - Grid Color Row Follow-Up`</li>
+      <li>`Properties-3 - Phase 5 - Grid Presentation Controls And Layer System`</li>
+      <li>`Properties-3 - Phase 4 - Ground And Contact Presentation Controls`</li>
+      <li>`Properties-3 - Phase 3 - Environment Grade Controls And Clay Studio Policy`</li>
+      <li>`Properties-3 - Phase 2 - Render Section Grouping And Readback`</li>
     </ul>
   </details>
   </details>

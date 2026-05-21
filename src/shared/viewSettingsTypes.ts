@@ -31,6 +31,9 @@ export type ViewDisplayMode = 'solid' | 'wireframe' | 'material' | 'rendered' | 
 export type ViewEdgeDisplayMode = 'on' | 'off' | 'visibleEdgesOnly'
 export type ViewGeometryDisplayEdgeMode = 'off' | 'visibleOnly' | 'all'
 export type ViewGeometryDisplayEdgeDepthMode = 'surface' | 'xray'
+export type ViewGeometryDisplayEdgePreset = 'off' | 'visibleOnly' | 'xray' | 'hiddenLine'
+export type ViewGeometryDisplayEdgePresetRead = ViewGeometryDisplayEdgePreset | 'custom'
+export type ViewGeometryDisplayEdgeLineStyle = 'solid' | 'dashed'
 export type ViewGeometryDisplaySurfaceSource = 'materialSet' | 'custom'
 export type ViewportStyle = 'standard' | 'clayStudio'
 export type RenderPresetId = ViewportStyle
@@ -68,6 +71,16 @@ export const VIEW_GEOMETRY_DISPLAY_EDGE_MODES: readonly ViewGeometryDisplayEdgeM
 export const VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES: readonly ViewGeometryDisplayEdgeDepthMode[] = [
   'surface',
   'xray',
+]
+export const VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS: readonly ViewGeometryDisplayEdgePreset[] = [
+  'off',
+  'visibleOnly',
+  'xray',
+  'hiddenLine',
+]
+export const VIEW_GEOMETRY_DISPLAY_EDGE_LINE_STYLES: readonly ViewGeometryDisplayEdgeLineStyle[] = [
+  'solid',
+  'dashed',
 ]
 export const VIEW_GEOMETRY_DISPLAY_SURFACE_SOURCES: readonly ViewGeometryDisplaySurfaceSource[] = [
   'materialSet',
@@ -148,6 +161,10 @@ export const MIN_CONTACT_SHADOW_HEIGHT_FADE = 1
 export const MAX_CONTACT_SHADOW_HEIGHT_FADE = 16
 export const MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY = 0
 export const MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY = 1
+export const MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE = 0.01
+export const MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE = 1
+export const MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE = 0.01
+export const MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE = 1
 export const DEFAULT_ENVIRONMENT_BACKGROUND = '#0b0b0f'
 export const STUDIO_ENVIRONMENT_BACKGROUND = '#151922'
 export const DARK_STUDIO_ENVIRONMENT_BACKGROUND = '#06080d'
@@ -276,10 +293,14 @@ export type ViewGeometryDisplaySettings = {
     bodySelected: ViewGeometryDisplaySurfaceStyle
   }
   edges: {
+    preset: ViewGeometryDisplayEdgePreset
     mode: ViewGeometryDisplayEdgeMode
     color: string
     opacity: number
     depthMode: ViewGeometryDisplayEdgeDepthMode
+    hiddenEdges: boolean
+    lineStyle: ViewGeometryDisplayEdgeLineStyle
+    hiddenLine: ViewGeometryDisplayHiddenLineStyle
     hover: ViewGeometryDisplayEdgeInteractionStyle
     selected: ViewGeometryDisplayEdgeInteractionStyle
   }
@@ -296,6 +317,13 @@ export type ViewGeometryDisplaySurfaceStyle = {
 export type ViewGeometryDisplayEdgeInteractionStyle = {
   color: string
   opacity: number
+}
+
+export type ViewGeometryDisplayHiddenLineStyle = {
+  color: string
+  opacity: number
+  dashSize: number
+  gapSize: number
 }
 
 export type ViewHighlightSettings = {
@@ -466,6 +494,18 @@ export const isViewGeometryDisplayEdgeDepthMode = (
   typeof value === 'string' &&
   VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES.includes(value as ViewGeometryDisplayEdgeDepthMode)
 
+export const isViewGeometryDisplayEdgePreset = (
+  value: unknown,
+): value is ViewGeometryDisplayEdgePreset =>
+  typeof value === 'string' &&
+  VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS.includes(value as ViewGeometryDisplayEdgePreset)
+
+export const isViewGeometryDisplayEdgeLineStyle = (
+  value: unknown,
+): value is ViewGeometryDisplayEdgeLineStyle =>
+  typeof value === 'string' &&
+  VIEW_GEOMETRY_DISPLAY_EDGE_LINE_STYLES.includes(value as ViewGeometryDisplayEdgeLineStyle)
+
 export const isViewGeometryDisplaySurfaceSource = (
   value: unknown,
 ): value is ViewGeometryDisplaySurfaceSource =>
@@ -506,6 +546,79 @@ export const viewEdgeDisplayModeToGeometryDisplayEdgeMode = (
     return 'visibleOnly'
   }
   return 'off'
+}
+
+export const geometryDisplayEdgePresetToMode = (
+  preset: ViewGeometryDisplayEdgePreset,
+): ViewGeometryDisplayEdgeMode => {
+  if (preset === 'xray' || preset === 'hiddenLine') {
+    return 'all'
+  }
+  return preset
+}
+
+export const geometryDisplayEdgePresetToDepthMode = (
+  preset: ViewGeometryDisplayEdgePreset,
+): ViewGeometryDisplayEdgeDepthMode => {
+  if (preset === 'visibleOnly') {
+    return 'surface'
+  }
+  return 'xray'
+}
+
+export const geometryDisplayEdgePresetToHiddenEdges = (
+  preset: ViewGeometryDisplayEdgePreset,
+): boolean => preset === 'hiddenLine'
+
+export const geometryDisplayEdgePresetToLineStyle = (
+  preset: ViewGeometryDisplayEdgePreset,
+): ViewGeometryDisplayEdgeLineStyle => (preset === 'hiddenLine' ? 'dashed' : 'solid')
+
+export const geometryDisplayEdgeModeAndDepthToPreset = (
+  mode: ViewGeometryDisplayEdgeMode,
+  depthMode: ViewGeometryDisplayEdgeDepthMode,
+): ViewGeometryDisplayEdgePreset => {
+  if (mode === 'off') {
+    return 'off'
+  }
+  if (mode === 'visibleOnly' || depthMode === 'surface') {
+    return 'visibleOnly'
+  }
+  return 'xray'
+}
+
+const doesGeometryDisplayEdgeRecipeMatchPreset = (
+  edges: Pick<
+    ViewGeometryDisplaySettings['edges'],
+    'mode' | 'depthMode' | 'hiddenEdges' | 'lineStyle'
+  >,
+  preset: ViewGeometryDisplayEdgePreset,
+): boolean => {
+  const expectedHiddenEdges = geometryDisplayEdgePresetToHiddenEdges(preset)
+  const actualLineStyle = edges.hiddenEdges ? edges.lineStyle : 'solid'
+  const expectedLineStyle = expectedHiddenEdges
+    ? geometryDisplayEdgePresetToLineStyle(preset)
+    : 'solid'
+
+  return (
+    edges.mode === geometryDisplayEdgePresetToMode(preset) &&
+    edges.depthMode === geometryDisplayEdgePresetToDepthMode(preset) &&
+    edges.hiddenEdges === expectedHiddenEdges &&
+    actualLineStyle === expectedLineStyle
+  )
+}
+
+export const resolveViewGeometryDisplayEdgePresetRead = (
+  edges: Pick<
+    ViewGeometryDisplaySettings['edges'],
+    'preset' | 'mode' | 'depthMode' | 'hiddenEdges' | 'lineStyle'
+  >,
+): ViewGeometryDisplayEdgePresetRead => {
+  const matchingPreset = VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS.find((preset) =>
+    doesGeometryDisplayEdgeRecipeMatchPreset(edges, preset),
+  )
+
+  return matchingPreset ?? 'custom'
 }
 
 export const createRenderPresetViewPatch = (
@@ -1038,6 +1151,26 @@ const normalizeViewGeometryDisplayEdgeInteractionStyle = (
   opacity: normalizeNumber(style?.opacity, fallback.opacity, 0, 1),
 })
 
+const normalizeViewGeometryDisplayHiddenLineStyle = (
+  style: Partial<ViewGeometryDisplayHiddenLineStyle> | undefined,
+  fallback: ViewGeometryDisplayHiddenLineStyle,
+): ViewGeometryDisplayHiddenLineStyle => ({
+  color: normalizeHexColor(style?.color, fallback.color),
+  opacity: normalizeNumber(style?.opacity, fallback.opacity, 0, 1),
+  dashSize: normalizeNumber(
+    style?.dashSize,
+    fallback.dashSize,
+    MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE,
+    MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_DASH_SIZE,
+  ),
+  gapSize: normalizeNumber(
+    style?.gapSize,
+    fallback.gapSize,
+    MIN_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE,
+    MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE,
+  ),
+})
+
 export const normalizeViewGeometryDisplaySettings = (
   settings: LegacyViewSettingsInput['geometryDisplay'] | undefined,
   fallback: ViewGeometryDisplaySettings = DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS,
@@ -1074,31 +1207,55 @@ export const normalizeViewGeometryDisplaySettings = (
       0.85,
     ),
   },
-  edges: {
-    mode: isViewGeometryDisplayEdgeMode(settings?.edges?.mode)
+  edges: (() => {
+    const legacyMode = isViewGeometryDisplayEdgeMode(settings?.edges?.mode)
       ? settings.edges.mode
       : legacyEdgeDisplayMode === undefined
         ? fallback.edges.mode
-        : viewEdgeDisplayModeToGeometryDisplayEdgeMode(legacyEdgeDisplayMode),
-    color: normalizeHexColor(settings?.edges?.color, fallback.edges.color),
-    opacity: normalizeNumber(
-      settings?.edges?.opacity,
-      fallback.edges.opacity,
-      MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
-      MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
-    ),
-    depthMode: isViewGeometryDisplayEdgeDepthMode(settings?.edges?.depthMode)
+        : viewEdgeDisplayModeToGeometryDisplayEdgeMode(legacyEdgeDisplayMode)
+    const legacyDepthMode = isViewGeometryDisplayEdgeDepthMode(settings?.edges?.depthMode)
       ? settings.edges.depthMode
-      : fallback.edges.depthMode,
-    hover: normalizeViewGeometryDisplayEdgeInteractionStyle(
-      settings?.edges?.hover,
-      fallback.edges.hover,
-    ),
-    selected: normalizeViewGeometryDisplayEdgeInteractionStyle(
-      settings?.edges?.selected,
-      fallback.edges.selected,
-    ),
-  },
+      : fallback.edges.depthMode
+    const preset = isViewGeometryDisplayEdgePreset(settings?.edges?.preset)
+      ? settings.edges.preset
+      : geometryDisplayEdgeModeAndDepthToPreset(legacyMode, legacyDepthMode)
+    const depthMode = isViewGeometryDisplayEdgeDepthMode(settings?.edges?.depthMode)
+      ? settings.edges.depthMode
+      : geometryDisplayEdgePresetToDepthMode(preset)
+    return {
+      preset,
+      mode: geometryDisplayEdgePresetToMode(preset),
+      color: normalizeHexColor(settings?.edges?.color, fallback.edges.color),
+      opacity: normalizeNumber(
+        settings?.edges?.opacity,
+        fallback.edges.opacity,
+        MIN_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
+        MAX_VIEW_GEOMETRY_DISPLAY_EDGE_OPACITY,
+      ),
+      depthMode,
+      hiddenEdges:
+        depthMode === 'surface'
+          ? false
+          : typeof settings?.edges?.hiddenEdges === 'boolean'
+            ? settings.edges.hiddenEdges
+            : geometryDisplayEdgePresetToHiddenEdges(preset),
+      lineStyle: isViewGeometryDisplayEdgeLineStyle(settings?.edges?.lineStyle)
+        ? settings.edges.lineStyle
+        : geometryDisplayEdgePresetToLineStyle(preset),
+      hiddenLine: normalizeViewGeometryDisplayHiddenLineStyle(
+        settings?.edges?.hiddenLine,
+        fallback.edges.hiddenLine,
+      ),
+      hover: normalizeViewGeometryDisplayEdgeInteractionStyle(
+        settings?.edges?.hover,
+        fallback.edges.hover,
+      ),
+      selected: normalizeViewGeometryDisplayEdgeInteractionStyle(
+        settings?.edges?.selected,
+        fallback.edges.selected,
+      ),
+    }
+  })(),
   points: {
     visible:
       typeof settings?.points?.visible === 'boolean'
@@ -1429,10 +1586,14 @@ export type LegacyViewSettingsInput = Omit<
       bodySelected?: Partial<ViewGeometryDisplaySurfaceStyle>
     }
     edges?: {
+      preset?: ViewGeometryDisplayEdgePreset
       mode?: ViewGeometryDisplayEdgeMode
       color?: string
       opacity?: number
       depthMode?: ViewGeometryDisplayEdgeDepthMode
+      hiddenEdges?: boolean
+      lineStyle?: ViewGeometryDisplayEdgeLineStyle
+      hiddenLine?: Partial<ViewGeometryDisplayHiddenLineStyle>
       hover?: Partial<ViewGeometryDisplayEdgeInteractionStyle>
       selected?: Partial<ViewGeometryDisplayEdgeInteractionStyle>
     }
@@ -1727,14 +1888,24 @@ export const normalizeViewSettings = (settings: LegacyViewSettingsInput): ViewSe
     edgeDisplayMode,
   )
   if (
+    (settings.geometryDisplay?.edges?.preset === undefined ||
+      settings.geometryDisplay.edges.preset === DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS.edges.preset) &&
     settings.geometryDisplay?.edges?.mode === DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS.edges.mode &&
     edgeDisplayMode !== geometryDisplayEdgeModeToViewEdgeDisplayMode(geometryDisplay.edges.mode)
   ) {
+    const preset = geometryDisplayEdgeModeAndDepthToPreset(
+      viewEdgeDisplayModeToGeometryDisplayEdgeMode(edgeDisplayMode),
+      edgeDisplayMode === 'visibleEdgesOnly' ? 'surface' : 'xray',
+    )
     geometryDisplay = {
       ...geometryDisplay,
       edges: {
         ...geometryDisplay.edges,
-        mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(edgeDisplayMode),
+        preset,
+        mode: geometryDisplayEdgePresetToMode(preset),
+        depthMode: geometryDisplayEdgePresetToDepthMode(preset),
+        hiddenEdges: geometryDisplayEdgePresetToHiddenEdges(preset),
+        lineStyle: geometryDisplayEdgePresetToLineStyle(preset),
       },
     }
   }
@@ -1867,10 +2038,22 @@ export const DEFAULT_VIEW_GEOMETRY_DISPLAY_SETTINGS: ViewGeometryDisplaySettings
     },
   },
   edges: {
+    preset: geometryDisplayEdgeModeAndDepthToPreset(
+      viewEdgeDisplayModeToGeometryDisplayEdgeMode(DEFAULT_VIEW_EDGE_DISPLAY_MODE),
+      'xray',
+    ),
     mode: viewEdgeDisplayModeToGeometryDisplayEdgeMode(DEFAULT_VIEW_EDGE_DISPLAY_MODE),
     color: '#6f92d9',
     opacity: 0.62,
     depthMode: 'xray',
+    hiddenEdges: false,
+    lineStyle: 'solid',
+    hiddenLine: {
+      color: '#6f92d9',
+      opacity: 0.22,
+      dashSize: 0.12,
+      gapSize: 0.08,
+    },
     hover: {
       color: DEFAULT_VIEW_HIGHLIGHT_SETTINGS.hoverColor,
       opacity: 0.65 + DEFAULT_VIEW_HIGHLIGHT_SETTINGS.hoverGlow * 0.35,

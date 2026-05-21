@@ -72,6 +72,246 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2039 -->
+
+### [2039] - 2026-05-21 19:12 - `Properties-6 / Phase 5.5 - Edge Preset Custom Readback`
+
+HUMAN SUMMARY: ``Edge Preset now reads as `Custom` when the user edits the structural recipe away from a built-in edge look. The saved preset remains built-in-only, while style tuning such as colors, opacity, and hidden-line dash/gap settings stays inside the current preset readback.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5.5 to edge preset readback and recipe matching.
+- Preserved built-in-only persistence for `geometryDisplay.edges.preset`.
+- Kept saved custom render presets, Wireframe/Clay Studio recipe migration, material truth, graph/export output, point styling, and viewer runtime behavior out of scope.
+
+#### Summary of Implementation
+
+- Added `ViewGeometryDisplayEdgePresetRead` with `custom` as a read-only selector state.
+- Added `resolveViewGeometryDisplayEdgePresetRead(...)` to match edge recipes from mode, depth, hidden-edge visibility, and line style.
+- Made Properties `Edge Preset` display the computed readback value while keeping built-in preset selection as the only recipe-writing path.
+- Kept selecting `Custom` as a no-op so it cannot be saved as a preset.
+- Added focused store/shared and Properties proof for built-in matching, structural drift, built-in re-application, and style-only edits that do not force `Custom`.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- `Edge Preset` can now display `Custom` after recipe-owned settings drift from `Off`, `Visible Only`, `Xray`, or `Hidden Line`.
+- Selecting a built-in edge preset exits `Custom` by reapplying the built-in recipe.
+- Editing edge color, opacity, hidden-line color, hidden-line dash/gap, hover, or selected styles does not force `Custom`.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display mode|wireframe|edited edge preset"`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|edge display styles|hidden-line edge styles|edited edge preset recipes"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2038 -->
+
+### [2038] - 2026-05-21 18:55 - `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style`
+
+HUMAN SUMMARY: ``Geometry Display edge presets now behave more like recipes. Properties restored editable `Edge Depth`, added `Hidden Edges` and `Line Style`, and the viewer now shows hidden-edge overlays from those settings instead of treating `Hidden Line` as a hidden special case.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5.4 to edge depth, hidden-edge visibility, hidden-edge line style, preset recipe writes, and viewer hidden-edge consumption.
+- Preserved normal edge color/opacity and edge hover/selected controls.
+- Preserved hidden-line color/opacity/dash/gap controls as the hidden-edge layer styling owner.
+- Left `Custom` preset readback, saved custom render presets, point styling, edge thickness, graph geometry, material truth, and export truth out of scope.
+
+#### Summary of Implementation
+
+- Added normalized `geometryDisplay.edges.hiddenEdges` and `geometryDisplay.edges.lineStyle` settings.
+- Added `solid` / `dashed` hidden-edge line-style options.
+- Restored Properties `Edge Depth` under the Edges subsection.
+- Added conditional `Hidden Edges` and `Line Style` controls.
+- Updated edge preset selection so built-in presets apply full recipe fields for mode, depth, hidden-edge visibility, and line style.
+- Updated viewer hidden-edge overlay visibility to use `hiddenEdges && depthMode === 'xray'`.
+- Added focused store, Properties, and viewer proof for the new edge-depth and hidden-edge recipe model.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- `Edge Depth` is editable again while edges are on.
+- `Hidden Edges` appears only for `Edge Depth: Xray`.
+- `Line Style` appears only while hidden edges are on.
+- `Hidden Line` now applies a visible recipe instead of being the only way to activate hidden-edge overlays.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display|edge interaction"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "edge display|Geometry Display|geometry display|hidden-line"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display-edge depth|semantic edge overlays|topology edge picks"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2037 -->
+
+### [2037] - 2026-05-21 18:14 - `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep`
+
+HUMAN SUMMARY: ``Hidden Line edges now have their own editable dashed-layer style. Properties shows hidden-edge color, opacity, dash length, and gap length only for the `Hidden Line` edge preset, while the viewer keeps normal edge color/opacity on the solid front layer.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5.3 to hidden-line style settings, Properties controls, and dashed-layer viewer consumption.
+- Preserved normal edge color/opacity as the solid visible/front layer.
+- Kept hover and selected edge styles separate from hidden-line styling.
+- Left hidden-line thickness, alternate dash presets, Wireframe recipes, Clay Studio recipes, saved custom render presets, graph geometry, material truth, and export truth out of scope.
+
+#### Summary of Implementation
+
+- Added normalized `geometryDisplay.edges.hiddenLine` settings for color, opacity, dash size, and gap size.
+- Added hidden-line dash/gap range constants and legacy normalization.
+- Added `Hidden Edge Color`, `Hidden Edge Opacity`, `Dash Length`, and `Gap Length` controls that appear only when `Edge Preset` is `Hidden Line`.
+- Routed viewer dashed hidden-line overlay materials through the saved hidden-line settings.
+- Added focused store, Properties, and viewer proof for hidden-line setting normalization, UI writes, and dashed material consumption.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- `Hidden Line` now exposes hidden-edge color, opacity, dash length, and gap length controls.
+- The dashed hidden-edge layer now uses saved `geometryDisplay.edges.hiddenLine` settings.
+- The controls stay hidden for `Off`, `Visible Only`, and `Xray`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display|edge interaction"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "edge display|Geometry Display|geometry display|hidden-line"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display-edge depth|semantic edge overlays|topology edge picks"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2036 -->
+
+### [2036] - 2026-05-21 18:05 - `Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime`
+
+HUMAN SUMMARY: ``Geometry Display now has a real `Hidden Line` edge preset. The viewer keeps normal visible/front edges as solid depth-tested lines and adds a muted dashed sibling layer for hidden/through-surface edges, while hidden-line styling controls remain deferred to the next phase.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5.2 to the hidden-line preset and runtime display-edge layer.
+- Preserved graph geometry, material truth, export output, topology selection, hover overlays, helper overlays, and the legacy edge-display bridge.
+- Preserved existing `Off`, `Visible Only`, and `Xray` behavior.
+- Left hidden-line color/dash controls, Wireframe recipes, Clay Studio recipes, point styling, and edge thickness out of scope.
+
+#### Summary of Implementation
+
+- Extended `geometryDisplay.edges.preset` with `hiddenLine`.
+- Added `Hidden Line` to Properties `Render > Geometry Display > Edge Preset`.
+- Mapped `hiddenLine` to existing compatibility fields as all/xray display edges.
+- Added dashed hidden-line sibling overlays for semantic topology-backed display edges and mesh fallback display edges.
+- Kept the normal display-edge overlay as the solid front/visible layer while `Hidden Line` is active.
+- Added focused store, Properties, and viewer proof for the new preset and dashed overlay behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- `Edge Preset` now includes `Hidden Line`.
+- Choosing `Hidden Line` enables solid depth-tested display edges plus muted dashed hidden/xray display edges for generated part overlays.
+- Hidden-line dash/color tuning is not user-editable yet.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display|edge interaction"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "edge display|Geometry Display|geometry display"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display-edge depth|semantic edge overlays|topology edge picks"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2035 -->
+
+### [2035] - 2026-05-21 17:56 - `Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup`
+
+HUMAN SUMMARY: ``Properties Render Geometry Display now exposes one `Edge Preset` control instead of overlapping `Edges` plus `Edge Depth` controls. The existing Off, Visible Only, and all-through-surfaces behavior is preserved as Off, Visible Only, and Xray while the viewer compatibility fields stay derived behind the scenes.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5.1 to edge preset UI and compatibility mapping.
+- Preserved existing edge color, opacity, hover color/opacity, and selected color/opacity controls.
+- Preserved normal display-edge rendering behavior and the legacy `edgeDisplayMode` bridge.
+- Left `Hidden Line`, hidden-line styling, point styling, fat-line rendering, Wireframe recipes, Clay Studio recipes, graph geometry, material truth, and export truth out of scope.
+
+#### Summary of Implementation
+
+- Added a normalized `geometryDisplay.edges.preset` setting with `off`, `visibleOnly`, and `xray` states.
+- Derived the existing `geometryDisplay.edges.mode` and `geometryDisplay.edges.depthMode` compatibility fields from the preset.
+- Replaced the Properties `Edges` select with `Edge Preset`.
+- Removed the visible `Edge Depth` control from Properties `Render > Geometry Display`.
+- Updated store and Properties tests to prove preset writes preserve the old viewer-facing mode/depth behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties `Render > Geometry Display > Edges` now shows `Edge Preset` with `Off`, `Visible Only`, and `Xray`.
+- `Edge Depth` is no longer shown as a separate control.
+- `Visible Only` still depth-tests visible edges, and `Xray` still renders all display edges through surfaces.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display|edge interaction"`
+- `npm.cmd test -- src/app/workspace/PropertiesSurface.test.tsx -t "edge display|Geometry Display|geometry display"`
+- `npm.cmd test -- src/viewer/Viewer.test.ts -t "display-edge depth|semantic edge overlays|topology edge picks"`
+- `npm.cmd run build`
+
 <!-- ENTRY 2034 -->
 
 ### [2034] - 2026-05-21 16:40 - `Properties-6 - Edge Thickness Control Removal`

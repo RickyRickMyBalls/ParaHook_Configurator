@@ -3,6 +3,18 @@
 ## Doc Header
 
 ### Doc History
+82. 2026-05-21 19:12:16: Marked `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` shipped after adding a read-only `Custom` edge preset state for recipe drift, keeping saved presets built-in-only, and advancing the Geometry Display handoff to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
+81. 2026-05-21 18:58:22: Prepped `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` against the shipped Phase 5.4 edge recipe settings, choosing a read-only `Custom` state based on mode, depth, hidden-edge visibility, and hidden-edge line style while keeping color, opacity, dash/gap tuning, and saved custom render presets out of the first recipe signature.
+80. 2026-05-21 18:55:19: Marked `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` shipped after adding saved hidden-edge visibility and line-style settings, restoring `Edge Depth`, adding conditional `Hidden Edges` and `Line Style` controls, and routing viewer hidden-edge overlays through those recipe settings.
+79. 2026-05-21 18:39:09: Prepped `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` against the live edge settings contract, Properties controls, and viewer hidden-line overlay paths, narrowing implementation to saved `hiddenEdges` and `lineStyle` settings plus visible `Edge Depth`, `Hidden Edges`, and `Line Style` controls before custom readback.
+78. 2026-05-21 18:31:59: Revised the `Properties-6 / Phase 5.4` and `Phase 5.5` follow-up read so hidden-line behavior becomes a recipe over editable `Edge Depth`, `Hidden Edges`, and `Line Style` settings, with hidden-edge visibility tied to `Edge Depth: Xray` and `Custom` readback planned for recipe drift.
+77. 2026-05-21 18:21:23: Added `Properties-6 / Phase 5.4 - Edge Depth Control And Preset Sync` and `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` before point work so Geometry Display can restore editable edge depth and show `Custom` when user-edited edge settings no longer match a built-in preset recipe.
+76. 2026-05-21 18:14:57: Marked `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep` shipped after hidden-line color, opacity, dash length, and gap length became saved Geometry Display settings, Properties controls, and viewer dashed-layer inputs, advancing the Geometry Display handoff to Phase 6 point visibility and default styling.
+75. 2026-05-21 18:09:20: Prepped `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep` against the shipped hidden-line preset runtime, narrowing implementation to hidden-edge color, opacity, dash length, and gap length controls shown only when `Edge Preset` is `Hidden Line`.
+74. 2026-05-21 18:05:31: Marked `Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime` shipped after adding the `Hidden Line` edge preset, compatibility mapping, Properties option, and dashed sibling edge overlays for semantic and mesh fallback display edges while deferring hidden-line styling controls.
+73. 2026-05-21 18:00:32: Prepped `Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime` against the shipped edge preset owner and live viewer edge overlay maps, narrowing implementation to a real `Hidden Line` preset with solid visible edges plus separate dashed hidden-edge overlays while keeping hidden-line styling controls in Phase 5.3.
+72. 2026-05-21 17:56:54: Marked `Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup` shipped after Geometry Display gained an `Edge Preset` owner, the Properties `Edge Depth` control was removed from the normal UI, and the existing edge mode/depth compatibility bridge stayed intact.
+71. 2026-05-21 17:56:54: Prepped `Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup` against the live edge mode/depth contract and Properties controls, choosing a compatibility-preserving `geometryDisplay.edges.preset` owner before the hidden-line runtime phase.
 70. 2026-05-21 16:51:07: Added `Properties-6 / Phase 5.1`, `Phase 5.2`, and `Phase 5.3` as numbered edge follow-ups for replacing the overlapping edge mode/depth UI with one `Edge Preset`, adding a real `Hidden Line` renderer, and only then exposing hidden-line styling controls.
 69. 2026-05-21 16:39:01: Removed unsupported edge thickness from the shipped `Properties-6` Geometry Display read after confirming the current viewer line path cannot reliably render non-1px line widths, keeping color, opacity, and depth as the current editable edge settings.
 68. 2026-05-21 16:29:39: Marked `Properties-6 / Phase 5 - Edge Hover And Highlight Styles` shipped after adding saved edge hover/selected color, opacity, and thickness styles, exposing the controls in the `Edges` Geometry Display subsection, bridging legacy highlight edge fields, and routing viewer topology edge overlays through the new owner.
@@ -315,13 +327,23 @@ Current Properties-6 Phase 4 shipped read:
 - sketch/extrude helper overlays, transform/gizmo overlays, selection outlines, point overlays, Wireframe recipes, and Clay Studio recipes remain out of Phase 4
 
 Current Properties-6 Phase 5.N follow-up read:
-- `Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup` should replace the overlapping `Edges` mode plus `Edge Depth` UI with one `Edge Preset` control.
-- Phase 5.1 should preserve the current three behaviors as `Off`, `Visible Only`, and `Xray`.
-- Phase 5.1 should hide `Edge Depth` from normal Properties UI and keep depth as an implementation mapping.
-- `Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime` should add `Hidden Line` only when the viewer can actually render solid visible/front edges plus dashed behind-surface edges.
-- Phase 5.2 should preserve graph geometry, export truth, topology selection, hover overlays, helper overlays, and material truth.
-- `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep` should add hidden-line color/opacity/dash/gap controls only after the renderer proof ships.
-- Phase 6 point work should wait until the edge preset cleanup no longer has unresolved UI/runtime questions.
+- `Properties-6 / Phase 5.1 - Edge Preset Model And Depth UI Cleanup` shipped one `Edge Preset` control over `Off`, `Visible Only`, and `Xray`.
+- Phase 5.1 hides `Edge Depth` from normal Properties UI and keeps the existing edge mode/depth fields as compatibility/runtime mappings derived from the preset.
+- Phase 5.1 preserved edge color, opacity, hover color/opacity, selected color/opacity, viewer display-edge behavior, and the legacy `edgeDisplayMode` bridge.
+- `Properties-6 / Phase 5.2 - Hidden Line Edge Preset Runtime` shipped a real `Hidden Line` preset with solid visible/front edges plus separate dashed behind-surface display edges.
+- Phase 5.2 added `hiddenLine` to the edge preset enum and Properties `Edge Preset` select while deriving existing compatibility fields from that preset.
+- Phase 5.2 added sibling hidden-line overlays that reuse existing semantic and mesh edge geometry instead of overloading the current one-material display-edge overlay.
+- Phase 5.2 preserved graph geometry, export truth, topology selection, hover overlays, helper overlays, and material truth.
+- `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep` shipped saved hidden-line color, opacity, dash length, and gap length controls shown only when `Edge Preset` is `Hidden Line`.
+- Phase 5.3 keeps normal edge color/opacity as the solid visible/front layer and routes the hidden-line style only to the dashed hidden layer.
+- Phase 5.3 kept hidden-line thickness, alternate dash presets, Wireframe recipes, Clay Studio recipes, and saved custom render presets out of scope.
+- `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` shipped saved `hiddenEdges` and `lineStyle` settings plus visible `Edge Depth`, conditional `Hidden Edges`, and conditional `Line Style` controls.
+- Hidden-edge viewer overlays now read `geometryDisplay.edges.hiddenEdges && geometryDisplay.edges.depthMode === 'xray'` instead of checking the `Hidden Line` preset name.
+- `Hidden Line` is now a recipe: edges on, `Edge Depth: Xray`, `Hidden Edges: On`, visible/front edges solid, hidden-edge layer dashed.
+- `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` shipped `Custom` as a read-only selector state derived from mode, depth, hidden-edge visibility, and hidden-edge line style.
+- Phase 5.5 keeps saved `geometryDisplay.edges.preset` limited to built-in presets and treats selecting `Custom` as a no-op.
+- Edge color, opacity, hidden-edge color, dash/gap, hover, and selected styling do not force `Custom` in the first readback signature.
+- `Properties-6 / Phase 6 - Point Visibility And Default Style` is the next Geometry Display handoff.
 
 Current Properties-3 Phase 2 prep read:
 - implement against `src/app/workspace/PropertiesRenderSection.tsx`
@@ -537,8 +559,8 @@ Landed read:
 - [x] Let Surfaces use either the current Material Set or a Custom display material.
 - [x] Let the Custom surface display material expose material-like controls such as color, opacity/transparent, metalness, roughness, emissive, and sidedness.
 - [ ] Let Surfaces, Edges, and Points each get default, hover, and selected/highlight presentation controls.
-- [ ] Convert edge visibility/depth into one `Edge Preset` control before point styling work continues.
-- [ ] Add a real `Hidden Line` edge preset with dashed behind-surface edges after renderer proof.
+- [x] Convert edge visibility/depth into one `Edge Preset` control before point styling work continues.
+- [x] Add a real `Hidden Line` edge preset with dashed behind-surface edges after renderer proof.
 - [ ] Move Wireframe and Clay Studio toward visible geometry-display recipe settings instead of permanent hidden viewer-only branches.
 - [ ] `Properties-Gen1-HLG-1`
 - [ ] `Properties-Gen1-HLG-2`

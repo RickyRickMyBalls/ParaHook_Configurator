@@ -2681,8 +2681,8 @@ describe('PropertiesSurface', () => {
     const surfacesSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Surfaces"]',
     ) as HTMLSelectElement | null
-    const edgesSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]',
+    const edgePresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
     ) as HTMLSelectElement | null
     const surfaceSourceSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Surface Source"]',
@@ -2693,13 +2693,15 @@ describe('PropertiesSurface', () => {
 
     expect(surfacesSelect?.value).toBe('on')
     expect(surfaceSourceSelect?.value).toBe('materialSet')
-    expect(edgesSelect?.value).toBe('off')
+    expect(edgePresetSelect?.value).toBe('off')
     expect(pointsSelect?.value).toBe('on')
     expect(container?.textContent).not.toContain('Surface Metalness')
-    expect(Array.from(edgesSelect?.options ?? []).map((option) => option.value)).toEqual([
+    expect(Array.from(edgePresetSelect?.options ?? []).map((option) => option.value)).toEqual([
       'off',
       'visibleOnly',
-      'all',
+      'xray',
+      'hiddenLine',
+      'custom',
     ])
 
     await act(async () => {
@@ -2707,9 +2709,9 @@ describe('PropertiesSurface', () => {
         surfacesSelect.value = 'off'
         surfacesSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
-      if (edgesSelect !== null) {
-        edgesSelect.value = 'visibleOnly'
-        edgesSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'visibleOnly'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
       if (pointsSelect !== null) {
         pointsSelect.value = 'off'
@@ -2728,7 +2730,9 @@ describe('PropertiesSurface', () => {
       },
       edges: {
         ...DEFAULT_VIEW_SETTINGS.geometryDisplay.edges,
+        preset: 'visibleOnly',
         mode: 'visibleOnly',
+        depthMode: 'surface',
       },
       points: { visible: false },
     })
@@ -2755,7 +2759,7 @@ describe('PropertiesSurface', () => {
       container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Surfaces"]'),
     ).not.toBeNull()
     expect(
-      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]'),
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]'),
     ).not.toBeNull()
     expect(
       container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Points"]'),
@@ -2776,7 +2780,7 @@ describe('PropertiesSurface', () => {
       container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Surfaces"]'),
     ).toBeNull()
     expect(
-      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]'),
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]'),
     ).toBeNull()
     expect(
       container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Points"]'),
@@ -2789,27 +2793,27 @@ describe('PropertiesSurface', () => {
 
     expect(edgesToggle?.getAttribute('aria-expanded')).toBe('true')
     expect(
-      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]'),
+      container?.querySelector('.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]'),
     ).not.toBeNull()
   })
 
   it('writes default edge display styles only while Edges is enabled', async () => {
     await renderSurface()
 
-    const edgesSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edges"]',
+    const edgePresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
     ) as HTMLSelectElement | null
 
-    expect(edgesSelect?.value).toBe('off')
+    expect(edgePresetSelect?.value).toBe('off')
     expect(container?.textContent).not.toContain('Edge Opacity')
     expect(container?.textContent).not.toContain('Edge Depth')
     expect(container?.textContent).not.toContain('Edge Hover Opacity')
     expect(container?.textContent).not.toContain('Edge Selected Opacity')
 
     await act(async () => {
-      if (edgesSelect !== null) {
-        edgesSelect.value = 'all'
-        edgesSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'xray'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
     })
 
@@ -2819,9 +2823,6 @@ describe('PropertiesSurface', () => {
     const edgeOpacityIncreaseButton = container?.querySelector(
       '.PropertiesRenderSection button[aria-label="Increase Edge Opacity"]',
     ) as HTMLButtonElement | null
-    const edgeDepthSelect = container?.querySelector(
-      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Depth"]',
-    ) as HTMLSelectElement | null
     const edgeHoverColorInput = container?.querySelector(
       '.PropertiesRenderSection input[aria-label="Edge Hover Color"]',
     ) as HTMLInputElement | null
@@ -2834,13 +2835,42 @@ describe('PropertiesSurface', () => {
     const edgeSelectedOpacityDecreaseButton = container?.querySelector(
       '.PropertiesRenderSection button[aria-label="Decrease Edge Selected Opacity"]',
     ) as HTMLButtonElement | null
+    const edgeDepthSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Depth"]',
+    ) as HTMLSelectElement | null
+    const hiddenEdgesSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Hidden Edges"]',
+    ) as HTMLSelectElement | null
 
     expect(edgeColorInput?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.color)
-    expect(edgeDepthSelect?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.depthMode)
+    expect(container?.textContent).toContain('Edge Depth')
+    expect(container?.textContent).toContain('Hidden Edges')
+    expect(container?.textContent).not.toContain('Line Style')
+    expect(edgeDepthSelect?.value).toBe('xray')
+    expect(hiddenEdgesSelect?.value).toBe('off')
     expect(edgeHoverColorInput?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover.color)
     expect(edgeSelectedColorInput?.value).toBe(
       DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.selected.color,
     )
+
+    await act(async () => {
+      if (edgeDepthSelect !== null) {
+        edgeDepthSelect.value = 'surface'
+        edgeDepthSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(edgePresetSelect?.value).toBe('custom')
+    expect(container?.textContent).not.toContain('Hidden Edges')
+
+    await act(async () => {
+      if (edgeDepthSelect !== null) {
+        edgeDepthSelect.value = 'xray'
+        edgeDepthSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(edgePresetSelect?.value).toBe('xray')
 
     await act(async () => {
       if (edgeColorInput !== null) {
@@ -2858,17 +2888,18 @@ describe('PropertiesSurface', () => {
       edgeOpacityIncreaseButton?.click()
       edgeHoverOpacityIncreaseButton?.click()
       edgeSelectedOpacityDecreaseButton?.click()
-      if (edgeDepthSelect !== null) {
-        edgeDepthSelect.value = 'surface'
-        edgeDepthSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      }
     })
 
+    expect(edgePresetSelect?.value).toBe('xray')
     expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toEqual({
+      preset: 'xray',
       mode: 'all',
       color: '#00ffaa',
       opacity: 0.63,
-      depthMode: 'surface',
+      depthMode: 'xray',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+      hiddenLine: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine,
       hover: {
         color: '#ffaa00',
         opacity: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hover.opacity + 0.01,
@@ -2883,7 +2914,140 @@ describe('PropertiesSurface', () => {
       hoverColor: '#ffaa00',
       selectedColor: '#aa00ff',
     })
+  })
 
+  it('writes hidden-line edge styles only for the Hidden Line edge preset', async () => {
+    await renderSurface()
+
+    const edgePresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
+    ) as HTMLSelectElement | null
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'xray'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(container?.textContent).not.toContain('Hidden Edge Opacity')
+    expect(container?.textContent).not.toContain('Dash Length')
+    expect(container?.textContent).not.toContain('Gap Length')
+    expect(container?.textContent).not.toContain('Line Style')
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'hiddenLine'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const hiddenColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Hidden Edge Color"]',
+    ) as HTMLInputElement | null
+    const lineStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Line Style"]',
+    ) as HTMLSelectElement | null
+    const hiddenOpacityIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Hidden Edge Opacity"]',
+    ) as HTMLButtonElement | null
+    const dashIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Dash Length"]',
+    ) as HTMLButtonElement | null
+    const gapIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Gap Length"]',
+    ) as HTMLButtonElement | null
+
+    expect(hiddenColorInput?.value).toBe(DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.color)
+    expect(lineStyleSelect?.value).toBe('dashed')
+    expect(hiddenOpacityIncreaseButton).not.toBeNull()
+    expect(dashIncreaseButton).not.toBeNull()
+    expect(gapIncreaseButton).not.toBeNull()
+
+    await act(async () => {
+      if (hiddenColorInput !== null) {
+        hiddenColorInput.value = '#112233'
+        hiddenColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      hiddenOpacityIncreaseButton?.click()
+      dashIncreaseButton?.click()
+      gapIncreaseButton?.click()
+    })
+
+    expect(edgePresetSelect?.value).toBe('hiddenLine')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+      hiddenLine: {
+        color: '#112233',
+        opacity: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.opacity + 0.01,
+        dashSize: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.dashSize + 0.01,
+        gapSize: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.gapSize + 0.01,
+      },
+    })
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+  })
+
+  it('reads edited edge preset recipes as Custom without saving Custom as a preset', async () => {
+    await renderSurface()
+
+    const edgePresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
+    ) as HTMLSelectElement | null
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'hiddenLine'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const lineStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Line Style"]',
+    ) as HTMLSelectElement | null
+
+    expect(edgePresetSelect?.value).toBe('hiddenLine')
+    expect(lineStyleSelect?.value).toBe('dashed')
+
+    await act(async () => {
+      if (lineStyleSelect !== null) {
+        lineStyleSelect.value = 'solid'
+        lineStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(edgePresetSelect?.value).toBe('custom')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('hiddenLine')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.lineStyle).toBe('solid')
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'custom'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('hiddenLine')
+    expect(edgePresetSelect?.value).toBe('custom')
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'visibleOnly'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(edgePresetSelect?.value).toBe('visibleOnly')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'visibleOnly',
+      mode: 'visibleOnly',
+      depthMode: 'surface',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+    })
   })
 
   it('writes custom surface display material without changing project material truth', async () => {
