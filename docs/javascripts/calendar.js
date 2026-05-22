@@ -87,9 +87,19 @@ function getActivityRows(start, end, byDate) {
 
   for (let day = new Date(start); day <= end; day = addActivityDays(day, 1)) {
     const key = toActivityDateKey(day);
-    const entry = byDate.get(key) ?? { appAdd: 0, appDel: 0, docsAdd: 0, docsDel: 0, commits: 0 };
-    const appAdd = entry.appAdd ?? entry.add ?? 0;
-    const appDel = entry.appDel ?? entry.del ?? 0;
+    const entry = byDate.get(key) ?? {
+      codeAdd: 0,
+      codeDel: 0,
+      publicAdd: 0,
+      publicDel: 0,
+      docsAdd: 0,
+      docsDel: 0,
+      commits: 0,
+    };
+    const codeAdd = entry.codeAdd ?? entry.appAdd ?? entry.add ?? 0;
+    const codeDel = entry.codeDel ?? entry.appDel ?? entry.del ?? 0;
+    const publicAdd = entry.publicAdd ?? 0;
+    const publicDel = entry.publicDel ?? 0;
     const docsAdd = entry.docsAdd ?? 0;
     const docsDel = entry.docsDel ?? 0;
 
@@ -97,12 +107,14 @@ function getActivityRows(start, end, byDate) {
       date: key,
       label: formatActivityDate(day),
       shortLabel: formatActivityDate(day, { month: "numeric", day: "numeric" }),
-      appAdd,
-      appDel,
+      codeAdd,
+      codeDel,
+      publicAdd,
+      publicDel,
       docsAdd,
       docsDel,
       commits: entry.commits,
-      total: appAdd + appDel + docsAdd + docsDel,
+      total: codeAdd + codeDel + publicAdd + publicDel + docsAdd + docsDel,
     });
   }
 
@@ -149,8 +161,10 @@ function renderActivityGraph(graph, rangeName = "7d") {
 
   const rows = getActivityRows(startDate, endDate, byDate);
   const maxTotal = Math.max(1, ...rows.map((row) => row.total));
-  const appAdded = rows.reduce((sum, row) => sum + row.appAdd, 0);
-  const appDeleted = rows.reduce((sum, row) => sum + row.appDel, 0);
+  const codeAdded = rows.reduce((sum, row) => sum + row.codeAdd, 0);
+  const codeDeleted = rows.reduce((sum, row) => sum + row.codeDel, 0);
+  const publicAdded = rows.reduce((sum, row) => sum + row.publicAdd, 0);
+  const publicDeleted = rows.reduce((sum, row) => sum + row.publicDel, 0);
   const docsAdded = rows.reduce((sum, row) => sum + row.docsAdd, 0);
   const docsDeleted = rows.reduce((sum, row) => sum + row.docsDel, 0);
   const totalCommits = rows.reduce((sum, row) => sum + row.commits, 0);
@@ -159,24 +173,28 @@ function renderActivityGraph(graph, rangeName = "7d") {
   maxNode.style.setProperty("--activity-max", `"${formatActivityNumber(maxTotal)} line peak"`);
   summaryNode.innerHTML = `
     <strong>${formatActivityDate(startDate)} - ${formatActivityDate(endDate)}</strong>
-    <span>App +${formatActivityNumber(appAdded)} / -${formatActivityNumber(appDeleted)}; docs +${formatActivityNumber(docsAdded)} / -${formatActivityNumber(docsDeleted)} across ${formatActivityNumber(totalCommits)} commits</span>
+    <span>Code +${formatActivityNumber(codeAdded)} / -${formatActivityNumber(codeDeleted)}; public +${formatActivityNumber(publicAdded)} / -${formatActivityNumber(publicDeleted)}; docs +${formatActivityNumber(docsAdded)} / -${formatActivityNumber(docsDeleted)} across ${formatActivityNumber(totalCommits)} commits</span>
   `;
 
   barsNode.innerHTML = rows
     .map((row) => {
       const totalHeight = row.total === 0 ? 0 : Math.max(2, (row.total / maxTotal) * 100);
-      const appAddedHeight = row.total === 0 ? 0 : (row.appAdd / row.total) * 100;
-      const appDeletedHeight = row.total === 0 ? 0 : (row.appDel / row.total) * 100;
+      const codeAddedHeight = row.total === 0 ? 0 : (row.codeAdd / row.total) * 100;
+      const codeDeletedHeight = row.total === 0 ? 0 : (row.codeDel / row.total) * 100;
+      const publicAddedHeight = row.total === 0 ? 0 : (row.publicAdd / row.total) * 100;
+      const publicDeletedHeight = row.total === 0 ? 0 : (row.publicDel / row.total) * 100;
       const docsAddedHeight = row.total === 0 ? 0 : (row.docsAdd / row.total) * 100;
       const docsDeletedHeight = row.total === 0 ? 0 : (row.docsDel / row.total) * 100;
       const commitLabel = row.commits === 1 ? "commit" : "commits";
-      const title = `${row.label}: app +${formatActivityNumber(row.appAdd)} / -${formatActivityNumber(row.appDel)}, docs +${formatActivityNumber(row.docsAdd)} / -${formatActivityNumber(row.docsDel)}, ${formatActivityNumber(row.commits)} ${commitLabel}`;
+      const title = `${row.label}: code +${formatActivityNumber(row.codeAdd)} / -${formatActivityNumber(row.codeDel)}, public +${formatActivityNumber(row.publicAdd)} / -${formatActivityNumber(row.publicDel)}, docs +${formatActivityNumber(row.docsAdd)} / -${formatActivityNumber(row.docsDel)}, ${formatActivityNumber(row.commits)} ${commitLabel}`;
 
       return `
         <div class="activity-day" title="${title}">
           <div class="activity-stack" style="height: ${totalHeight.toFixed(2)}%;">
-            <span class="activity-app-added" style="height: ${appAddedHeight.toFixed(2)}%;"></span>
-            <span class="activity-app-deleted" style="height: ${appDeletedHeight.toFixed(2)}%;"></span>
+            <span class="activity-code-added" style="height: ${codeAddedHeight.toFixed(2)}%;"></span>
+            <span class="activity-code-deleted" style="height: ${codeDeletedHeight.toFixed(2)}%;"></span>
+            <span class="activity-public-added" style="height: ${publicAddedHeight.toFixed(2)}%;"></span>
+            <span class="activity-public-deleted" style="height: ${publicDeletedHeight.toFixed(2)}%;"></span>
             <span class="activity-docs-added" style="height: ${docsAddedHeight.toFixed(2)}%;"></span>
             <span class="activity-docs-deleted" style="height: ${docsDeletedHeight.toFixed(2)}%;"></span>
           </div>

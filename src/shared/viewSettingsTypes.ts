@@ -520,9 +520,47 @@ export const isViewRenderPresetId = (value: unknown): value is RenderPresetId =>
 
 export const createDisplayModeViewPatch = (
   displayMode: ViewDisplayMode,
-): Pick<ViewSettings, 'displayMode'> => ({
-  displayMode,
-})
+  currentView: Pick<ViewSettings, 'geometryDisplay'> = DEFAULT_VIEW_SETTINGS,
+  options: { includeEdgeRecipe?: boolean } = {},
+): Pick<ViewSettings, 'displayMode' | 'geometryDisplay'> &
+  Partial<Pick<ViewSettings, 'edgeDisplayMode'>> => {
+  const surfacesVisible = displayMode !== 'wireframe'
+  const includeEdgeRecipe = options.includeEdgeRecipe ?? true
+  const edgePreset: ViewGeometryDisplayEdgePreset =
+    displayMode === 'material'
+      ? 'hiddenLine'
+      : geometryDisplayEdgeModeAndDepthToPreset(
+          viewEdgeDisplayModeToGeometryDisplayEdgeMode(
+            displayMode === 'wireframe' ? 'on' : 'off',
+          ),
+          'xray',
+        )
+  const edgeDisplayMode: ViewEdgeDisplayMode = edgePreset === 'off' ? 'off' : 'on'
+
+  return {
+    displayMode,
+    geometryDisplay: {
+      ...currentView.geometryDisplay,
+      surfaces: {
+        ...currentView.geometryDisplay.surfaces,
+        visible: surfacesVisible,
+      },
+      edges: {
+        ...currentView.geometryDisplay.edges,
+        ...(includeEdgeRecipe
+          ? {
+              preset: edgePreset,
+              mode: geometryDisplayEdgePresetToMode(edgePreset),
+              depthMode: geometryDisplayEdgePresetToDepthMode(edgePreset),
+              hiddenEdges: geometryDisplayEdgePresetToHiddenEdges(edgePreset),
+              lineStyle: geometryDisplayEdgePresetToLineStyle(edgePreset),
+            }
+          : {}),
+      },
+    },
+    ...(includeEdgeRecipe ? { edgeDisplayMode } : {}),
+  }
+}
 
 export const geometryDisplayEdgeModeToViewEdgeDisplayMode = (
   mode: ViewGeometryDisplayEdgeMode,

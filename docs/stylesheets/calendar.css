@@ -179,12 +179,20 @@
   background: var(--activity-legend-color);
 }
 
-.activity-legend-app-added {
+.activity-legend-code-added {
   --activity-legend-color: #8df5d7;
 }
 
-.activity-legend-app-deleted {
+.activity-legend-code-deleted {
   --activity-legend-color: #ff776d;
+}
+
+.activity-legend-public-added {
+  --activity-legend-color: #c9a7ff;
+}
+
+.activity-legend-public-deleted {
+  --activity-legend-color: #d88cff;
 }
 
 .activity-legend-docs-added {
@@ -246,16 +254,28 @@
   background: color-mix(in srgb, var(--calendar-muted) 18%, transparent);
 }
 
-.activity-app-added {
+.activity-code-added {
   display: block;
   width: 100%;
   background: #8df5d7;
 }
 
-.activity-app-deleted {
+.activity-code-deleted {
   display: block;
   width: 100%;
   background: #ff776d;
+}
+
+.activity-public-added {
+  display: block;
+  width: 100%;
+  background: #c9a7ff;
+}
+
+.activity-public-deleted {
+  display: block;
+  width: 100%;
+  background: #d88cff;
 }
 
 .activity-docs-added {

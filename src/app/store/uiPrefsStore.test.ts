@@ -54,6 +54,7 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe(
       DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
     )
+    expect(useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode).toBe(true)
 
     useUiPrefsStore.getState().setWorkspaceRestorePersistence(false)
     useUiPrefsStore.getState().setViewSettingsPersistence(false)
@@ -64,6 +65,7 @@ describe('uiPrefsStore environment source state', () => {
     useUiPrefsStore.getState().setWorkspaceNestedResizeKeepsFarPane(false)
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     useUiPrefsStore.getState().setRadialMenuRecipeId('circle')
+    useUiPrefsStore.getState().setEdgeRecipeFollowsDisplayMode(false)
     useUiPrefsStore.getState().setSpaghettiWindowAppearanceDefaults({
       ...defaultSpaghettiWindowAppearance,
       titlebarTint: 'blue',
@@ -78,6 +80,7 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(false)
     expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('shortcuts-first')
     expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe('circle')
+    expect(useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode).toBe(false)
     expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults.titlebarTint).toBe('blue')
   })
 
@@ -89,6 +92,16 @@ describe('uiPrefsStore environment source state', () => {
 
     useUiPrefsStore.getState().setRadialMenuRecipeId('not-a-recipe' as 'square')
     expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe('square')
+  })
+
+  it('stores whether display mode changes apply edge recipes', () => {
+    expect(useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode).toBe(true)
+
+    useUiPrefsStore.getState().setEdgeRecipeFollowsDisplayMode(false)
+    expect(useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode).toBe(false)
+
+    useUiPrefsStore.getState().setEdgeRecipeFollowsDisplayMode(true)
+    expect(useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode).toBe(true)
   })
 
   it('stores the Console input priority mode without changing keyboard routing', () => {

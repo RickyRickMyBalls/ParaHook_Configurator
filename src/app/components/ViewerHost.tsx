@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
@@ -357,21 +356,6 @@ const edgeDisplayModeMenuOptions: Array<{
   { mode: 'hiddenLine', label: 'Hidden line', shortLabel: 'Hidden' },
 ]
 
-const resolveCircleDirectionIndex = (
-  point: { x: number; y: number },
-  rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>,
-  itemCount: number,
-): number => {
-  if (itemCount <= 0 || rect.width <= 0 || rect.height <= 0) {
-    return 0
-  }
-  const centerX = rect.left + rect.width / 2
-  const centerY = rect.top + rect.height / 2
-  const angleFromTop = (Math.atan2(point.y - centerY, point.x - centerX) * 180) / Math.PI + 90
-  const normalizedAngle = (angleFromTop + 360) % 360
-  return Math.round(normalizedAngle / (360 / itemCount)) % itemCount
-}
-
 const formatExtrudeCommandStepLabel = (step: ExtrudeCommandSession['activeStep']): string =>
   step === 'depth' ? 'Depth' : 'Select Profiles'
 
@@ -516,10 +500,8 @@ export function ViewerHost(props: ViewerHostProps) {
   const edgePreset = useUiPrefsStore((state) => state.view.geometryDisplay.edges.preset)
   const viewportStyle = useUiPrefsStore((state) => state.view.viewportStyle)
   const mountRef = useRef<HTMLDivElement | null>(null)
-  const displayModeMenuRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
-  const [circleDirectionIndex, setCircleDirectionIndex] = useState<number | null>(null)
   const [selectedTopologyEntity, setSelectedTopologyEntity] =
     useState<SelectedTopologyEntity | null>(null)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
@@ -542,54 +524,12 @@ export function ViewerHost(props: ViewerHostProps) {
     (state) => state.browserGraphBuildPolicyByGraphDocumentId,
   )
 
-  const isCircleDisplayModeMenu = displayModeMenu.renderedRecipe.id === 'circle'
-
   const selectVisualStyleOption = (option: (typeof visualStyleMenuOptions)[number]) => {
     if ('mode' in option) {
       displayModeMenu.selectDisplayMode(option.mode)
       return
     }
     displayModeMenu.selectViewportStyle(option.style)
-  }
-
-  const resolveCircleDirectionFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
-    const menuElement = displayModeMenuRef.current
-    if (menuElement === null) {
-      return 0
-    }
-    return resolveCircleDirectionIndex(
-      { x: event.clientX, y: event.clientY },
-      menuElement.getBoundingClientRect(),
-      visualStyleMenuOptions.length,
-    )
-  }
-
-  const handleDisplayModeMenuPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!isCircleDisplayModeMenu) {
-      return
-    }
-    const target = event.target
-    if (target instanceof HTMLElement && target.closest('.ViewportDisplayModeMenuCenter')) {
-      setCircleDirectionIndex(null)
-      return
-    }
-    setCircleDirectionIndex(resolveCircleDirectionFromPointer(event))
-  }
-
-  const handleDisplayModeMenuPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!isCircleDisplayModeMenu) {
-      return
-    }
-    const target = event.target
-    if (target instanceof HTMLElement && target.closest('.ViewportDisplayModeMenuCenter')) {
-      return
-    }
-    event.preventDefault()
-    const directionIndex = resolveCircleDirectionFromPointer(event)
-    const option = visualStyleMenuOptions[directionIndex]
-    if (option !== undefined) {
-      selectVisualStyleOption(option)
-    }
   }
   const browserContentBuildPolicyByRowId = useAppStore(
     (state) => state.browserContentBuildPolicyByRowId,
@@ -2522,10 +2462,7 @@ export function ViewerHost(props: ViewerHostProps) {
             aria-label="Display mode"
             data-visual-style-menu-recipe={displayModeMenu.recipe.id}
             data-visual-style-menu-rendered-recipe={displayModeMenu.renderedRecipe.id}
-            ref={displayModeMenuRef}
             onPointerDown={(event) => event.stopPropagation()}
-            onPointerMove={handleDisplayModeMenuPointerMove}
-            onPointerUp={handleDisplayModeMenuPointerUp}
           >
             {displayModeMenu.renderedRecipe.id === 'circle' ? (
               <>
@@ -2564,6 +2501,26 @@ export function ViewerHost(props: ViewerHostProps) {
                   {option.shortLabel}
                 </button>
               ))}
+              <button
+                type="button"
+                className={`ViewportDisplayModeMenuEdgeLock ${
+                  displayModeMenu.edgeRecipeFollowsDisplayMode ? 'isLocked' : 'isUnlocked'
+                }`}
+                aria-pressed={displayModeMenu.edgeRecipeFollowsDisplayMode}
+                aria-label={
+                  displayModeMenu.edgeRecipeFollowsDisplayMode
+                    ? 'Unlock edge recipe follow display mode'
+                    : 'Lock edge recipe to display mode'
+                }
+                title={
+                  displayModeMenu.edgeRecipeFollowsDisplayMode
+                    ? 'Edges follow display mode'
+                    : 'Edges stay manual'
+                }
+                onClick={displayModeMenu.toggleEdgeRecipeFollowLock}
+              >
+                <span className="ViewportDisplayModeMenuEdgeLockIcon" aria-hidden="true" />
+              </button>
             </div>
             {visualStyleMenuOptions.map((option, index) => (
               <button
@@ -2580,23 +2537,15 @@ export function ViewerHost(props: ViewerHostProps) {
                     'mode' in option
                       ? viewportStyle === 'standard' && displayMode === option.mode
                       : viewportStyle === option.style
-                  ) || (isCircleDisplayModeMenu && circleDirectionIndex === index)
+                  )
                     ? 'isActive'
                     : ''
                 }`}
-                data-circle-direction-active={
-                  isCircleDisplayModeMenu && circleDirectionIndex === index ? 'true' : undefined
-                }
                 style={{
                   '--display-mode-item-index': `${index}`,
                   '--display-mode-item-count': `${visualStyleMenuOptions.length}`,
                 } as CSSProperties}
-                onClick={() => {
-                  if (isCircleDisplayModeMenu) {
-                    return
-                  }
-                  selectVisualStyleOption(option)
-                }}
+                onClick={() => selectVisualStyleOption(option)}
               >
                 <span className="ViewportDisplayModeMenuItemCopy">
                   <span className="ViewportDisplayModeMenuItemShort">{option.shortLabel}</span>

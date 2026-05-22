@@ -282,6 +282,7 @@ type UiPrefsState = {
   workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
   radialMenuRecipeId: VisualStyleMenuRecipeId
+  edgeRecipeFollowsDisplayMode: boolean
   workspaceRestorePersistence: boolean
   viewSettingsPersistence: boolean
   environmentPersistence: boolean
@@ -320,6 +321,7 @@ type UiPrefsState = {
   setWorkspacePanelShellPaddingPx: (workspacePanelShellPaddingPx: number) => void
   setViewSettingsPersistence: (viewSettingsPersistence: boolean) => void
   setRadialMenuRecipeId: (radialMenuRecipeId: VisualStyleMenuRecipeId) => void
+  setEdgeRecipeFollowsDisplayMode: (edgeRecipeFollowsDisplayMode: boolean) => void
   setEnvironmentPersistence: (environmentPersistence: boolean) => void
   setDashboardPersistence: (dashboardPersistence: boolean) => void
   setNotepadPersistence: (notepadPersistence: boolean) => void
@@ -372,6 +374,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   workspacePanelShellPaddingPx: DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   workspaceNestedResizeKeepsFarPane: true,
   radialMenuRecipeId: DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
+  edgeRecipeFollowsDisplayMode: true,
   workspaceRestorePersistence: true,
   viewSettingsPersistence: true,
   environmentPersistence: true,
@@ -567,6 +570,9 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setRadialMenuRecipeId: (radialMenuRecipeId) => {
     set({ radialMenuRecipeId: normalizeVisualStyleMenuRecipeId(radialMenuRecipeId) })
+  },
+  setEdgeRecipeFollowsDisplayMode: (edgeRecipeFollowsDisplayMode) => {
+    set({ edgeRecipeFollowsDisplayMode })
   },
   setEnvironmentPersistence: (environmentPersistence) => {
     set({ environmentPersistence })

@@ -27,10 +27,12 @@ export type ViewerDisplayModeMenuState = {
   isOpen: boolean
   recipe: VisualStyleMenuRecipeDefinition
   renderedRecipe: VisualStyleMenuRecipeDefinition
+  edgeRecipeFollowsDisplayMode: boolean
   close: () => void
   selectDisplayMode: (mode: ViewDisplayMode) => void
   selectEdgeDisplayMode: (mode: ViewEdgeDisplayMode | 'hiddenLine') => void
   selectViewportStyle: (style: ViewportStyle) => void
+  toggleEdgeRecipeFollowLock: () => void
 }
 
 export function useViewerDisplayModeMenu(
@@ -38,6 +40,9 @@ export function useViewerDisplayModeMenu(
 ): ViewerDisplayModeMenuState {
   const [isOpen, setIsOpen] = useState(false)
   const radialMenuRecipeId = useUiPrefsStore((state) => state.radialMenuRecipeId)
+  const edgeRecipeFollowsDisplayMode = useUiPrefsStore(
+    (state) => state.edgeRecipeFollowsDisplayMode,
+  )
   const recipe = getVisualStyleMenuRecipeDefinition(radialMenuRecipeId)
   const renderedRecipe = recipe
 
@@ -88,9 +93,14 @@ export function useViewerDisplayModeMenu(
     isOpen,
     recipe,
     renderedRecipe,
+    edgeRecipeFollowsDisplayMode,
     close: () => setIsOpen(false),
     selectDisplayMode: (mode) => {
-      useUiPrefsStore.getState().setView(createDisplayModeViewPatch(mode))
+      const currentView = useUiPrefsStore.getState().view
+      const includeEdgeRecipe = useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode
+      useUiPrefsStore
+        .getState()
+        .setView(createDisplayModeViewPatch(mode, currentView, { includeEdgeRecipe }))
       setIsOpen(false)
     },
     selectEdgeDisplayMode: (mode) => {
@@ -118,6 +128,10 @@ export function useViewerDisplayModeMenu(
       const currentView = useUiPrefsStore.getState().view
       useUiPrefsStore.getState().setView(createRenderPresetViewPatch(style, currentView))
       setIsOpen(false)
+    },
+    toggleEdgeRecipeFollowLock: () => {
+      const current = useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode
+      useUiPrefsStore.getState().setEdgeRecipeFollowsDisplayMode(!current)
     },
   }
 }

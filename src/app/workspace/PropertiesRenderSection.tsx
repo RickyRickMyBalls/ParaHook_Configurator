@@ -402,7 +402,7 @@ function PropertiesRenderSectionContent() {
     if (!isViewDisplayMode(value)) {
       return
     }
-    setView(createDisplayModeViewPatch(value))
+    setView(createDisplayModeViewPatch(value, { geometryDisplay }))
   }
 
   const handleRenderPresetChange = (value: string) => {

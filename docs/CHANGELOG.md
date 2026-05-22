@@ -72,6 +72,239 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2060 -->
+
+### [2060] - 2026-05-22 11:44 - `Visual-Style-Menu-1 / Phase 6 - Active Lock Color Match`
+
+HUMAN SUMMARY: ``The Shift+D center edge-follow lock now uses the same warm orange active styling as the selected display-mode wedge, so the locked recipe-follow state reads as active instead of edge-teal.```
+
+#### Scope / Constraints Honored
+
+- Kept the lock behavior unchanged.
+- Changed only the active lock visual styling.
+- Matched the existing active display-mode palette instead of introducing a new color language.
+
+#### Summary of Implementation
+
+- Updated the locked center button border, fill, text, and glow to use the active display-mode orange/brown treatment.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Locked center button state now visually matches the active display-mode color family.
+
+#### Verification Steps
+
+- `git diff --check -- src/app/theme/surfaces/viewport-overlay.css docs/CHANGELOG.md docs/Doc-Log.md`
+
+<!-- ENTRY 2059 -->
+
+### [2059] - 2026-05-22 10:54 - `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock`
+
+HUMAN SUMMARY: ``The Shift+D radial menu now has a center edge-follow lock. When locked, display-mode changes apply their edge recipe; when unlocked, display-mode changes preserve the user's current edge preset while manual edge buttons still work.```
+
+#### Scope / Constraints Honored
+
+- Kept Geometry Display edge recipes owned by the existing view settings model.
+- Kept Properties `Render` as the detailed tuning surface.
+- Preserved manual edge preset edits in both lock states.
+- Kept the radial-menu preference in UI preferences rather than turning it into model or geometry truth.
+
+#### Summary of Implementation
+
+- Added the persisted `edgeRecipeFollowsDisplayMode` UI preference with a default enabled state.
+- Extended display-mode recipe application so edge recipe writes can be included or preserved.
+- Routed Shift+D display-mode selection through the new follow-lock state.
+- Added a center lock/unlock button to the Square and Circle radial menu layouts.
+- Added focused store, persistence, hook, and `ViewerHost` proof for locked and unlocked behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- The Shift+D radial menu exposes a center lock button for whether display-mode changes follow edge recipes.
+- Locked mode keeps current recipe behavior: display modes apply their edge presets.
+- Unlocked mode changes display mode and surface visibility while preserving the current edge preset/settings.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/useViewerDisplayModeMenu.test.tsx src/app/components/ViewerHost.test.tsx -t "edge recipe|radial menu|persistence|defaults|display mode|lock|Shift\\+D|Circle"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2058 -->
+
+### [2058] - 2026-05-22 09:16 - `Visual-Style-Menu-1 / Material Hidden-Line Recipe`
+
+HUMAN SUMMARY: ``The shared Material display-mode recipe now enables the Hidden Line edge preset. Shift+D and Properties > Render both apply Material as surfaces-on with hidden-line edges instead of leaving edges off.```
+
+#### Scope / Constraints Honored
+
+- Kept the display-mode recipe centralized in the shared view-settings helper.
+- Preserved the Wireframe surface-off behavior from the prior recipe pass.
+- Kept Properties > Render and Shift+D display-mode selection on the same behavior path.
+
+#### Summary of Implementation
+
+- Updated `createDisplayModeViewPatch(...)` so `material` resolves to the `hiddenLine` geometry edge preset.
+- Kept non-material display modes using the existing edge recipe mapping.
+- Extended Shift+D and Properties Render tests to prove Material applies surfaces-on plus hidden-line edges.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+
+- Selecting Material now enables Hidden Line edges while keeping surfaces visible.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx src/app/workspace/PropertiesSurface.test.tsx -t "display mode|viewport style"`
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts -t "display mode"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2057 -->
+
+### [2057] - 2026-05-22 07:23 - `Visual-Style-Menu-1 / Wireframe Surface-Off Recipe`
+
+HUMAN SUMMARY: ``The shared display-mode recipe now treats Wireframe as an actual surface-off preset. Shift+D and Properties > Render both apply the same recipe so Wireframe hides surfaces, enables xray edges, and normal non-wireframe display modes restore surfaces.```
+
+#### Scope / Constraints Honored
+
+- Kept Shift+D display-mode selection and Properties > Render on the same shared recipe helper.
+- Preserved the current render preset when changing a normal display mode.
+- Kept geometry-display styling values from the current view while changing only recipe-owned surface and edge visibility.
+
+#### Summary of Implementation
+
+- Expanded `createDisplayModeViewPatch(...)` so display modes carry surface visibility and edge recipe settings instead of only writing `displayMode`.
+- Passed the current geometry-display settings into display-mode recipe application from Shift+D and Properties > Render.
+- Added focused tests proving Wireframe turns surfaces off and non-wireframe display modes turn surfaces back on.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+
+- Selecting Wireframe now disables geometry surfaces and enables xray edges from both Shift+D and Properties > Render.
+- Selecting a non-wireframe display mode restores geometry surfaces and turns the display-mode-owned edge recipe off.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx src/app/workspace/PropertiesSurface.test.tsx -t "display mode|viewport style"`
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts -t "display mode"`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2056 -->
+
+### [2056] - 2026-05-21 23:48 - `Visual-Style-Menu-1 / Circle Center Click Layer`
+
+HUMAN SUMMARY: ``The Circle Shift+D center edge controls now sit above the large masked outer pie wedges in the hit-test stack. This keeps the inner On/Off/Only/Hidden buttons clickable while preserving the outer pie-slice visuals.```
+
+#### Scope / Constraints Honored
+
+- Kept the Circle visual styling intact.
+- Preserved direct click-and-close behavior for outer visual-style wedges.
+- Preserved center edge click behavior and stay-open behavior.
+- Preserved Square behavior.
+
+#### Summary of Implementation
+
+- Added explicit Circle radial-menu z-index layering for the outer guide, spacer ring, outer wedges, and center edge cluster.
+- Placed the center edge cluster above the masked outer wedge buttons so browser hit testing reaches the inner buttons.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle center edge buttons receive clicks above the outer wedge layer.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+- `git diff --check`
+
+<!-- ENTRY 2055 -->
+
+### [2055] - 2026-05-21 23:29 - `Visual-Style-Menu-1 / Circle Outer Direct Click Behavior`
+
+HUMAN SUMMARY: ``The Circle Shift+D outside ring keeps the new pie-slice visuals, but the outer visual-style wedges now work like normal buttons again. Clicking a wedge applies that visual style and closes the radial menu instead of using pointer-direction selection.```
+
+#### Scope / Constraints Honored
+
+- Kept the Circle visual styling intact.
+- Removed only the Circle-specific outer pointer-direction behavior.
+- Preserved center edge click behavior.
+- Preserved Square behavior.
+- Kept the existing option membership list.
+
+#### Summary of Implementation
+
+- Removed Circle menu-level pointer move/up direction selection.
+- Removed Circle direction active-state bookkeeping.
+- Routed Circle outer visual-style wedge clicks through the same direct select-and-close handler used by Square.
+- Updated focused Circle proof to verify direct outer wedge click behavior.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle outer visual-style wedges now select on direct click and close the radial menu.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+- `git diff --check`
+
 <!-- ENTRY 2054 -->
 
 ### [2054] - 2026-05-21 23:25 - `Visual-Style-Menu-1 / Circle Outer Button Border Polish`

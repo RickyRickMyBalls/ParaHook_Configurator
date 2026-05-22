@@ -53,6 +53,7 @@ type PersistedUiPrefsState = UiPrefsPersistencePolicy & {
   workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
   radialMenuRecipeId: VisualStyleMenuRecipeId
+  edgeRecipeFollowsDisplayMode: boolean
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -121,6 +122,9 @@ const normalizeWorkspaceNestedResizeKeepsFarPane = (value: unknown): boolean =>
 const normalizeRadialMenuRecipeId = (value: unknown): VisualStyleMenuRecipeId =>
   normalizeVisualStyleMenuRecipeId(value)
 
+const normalizeEdgeRecipeFollowsDisplayMode = (value: unknown): boolean =>
+  typeof value === 'boolean' ? value : true
+
 const applyPersistedViewPolicy = (
   baseView: ViewSettings,
   persistedView: ViewSettings,
@@ -172,6 +176,7 @@ export const serializePersistedUiPrefs = (
   workspaceNestedResizeKeepsFarPane = true,
   consoleInputPriorityMode: ConsoleInputPriorityMode = DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
   radialMenuRecipeId: VisualStyleMenuRecipeId = DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
+  edgeRecipeFollowsDisplayMode = true,
 ): PersistedUiPrefsState => ({
   version: 3,
   view: normalizeViewSettings(view),
@@ -188,6 +193,9 @@ export const serializePersistedUiPrefs = (
     workspaceNestedResizeKeepsFarPane,
   ),
   radialMenuRecipeId: normalizeRadialMenuRecipeId(radialMenuRecipeId),
+  edgeRecipeFollowsDisplayMode: normalizeEdgeRecipeFollowsDisplayMode(
+    edgeRecipeFollowsDisplayMode,
+  ),
   workspaceRestorePersistence: policy.workspaceRestorePersistence,
   viewSettingsPersistence: policy.viewSettingsPersistence,
   environmentPersistence: policy.environmentPersistence,
@@ -228,6 +236,9 @@ export const normalizePersistedUiPrefs = (value: unknown): PersistedUiPrefsState
     ),
     radialMenuRecipeId: normalizeRadialMenuRecipeId(
       isRecord(value) ? value.radialMenuRecipeId : null,
+    ),
+    edgeRecipeFollowsDisplayMode: normalizeEdgeRecipeFollowsDisplayMode(
+      isRecord(value) ? value.edgeRecipeFollowsDisplayMode : null,
     ),
     workspaceRestorePersistence: policy.workspaceRestorePersistence,
     viewSettingsPersistence: policy.viewSettingsPersistence,

@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-05-22 10:54:37: Marked `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock` shipped after adding the persisted edge-follow preference, center radial-menu lock affordance, follow-versus-preserve display-mode recipe behavior, and focused proof.
+26. 2026-05-22 10:34:07: Marked `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock` implementation-ready after naming `edgeRecipeFollowsDisplayMode` as the UI preference owner and routing the first code cut through the shared display-mode recipe helper, UI prefs persistence, `useViewerDisplayModeMenu`, and Square/Circle radial menu rendering.
+25. 2026-05-22 10:31:12: Added `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock` as the next planned radial-menu behavior lane for a center lock button that decides whether display-mode changes apply their edge preset recipe or preserve the user's current edge choice.
+24. 2026-05-21 23:48:05: Recorded the Circle center hit-test fix that layers the inner edge controls above the large masked outer wedge buttons.
+23. 2026-05-21 23:29:14: Recorded the Circle interaction simplification that keeps the pie-slice visuals but returns outside visual-style wedges to direct click-and-close behavior.
 22. 2026-05-21 23:25:53: Recorded the Circle outer-button border polish that adds pie-sector rim highlights and changes the outer guide ring from pink to a smaller blue ring.
 21. 2026-05-21 23:19:48: Recorded the Circle outer-label refinement that stacks each short/full visual-style label pair inside one counter-rotated wedge label group.
 20. 2026-05-21 23:08:11: Recorded the Circle outer-ring thickness refinement that keeps the outside diameter while reducing the inner cutout so labels fit better inside the pie sectors.
@@ -98,6 +103,7 @@ Add a Settings workspace radial-menu section with a ParaSelect preset control wh
 - Circle interaction rules that keep the outside layer direction-based and the inside layer click-based
 - boundaries between radial-menu behavior preferences and live view-setting state
 - follow-up routing for radial-menu recipe consumption and inventory cleanup
+- a center edge-recipe follow-lock affordance that controls whether display-mode changes also apply display-mode edge recipes
 
 #### Does Not Own
 
@@ -117,6 +123,7 @@ Add a Settings workspace radial-menu section with a ParaSelect preset control wh
 - Phase 4 is shipped: Circle outer visual-style choices are direction-based while inner edge choices remain click-based.
 - Circle outer-ring visual polish is shipped: the six outside visual-style buttons are thickened clipped annular pie-slice sectors with stacked short/full labels.
 - Phase 5 is next: close the first Settings-backed recipe model with shipped recipe inventory and follow-up routing.
+- Phase 6 is shipped: the center edge-recipe follow-lock button is backed by `edgeRecipeFollowsDisplayMode`, so display-mode changes can either follow display-mode edge recipes or preserve the current edge preset.
 - Future doc exists at `Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`.
 
 ## Current Shipped References

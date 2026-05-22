@@ -30,6 +30,7 @@ describe('SettingsSurface', () => {
       workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
       radialMenuRecipeId: DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
+      edgeRecipeFollowsDisplayMode: true,
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
       environmentPersistence: true,

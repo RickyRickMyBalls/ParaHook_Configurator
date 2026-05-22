@@ -61,6 +61,13 @@ function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
           {style}
         </button>
       ))}
+      <button
+        type="button"
+        aria-pressed={menu.edgeRecipeFollowsDisplayMode}
+        onClick={menu.toggleEdgeRecipeFollowLock}
+      >
+        edgeLock
+      </button>
       <button type="button" onClick={menu.close}>
         Close
       </button>
@@ -272,6 +279,134 @@ describe('useViewerDisplayModeMenu', () => {
 
     expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
     expect(useUiPrefsStore.getState().view.wireframe).toBe(false)
+    expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
+  })
+
+  it('applies surface visibility as part of display mode recipes', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const wireframeButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'wireframe',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      wireframeButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces.visible).toBe(false)
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('xray')
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const materialButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'material',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      materialButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces.visible).toBe(true)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+    })
+  })
+
+  it('preserves the current edge recipe on display mode changes while the edge follow lock is off', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+    useUiPrefsStore.getState().setView({
+      displayMode: 'material',
+      edgeDisplayMode: 'on',
+      geometryDisplay: {
+        ...useUiPrefsStore.getState().view.geometryDisplay,
+        surfaces: {
+          ...useUiPrefsStore.getState().view.geometryDisplay.surfaces,
+          visible: true,
+        },
+        edges: {
+          ...useUiPrefsStore.getState().view.geometryDisplay.edges,
+          preset: 'hiddenLine',
+          mode: 'all',
+          depthMode: 'xray',
+          hiddenEdges: true,
+          lineStyle: 'dashed',
+        },
+      },
+    })
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const edgeLockButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'edgeLock',
+    ) as HTMLButtonElement | undefined
+
+    expect(edgeLockButton?.getAttribute('aria-pressed')).toBe('true')
+
+    act(() => {
+      edgeLockButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().edgeRecipeFollowsDisplayMode).toBe(false)
+
+    const solidButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'solid',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      solidButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('solid')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces.visible).toBe(true)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+    })
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).toBeNull()
   })
 

@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+304. 2026-05-22 00:12:51: Added `Summary 4` to the `### Doc Stats` section using a fresh read-only Markdown scan under `/20/parahook/docs`, updating the non-`/archive/` versus `/archive/` file and raw-line totals to today's counts while preserving the older summaries for comparison.
 303. 2026-05-21 21:05:45: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md` to the docs map and refreshed the Visual Style Menu generation index so Settings-backed radial-menu recipe presets have a dedicated future planning surface.
 302. 2026-05-21 20:59:19: Added the new `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/` subtree to the docs map, listing the Visual Style Menu vision and Generation 1 index so `Shift+D` radial-menu ownership and future visual-style menu cleanup are discoverable under Model Viewport.
 301. 2026-05-21 14:47:01: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so the new Surfaces / Edges / Points render-display planning ladder is discoverable.
@@ -671,6 +672,15 @@ Rule notes:
 
 
 ### Doc Stats
+
+#### Summary 4 (`2026-05-22`)
+
+- Root scanned: `/20/parahook/docs`
+- Count method: `raw line count per Markdown file (.md/.MD)`
+- Non-/archive/ files: `622`
+- Non-/archive/ total lines: `290,437`
+- Source code size (`/20/parahook/src`, `.ts/.tsx/.js/.jsx/.css/.scss/.json`): `664` files, `383,811` raw lines
+
 
 #### Summary 3 (`2026-05-12`)
 

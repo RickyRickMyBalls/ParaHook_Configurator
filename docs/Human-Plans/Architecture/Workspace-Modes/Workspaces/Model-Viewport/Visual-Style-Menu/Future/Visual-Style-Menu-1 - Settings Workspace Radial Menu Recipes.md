@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+26. 2026-05-22 10:54:37: Implemented and closed `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock` with a persisted `edgeRecipeFollowsDisplayMode` UI preference, a center radial-menu lock button, display-mode recipe preserve-edge behavior while unlocked, and focused store/persistence/hook/menu proof.
+25. 2026-05-22 10:34:07: Prepped `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock` for implementation by grounding the center lock button in the live UI prefs persistence path, the shared display-mode recipe helper, the `useViewerDisplayModeMenu` action seam, and the Square/Circle radial menu DOM so the phase can add follow-versus-preserve behavior without blocking manual edge edits.
+24. 2026-05-22 10:31:12: Added `Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock` to plan a tiny center lock affordance that lets display-mode changes either follow the display-mode edge recipe or preserve the user's current edge preset.
+23. 2026-05-21 23:48:05: Fixed Circle center hit testing by layering the center edge cluster above the masked outer wedge buttons while preserving the current visuals and click behavior.
+22. 2026-05-21 23:29:14: Returned Circle outer visual-style wedges to normal direct click-and-close behavior while keeping the pie-slice visuals and center edge click behavior.
 21. 2026-05-21 23:25:53: Refined the Circle outer wedge presentation with button-like radial/conic border highlights, a subtle label shadow, and a smaller blue guide ring replacing the louder pink ring.
 20. 2026-05-21 23:19:48: Refined Circle outer wedge labels by wrapping each short/full visual-style label pair in one counter-rotated stacked text group so side wedges render on two lines instead of collapsing into one string.
 19. 2026-05-21 23:08:11: Thickened the Circle outer annular pie sectors by reducing the inner cutout while keeping the same outer diameter, giving the outside visual-style labels more room inside each wedge.
@@ -166,6 +171,18 @@ In the `Circle` preset, the center cluster should read as a true radial control:
 - [ ] Document the shipped recipe list and any deferred recipes.
 - [ ] Leave full custom radial-menu editing for a later family phase.
 - [ ] `HLG 2. Edge choices in the menu should match the real Geometry Display recipes users can tune in Properties.`
+
+### `Visual-Style-Menu-1 / Phase 6`
+
+- [x] Add a tiny lock/unlock button in the center of the `Shift+D` radial menu.
+- [x] Treat the lock as "edge preset follows display-mode recipe" rather than "edge controls are disabled."
+- [x] Default the follow lock to enabled so display-mode recipes continue applying their edge recipe by default.
+- [x] When the follow lock is enabled, display-mode changes apply the display-mode recipe for surfaces and edges.
+- [x] When the follow lock is disabled, display-mode changes apply the display-mode recipe for non-edge presentation while preserving the user's current edge preset/settings.
+- [x] Keep direct edge preset changes available regardless of lock state.
+- [x] Keep Properties `Render > Geometry Display` as the detailed edge tuning owner.
+- [x] `HLG 2. Edge choices in the menu should match the real Geometry Display recipes users can tune in Properties.`
+- [x] `HLG 3. The menu should stay fast and rebuild-free, while Properties remains the detailed tuning surface.`
 
 ## [x] `Visual-Style-Menu-1 / Phase 1` - `Settings Radial Menu Recipe Select`
 
@@ -697,3 +714,134 @@ Close the first family phase by documenting the shipped `Square` and `Circle` re
 #### Done Shape
 
 Phase 5 is done when the first Settings-backed recipe model is documented, tested, and ready for the next Visual Style Menu family phase to build on.
+
+## [x] `Visual-Style-Menu-1 / Phase 6` - `Edge Recipe Follow Lock`
+
+### Phase 6 Summary
+
+#### Purpose
+
+Add a small center lock button to the `Shift+D` radial menu that controls only what happens when the user changes display mode.
+
+The lock means "edges follow display-mode recipes." It does not prevent the user from changing edges manually.
+
+#### Owns
+
+- a tiny lock/unlock affordance in the center of the radial menu
+- persisted or view-presentation preference state for whether edge recipes follow display-mode changes
+- display-mode recipe application behavior when the follow lock is enabled
+- preserving current edge preset/settings when the follow lock is disabled
+- focused proof that manual edge changes still work in both lock states
+
+#### Does Not Own
+
+- disabling or blocking the center edge preset buttons
+- moving detailed edge controls out of Properties `Render`
+- changing Geometry Display edge recipe definitions themselves
+- changing graph, build, export, or model geometry truth
+- adding custom display-mode recipe authoring
+
+#### Current Live Read
+
+- `createDisplayModeViewPatch(...)` in `src/shared/viewSettingsTypes.ts` is the current shared display-mode recipe helper.
+- `useViewerDisplayModeMenu(...)` applies display-mode and edge actions for the `Shift+D` menu.
+- `ViewerHost.tsx` renders the Square and Circle radial menu surfaces and already has a center edge-control region.
+- Properties `Render` applies the same display-mode recipe helper and remains the detailed read/write surface for Geometry Display surfaces and edges.
+- The recent display-mode recipe passes made `Wireframe` surfaces-off with xray edges and `Material` surfaces-on with Hidden Line edges.
+
+#### Behavior Contract
+
+1. Follow lock enabled:
+   - changing display mode applies the display-mode recipe edge preset
+   - examples:
+     - `Material` applies Hidden Line edges
+     - `Wireframe` applies xray/all edges and hides surfaces
+   - manual edge changes still work after the display-mode change
+2. Follow lock disabled:
+   - changing display mode does not change the current edge preset/settings
+   - manual edge changes still work
+   - display mode can still change surfaces, render style, and other non-edge recipe-owned presentation settings
+3. Toggling the lock should not immediately rewrite the current edge preset by itself.
+4. The lock readback should communicate follow behavior, not editability.
+
+#### Implementation Direction
+
+1. Add a narrowly named UI preference field: `edgeRecipeFollowsDisplayMode`.
+2. Default it to `true`.
+3. Persist and normalize the field beside `radialMenuRecipeId` in the UI prefs persistence path.
+4. Add `setEdgeRecipeFollowsDisplayMode(...)` to `useUiPrefsStore`.
+5. Add a history-wrapped setter only if Phase 6 exposes the value in Settings. The narrow first cut can keep the setter direct from the radial-menu button.
+6. Extend `createDisplayModeViewPatch(...)` with an options object such as `{ includeEdgeRecipe?: boolean }`, defaulting to `true`.
+7. When `includeEdgeRecipe` is `true`, keep the current behavior:
+   - display-mode recipe writes display mode
+   - display-mode recipe writes surfaces
+   - display-mode recipe writes the recipe-owned edge preset/settings
+8. When `includeEdgeRecipe` is `false`, display-mode recipe writes display mode and surfaces but preserves:
+   - `edgeDisplayMode`
+   - `geometryDisplay.edges`
+9. Update `useViewerDisplayModeMenu.selectDisplayMode(...)` to pass `includeEdgeRecipe: edgeRecipeFollowsDisplayMode`.
+10. Leave Properties `Render` using the default include-edge behavior for now unless a later phase explicitly adds the same lock there.
+11. Render a center lock button with clear locked/unlocked icon states for both Square and Circle layouts.
+12. Keep edge preset buttons routed through the existing edge action path.
+
+#### Exact First Code Cut
+
+1. `src/app/store/uiPrefsStore.ts`
+   - add `edgeRecipeFollowsDisplayMode: boolean`
+   - default it to `true`
+   - add `setEdgeRecipeFollowsDisplayMode(value: boolean): void`
+2. `src/app/store/uiPrefsPersistence.ts`
+   - add the boolean to `PersistedUiPrefsState`
+   - serialize it beside `radialMenuRecipeId`
+   - normalize unknown persisted values to `true`
+3. `src/app/store/useUiPrefsPersistenceBridge.ts`
+   - hydrate, merge, and write the new field through the same route as `radialMenuRecipeId`
+4. `src/shared/viewSettingsTypes.ts`
+   - change `createDisplayModeViewPatch(...)` to accept an optional include-edge flag
+   - preserve current edge settings when the flag is false
+   - keep default behavior unchanged for existing callers
+5. `src/app/useViewerDisplayModeMenu.ts`
+   - read `edgeRecipeFollowsDisplayMode`
+   - pass the include-edge flag when selecting display modes
+   - expose lock state and toggle action in `ViewerDisplayModeMenuState`
+6. `src/app/components/ViewerHost.tsx`
+   - render a center lock button inside `ViewportDisplayModeMenuCenter`
+   - use an icon-style affordance rather than a text-heavy label
+   - keep the existing four edge buttons clickable around it
+7. `src/app/theme/surfaces/viewport-overlay.css`
+   - position the lock button in the exact center for Square and Circle layouts
+   - avoid covering the existing edge quarter controls in Circle
+8. Focused tests:
+   - `src/app/store/uiPrefsStore.test.ts`
+   - `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+   - `src/app/useViewerDisplayModeMenu.test.tsx`
+   - `src/app/components/ViewerHost.test.tsx`
+
+#### Acceptance Read
+
+- The radial menu shows a center lock/unlock button.
+- With the lock enabled, changing from Material to Solid applies Solid's edge recipe.
+- With the lock disabled, changing from Material to Solid preserves the user's current edge preset/settings.
+- Changing edge presets manually still works while locked and while unlocked.
+- The behavior is covered by focused `Shift+D` menu tests and at least one shared recipe/helper test.
+
+#### Verification Shape
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx -t "edge recipe|radial menu|persistence"`
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx src/app/components/ViewerHost.test.tsx -t "display mode|edge recipe|lock|Shift\\+D"`
+- `npm.cmd run build`
+- `git diff --check`
+
+#### Done Shape
+
+Phase 6 is done when the lock button is visible in the radial menu, persisted as a UI preference, and proven to control only display-mode edge-recipe following while leaving manual edge preset edits available.
+
+#### Implementation Result
+
+Implemented on 2026-05-22.
+
+- Added the persisted `edgeRecipeFollowsDisplayMode` UI preference, defaulting to enabled.
+- Added the radial-menu center lock button with locked/unlocked readback.
+- Kept manual edge preset buttons active regardless of lock state.
+- Let display-mode changes include edge recipes while locked and preserve current edge settings while unlocked.
+- Proved the behavior through focused store, persistence, hook, and `ViewerHost` tests.

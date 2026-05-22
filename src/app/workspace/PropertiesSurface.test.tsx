@@ -1870,6 +1870,8 @@ describe('PropertiesSurface', () => {
     })
 
     expect(useUiPrefsStore.getState().view.displayMode).toBe('wireframe')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces.visible).toBe(false)
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('xray')
     expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
     expect(useUiPrefsStore.getState().view.renderPreview).toEqual(
       DEFAULT_RENDER_PREVIEW_SETTINGS,
@@ -1885,12 +1887,32 @@ describe('PropertiesSurface', () => {
     const standardView = useUiPrefsStore.getState().view
     expect(standardView.viewportStyle).toBe('standard')
     expect(standardView.displayMode).toBe('wireframe')
+    expect(standardView.geometryDisplay.surfaces.visible).toBe(false)
     expect(standardView.environmentGrade).toEqual(DEFAULT_VIEW_SETTINGS.environmentGrade)
     expect(standardView.shadowsEnabled).toBe(DEFAULT_VIEW_SETTINGS.shadowsEnabled)
     expect(standardView.ground).toEqual(DEFAULT_VIEW_SETTINGS.ground)
     expect(standardView.gridVisible).toBe(DEFAULT_VIEW_SETTINGS.gridVisible)
     expect(standardView.gridPresentation).toEqual(DEFAULT_VIEW_SETTINGS.gridPresentation)
     expect(standardView.postProcessing).toEqual(DEFAULT_VIEW_SETTINGS.postProcessing)
+
+    await act(async () => {
+      if (displayModeSelect !== null) {
+        displayModeSelect.value = 'material'
+        displayModeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const materialView = useUiPrefsStore.getState().view
+    expect(materialView.displayMode).toBe('material')
+    expect(materialView.geometryDisplay.surfaces.visible).toBe(true)
+    expect(materialView.edgeDisplayMode).toBe('on')
+    expect(materialView.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+    })
   })
 
   it('applies built-in render preset values without disturbing other Render controls', async () => {

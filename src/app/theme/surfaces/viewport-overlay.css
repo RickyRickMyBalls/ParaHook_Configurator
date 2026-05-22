@@ -3103,6 +3103,7 @@
   mask-image: radial-gradient(circle, transparent 0 121px, #000 122px 226px, transparent 227px);
   pointer-events: none;
   filter: drop-shadow(0 0 5px rgba(82, 156, 246, 0.26));
+  z-index: 0;
 }
 
 .ViewportDisplayModeMenuSpacerRing {
@@ -3121,6 +3122,7 @@
     inset 0 0 18px rgba(121, 151, 218, 0.08),
     0 0 24px rgba(0, 0, 0, 0.18);
   pointer-events: none;
+  z-index: 1;
 }
 
 .ViewportDisplayModeMenuCenter {
@@ -3144,6 +3146,7 @@
   box-shadow:
     0 16px 34px rgba(0, 0, 0, 0.32),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  z-index: 3;
 }
 
 .ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuCenter {
@@ -3208,6 +3211,69 @@
   color: #eafffb;
 }
 
+.ViewportDisplayModeMenuEdgeLock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(135, 159, 220, 0.42);
+  border-radius: 999px;
+  background: rgba(10, 13, 20, 0.94);
+  color: rgba(224, 232, 250, 0.92);
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  z-index: 4;
+}
+
+.ViewportDisplayModeMenuEdgeLock:hover,
+.ViewportDisplayModeMenuEdgeLock:focus-visible {
+  border-color: rgba(151, 181, 255, 0.72);
+  outline: none;
+}
+
+.ViewportDisplayModeMenuEdgeLock.isLocked {
+  border-color: rgba(255, 188, 124, 0.92);
+  background: linear-gradient(180deg, rgba(78, 64, 45, 0.98), rgba(38, 31, 24, 0.98));
+  color: #fff7ef;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.34),
+    0 0 16px rgba(255, 188, 124, 0.2),
+    inset 0 1px 0 rgba(255, 244, 230, 0.14);
+}
+
+.ViewportDisplayModeMenuEdgeLockIcon {
+  position: relative;
+  width: 12px;
+  height: 11px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  transform: translateY(2px);
+}
+
+.ViewportDisplayModeMenuEdgeLockIcon::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  width: 8px;
+  height: 7px;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  transform: translateX(-50%);
+}
+
+.ViewportDisplayModeMenuEdgeLock.isUnlocked .ViewportDisplayModeMenuEdgeLockIcon::before {
+  left: calc(50% + 4px);
+  bottom: 8px;
+  transform: translateX(-50%) rotate(24deg);
+}
+
 .ViewportDisplayModeMenuItem {
   --display-mode-angle: calc(
     -90deg + (360deg / var(--display-mode-item-count)) * var(--display-mode-item-index)
@@ -3263,6 +3329,7 @@
   box-shadow: none;
   color: rgba(221, 229, 247, 0.88);
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.28));
+  z-index: 2;
 }
 
 .ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItem:hover,
