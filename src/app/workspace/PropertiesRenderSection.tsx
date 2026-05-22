@@ -55,6 +55,7 @@ import {
   createRenderPreviewQualityPresetSettings,
   createRenderPresetViewPatch,
   createViewAmbientOcclusionPresetSettings,
+  geometryDisplayEdgeModeToViewEdgeDisplayMode,
   isViewAmbientOcclusionPreset,
   isViewAmbientOcclusionType,
   isViewDisplayMode,
@@ -224,15 +225,12 @@ const renderPresetOptions = VIEW_RENDER_PRESET_OPTIONS.map((value) => ({
 }))
 
 const geometryDisplayEdgePresetOptions: Array<{
-  value: ViewGeometryDisplayEdgePresetRead
+  value: Exclude<ViewGeometryDisplayEdgePresetRead, 'custom'>
   label: string
-}> = [
-  ...VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS.map((value) => ({
-    value,
-    label: GEOMETRY_DISPLAY_EDGE_PRESET_LABELS[value],
-  })),
-  { value: 'custom', label: GEOMETRY_DISPLAY_EDGE_PRESET_LABELS.custom },
-]
+}> = VIEW_GEOMETRY_DISPLAY_EDGE_PRESETS.map((value) => ({
+  value,
+  label: GEOMETRY_DISPLAY_EDGE_PRESET_LABELS[value],
+}))
 
 const geometryDisplayEdgeDepthOptions = VIEW_GEOMETRY_DISPLAY_EDGE_DEPTH_MODES.map((value) => ({
   value,
@@ -416,13 +414,23 @@ function PropertiesRenderSectionContent() {
 
   const updateGeometryDisplay = (patch: Partial<ViewGeometryDisplaySettings>) => {
     const currentGeometryDisplay = useUiPrefsStore.getState().view.geometryDisplay
-    setViewKey('geometryDisplay', {
+    const nextGeometryDisplay = {
       ...currentGeometryDisplay,
       ...patch,
       surfaces: patch.surfaces ?? currentGeometryDisplay.surfaces,
       edges: patch.edges ?? currentGeometryDisplay.edges,
       points: patch.points ?? currentGeometryDisplay.points,
-    })
+    }
+
+    if (patch.edges !== undefined) {
+      setView({
+        geometryDisplay: nextGeometryDisplay,
+        edgeDisplayMode: geometryDisplayEdgeModeToViewEdgeDisplayMode(nextGeometryDisplay.edges.mode),
+      })
+      return
+    }
+
+    setViewKey('geometryDisplay', nextGeometryDisplay)
   }
 
   const updateSurfaceVisibility = (value: string) => {
@@ -1081,7 +1089,9 @@ function PropertiesRenderSectionContent() {
               <div className="SettingsSurfaceEditorField PropertiesRenderControl">
                 <ParaSelect
                   label="Edge Preset"
-                  value={geometryDisplayEdgePresetRead}
+                  value={geometryDisplay.edges.preset}
+                  displayedValue={geometryDisplayEdgePresetRead}
+                  displayedLabel={GEOMETRY_DISPLAY_EDGE_PRESET_LABELS[geometryDisplayEdgePresetRead]}
                   options={geometryDisplayEdgePresetOptions}
                   onChange={updateEdgePreset}
                   menuMode="custom"

@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+204. 2026-05-21 20:38:33: Recorded `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` as shipped with reusable `ParaSelect` readback display support and fixed Properties Edge Preset `Off` interaction, advancing the current Geometry Display handoff back to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
+203. 2026-05-21 19:53:12: Added `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` as the current Geometry Display handoff before point styling so `Custom` can be a readback-only edge preset display state without staying in the selectable recipe list.
 202. 2026-05-21 19:12:16: Recorded `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` as shipped with read-only `Custom` recipe-drift readback for edge presets, advancing the current Geometry Display handoff to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
 201. 2026-05-21 18:58:22: Prepped `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` as the current Geometry Display handoff, keeping `Custom` read-only and matching built-in edge recipes from mode, depth, hidden-edge visibility, and hidden-edge line style rather than broad style tuning fields.
 200. 2026-05-21 18:55:19: Recorded `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` as shipped with editable edge depth, hidden-edge visibility, hidden-edge line style, and viewer hidden-edge overlays driven by recipe settings, advancing the current Geometry Display handoff to Phase 5.5 custom readback.
@@ -1122,6 +1124,7 @@ The right mental model is:
     - `Properties-6 / Phase 5.3 - Hidden Line Styling And Recipe Prep` - shipped hidden-line color, opacity, dash length, and gap length controls
     - `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` - shipped editable edge depth, hidden-edge visibility, and hidden-edge line style
     - `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` - shipped read-only Custom readback for edge recipe drift
+    - `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` - shipped reusable select/readback cleanup so Custom displays only when true and built-ins remain selectable
     - `Properties-6 / Phase 6 - Point Visibility And Default Style`
     - `Properties-6 / Phase 7 - Point Hover And Highlight Styles`
     - `Properties-6 / Phase 8 - Wireframe And Clay Studio Recipe Integration`

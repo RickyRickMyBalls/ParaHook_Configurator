@@ -433,7 +433,7 @@ describe('uiPrefsStore environment source state', () => {
         color: DEFAULT_VIEW_SETTINGS.geometryDisplay.edges.hiddenLine.color,
         opacity: 1,
         dashSize: 0.01,
-        gapSize: 1,
+        gapSize: 10,
       },
     })
     expect(hiddenLineView.edgeDisplayMode).toBe('on')

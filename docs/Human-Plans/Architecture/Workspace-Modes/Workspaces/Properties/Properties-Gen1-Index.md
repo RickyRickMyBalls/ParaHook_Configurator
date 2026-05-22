@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+84. 2026-05-21 20:38:33: Marked `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` shipped after `ParaSelect` gained readback display-label support, `Custom` left the normal Edge Preset choices, and Properties edge writes started syncing the legacy edge display mode bridge so `Off` remains reachable.
+83. 2026-05-21 19:53:12: Added and prepped `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` as the next Geometry Display handoff before point work so `Custom` can display only as edge preset readback while `Off`, `Visible Only`, `Xray`, and `Hidden Line` remain the selectable recipe list.
 82. 2026-05-21 19:12:16: Marked `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` shipped after adding a read-only `Custom` edge preset state for recipe drift, keeping saved presets built-in-only, and advancing the Geometry Display handoff to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
 81. 2026-05-21 18:58:22: Prepped `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` against the shipped Phase 5.4 edge recipe settings, choosing a read-only `Custom` state based on mode, depth, hidden-edge visibility, and hidden-edge line style while keeping color, opacity, dash/gap tuning, and saved custom render presets out of the first recipe signature.
 80. 2026-05-21 18:55:19: Marked `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` shipped after adding saved hidden-edge visibility and line-style settings, restoring `Edge Depth`, adding conditional `Hidden Edges` and `Line Style` controls, and routing viewer hidden-edge overlays through those recipe settings.
@@ -343,6 +345,9 @@ Current Properties-6 Phase 5.N follow-up read:
 - `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` shipped `Custom` as a read-only selector state derived from mode, depth, hidden-edge visibility, and hidden-edge line style.
 - Phase 5.5 keeps saved `geometryDisplay.edges.preset` limited to built-in presets and treats selecting `Custom` as a no-op.
 - Edge color, opacity, hidden-edge color, dash/gap, hover, and selected styling do not force `Custom` in the first readback signature.
+- `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` shipped reusable `ParaSelect` readback display-label support so values such as `Custom` can display without becoming selectable/cyclable options.
+- Edge Preset selectable recipes now stay limited to `Off`, `Visible Only`, `Xray`, and `Hidden Line`, with `Custom` shown only when the current settings no longer match a built-in recipe.
+- Properties edge writes now sync the legacy `edgeDisplayMode` bridge so `Off` is not overwritten by stale compatibility state.
 - `Properties-6 / Phase 6 - Point Visibility And Default Style` is the next Geometry Display handoff.
 
 Current Properties-3 Phase 2 prep read:

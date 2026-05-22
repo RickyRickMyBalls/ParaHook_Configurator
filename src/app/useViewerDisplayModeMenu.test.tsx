@@ -28,7 +28,12 @@ const displayModeOptions: ViewDisplayMode[] = [
   'rendered',
   'renderPreview',
 ]
-const edgeDisplayModeOptions: ViewEdgeDisplayMode[] = ['on', 'off', 'visibleEdgesOnly']
+const edgeDisplayModeOptions: Array<ViewEdgeDisplayMode | 'hiddenLine'> = [
+  'on',
+  'off',
+  'visibleEdgesOnly',
+  'hiddenLine',
+]
 const viewportStyleOptions: ViewportStyle[] = ['clayStudio']
 
 function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
@@ -221,6 +226,41 @@ describe('useViewerDisplayModeMenu', () => {
     })
 
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).not.toBeNull()
+  })
+
+  it('selects the Hidden Line edge preset without closing the display mode menu', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const hiddenLineButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'hiddenLine',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      hiddenLineButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+    })
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).not.toBeNull()
   })
 

@@ -2701,7 +2701,6 @@ describe('PropertiesSurface', () => {
       'visibleOnly',
       'xray',
       'hiddenLine',
-      'custom',
     ])
 
     await act(async () => {
@@ -2803,6 +2802,9 @@ describe('PropertiesSurface', () => {
     const edgePresetSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
     ) as HTMLSelectElement | null
+    const edgePresetButton = container?.querySelector(
+      '.PropertiesRenderSection button.ParaSelectTrackButton[aria-label="Edge Preset"]',
+    ) as HTMLButtonElement | null
 
     expect(edgePresetSelect?.value).toBe('off')
     expect(container?.textContent).not.toContain('Edge Opacity')
@@ -2860,7 +2862,8 @@ describe('PropertiesSurface', () => {
       }
     })
 
-    expect(edgePresetSelect?.value).toBe('custom')
+    expect(edgePresetSelect?.value).toBe('xray')
+    expect(edgePresetButton?.textContent).toContain('Custom')
     expect(container?.textContent).not.toContain('Hidden Edges')
 
     await act(async () => {
@@ -2871,6 +2874,7 @@ describe('PropertiesSurface', () => {
     })
 
     expect(edgePresetSelect?.value).toBe('xray')
+    expect(edgePresetButton?.textContent).toContain('Xray')
 
     await act(async () => {
       if (edgeColorInput !== null) {
@@ -2997,6 +3001,9 @@ describe('PropertiesSurface', () => {
     const edgePresetSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
     ) as HTMLSelectElement | null
+    const edgePresetButton = container?.querySelector(
+      '.PropertiesRenderSection button.ParaSelectTrackButton[aria-label="Edge Preset"]',
+    ) as HTMLButtonElement | null
 
     await act(async () => {
       if (edgePresetSelect !== null) {
@@ -3019,19 +3026,19 @@ describe('PropertiesSurface', () => {
       }
     })
 
-    expect(edgePresetSelect?.value).toBe('custom')
+    expect(edgePresetSelect?.value).toBe('hiddenLine')
+    expect(edgePresetButton?.textContent).toContain('Custom')
     expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('hiddenLine')
     expect(useUiPrefsStore.getState().view.geometryDisplay.edges.lineStyle).toBe('solid')
 
     await act(async () => {
-      if (edgePresetSelect !== null) {
-        edgePresetSelect.value = 'custom'
-        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      }
+      edgePresetButton?.click()
     })
 
-    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('hiddenLine')
-    expect(edgePresetSelect?.value).toBe('custom')
+    expect(
+      Array.from(container?.querySelectorAll('.PropertiesRenderSection .ParaSelectMenuOption') ?? [])
+        .map((option) => option.textContent),
+    ).toEqual(['Off', 'Visible Only', 'Xray', 'Hidden Line'])
 
     await act(async () => {
       if (edgePresetSelect !== null) {
@@ -3045,6 +3052,127 @@ describe('PropertiesSurface', () => {
       preset: 'visibleOnly',
       mode: 'visibleOnly',
       depthMode: 'surface',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+    })
+  })
+
+  it('keeps Custom out of Edge Preset choices while Off remains reachable', async () => {
+    await renderSurface()
+
+    const edgePresetSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Edge Preset"]',
+    ) as HTMLSelectElement | null
+    let edgePresetButton = container?.querySelector(
+      '.PropertiesRenderSection button.ParaSelectTrackButton[aria-label="Edge Preset"]',
+    ) as HTMLButtonElement | null
+    let previousEdgePresetButton: HTMLButtonElement | null = null
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'visibleOnly'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    edgePresetButton = container?.querySelector(
+      '.PropertiesRenderSection button.ParaSelectTrackButton[aria-label="Edge Preset"]',
+    ) as HTMLButtonElement | null
+    previousEdgePresetButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Previous Edge Preset"]',
+    ) as HTMLButtonElement | null
+
+    expect(edgePresetButton?.textContent).toContain('Visible Only')
+    expect(previousEdgePresetButton).not.toBeNull()
+    expect(previousEdgePresetButton?.disabled).toBe(false)
+    expect(container?.textContent).toContain('Edge Opacity')
+
+    await act(async () => {
+      previousEdgePresetButton?.click()
+    })
+
+    expect(edgePresetSelect?.value).toBe('off')
+    expect(edgePresetButton?.textContent).toContain('Off')
+    expect(container?.textContent).not.toContain('Edge Opacity')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'off',
+      mode: 'off',
+      depthMode: 'xray',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+    })
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'hiddenLine'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      edgePresetButton?.click()
+    })
+
+    let menuOptions = Array.from(
+      container?.querySelectorAll('.PropertiesRenderSection .ParaSelectMenuOption') ?? [],
+    ) as HTMLButtonElement[]
+    expect(menuOptions.map((option) => option.textContent)).toEqual([
+      'Off',
+      'Visible Only',
+      'Xray',
+      'Hidden Line',
+    ])
+
+    await act(async () => {
+      menuOptions.find((option) => option.textContent === 'Off')?.click()
+    })
+
+    expect(edgePresetSelect?.value).toBe('off')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.mode).toBe('off')
+
+    await act(async () => {
+      if (edgePresetSelect !== null) {
+        edgePresetSelect.value = 'hiddenLine'
+        edgePresetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    let lineStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Line Style"]',
+    ) as HTMLSelectElement | null
+
+    await act(async () => {
+      if (lineStyleSelect !== null) {
+        lineStyleSelect.value = 'solid'
+        lineStyleSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(edgePresetSelect?.value).toBe('hiddenLine')
+    expect(edgePresetButton?.textContent).toContain('Custom')
+
+    await act(async () => {
+      edgePresetButton?.click()
+    })
+
+    menuOptions = Array.from(
+      container?.querySelectorAll('.PropertiesRenderSection .ParaSelectMenuOption') ?? [],
+    ) as HTMLButtonElement[]
+    expect(menuOptions.map((option) => option.textContent)).not.toContain('Custom')
+
+    await act(async () => {
+      menuOptions.find((option) => option.textContent === 'Off')?.click()
+    })
+
+    lineStyleSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Line Style"]',
+    ) as HTMLSelectElement | null
+    expect(edgePresetSelect?.value).toBe('off')
+    expect(edgePresetButton?.textContent).toContain('Off')
+    expect(lineStyleSelect).toBeNull()
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'off',
+      mode: 'off',
       hiddenEdges: false,
       lineStyle: 'solid',
     })

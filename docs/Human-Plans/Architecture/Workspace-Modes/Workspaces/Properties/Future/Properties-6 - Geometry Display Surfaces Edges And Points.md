@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-05-21 20:38:33: Implemented and closed `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` by adding reusable `ParaSelect` display-label support for readback values outside the selectable option list, removing `Custom` from normal Edge Preset choices, and syncing Properties edge writes with the legacy `edgeDisplayMode` bridge so `Off` remains reachable from Properties.
+27. 2026-05-21 19:53:12: Added and prepped `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` after the user clarified that `Custom` should only appear as an edge preset readback when settings drift from a built-in recipe, not as a permanent selectable list option, making the next implementation a reusable `ParaSelect` readback/display-value fix before point styling.
 26. 2026-05-21 19:12:16: Implemented and closed `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` with a read-only `Custom` edge preset selector state derived from mode, depth, hidden-edge visibility, and hidden-edge line style, while preserving built-in-only persistence and keeping edge color, opacity, hidden-line dash/gap styling, hover, and selected edits out of the first custom-readback signature.
 25. 2026-05-21 18:58:22: Prepped `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` against the shipped Phase 5.4 recipe settings, narrowing the first implementation to a read-only `Custom` preset state derived from `mode`, `depthMode`, `hiddenEdges`, and `lineStyle` while leaving color, opacity, dash/gap styling, and saved custom render presets out of the first recipe signature.
 24. 2026-05-21 18:55:19: Implemented and closed `Properties-6 / Phase 5.4 - Edge Depth Hidden Edges And Line Style` with saved `hiddenEdges` and `lineStyle` edge settings, restored Properties `Edge Depth`, added conditional `Hidden Edges` and `Line Style` controls, and moved viewer hidden-edge overlays onto the editable recipe settings instead of the `Hidden Line` preset name.
@@ -279,6 +281,20 @@ This should become the bridge from `Wireframe` to `Clay Studio`:
 - [x] Make selecting a built-in preset apply that preset recipe again.
 - [x] Keep `Custom` as a readback state, not a separate saved recipe system.
 - [x] Preserve full saved custom render presets for the later preset handoff phase.
+- [x] `Properties-6-HLG-3`
+- [x] `Properties-6-HLG-6`
+- [x] CLG 2.
+- [x] CLG 5.
+- [x] CLG 6.
+
+### `Properties-6 / Phase 5.6`
+
+- [x] Fix `ParaSelect` so readback-only values such as `Custom` can display without becoming permanent selectable/cyclable options.
+- [x] Keep `Edge Preset` selectable recipes limited to `Off`, `Visible Only`, `Xray`, and `Hidden Line`.
+- [x] Show `Custom` only when the current edge settings do not match a built-in recipe.
+- [x] Make `Off` reachable from Properties by left cap, dropdown/menu, and from `Custom` readback.
+- [x] Add focused proof for `Visible Only -> Off`, `Hidden Line -> Off`, and `Custom -> Off` interactions.
+- [x] Keep this fix reusable for future render, AO, material, and recipe/preset readback selects.
 - [x] `Properties-6-HLG-3`
 - [x] `Properties-6-HLG-6`
 - [x] CLG 2.
@@ -1764,6 +1780,7 @@ Phase 5.5 is done when edge presets behave like editable recipes: built-ins appl
 - Kept `lineStyle` ignored for preset matching while hidden edges are off, so a saved dashed hidden-line value does not force `Custom` when hidden edges are disabled.
 - Added a `Custom` option to Properties `Edge Preset` and made the selector read from the resolver.
 - Kept selecting `Custom` as a no-op, while selecting any built-in preset reapplies that preset's full recipe.
+- Follow-up note: after user review, this first `Custom` option model is too literal. `Custom` should not stay in the selectable/cyclable list all the time; Phase 5.6 owns the reusable select/readback fix.
 - Preserved built-in-only persistence for `geometryDisplay.edges.preset`.
 - Added focused shared/store proof for built-in recipe matching, structural drift, style-only edits, and built-in persistence.
 - Added focused Properties proof for recipe drift reading as `Custom`, built-in re-application exiting `Custom`, and style tuning staying on the current built-in readback.
@@ -1773,6 +1790,127 @@ Phase 5.5 is done when edge presets behave like editable recipes: built-ins appl
 
 - `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts -t "geometry display|edge display mode|wireframe|edited edge preset"`
 - `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|edge display styles|hidden-line edge styles|edited edge preset recipes"`
+- `npm.cmd run build`
+
+## [x] `Properties-6 / Phase 5.6` - `Recipe Select Readback Option Model`
+
+### Phase 5.6 Summary
+
+#### Purpose
+
+Fix the edge preset selector so readback-only recipe states such as `Custom` display when they are true, but do not become permanent selectable recipes.
+
+This phase exists because the Phase 5.5 implementation made `Custom` a normal option in the `Edge Preset` list. That proved the recipe-readback model but created bad interaction behavior: the user can see `Visible Only`, but cannot reliably click the left cap or use the menu to choose `Off` from Properties.
+
+#### Owns
+
+- reusable `ParaSelect` support for a displayed/readback value that is not part of the selectable option list
+- `Edge Preset` option cleanup so only real recipes are selectable
+- `Off` interaction proof from normal and custom readback states
+
+#### Does Not Own
+
+- new edge recipes
+- saved custom render presets
+- broader render-preset custom readback
+- point styling
+- viewer runtime changes, unless a regression proves the wrong setting is being written
+
+### Phase 5.6 Implementation Spec
+
+#### Prep Read
+
+- `ParaSelect` currently uses one `options` array for all behavior:
+  - displayed label lookup
+  - left/right cap cycling
+  - drag handle index mapping
+  - native select options
+  - custom menu options
+- Phase 5.5 added `custom` into `geometryDisplayEdgePresetOptions` so the selector can display `Custom`.
+- `updateEdgePreset('custom')` is intentionally a no-op because `Custom` is not a saved recipe.
+- The screenshot/user report shows `Edge Preset: Visible Only` cannot be moved to `Off` from Properties by the left cap or dropdown/menu.
+- Shift+D can still turn edges off because it bypasses the Properties `ParaSelect` and calls the edge display mode path directly.
+- The disappearing edge setting rows should not block the write; `Off` should write first and then the rows can unmount.
+
+#### Prep Decision
+
+Treat `Custom` as a readback display value, not as an option.
+
+For edge presets, the selectable recipe list is exactly:
+
+- `Off`
+- `Visible Only`
+- `Xray`
+- `Hidden Line`
+
+`Custom` should appear only when the computed readback is `custom`. It should not appear as a normal menu item, cap target, drag target, or saved value.
+
+The reusable `ParaSelect` direction should be one of these shapes:
+
+```tsx
+<ParaSelect
+  value={recipeValue}
+  displayedValue={readbackValue}
+  displayedLabel="Custom"
+  options={recipeOptions}
+/>
+```
+
+or a similar prop that lets the component render a label for a value that is not in `options`.
+
+The important component rule:
+
+- `options` are selectable choices.
+- `displayedValue` / display override is current-state readback.
+- Caps, drag, native select, and menu choose from `options` only.
+- A displayed readback value outside `options` must not prevent choosing any real option.
+
+#### Implementation Direction
+
+Prefer a reusable `ParaSelect` change over an edge-only workaround. Future recipe/preset controls will need the same split between "current settings read as custom" and "these are the recipes the user can choose."
+
+For Phase 5.6, keep the UI simple:
+
+- Do not show `Custom` in the open option list unless the component already supports clearly disabled/status rows.
+- Do show `Custom` in the closed select value area when the readback is custom.
+- If the user is on `Custom` and clicks the left or right cap, move to a real adjacent recipe in a predictable way.
+- If the user is on `Custom` and opens the menu, show only the real recipes and allow `Off`.
+
+#### Exact First Code Cut
+
+1. Update `ParaSelect` props so a caller can provide a display label/value that does not need to exist in `options`.
+2. Keep `selectedOption` for write/cycle behavior based on `options`.
+3. Add a separate displayed option/label resolution for the visible label and fill/readback.
+4. Make left/right caps skip any display-only/readback value and cycle only through selectable `options`.
+5. Make drag and native select choose only selectable `options`.
+6. Remove `custom` from `geometryDisplayEdgePresetOptions`.
+7. Pass the computed edge preset readback as the display override.
+8. Keep `updateEdgePreset` accepting only built-in `ViewGeometryDisplayEdgePreset` values.
+9. Add focused `ParaSelect` proof if there is an existing component test seam, or focused Properties proof if not.
+10. Add focused Properties proof for:
+    - `Visible Only` left cap writes `Off`
+    - dropdown/menu can choose `Off`
+    - `Hidden Line` can choose `Off`
+    - a `Custom` readback can choose `Off`
+    - `Custom` is not listed as a normal recipe option
+11. Run focused Properties proof plus build.
+
+#### Done Shape
+
+Phase 5.6 is done when `Edge Preset` can show `Custom` only as a current readback state, while the user can always choose a real built-in recipe such as `Off` from Properties. The reusable select behavior should be ready for later render-preset, AO-preset, material-recipe, and other custom-readback controls.
+
+#### Shipped Result
+
+- Added `displayedLabel` support to `ParaSelect` so a control can display a readback label even when the readback value is not in the selectable option list.
+- Kept cap cycling, drag behavior, native select values, and custom menu options based on real selectable `options`.
+- Removed `custom` from the normal `Edge Preset` options.
+- Kept `Custom` visible in the closed Edge Preset value when the computed recipe readback is custom.
+- Fixed the Properties edge write path so edge recipe edits also provide the matching legacy `edgeDisplayMode`, preventing normalizer compatibility logic from restoring the old edge mode over a new `Off` recipe.
+- Added focused Properties proof that `Visible Only -> Off`, `Hidden Line -> Off`, and `Custom -> Off` work, and that `Custom` is not listed as a normal recipe option.
+
+#### Verification
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|edge display styles|hidden-line edge styles|edited edge preset recipes|keeps Custom out"`
 - `npm.cmd run build`
 
 ## [ ] `Properties-6 / Phase 6` - `Point Visibility And Default Style`

@@ -14,6 +14,7 @@ type ParaSelectProps = {
   label: string
   value: string
   displayedValue?: string
+  displayedLabel?: string
   options: ParaSelectOption[]
   onChange: (value: string) => void
   menuMode?: 'native' | 'custom'
@@ -54,6 +55,7 @@ export function ParaSelect({
   label,
   value,
   displayedValue,
+  displayedLabel,
   options,
   onChange,
   menuMode = 'native',
@@ -70,10 +72,15 @@ export function ParaSelect({
     options.findIndex((option) => option.value === value),
   )
   const selectedOption = options[selectedIndex] ?? options[0] ?? { value: '', label: '' }
-  const displayedIndex = Math.max(
-    0,
-    options.findIndex((option) => option.value === (displayedValue ?? value)),
-  )
+  const displayedOptionValue = displayedValue ?? value
+  const displayedOptionIndex = options.findIndex((option) => option.value === displayedOptionValue)
+  const displayedIndex = Math.max(0, displayedOptionIndex >= 0 ? displayedOptionIndex : selectedIndex)
+  const displayedOption =
+    displayedOptionIndex >= 0
+      ? options[displayedOptionIndex]
+      : displayedLabel === undefined
+        ? selectedOption
+        : { value: displayedOptionValue, label: displayedLabel }
   const canCycle = options.length > 1
   const selectedFillPercent =
     options.length <= 1 ? 100 : (displayedIndex / Math.max(1, options.length - 1)) * 100
@@ -245,7 +252,7 @@ export function ParaSelect({
           <span className="ParaSelectContent">
             <span className="ParaSelectLabel">{label}</span>
             <span className="ParaSelectValue">
-              <span>{selectedOption.label}</span>
+              <span>{displayedOption.label}</span>
               <span className="ParaSelectChevron">v</span>
             </span>
           </span>
@@ -313,7 +320,7 @@ export function ParaSelect({
           <span className="ParaSelectContent">
             <span className="ParaSelectLabel">{label}</span>
             <span className="ParaSelectValue">
-              <span>{selectedOption.label}</span>
+              <span>{displayedOption.label}</span>
               <span className="ParaSelectChevron">v</span>
             </span>
           </span>

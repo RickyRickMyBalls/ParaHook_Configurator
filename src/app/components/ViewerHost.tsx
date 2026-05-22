@@ -338,13 +338,14 @@ const viewportStyleMenuOptions: Array<{
 ]
 
 const edgeDisplayModeMenuOptions: Array<{
-  mode: ViewEdgeDisplayMode
+  mode: ViewEdgeDisplayMode | 'hiddenLine'
   label: string
   shortLabel: string
 }> = [
   { mode: 'on', label: 'Edges on', shortLabel: 'On' },
   { mode: 'off', label: 'Edges off', shortLabel: 'Off' },
   { mode: 'visibleEdgesOnly', label: 'Visible edges only', shortLabel: 'Only' },
+  { mode: 'hiddenLine', label: 'Hidden line', shortLabel: 'Hidden' },
 ]
 
 const formatExtrudeCommandStepLabel = (step: ExtrudeCommandSession['activeStep']): string =>
@@ -488,6 +489,7 @@ export function ViewerHost(props: ViewerHostProps) {
   const displayModeMenu = useViewerDisplayModeMenu(viewportId)
   const displayMode = useUiPrefsStore((state) => state.view.displayMode)
   const edgeDisplayMode = useUiPrefsStore((state) => state.view.edgeDisplayMode)
+  const edgePreset = useUiPrefsStore((state) => state.view.geometryDisplay.edges.preset)
   const viewportStyle = useUiPrefsStore((state) => state.view.viewportStyle)
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
@@ -2450,10 +2452,20 @@ export function ViewerHost(props: ViewerHostProps) {
                   key={option.mode}
                   type="button"
                   role="menuitemradio"
-                  aria-checked={edgeDisplayMode === option.mode}
+                  aria-checked={
+                    option.mode === 'hiddenLine'
+                      ? edgePreset === 'hiddenLine'
+                      : edgeDisplayMode === option.mode && edgePreset !== 'hiddenLine'
+                  }
                   aria-label={option.label}
                   className={`ViewportDisplayModeMenuEdgeItem ${
-                    edgeDisplayMode === option.mode ? 'isActive' : ''
+                    (
+                      option.mode === 'hiddenLine'
+                        ? edgePreset === 'hiddenLine'
+                        : edgeDisplayMode === option.mode && edgePreset !== 'hiddenLine'
+                    )
+                      ? 'isActive'
+                      : ''
                   }`}
                   onClick={() => displayModeMenu.selectEdgeDisplayMode(option.mode)}
                 >

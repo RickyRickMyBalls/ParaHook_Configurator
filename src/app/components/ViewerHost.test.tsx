@@ -10722,6 +10722,26 @@ describe('ViewerHost reference loading', () => {
     expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
     expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).not.toBeNull()
     expect(visibleEdgesOnlyButton?.getAttribute('aria-checked')).toBe('true')
+
+    const hiddenLineButton = container.querySelector(
+      'button[aria-label="Hidden line"]',
+    ) as HTMLButtonElement | null
+    expect(hiddenLineButton).not.toBeNull()
+
+    await act(async () => {
+      hiddenLineButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'hiddenLine',
+      mode: 'all',
+      depthMode: 'xray',
+      hiddenEdges: true,
+      lineStyle: 'dashed',
+    })
+    expect(hiddenLineButton?.getAttribute('aria-checked')).toBe('true')
+    expect(visibleEdgesOnlyButton?.getAttribute('aria-checked')).toBe('false')
   })
 
   it('renders a Shift+D Clay Studio entry and updates viewport style', async () => {

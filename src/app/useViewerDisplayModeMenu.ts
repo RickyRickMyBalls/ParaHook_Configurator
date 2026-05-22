@@ -7,6 +7,10 @@ import type {
 import {
   createDisplayModeViewPatch,
   createRenderPresetViewPatch,
+  geometryDisplayEdgePresetToDepthMode,
+  geometryDisplayEdgePresetToHiddenEdges,
+  geometryDisplayEdgePresetToLineStyle,
+  geometryDisplayEdgePresetToMode,
 } from '../shared/viewSettingsTypes'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
@@ -19,7 +23,7 @@ export type ViewerDisplayModeMenuState = {
   isOpen: boolean
   close: () => void
   selectDisplayMode: (mode: ViewDisplayMode) => void
-  selectEdgeDisplayMode: (mode: ViewEdgeDisplayMode) => void
+  selectEdgeDisplayMode: (mode: ViewEdgeDisplayMode | 'hiddenLine') => void
   selectViewportStyle: (style: ViewportStyle) => void
 }
 
@@ -79,6 +83,24 @@ export function useViewerDisplayModeMenu(
       setIsOpen(false)
     },
     selectEdgeDisplayMode: (mode) => {
+      if (mode === 'hiddenLine') {
+        const currentView = useUiPrefsStore.getState().view
+        useUiPrefsStore.getState().setView({
+          edgeDisplayMode: 'on',
+          geometryDisplay: {
+            ...currentView.geometryDisplay,
+            edges: {
+              ...currentView.geometryDisplay.edges,
+              preset: 'hiddenLine',
+              mode: geometryDisplayEdgePresetToMode('hiddenLine'),
+              depthMode: geometryDisplayEdgePresetToDepthMode('hiddenLine'),
+              hiddenEdges: geometryDisplayEdgePresetToHiddenEdges('hiddenLine'),
+              lineStyle: geometryDisplayEdgePresetToLineStyle('hiddenLine'),
+            },
+          },
+        })
+        return
+      }
       useUiPrefsStore.getState().setViewKey('edgeDisplayMode', mode)
     },
     selectViewportStyle: (style) => {

@@ -72,6 +72,125 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2042 -->
+
+### [2042] - 2026-05-21 20:55 - `Model-Viewport-3 / Shift+D Hidden Line Edge Option`
+
+HUMAN SUMMARY: ``The Shift+D display radial now has a fourth center edge option for Hidden Line. Choosing it applies the same Geometry Display hidden-line recipe as Properties, keeps the radial open for quick comparisons, and marks Hidden Line as the active center edge state.``
+
+#### Scope / Constraints Honored
+
+- Kept the change to the existing Shift+D display radial and Geometry Display edge preset bridge.
+- Preserved the existing `On`, `Off`, and `Only` center edge options.
+- Reused the shipped hidden-line recipe instead of adding another edge display mode enum value.
+- Left new render presets, saved custom presets, point styling, material truth, graph geometry, and export truth out of scope.
+
+#### Summary of Implementation
+
+- Added a `Hidden line` center button to the Shift+D display radial.
+- Extended the display-mode menu hook so the Hidden Line option applies the hidden-line edge recipe and keeps legacy `edgeDisplayMode` compatible as `on`.
+- Updated radial readback so `Hidden line` is active when the Geometry Display edge preset is `hiddenLine`, while `On` is not double-selected.
+- Adjusted the radial center grid to fit four edge buttons.
+- Added focused hook and ViewerHost proof for choosing Hidden Line from Shift+D.
+
+#### Files Changed
+
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Shift+D now exposes `Hidden line` alongside `On`, `Off`, and `Only`.
+- Selecting `Hidden line` applies the dashed hidden-line Geometry Display edge recipe without closing the radial.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D center edge controls"`
+
+<!-- ENTRY 2041 -->
+
+### [2041] - 2026-05-21 20:49 - `Properties-6 / Geometry Display Hidden Line Dash Defaults`
+
+HUMAN SUMMARY: ``Hidden Line edge styling now starts with an even `1` dash length and `1` gap length, and the dash/gap controls can be pushed up to `10` for wider dashed hidden-edge reads.``
+
+#### Scope / Constraints Honored
+
+- Kept the change to the existing Geometry Display hidden-line style owner.
+- Preserved the current `Hidden Line` preset, hidden-edge visibility, line-style recipe readback, and viewer dashed material path.
+- Left new edge presets, saved custom render presets, point styling, material truth, graph geometry, and export truth out of scope.
+
+#### Summary of Implementation
+
+- Raised the shared hidden-line dash length max clamp from `1` to `10`.
+- Raised the shared hidden-line gap length max clamp from `1` to `10`.
+- Updated the default hidden-line dash length and gap length to `1`.
+- Updated focused normalization proof for the wider gap clamp.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- New/default Geometry Display hidden-line styling uses dash length `1` and gap length `1`.
+- Hidden-line dash and gap values now normalize and clamp up to `10`.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts -t "geometry display"`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx -t "hidden-line edge styles"`
+
+<!-- ENTRY 2040 -->
+
+### [2040] - 2026-05-21 20:38 - `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model`
+
+HUMAN SUMMARY: ``Recipe selects can now show readback-only states without making them normal choices. Edge Preset shows `Custom` only as current readback, keeps built-in recipes as the selectable list, and `Off` is reachable from Properties again.``
+
+#### Scope / Constraints Honored
+
+- Kept Phase 5.6 to reusable select readback behavior, Edge Preset option cleanup, and the Properties edge write bridge.
+- Preserved built-in-only edge preset persistence.
+- Left new edge recipes, saved custom render presets, point styling, viewer runtime changes, graph/export truth, and material truth out of scope.
+
+#### Summary of Implementation
+
+- Added `displayedLabel` support to `ParaSelect` for readback values outside the selectable `options` list.
+- Kept `ParaSelect` cycling, dragging, native select values, and custom menu options tied to selectable options only.
+- Removed `custom` from the normal Edge Preset option list while keeping `Custom` visible when recipe readback is custom.
+- Updated Properties geometry-display edge writes to include the matching legacy `edgeDisplayMode`, preventing compatibility normalization from restoring stale edge display mode over an `Off` recipe.
+- Added focused Properties proof for `Visible Only -> Off`, `Hidden Line -> Off`, `Custom -> Off`, and `Custom` staying out of normal Edge Preset choices.
+
+#### Files Changed
+
+- `src/app/components/ParaSelect.tsx`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- `Edge Preset` no longer lists `Custom` as a selectable recipe.
+- `Edge Preset` still displays `Custom` when current edge recipe settings do not match a built-in recipe.
+- Properties can set `Edge Preset` to `Off` from `Visible Only`, `Hidden Line`, and `Custom` readback states.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx -t "geometry display|edge display styles|hidden-line edge styles|edited edge preset recipes|keeps Custom out"`
+- `npm.cmd run build`
+
 <!-- ENTRY 2039 -->
 
 ### [2039] - 2026-05-21 19:12 - `Properties-6 / Phase 5.5 - Edge Preset Custom Readback`

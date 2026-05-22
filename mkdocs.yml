@@ -3,8 +3,21 @@ docs_dir: docs
 site_url: https://rickyrickmyballs.github.io/ParaHook_Configurator/docs/
 
 exclude_docs: |
-  CHANGELOG copy.md
+  Agents/
   Archive/
+  Bugs/
+  CodexDesktopNotes/
+  DispatchPlans/
+  ExampleGraphs/
+  Exampleprompts/
+  CHANGELOG.md
+  CHANGELOG copy.md
+  Chill-Log.md
+  Doc-Index.md
+  Doc-Log.md
+  Doc-Vision.md
+  Docs-Command-Center.md
+  Vision.md
   Human-Plans/CodexNotes/
   Human-Plans/roadmap/archive/
   Phase-Plans/Tasks/Archive/
