@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+110. 2026-05-21 20:59:19: Added the nested `Visual-Style-Menu` family home with a vision doc, Generation 1 index, and Future/Shipped holding folders so `Shift+D` radial-menu ownership, edge recipe choices, and later visual-style menu cleanup have a dedicated planning surface.
 109. 2026-05-20 19:35:44: Marked `Model-Viewport-5 / Phase 6.4 - Clay Studio Ground Contact` shipped after adding a Clay Studio-only presentation contact-shadow group under visible base meshes, projected onto the viewer ground plane with subtle stacked translucent ellipses while preserving non-Clay shadows, render preview, graph geometry, material truth, and export truth.
 108. 2026-05-20 19:29:05: Added `Model-Viewport-5 / Phase 6.4 - Clay Studio Ground Contact` inside the dedicated future doc after screenshot review suggested the presentation ground plane is not receiving convincing Ambient Occlusion/contact depth, reserving the next slice for ground-plane depth participation proof, object-to-ground bounds verification, and a Clay Studio-only soft contact-shadow or ultra-soft ground-shadow treatment.
 107. 2026-05-20 18:07:56: Marked `Model-Viewport-5 / Phase 6.3 - Clay Studio Lighting And AO Tuning` shipped after the implementation softened Clay Studio lighting, disabled hard Clay Studio shadow-map participation, broadened Ambient Occlusion preset mappings, and muted Clay Studio display-edge overlays while preserving non-Clay rendered behavior and render-preview separation.
@@ -176,6 +177,10 @@ The next later family follow-on reserved here is:
 - `Model-Viewport-3 - Display Mode Radial Menu And Render Preview`
 - `Model-Viewport-4 - Semantic Topology Display And Selection`
 - `Model-Viewport-5 - Clay Studio And SSAO Viewport Style`
+
+The nested visual-style menu family home is:
+- `Visual-Style-Menu/Visual-Style-Menu-Vision.md`
+- `Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
 
 The current `Model-Viewport-1` status is:
 - umbrella phase created
@@ -482,6 +487,28 @@ Dedicated future doc:
 Current status:
 - planned there
 - reserved here so Clay Studio, SSAO, overlay compatibility, fallback/performance behavior, user-facing controls, and later SSGI feasibility have one honest planning home
+
+### Nested Family Homes
+
+#### Visual Style Menu
+
+The `Visual-Style-Menu/` folder owns planning for the quick `Shift+D` visual-style menu itself.
+
+Use that nested family for:
+- current radial-menu option inventory
+- display mode versus render preset versus Geometry Display edge recipe menu ownership
+- future radial-menu cleanup or layout polish
+- fast visual-style switching boundaries
+
+Keep detailed runtime implementation in the broader Model Viewport and Properties family docs:
+- `Model-Viewport-3` owns display-mode and render-preview runtime behavior.
+- `Model-Viewport-4` owns semantic topology display, selection, and the first center edge controls.
+- `Model-Viewport-5` owns Clay Studio and SSAO runtime style behavior.
+- `Properties-4` and `Properties-6` own detailed Properties `Render` and Geometry Display tuning/readback.
+
+Current nested docs:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
 
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
 

@@ -19,6 +19,11 @@ import {
   type ConsoleInputPriorityMode,
   type WorkspaceStartupSurface,
 } from './uiPrefsStore'
+import {
+  DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
+  normalizeVisualStyleMenuRecipeId,
+  type VisualStyleMenuRecipeId,
+} from '../visualStyleMenuRecipes'
 
 export const uiPrefsStorageKey = 'parahook.uiPrefs.view.v1'
 
@@ -47,6 +52,7 @@ type PersistedUiPrefsState = UiPrefsPersistencePolicy & {
   workspacePaneFilletRadiusPx: number
   workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
+  radialMenuRecipeId: VisualStyleMenuRecipeId
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -112,6 +118,9 @@ const normalizeUiPrefsPersistencePolicy = (value: unknown): UiPrefsPersistencePo
 const normalizeWorkspaceNestedResizeKeepsFarPane = (value: unknown): boolean =>
   typeof value === 'boolean' ? value : true
 
+const normalizeRadialMenuRecipeId = (value: unknown): VisualStyleMenuRecipeId =>
+  normalizeVisualStyleMenuRecipeId(value)
+
 const applyPersistedViewPolicy = (
   baseView: ViewSettings,
   persistedView: ViewSettings,
@@ -162,6 +171,7 @@ export const serializePersistedUiPrefs = (
   workspacePanelShellPaddingPx = DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   workspaceNestedResizeKeepsFarPane = true,
   consoleInputPriorityMode: ConsoleInputPriorityMode = DEFAULT_CONSOLE_INPUT_PRIORITY_MODE,
+  radialMenuRecipeId: VisualStyleMenuRecipeId = DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
 ): PersistedUiPrefsState => ({
   version: 3,
   view: normalizeViewSettings(view),
@@ -177,6 +187,7 @@ export const serializePersistedUiPrefs = (
   workspaceNestedResizeKeepsFarPane: normalizeWorkspaceNestedResizeKeepsFarPane(
     workspaceNestedResizeKeepsFarPane,
   ),
+  radialMenuRecipeId: normalizeRadialMenuRecipeId(radialMenuRecipeId),
   workspaceRestorePersistence: policy.workspaceRestorePersistence,
   viewSettingsPersistence: policy.viewSettingsPersistence,
   environmentPersistence: policy.environmentPersistence,
@@ -214,6 +225,9 @@ export const normalizePersistedUiPrefs = (value: unknown): PersistedUiPrefsState
     ),
     workspaceNestedResizeKeepsFarPane: normalizeWorkspaceNestedResizeKeepsFarPane(
       isRecord(value) ? value.workspaceNestedResizeKeepsFarPane : null,
+    ),
+    radialMenuRecipeId: normalizeRadialMenuRecipeId(
+      isRecord(value) ? value.radialMenuRecipeId : null,
     ),
     workspaceRestorePersistence: policy.workspaceRestorePersistence,
     viewSettingsPersistence: policy.viewSettingsPersistence,

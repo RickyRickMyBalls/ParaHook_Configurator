@@ -4,6 +4,7 @@ import {
   setDashboardPersistenceWithHistory,
   setEnvironmentPersistenceWithHistory,
   setNotepadPersistenceWithHistory,
+  setRadialMenuRecipeWithHistory,
   setSpaghettiWindowAppearanceDefaultsWithHistory,
   setViewSettingsPersistenceWithHistory,
   setWorkspaceRestorePersistenceWithHistory,
@@ -128,6 +129,17 @@ describe('UI preference edit history', () => {
       targetLabel: 'Notepad persistence',
     },
     {
+      name: 'radial menu preset',
+      run: () => setRadialMenuRecipeWithHistory('circle'),
+      expectedValue: 'circle',
+      getValue: () => useUiPrefsStore.getState().radialMenuRecipeId,
+      label: 'Change radial menu preset',
+      sourceId: 'viewport-settings',
+      sourceLabel: 'Viewport Settings',
+      targetId: 'ui-pref:radialMenuRecipeId',
+      targetLabel: 'Radial menu preset',
+    },
+    {
       name: 'Spaghetti Editor defaults',
       run: () =>
         setSpaghettiWindowAppearanceDefaultsWithHistory({
@@ -216,6 +228,7 @@ describe('UI preference edit history', () => {
     prefs.setEnvironmentPersistence(false)
     prefs.setDashboardPersistence(false)
     prefs.setNotepadPersistence(false)
+    prefs.setRadialMenuRecipeId('circle')
     const nextSpaghettiDefaults = {
       ...defaultSpaghettiWindowAppearance,
       titlebarOpacity: 0.8,
@@ -228,6 +241,7 @@ describe('UI preference edit history', () => {
     expect(useUiPrefsStore.getState().environmentPersistence).toBe(false)
     expect(useUiPrefsStore.getState().dashboardPersistence).toBe(false)
     expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe('circle')
     expect(useUiPrefsStore.getState().spaghettiWindowAppearanceDefaults).toEqual(
       normalizeSpaghettiWindowAppearance(nextSpaghettiDefaults),
     )

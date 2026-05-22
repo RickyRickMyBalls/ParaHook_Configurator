@@ -179,12 +179,20 @@
   background: var(--activity-legend-color);
 }
 
-.activity-legend-added {
+.activity-legend-app-added {
   --activity-legend-color: #8df5d7;
 }
 
-.activity-legend-deleted {
+.activity-legend-app-deleted {
   --activity-legend-color: #ff776d;
+}
+
+.activity-legend-docs-added {
+  --activity-legend-color: #64c7ff;
+}
+
+.activity-legend-docs-deleted {
+  --activity-legend-color: #f0b85a;
 }
 
 .activity-plot {
@@ -238,16 +246,28 @@
   background: color-mix(in srgb, var(--calendar-muted) 18%, transparent);
 }
 
-.activity-added {
+.activity-app-added {
   display: block;
   width: 100%;
   background: #8df5d7;
 }
 
-.activity-deleted {
+.activity-app-deleted {
   display: block;
   width: 100%;
   background: #ff776d;
+}
+
+.activity-docs-added {
+  display: block;
+  width: 100%;
+  background: #64c7ff;
+}
+
+.activity-docs-deleted {
+  display: block;
+  width: 100%;
+  background: #f0b85a;
 }
 
 .activity-day-label {

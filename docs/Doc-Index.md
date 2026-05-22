@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+303. 2026-05-21 21:05:45: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md` to the docs map and refreshed the Visual Style Menu generation index so Settings-backed radial-menu recipe presets have a dedicated future planning surface.
+302. 2026-05-21 20:59:19: Added the new `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/` subtree to the docs map, listing the Visual Style Menu vision and Generation 1 index so `Shift+D` radial-menu ownership and future visual-style menu cleanup are discoverable under Model Viewport.
 301. 2026-05-21 14:47:01: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-6 - Geometry Display Surfaces Edges And Points.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so the new Surfaces / Edges / Points render-display planning ladder is discoverable.
 300. 2026-05-21 08:59:48: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-5 - Render Section Detail And Feature Organization.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so upcoming user-provided Render section feature and organization phases have a dedicated planning surface.
 299. 2026-05-21 07:49:21: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md` to the docs map and refreshed the Properties family plus Workspace Modes indexes so the Shift+D and Properties Render viewport-style consolidation plan is discoverable as the next render-preset planning surface.
@@ -918,6 +920,12 @@ Rule notes:
             - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-3 - Display Mode Radial Menu And Render Preview.md`
             - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-4 - Semantic Topology Display And Selection.md`
             - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-5 - Clay Studio And SSAO Viewport Style.md`
+####### --------------Visual-Style-Menu
+            - `Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Vision.md`
+            - `Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+######## ---------------Future
+            - `Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+######## ---------------Shipped
 ###### -------------Radio
             - `Workspaces/Radio/Radio.md`
 ###### -------------Spaghetti-Editor-Arch

@@ -89,6 +89,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(12)
     expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(0)
     expect(useUiPrefsStore.getState().workspaceNestedResizeKeepsFarPane).toBe(true)
+    expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe('square')
 
     const persistedAfterHydration = readPersistedUiPrefs()
     expect(persistedAfterHydration).toEqual({
@@ -98,6 +99,7 @@ describe('useUiPrefsPersistenceBridge', () => {
       workspacePaneFilletRadiusPx: 12,
       workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
+      radialMenuRecipeId: 'square',
       spaghettiWindowAppearanceDefaults: expect.any(Object),
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
@@ -158,6 +160,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         workspacePaneFilletRadiusPx: 12,
         workspacePanelShellPaddingPx: 0,
         workspaceNestedResizeKeepsFarPane: true,
+        radialMenuRecipeId: 'square',
         workspaceRestorePersistence: true,
         viewSettingsPersistence: true,
         environmentPersistence: true,
@@ -220,6 +223,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         workspacePaneFilletRadiusPx: 18,
         workspacePanelShellPaddingPx: 8,
         workspaceNestedResizeKeepsFarPane: true,
+        radialMenuRecipeId: 'circle',
         workspaceRestorePersistence: false,
         viewSettingsPersistence: true,
         environmentPersistence: false,
@@ -242,6 +246,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     expect(state.workspacePaneFilletRadiusPx).toBe(18)
     expect(state.workspacePanelShellPaddingPx).toBe(8)
     expect(state.workspaceNestedResizeKeepsFarPane).toBe(true)
+    expect(state.radialMenuRecipeId).toBe('circle')
     expect(state.workspaceRestorePersistence).toBe(false)
     expect(state.viewSettingsPersistence).toBe(true)
     expect(state.environmentPersistence).toBe(false)
@@ -284,6 +289,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         workspacePaneFilletRadiusPx: 99,
         workspacePanelShellPaddingPx: 99,
         workspaceNestedResizeKeepsFarPane: true,
+        radialMenuRecipeId: 'not-a-real-recipe',
       }),
     )
     useUiPrefsStore.setState(
@@ -305,6 +311,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     expect(useUiPrefsStore.getState().consoleInputPriorityMode).toBe('console-first')
     expect(useUiPrefsStore.getState().workspacePaneFilletRadiusPx).toBe(99)
     expect(useUiPrefsStore.getState().workspacePanelShellPaddingPx).toBe(24)
+    expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe('square')
     expect(readPersistedUiPrefs()).toEqual({
       version: 3,
       workspaceStartupSurface: 'homePage',
@@ -312,6 +319,7 @@ describe('useUiPrefsPersistenceBridge', () => {
       workspacePaneFilletRadiusPx: 99,
       workspacePanelShellPaddingPx: 24,
       workspaceNestedResizeKeepsFarPane: true,
+      radialMenuRecipeId: 'square',
       spaghettiWindowAppearanceDefaults: expect.any(Object),
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
@@ -377,6 +385,7 @@ describe('useUiPrefsPersistenceBridge', () => {
         workspacePaneFilletRadiusPx: 12,
         workspacePanelShellPaddingPx: 0,
         workspaceNestedResizeKeepsFarPane: true,
+        radialMenuRecipeId: 'square',
         workspaceRestorePersistence: true,
         viewSettingsPersistence: true,
         environmentPersistence: true,

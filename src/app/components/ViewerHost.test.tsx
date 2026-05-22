@@ -10744,6 +10744,171 @@ describe('ViewerHost reference loading', () => {
     expect(visibleEdgesOnlyButton?.getAttribute('aria-checked')).toBe('false')
   })
 
+  it('renders the Circle radial-menu recipe with the same Shift+D choices and click behavior', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useAppStore.getState().setActiveSurface('viewer')
+      useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-primary')
+      useUiPrefsStore.getState().setRadialMenuRecipeId('circle')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const menu = container.querySelector('[role="menu"][aria-label="Display mode"]')
+    expect(menu?.getAttribute('data-visual-style-menu-recipe')).toBe('circle')
+    expect(menu?.getAttribute('data-visual-style-menu-rendered-recipe')).toBe('circle')
+    expect(menu?.classList.contains('ViewportDisplayModeMenu--circle')).toBe(true)
+    expect(container.querySelector('.ViewportDisplayModeMenuOuterPie')).not.toBeNull()
+    expect(container.querySelector('.ViewportDisplayModeMenuSpacerRing')).not.toBeNull()
+    expect(container.querySelectorAll('.ViewportDisplayModeMenuEdgeItem')).toHaveLength(4)
+    expect(container.querySelectorAll('.ViewportDisplayModeMenuItem')).toHaveLength(6)
+
+    const hiddenLineButton = container.querySelector(
+      'button[aria-label="Hidden line"]',
+    ) as HTMLButtonElement | null
+    expect(hiddenLineButton).not.toBeNull()
+
+    await act(async () => {
+      hiddenLineButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('on')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges.preset).toBe('hiddenLine')
+    expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).not.toBeNull()
+
+    Object.defineProperty(menu, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 300,
+        height: 300,
+        right: 300,
+        bottom: 300,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }),
+    })
+
+    await act(async () => {
+      menu?.dispatchEvent(
+        new MouseEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 300,
+          clientY: 150,
+        }),
+      )
+    })
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('material')
+    expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).toBeNull()
+  })
+
+  it('maps Circle outer direction to the matching visual style without using inner edge clicks', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useAppStore.getState().setActiveSurface('viewer')
+      useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-primary')
+      useUiPrefsStore.getState().setRadialMenuRecipeId('circle')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const menu = container.querySelector('[role="menu"][aria-label="Display mode"]')
+    expect(menu).not.toBeNull()
+    Object.defineProperty(menu, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 300,
+        height: 300,
+        right: 300,
+        bottom: 300,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }),
+    })
+
+    await act(async () => {
+      menu?.dispatchEvent(
+        new MouseEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 0,
+          clientY: 0,
+        }),
+      )
+    })
+
+    const clayStudioButton = Array.from(
+      container.querySelectorAll('.ViewportDisplayModeMenuItem'),
+    ).find((button) => button.textContent?.includes('Clay Studio')) as HTMLButtonElement | undefined
+    expect(clayStudioButton?.getAttribute('data-circle-direction-active')).toBe('true')
+
+    await act(async () => {
+      menu?.dispatchEvent(
+        new MouseEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 0,
+          clientY: 0,
+        }),
+      )
+    })
+
+    expect(useUiPrefsStore.getState().view.viewportStyle).toBe('clayStudio')
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('rendered')
+    expect(container.querySelector('[data-testid="viewport-display-mode-menu"]')).toBeNull()
+  })
+
   it('renders a Shift+D Clay Studio entry and updates viewport style', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')

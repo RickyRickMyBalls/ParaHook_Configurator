@@ -7,6 +7,7 @@ import { DEFAULT_VIEW_SETTINGS } from '../../shared/viewSettingsTypes'
 import { useShortcutPreferencesStore } from '../shortcutPreferencesStore'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID } from '../visualStyleMenuRecipes'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { SettingsSurface } from './SettingsSurface'
 
@@ -28,6 +29,7 @@ describe('SettingsSurface', () => {
       consoleInputPriorityMode: 'console-first',
       workspacePanelShellPaddingPx: 0,
       workspaceNestedResizeKeepsFarPane: true,
+      radialMenuRecipeId: DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
       workspaceRestorePersistence: true,
       viewSettingsPersistence: true,
       environmentPersistence: true,
@@ -96,8 +98,56 @@ describe('SettingsSurface', () => {
     expect(content?.textContent).toContain('Workspace corner radius')
     expect(content?.textContent).toContain('Workspace panel shell padding')
     expect(content?.textContent).toContain('Keep far pane fixed on nested resize')
+    expect(content?.textContent).toContain('Radial menu preset')
     expect(content?.textContent).toContain('Title bar opacity')
     expect(content?.textContent).toContain('Browser presentation')
+  })
+
+  it('edits the visual style radial menu preset from the viewport section', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SettingsSurface
+          slotId="workspace-slot-settings"
+          surfaceInstanceId="settings-workspace-slot-settings"
+          initialSectionId="viewport"
+        />,
+      )
+    })
+
+    const presetSelect = container?.querySelector(
+      '.ParaSelectNative[aria-label="Radial menu preset"]',
+    ) as HTMLSelectElement | null
+    expect(presetSelect).not.toBeNull()
+    expect(presetSelect?.value).toBe('square')
+    expect(container?.textContent).toContain('Radial menu preset')
+    expect(container?.querySelector('section[aria-label="Radial Menu"]')).not.toBeNull()
+    expect(container?.querySelector('section[aria-label="Viewport Highlights"]')).not.toBeNull()
+    expect(
+      container?.querySelector(
+        'section[aria-label="Radial Menu"] .SettingsSurfaceEditorField .ParaSelectCapIcon',
+      ),
+    ).not.toBeNull()
+    expect(
+      container?.querySelector(
+        'section[aria-label="Viewport Highlights"] .SettingsSurfaceEditorField .ParaSlider',
+      ),
+    ).not.toBeNull()
+
+    await act(async () => {
+      if (presetSelect !== null) {
+        presetSelect.value = 'circle'
+        presetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().radialMenuRecipeId).toBe('circle')
+    expect(editHistoryStore.getUndoEntries().at(-1)?.targetId).toBe(
+      'ui-pref:radialMenuRecipeId',
+    )
   })
 
   it('routes the right pane to the clicked section while keeping All as the first rail item', async () => {

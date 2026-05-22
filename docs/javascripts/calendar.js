@@ -87,15 +87,22 @@ function getActivityRows(start, end, byDate) {
 
   for (let day = new Date(start); day <= end; day = addActivityDays(day, 1)) {
     const key = toActivityDateKey(day);
-    const entry = byDate.get(key) ?? { add: 0, del: 0, commits: 0 };
+    const entry = byDate.get(key) ?? { appAdd: 0, appDel: 0, docsAdd: 0, docsDel: 0, commits: 0 };
+    const appAdd = entry.appAdd ?? entry.add ?? 0;
+    const appDel = entry.appDel ?? entry.del ?? 0;
+    const docsAdd = entry.docsAdd ?? 0;
+    const docsDel = entry.docsDel ?? 0;
+
     rows.push({
       date: key,
       label: formatActivityDate(day),
       shortLabel: formatActivityDate(day, { month: "numeric", day: "numeric" }),
-      add: entry.add,
-      del: entry.del,
+      appAdd,
+      appDel,
+      docsAdd,
+      docsDel,
       commits: entry.commits,
-      total: entry.add + entry.del,
+      total: appAdd + appDel + docsAdd + docsDel,
     });
   }
 
@@ -142,30 +149,36 @@ function renderActivityGraph(graph, rangeName = "7d") {
 
   const rows = getActivityRows(startDate, endDate, byDate);
   const maxTotal = Math.max(1, ...rows.map((row) => row.total));
-  const totalAdded = rows.reduce((sum, row) => sum + row.add, 0);
-  const totalDeleted = rows.reduce((sum, row) => sum + row.del, 0);
+  const appAdded = rows.reduce((sum, row) => sum + row.appAdd, 0);
+  const appDeleted = rows.reduce((sum, row) => sum + row.appDel, 0);
+  const docsAdded = rows.reduce((sum, row) => sum + row.docsAdd, 0);
+  const docsDeleted = rows.reduce((sum, row) => sum + row.docsDel, 0);
   const totalCommits = rows.reduce((sum, row) => sum + row.commits, 0);
 
   graph.dataset.activityActiveRange = rangeName;
   maxNode.style.setProperty("--activity-max", `"${formatActivityNumber(maxTotal)} line peak"`);
   summaryNode.innerHTML = `
     <strong>${formatActivityDate(startDate)} - ${formatActivityDate(endDate)}</strong>
-    <span>+${formatActivityNumber(totalAdded)} / -${formatActivityNumber(totalDeleted)} across ${formatActivityNumber(totalCommits)} commits</span>
+    <span>App +${formatActivityNumber(appAdded)} / -${formatActivityNumber(appDeleted)}; docs +${formatActivityNumber(docsAdded)} / -${formatActivityNumber(docsDeleted)} across ${formatActivityNumber(totalCommits)} commits</span>
   `;
 
   barsNode.innerHTML = rows
     .map((row) => {
       const totalHeight = row.total === 0 ? 0 : Math.max(2, (row.total / maxTotal) * 100);
-      const addedHeight = row.total === 0 ? 0 : (row.add / row.total) * 100;
-      const deletedHeight = row.total === 0 ? 0 : (row.del / row.total) * 100;
+      const appAddedHeight = row.total === 0 ? 0 : (row.appAdd / row.total) * 100;
+      const appDeletedHeight = row.total === 0 ? 0 : (row.appDel / row.total) * 100;
+      const docsAddedHeight = row.total === 0 ? 0 : (row.docsAdd / row.total) * 100;
+      const docsDeletedHeight = row.total === 0 ? 0 : (row.docsDel / row.total) * 100;
       const commitLabel = row.commits === 1 ? "commit" : "commits";
-      const title = `${row.label}: +${formatActivityNumber(row.add)} / -${formatActivityNumber(row.del)}, ${formatActivityNumber(row.commits)} ${commitLabel}`;
+      const title = `${row.label}: app +${formatActivityNumber(row.appAdd)} / -${formatActivityNumber(row.appDel)}, docs +${formatActivityNumber(row.docsAdd)} / -${formatActivityNumber(row.docsDel)}, ${formatActivityNumber(row.commits)} ${commitLabel}`;
 
       return `
         <div class="activity-day" title="${title}">
           <div class="activity-stack" style="height: ${totalHeight.toFixed(2)}%;">
-            <span class="activity-added" style="height: ${addedHeight.toFixed(2)}%;"></span>
-            <span class="activity-deleted" style="height: ${deletedHeight.toFixed(2)}%;"></span>
+            <span class="activity-app-added" style="height: ${appAddedHeight.toFixed(2)}%;"></span>
+            <span class="activity-app-deleted" style="height: ${appDeletedHeight.toFixed(2)}%;"></span>
+            <span class="activity-docs-added" style="height: ${docsAddedHeight.toFixed(2)}%;"></span>
+            <span class="activity-docs-deleted" style="height: ${docsDeletedHeight.toFixed(2)}%;"></span>
           </div>
           <span class="activity-day-label">${row.shortLabel}</span>
         </div>

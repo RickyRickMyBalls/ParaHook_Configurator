@@ -31,6 +31,7 @@ export function useUiPrefsPersistenceBridge() {
         workspacePaneFilletRadiusPx: persistedUiPrefs.workspacePaneFilletRadiusPx,
         workspacePanelShellPaddingPx: persistedUiPrefs.workspacePanelShellPaddingPx,
         workspaceNestedResizeKeepsFarPane: persistedUiPrefs.workspaceNestedResizeKeepsFarPane,
+        radialMenuRecipeId: persistedUiPrefs.radialMenuRecipeId,
         workspaceRestorePersistence: persistedUiPrefs.workspaceRestorePersistence,
         viewSettingsPersistence: persistedUiPrefs.viewSettingsPersistence,
         environmentPersistence: persistedUiPrefs.environmentPersistence,
@@ -63,6 +64,7 @@ export function useUiPrefsPersistenceBridge() {
       currentUiPrefs.workspacePanelShellPaddingPx,
       currentUiPrefs.workspaceNestedResizeKeepsFarPane,
       currentUiPrefs.consoleInputPriorityMode,
+      currentUiPrefs.radialMenuRecipeId,
     )
     writePersistedUiPrefs(nextSnapshot)
     lastPersistedUiPrefsRef.current = nextSnapshot
@@ -96,6 +98,7 @@ export function useUiPrefsPersistenceBridge() {
         state.workspacePanelShellPaddingPx,
         state.workspaceNestedResizeKeepsFarPane,
         state.consoleInputPriorityMode,
+        state.radialMenuRecipeId,
       )
       lastPersistedUiPrefsRef.current = nextSnapshot
       writePersistedUiPrefs(

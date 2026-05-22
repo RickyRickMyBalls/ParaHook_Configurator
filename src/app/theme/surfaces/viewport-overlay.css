@@ -3080,6 +3080,49 @@
   border-radius: 999px;
 }
 
+.ViewportDisplayModeMenu--circle {
+  width: min(560px, calc(100% - 48px));
+}
+
+.ViewportDisplayModeMenuOuterPie {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 486px;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, transparent 0 121px, rgba(60, 122, 220, 0.18) 122px 144px, transparent 145px 217px, rgba(82, 156, 246, 0.72) 218px 226px, transparent 227px),
+    repeating-conic-gradient(
+      from -90deg,
+      rgba(82, 156, 246, 0.72) 0deg 2.8deg,
+      transparent 2.8deg 57.2deg,
+      rgba(82, 156, 246, 0.72) 57.2deg 60deg
+    );
+  mask-image: radial-gradient(circle, transparent 0 121px, #000 122px 226px, transparent 227px);
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(82, 156, 246, 0.26));
+}
+
+.ViewportDisplayModeMenuSpacerRing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 174px;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(130, 158, 222, 0.24);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, transparent 0 58px, rgba(130, 158, 222, 0.08) 59px 70px, transparent 71px),
+    radial-gradient(circle, rgba(5, 8, 14, 0.14), transparent 68%);
+  box-shadow:
+    inset 0 0 18px rgba(121, 151, 218, 0.08),
+    0 0 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
 .ViewportDisplayModeMenuCenter {
   position: absolute;
   left: 50%;
@@ -3103,6 +3146,17 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuCenter {
+  width: 108px;
+  min-height: 108px;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at center, rgba(29, 36, 53, 0.98), rgba(9, 11, 17, 0.98));
+}
+
 .ViewportDisplayModeMenuEdgeItem {
   display: grid;
   place-items: center;
@@ -3116,6 +3170,29 @@
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuEdgeItem {
+  min-height: 54px;
+  border-radius: 0;
+  border-color: rgba(135, 159, 220, 0.32);
+  background: rgba(14, 17, 25, 0.64);
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuEdgeItem:nth-child(1) {
+  border-radius: 999px 0 0 0;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuEdgeItem:nth-child(2) {
+  border-radius: 0 999px 0 0;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuEdgeItem:nth-child(3) {
+  border-radius: 0 0 0 999px;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuEdgeItem:nth-child(4) {
+  border-radius: 0 0 999px 0;
 }
 
 .ViewportDisplayModeMenuEdgeItem:hover,
@@ -3160,6 +3237,64 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItem {
+  width: 520px;
+  height: 520px;
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--display-mode-angle));
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, transparent 0 128px, rgba(140, 174, 247, 0.5) 129px 130px, transparent 131px 242px, rgba(140, 174, 247, 0.42) 243px 246px, transparent 247px),
+    conic-gradient(
+      from -30deg,
+      rgba(140, 174, 247, 0.5) 0deg 1.5deg,
+      transparent 1.5deg 58.5deg,
+      rgba(140, 174, 247, 0.5) 58.5deg 60deg,
+      transparent 60deg
+    ),
+    radial-gradient(circle, transparent 0 131px, rgba(25, 30, 43, 0.98) 132px 242px, transparent 243px),
+    linear-gradient(180deg, rgba(30, 37, 54, 0.96), rgba(13, 16, 24, 0.98));
+  clip-path: polygon(50% 50%, 27% 0%, 73% 0%);
+  mask-image: radial-gradient(circle, transparent 0 128px, #000 129px 246px, transparent 247px);
+  box-shadow: none;
+  color: rgba(221, 229, 247, 0.88);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.28));
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItem:hover,
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItem:focus-visible {
+  background:
+    radial-gradient(circle, transparent 0 128px, rgba(163, 196, 255, 0.72) 129px 130px, transparent 131px 242px, rgba(163, 196, 255, 0.62) 243px 246px, transparent 247px),
+    conic-gradient(
+      from -30deg,
+      rgba(163, 196, 255, 0.72) 0deg 1.5deg,
+      transparent 1.5deg 58.5deg,
+      rgba(163, 196, 255, 0.72) 58.5deg 60deg,
+      transparent 60deg
+    ),
+    radial-gradient(circle, transparent 0 131px, rgba(38, 50, 76, 0.99) 132px 242px, transparent 243px),
+    linear-gradient(180deg, rgba(48, 61, 92, 0.98), rgba(18, 23, 35, 0.98));
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItem.isActive {
+  background:
+    radial-gradient(circle, transparent 0 128px, rgba(255, 198, 132, 0.78) 129px 130px, transparent 131px 242px, rgba(255, 198, 132, 0.7) 243px 246px, transparent 247px),
+    conic-gradient(
+      from -30deg,
+      rgba(255, 198, 132, 0.78) 0deg 1.5deg,
+      transparent 1.5deg 58.5deg,
+      rgba(255, 198, 132, 0.78) 58.5deg 60deg,
+      transparent 60deg
+    ),
+    radial-gradient(circle, transparent 0 131px, rgba(78, 64, 45, 0.99) 132px 242px, transparent 243px),
+    linear-gradient(180deg, rgba(86, 70, 48, 0.98), rgba(38, 31, 24, 0.98));
+  color: #fff7ef;
+}
+
 .ViewportDisplayModeMenuItem:hover,
 .ViewportDisplayModeMenuItem:focus-visible {
   border-color: rgba(151, 181, 255, 0.7);
@@ -3173,10 +3308,35 @@
   color: #fff7ef;
 }
 
+.ViewportDisplayModeMenuItemCopy {
+  display: contents;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItemCopy {
+  position: absolute;
+  left: 50%;
+  top: 78px;
+  width: 116px;
+  transform: translateX(-50%) rotate(calc(-1 * var(--display-mode-angle)));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+  pointer-events: none;
+}
+
 .ViewportDisplayModeMenuItemShort {
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItemShort {
+  position: static;
+  transform: none;
 }
 
 .ViewportDisplayModeMenuItemLabel {
@@ -3186,4 +3346,12 @@
   white-space: nowrap;
   font-size: 11px;
   line-height: 1.1;
+}
+
+.ViewportDisplayModeMenu--circle .ViewportDisplayModeMenuItemLabel {
+  position: static;
+  width: 100%;
+  transform: none;
+  text-align: center;
+  white-space: normal;
 }

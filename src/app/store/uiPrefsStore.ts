@@ -37,6 +37,11 @@ import {
   normalizeSpaghettiWindowAppearance,
   type SpaghettiWindowAppearance,
 } from '../panels/spaghettiWindowAppearance'
+import {
+  DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
+  normalizeVisualStyleMenuRecipeId,
+  type VisualStyleMenuRecipeId,
+} from '../visualStyleMenuRecipes'
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
@@ -276,6 +281,7 @@ type UiPrefsState = {
   workspacePaneFilletRadiusPx: number
   workspacePanelShellPaddingPx: number
   workspaceNestedResizeKeepsFarPane: boolean
+  radialMenuRecipeId: VisualStyleMenuRecipeId
   workspaceRestorePersistence: boolean
   viewSettingsPersistence: boolean
   environmentPersistence: boolean
@@ -313,6 +319,7 @@ type UiPrefsState = {
   setWorkspacePaneFilletRadiusPx: (workspacePaneFilletRadiusPx: number) => void
   setWorkspacePanelShellPaddingPx: (workspacePanelShellPaddingPx: number) => void
   setViewSettingsPersistence: (viewSettingsPersistence: boolean) => void
+  setRadialMenuRecipeId: (radialMenuRecipeId: VisualStyleMenuRecipeId) => void
   setEnvironmentPersistence: (environmentPersistence: boolean) => void
   setDashboardPersistence: (dashboardPersistence: boolean) => void
   setNotepadPersistence: (notepadPersistence: boolean) => void
@@ -364,6 +371,7 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   workspacePaneFilletRadiusPx: DEFAULT_WORKSPACE_PANE_FILLET_RADIUS_PX,
   workspacePanelShellPaddingPx: DEFAULT_WORKSPACE_PANEL_SHELL_PADDING_PX,
   workspaceNestedResizeKeepsFarPane: true,
+  radialMenuRecipeId: DEFAULT_VISUAL_STYLE_MENU_RECIPE_ID,
   workspaceRestorePersistence: true,
   viewSettingsPersistence: true,
   environmentPersistence: true,
@@ -556,6 +564,9 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setViewSettingsPersistence: (viewSettingsPersistence) => {
     set({ viewSettingsPersistence })
+  },
+  setRadialMenuRecipeId: (radialMenuRecipeId) => {
+    set({ radialMenuRecipeId: normalizeVisualStyleMenuRecipeId(radialMenuRecipeId) })
   },
   setEnvironmentPersistence: (environmentPersistence) => {
     set({ environmentPersistence })

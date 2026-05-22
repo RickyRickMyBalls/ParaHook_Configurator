@@ -1,4 +1,5 @@
 import { editHistoryStore } from './editHistoryStore'
+import type { VisualStyleMenuRecipeId } from '../visualStyleMenuRecipes'
 import type { ConsoleInputPriorityMode, WorkspaceStartupSurface } from './uiPrefsStore'
 import { useUiPrefsStore } from './uiPrefsStore'
 import type { SpaghettiWindowAppearance } from '../panels/spaghettiWindowAppearance'
@@ -126,6 +127,16 @@ const workspaceNestedResizeKeepsFarPaneConfig: UiPreferenceHistoryConfig<boolean
   setValue: (value) => useUiPrefsStore.getState().setWorkspaceNestedResizeKeepsFarPane(value),
 }
 
+const radialMenuRecipeConfig: UiPreferenceHistoryConfig<VisualStyleMenuRecipeId> = {
+  label: 'Change radial menu preset',
+  sourceId: 'viewport-settings',
+  sourceLabel: 'Viewport Settings',
+  targetId: 'ui-pref:radialMenuRecipeId',
+  targetLabel: 'Radial menu preset',
+  getValue: () => useUiPrefsStore.getState().radialMenuRecipeId,
+  setValue: (value) => useUiPrefsStore.getState().setRadialMenuRecipeId(value),
+}
+
 const viewSettingsPersistenceConfig: UiPreferenceHistoryConfig<boolean> = {
   label: 'Change persistence preference',
   sourceId: 'storage-management',
@@ -202,6 +213,11 @@ export const setWorkspaceNestedResizeKeepsFarPaneWithHistory = (
   options?: UiPreferenceHistoryOptions,
 ): boolean =>
   commitUiPreferenceWithHistory(workspaceNestedResizeKeepsFarPaneConfig, nextValue, options)
+
+export const setRadialMenuRecipeWithHistory = (
+  nextValue: VisualStyleMenuRecipeId,
+  options?: UiPreferenceHistoryOptions,
+): boolean => commitUiPreferenceWithHistory(radialMenuRecipeConfig, nextValue, options)
 
 export const setViewSettingsPersistenceWithHistory = (
   nextValue: boolean,

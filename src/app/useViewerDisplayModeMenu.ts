@@ -12,6 +12,10 @@ import {
   geometryDisplayEdgePresetToLineStyle,
   geometryDisplayEdgePresetToMode,
 } from '../shared/viewSettingsTypes'
+import {
+  getVisualStyleMenuRecipeDefinition,
+  type VisualStyleMenuRecipeDefinition,
+} from './visualStyleMenuRecipes'
 import { useAppStore } from './store/useAppStore'
 import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
@@ -21,6 +25,8 @@ import { routeKeyboardInput } from './inputRouting'
 
 export type ViewerDisplayModeMenuState = {
   isOpen: boolean
+  recipe: VisualStyleMenuRecipeDefinition
+  renderedRecipe: VisualStyleMenuRecipeDefinition
   close: () => void
   selectDisplayMode: (mode: ViewDisplayMode) => void
   selectEdgeDisplayMode: (mode: ViewEdgeDisplayMode | 'hiddenLine') => void
@@ -31,6 +37,9 @@ export function useViewerDisplayModeMenu(
   viewportId: WorkspaceViewportId,
 ): ViewerDisplayModeMenuState {
   const [isOpen, setIsOpen] = useState(false)
+  const radialMenuRecipeId = useUiPrefsStore((state) => state.radialMenuRecipeId)
+  const recipe = getVisualStyleMenuRecipeDefinition(radialMenuRecipeId)
+  const renderedRecipe = recipe
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -77,6 +86,8 @@ export function useViewerDisplayModeMenu(
 
   return {
     isOpen,
+    recipe,
+    renderedRecipe,
     close: () => setIsOpen(false),
     selectDisplayMode: (mode) => {
       useUiPrefsStore.getState().setView(createDisplayModeViewPatch(mode))

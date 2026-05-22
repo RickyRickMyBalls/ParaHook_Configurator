@@ -32,6 +32,7 @@ import {
 } from '../panels/spaghettiWindowAppearance'
 import {
   setConsoleInputPriorityModeWithHistory,
+  setRadialMenuRecipeWithHistory,
   setSpaghettiWindowAppearanceDefaultsWithHistory,
   setWorkspacePanelShellPaddingWithHistory,
   setWorkspacePaneFilletRadiusWithHistory,
@@ -47,6 +48,10 @@ import {
   type ConsoleInputPriorityMode,
   useUiPrefsStore,
 } from '../store/uiPrefsStore'
+import {
+  getVisualStyleMenuRecipeDefinition,
+  visualStyleMenuRecipeOptions,
+} from '../visualStyleMenuRecipes'
 import { WorkspacePanelSplitShell } from './WorkspacePanelSplitShell'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
@@ -194,6 +199,9 @@ const formatConsoleInputPriorityMode = (value: ConsoleInputPriorityMode): string
 const formatProjectionMode = (value: string): string =>
   value === 'orthographic' ? 'Orthographic' : 'Perspective'
 
+const formatRadialMenuRecipe = (value: unknown): string =>
+  getVisualStyleMenuRecipeDefinition(value).label
+
 const formatPercent = (value: number): string => `${Math.round(value * 100)}%`
 
 const formatBrowserPresentationMode = (value: string): string =>
@@ -303,6 +311,7 @@ const buildSettingsRows = (options: {
   notepadPersistence: boolean
   leftDockWidth: number
   projectionMode: string
+  radialMenuRecipeId: string
   axisOverlayEnabled: boolean
   highlights: ViewHighlightSettings
   browserPresentationMode: string
@@ -396,6 +405,13 @@ const buildSettingsRows = (options: {
     label: 'Projection mode',
     value: formatProjectionMode(options.projectionMode),
     description: 'Current viewport projection setting.',
+    sectionIds: ['viewport'],
+  },
+  {
+    id: 'radial-menu-preset',
+    label: 'Radial menu preset',
+    value: formatRadialMenuRecipe(options.radialMenuRecipeId),
+    description: 'Preset layout recipe used by the viewport visual-style radial menu.',
     sectionIds: ['viewport'],
   },
   {
@@ -535,6 +551,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
   const notepadPersistence = useUiPrefsStore((state) => state.notepadPersistence)
   const leftDockWidth = useWorkspaceStore((state) => state.leftDockWidth)
   const projectionMode = useUiPrefsStore((state) => state.view.projectionMode)
+  const radialMenuRecipeId = useUiPrefsStore((state) => state.radialMenuRecipeId)
   const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
   const highlights = useUiPrefsStore((state) => state.view.highlights)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
@@ -590,6 +607,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
         workspacePanelShellPaddingPx,
         workspaceNestedResizeKeepsFarPane,
         projectionMode,
+        radialMenuRecipeId,
         axisOverlayEnabled,
         highlights,
         browserPresentationMode,
@@ -608,6 +626,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
       leftDockWidth,
       notepadPersistence,
       projectionMode,
+      radialMenuRecipeId,
       viewSettingsPersistence,
       workspacePaneFilletRadiusPx,
       workspacePanelShellPaddingPx,
@@ -880,6 +899,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           value={spaghettiWindowAppearanceDefaults.titlebarTint}
                           options={titlebarTintOptions}
                           menuMode="custom"
+                          capGlyph="chevron"
                           onChange={(nextValue) =>
                             updateSpaghettiWindowAppearanceDefaults({
                               titlebarTint: nextValue as SpaghettiWindowAppearance['titlebarTint'],
@@ -893,6 +913,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           value={spaghettiWindowAppearanceDefaults.bodyTint}
                           options={bodyTintOptions}
                           menuMode="custom"
+                          capGlyph="chevron"
                           onChange={(nextValue) =>
                             updateSpaghettiWindowAppearanceDefaults({
                               bodyTint: nextValue as SpaghettiWindowAppearance['bodyTint'],
@@ -906,6 +927,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           value={spaghettiWindowAppearanceDefaults.fontScale}
                           options={fontScaleOptions}
                           menuMode="custom"
+                          capGlyph="chevron"
                           onChange={(nextValue) =>
                             updateSpaghettiWindowAppearanceDefaults({
                               fontScale: nextValue as SpaghettiWindowAppearance['fontScale'],
@@ -919,6 +941,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           value={spaghettiWindowAppearanceDefaults.fontFamily}
                           options={fontFamilyOptions}
                           menuMode="custom"
+                          capGlyph="chevron"
                           onChange={(nextValue) =>
                             updateSpaghettiWindowAppearanceDefaults({
                               fontFamily: nextValue as SpaghettiWindowAppearance['fontFamily'],
@@ -932,6 +955,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                           value={spaghettiWindowAppearanceDefaults.paddingScale}
                           options={paddingScaleOptions}
                           menuMode="custom"
+                          capGlyph="chevron"
                           onChange={(nextValue) =>
                             updateSpaghettiWindowAppearanceDefaults({
                               paddingScale: nextValue as SpaghettiWindowAppearance['paddingScale'],
@@ -951,6 +975,7 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                             value={selectedShortcutBasePresetId}
                             options={shortcutPresetOptions}
                             menuMode="custom"
+                            capGlyph="chevron"
                             onChange={(nextValue) =>
                               setSelectedShortcutBasePresetId(nextValue as ShortcutBasePresetId)
                             }
@@ -1141,131 +1166,158 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
                 ) : section.id === 'viewport' ? (
                   <>
                     <div className="SettingsSurfaceEditorPanel">
-                      <div className="SettingsSurfaceEditorActions">
-                        <button
-                          type="button"
-                          className="SettingsSurfaceEditorResetButton"
-                          onClick={() => updateHighlightSettings(DEFAULT_VIEW_HIGHLIGHT_SETTINGS)}
-                        >
-                          Reset highlights
-                        </button>
-                      </div>
-                      <div className="SettingsSurfaceEditorGrid">
-                        <div className="SettingsSurfaceEditorField">
-                          <label className="HomePageSurfaceStoragePolicyToggle">
-                            <span>Hover color</span>
-                            <input
-                              type="color"
-                              aria-label="Viewport highlight hover color"
-                              value={highlights.hoverColor}
-                              onChange={(event) =>
-                                updateHighlightSettings({ hoverColor: event.target.value })
+                      <section className="SettingsSurfaceEditorSubsection" aria-label="Radial Menu">
+                        <header className="SettingsSurfaceEditorSubsectionHeader">
+                          <strong>Radial Menu</strong>
+                        </header>
+                        <div className="SettingsSurfaceEditorGrid">
+                          <div className="SettingsSurfaceEditorField">
+                            <ParaSelect
+                              label="Radial menu preset"
+                              value={radialMenuRecipeId}
+                              options={visualStyleMenuRecipeOptions}
+                              menuMode="custom"
+                              capGlyph="chevron"
+                              onChange={(nextValue) =>
+                                setRadialMenuRecipeWithHistory(
+                                  nextValue as typeof radialMenuRecipeId,
+                                )
                               }
                             />
-                          </label>
+                          </div>
                         </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <label className="HomePageSurfaceStoragePolicyToggle">
-                            <span>Selected color</span>
-                            <input
-                              type="color"
-                              aria-label="Viewport highlight selected color"
-                              value={highlights.selectedColor}
-                              onChange={(event) =>
-                                updateHighlightSettings({ selectedColor: event.target.value })
+                      </section>
+                      <section
+                        className="SettingsSurfaceEditorSubsection"
+                        aria-label="Viewport Highlights"
+                      >
+                        <header className="SettingsSurfaceEditorSubsectionHeader">
+                          <strong>Viewport Highlights</strong>
+                          <button
+                            type="button"
+                            className="SettingsSurfaceEditorResetButton"
+                            onClick={() => updateHighlightSettings(DEFAULT_VIEW_HIGHLIGHT_SETTINGS)}
+                          >
+                            Reset highlights
+                          </button>
+                        </header>
+                        <div className="SettingsSurfaceEditorGrid">
+                          <div className="SettingsSurfaceEditorField">
+                            <label className="HomePageSurfaceStoragePolicyToggle">
+                              <span>Hover color</span>
+                              <input
+                                type="color"
+                                aria-label="Viewport highlight hover color"
+                                value={highlights.hoverColor}
+                                onChange={(event) =>
+                                  updateHighlightSettings({ hoverColor: event.target.value })
+                                }
+                              />
+                            </label>
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <label className="HomePageSurfaceStoragePolicyToggle">
+                              <span>Selected color</span>
+                              <input
+                                type="color"
+                                aria-label="Viewport highlight selected color"
+                                value={highlights.selectedColor}
+                                onChange={(event) =>
+                                  updateHighlightSettings({ selectedColor: event.target.value })
+                                }
+                              />
+                            </label>
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <label className="HomePageSurfaceStoragePolicyToggle">
+                              <span>Body selected color</span>
+                              <input
+                                type="color"
+                                aria-label="Viewport highlight body selected color"
+                                value={highlights.bodySelectedColor}
+                                onChange={(event) =>
+                                  updateHighlightSettings({ bodySelectedColor: event.target.value })
+                                }
+                              />
+                            </label>
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <ParaSlider
+                              label="Hover glow"
+                              value={highlights.hoverGlow}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              clampMin={0}
+                              clampMax={1}
+                              formatValue={formatPercent}
+                              onChange={(nextValue) =>
+                                updateHighlightSettings({ hoverGlow: nextValue })
                               }
                             />
-                          </label>
-                        </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <label className="HomePageSurfaceStoragePolicyToggle">
-                            <span>Body selected color</span>
-                            <input
-                              type="color"
-                              aria-label="Viewport highlight body selected color"
-                              value={highlights.bodySelectedColor}
-                              onChange={(event) =>
-                                updateHighlightSettings({ bodySelectedColor: event.target.value })
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <ParaSlider
+                              label="Selected glow"
+                              value={highlights.selectedGlow}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              clampMin={0}
+                              clampMax={1}
+                              formatValue={formatPercent}
+                              onChange={(nextValue) =>
+                                updateHighlightSettings({ selectedGlow: nextValue })
                               }
                             />
-                          </label>
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <ParaSlider
+                              label="Surface hover opacity"
+                              value={highlights.surfaceHoverOpacity}
+                              min={0.05}
+                              max={0.9}
+                              step={0.01}
+                              clampMin={0.05}
+                              clampMax={0.9}
+                              formatValue={formatPercent}
+                              onChange={(nextValue) =>
+                                updateHighlightSettings({ surfaceHoverOpacity: nextValue })
+                              }
+                            />
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <ParaSlider
+                              label="Surface selected opacity"
+                              value={highlights.surfaceSelectedOpacity}
+                              min={0.05}
+                              max={0.95}
+                              step={0.01}
+                              clampMin={0.05}
+                              clampMax={0.95}
+                              formatValue={formatPercent}
+                              onChange={(nextValue) =>
+                                updateHighlightSettings({ surfaceSelectedOpacity: nextValue })
+                              }
+                            />
+                          </div>
+                          <div className="SettingsSurfaceEditorField">
+                            <ParaSlider
+                              label="Body selected opacity"
+                              value={highlights.bodySelectedOpacity}
+                              min={0.05}
+                              max={0.85}
+                              step={0.01}
+                              clampMin={0.05}
+                              clampMax={0.85}
+                              formatValue={formatPercent}
+                              onChange={(nextValue) =>
+                                updateHighlightSettings({ bodySelectedOpacity: nextValue })
+                              }
+                            />
+                          </div>
                         </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <ParaSlider
-                            label="Hover glow"
-                            value={highlights.hoverGlow}
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            clampMin={0}
-                            clampMax={1}
-                            formatValue={formatPercent}
-                            onChange={(nextValue) =>
-                              updateHighlightSettings({ hoverGlow: nextValue })
-                            }
-                          />
-                        </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <ParaSlider
-                            label="Selected glow"
-                            value={highlights.selectedGlow}
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            clampMin={0}
-                            clampMax={1}
-                            formatValue={formatPercent}
-                            onChange={(nextValue) =>
-                              updateHighlightSettings({ selectedGlow: nextValue })
-                            }
-                          />
-                        </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <ParaSlider
-                            label="Surface hover opacity"
-                            value={highlights.surfaceHoverOpacity}
-                            min={0.05}
-                            max={0.9}
-                            step={0.01}
-                            clampMin={0.05}
-                            clampMax={0.9}
-                            formatValue={formatPercent}
-                            onChange={(nextValue) =>
-                              updateHighlightSettings({ surfaceHoverOpacity: nextValue })
-                            }
-                          />
-                        </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <ParaSlider
-                            label="Surface selected opacity"
-                            value={highlights.surfaceSelectedOpacity}
-                            min={0.05}
-                            max={0.95}
-                            step={0.01}
-                            clampMin={0.05}
-                            clampMax={0.95}
-                            formatValue={formatPercent}
-                            onChange={(nextValue) =>
-                              updateHighlightSettings({ surfaceSelectedOpacity: nextValue })
-                            }
-                          />
-                        </div>
-                        <div className="SettingsSurfaceEditorField">
-                          <ParaSlider
-                            label="Body selected opacity"
-                            value={highlights.bodySelectedOpacity}
-                            min={0.05}
-                            max={0.85}
-                            step={0.01}
-                            clampMin={0.05}
-                            clampMax={0.85}
-                            formatValue={formatPercent}
-                            onChange={(nextValue) =>
-                              updateHighlightSettings({ bodySelectedOpacity: nextValue })
-                            }
-                          />
-                        </div>
-                      </div>
+                      </section>
                     </div>
                     <div className="SettingsSurfaceRowList" role="list">
                       {rows.map((row) => (

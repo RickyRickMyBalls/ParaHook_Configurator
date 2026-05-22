@@ -72,6 +72,481 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2054 -->
+
+### [2054] - 2026-05-21 23:25 - `Visual-Style-Menu-1 / Circle Outer Button Border Polish`
+
+HUMAN SUMMARY: ``The Circle Shift+D outside wedge buttons now have subtle inner, outer, and side highlights so each pie sector reads more like a button. The former pink guide ring is also smaller and blue so it supports the layout without overpowering the menu.```
+
+#### Scope / Constraints Honored
+
+- Kept the change visual-only for the Circle recipe.
+- Preserved Circle direction selection and option routing.
+- Preserved Square behavior.
+- Kept the existing option membership list.
+
+#### Summary of Implementation
+
+- Reduced the Circle outer guide layer size.
+- Changed the guide layer from magenta/pink to a quieter blue.
+- Added layered radial and conic highlight gradients to Circle outer pie-sector buttons.
+- Added a small text shadow to Circle outer labels for better contrast over the sector fills.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle outer wedge sectors render with clearer button-like borders and a smaller blue guide ring.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+- `git diff --check`
+
+<!-- ENTRY 2053 -->
+
+### [2053] - 2026-05-21 23:19 - `Visual-Style-Menu-1 / Circle Outer Label Stack`
+
+HUMAN SUMMARY: ``Circle outer wedge labels now stack the short code and full label as one counter-rotated text group. This keeps side labels like SOL/Solid and RND/Rendered from collapsing into one mashed string.``
+
+#### Scope / Constraints Honored
+
+- Kept the change visual-only for the Circle recipe.
+- Preserved Circle direction selection and option routing.
+- Preserved Square behavior.
+- Kept the existing option membership list.
+
+#### Summary of Implementation
+
+- Wrapped each outer visual-style option's short/full label pair in a shared label group.
+- Counter-rotated the label group once per Circle wedge.
+- Kept the existing Square label layout through display-contents styling.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle outer wedge labels render as stacked short/full text pairs.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2052 -->
+
+### [2052] - 2026-05-21 23:08 - `Visual-Style-Menu-1 / Circle Outer Ring Thickness`
+
+HUMAN SUMMARY: ``The Circle Shift+D outside ring keeps its larger outer diameter, but the inner cutout is smaller now. That makes each annular pie-slice button thicker so the visual-style labels have more room.``
+
+#### Scope / Constraints Honored
+
+- Kept the change visual-only for the Circle recipe.
+- Preserved Circle direction selection and option routing.
+- Preserved Square behavior.
+- Kept the existing option membership list.
+
+#### Summary of Implementation
+
+- Reduced the Circle outer-ring inner cutout radius.
+- Kept the same outside diameter.
+- Moved labels inward into the thicker annular band.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle's outside visual-style ring renders thicker for better label room.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2051 -->
+
+### [2051] - 2026-05-21 23:04 - `Visual-Style-Menu-1 / Circle Outer Ring Scale`
+
+HUMAN SUMMARY: ``The Circle Shift+D outside ring is larger now, giving the annular pie-slice buttons more room around the center edge cluster. The change is visual-only and keeps Circle/Square behavior unchanged.``
+
+#### Scope / Constraints Honored
+
+- Kept the change visual-only for the Circle recipe.
+- Preserved Circle direction selection and option routing.
+- Preserved Square behavior.
+- Kept the existing option membership list.
+
+#### Summary of Implementation
+
+- Enlarged the Circle menu canvas.
+- Doubled the Circle outer pie guide and annular button sector geometry.
+- Repositioned outer labels within the larger sectors.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle's outside visual-style ring renders larger.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2050 -->
+
+### [2050] - 2026-05-21 22:54 - `Visual-Style-Menu-1 / Circle Outer Buttons As Pie Sectors`
+
+HUMAN SUMMARY: ``The Circle Shift+D outer controls are now the pie slices themselves. WRF, MAT, RND, PRV, CLY, and SOL use clipped annular sector button shapes instead of rounded cards placed on top of the ring.``
+
+#### Scope / Constraints Honored
+
+- Kept the change visual-only for the Circle recipe.
+- Preserved Circle direction selection behavior and option routing.
+- Preserved inner edge behavior and Square behavior.
+- Kept the existing option membership list.
+
+#### Summary of Implementation
+
+- Reworked Circle-only outer visual-style button CSS into annular pie-sector controls.
+- Counter-rotated each button's text so labels remain readable inside the sector.
+- Kept focused Circle and Shift+D proof passing.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle outer controls visually render as pie-slice buttons.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2049 -->
+
+### [2049] - 2026-05-21 22:49 - `Visual-Style-Menu-1 / Circle Outer Pie Visual Refinement`
+
+HUMAN SUMMARY: ``The Circle Shift+D radial menu now draws an inert segmented outer pie layer behind the six outside visual-style choices. This matches the sketched pie-slice read without changing Circle direction behavior, inner edge clicks, or Square.``
+
+#### Scope / Constraints Honored
+
+- Kept the change visual-only for the Circle recipe.
+- Preserved Circle direction mapping and existing helper writes.
+- Preserved inner edge click behavior.
+- Preserved Square behavior and layout.
+
+#### Summary of Implementation
+
+- Added a Circle-only outer pie visual layer in `ViewerHost`.
+- Styled the layer with an outer circumference, inner ring boundary, and six radial slice dividers.
+- Added focused Circle proof that the outer pie layer renders.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Circle's outside layer now visually reads as a segmented pie ring.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2048 -->
+
+### [2048] - 2026-05-21 22:42 - `Visual-Style-Menu-1 / Phase 4 - Circle Interaction Model`
+
+HUMAN SUMMARY: ``The Circle Shift+D radial menu now uses pointer direction for the outer visual-style ring while keeping the inner edge cluster click-based. Square remains click-based, and all choices still write through the existing display, viewport-style, and edge-setting helpers.``
+
+#### Scope / Constraints Honored
+
+- Applied direction behavior only to the Circle recipe.
+- Preserved Square click behavior.
+- Kept Circle's inner edge options as click targets.
+- Preserved the existing four edge choices, six visual-style choices, active-state readback, and helper write paths.
+- Left drag customization, recipe membership editing, custom recipes, and Settings persistence changes out of scope.
+
+#### Summary of Implementation
+
+- Added Circle pointer-direction resolution from menu-center coordinates in `ViewerHost`.
+- Added Circle direction hover/active feedback on the outer visual-style items.
+- Routed Circle outer direction commits through existing display-mode and viewport-style selection helpers.
+- Kept Circle inner edge clicks routed through existing edge-display selection helpers without triggering outer direction commits.
+- Added focused Circle and Square Shift+D proof.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- In the Circle radial-menu recipe, moving/committing toward the outer ring selects the visual-style option by direction.
+- Circle center edge choices remain click-based and keep the menu open.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t Circle`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx`
+
+<!-- ENTRY 2047 -->
+
+### [2047] - 2026-05-21 22:35 - `Visual-Style-Menu-1 / Phase 3 - Circle Layout Rendering`
+
+HUMAN SUMMARY: ``Selecting the Circle radial-menu recipe now renders a Circle-specific Shift+D layout. The Circle pass adds a rounded center edge cluster, inert spacer ring, and rounded outer visual-style ring while keeping the same options and click behavior as Square.``
+
+#### Scope / Constraints Honored
+
+- Kept `Square` on the existing layout path.
+- Reused the existing four center edge choices and six outer visual-style choices.
+- Preserved all current click handlers, active-state readback, and close/stay-open behavior.
+- Left direction-based outer selection to Phase 4.
+- Left recipe membership editing, custom recipe authoring, Settings persistence, Properties controls, and Geometry Display recipe semantics unchanged.
+
+#### Summary of Implementation
+
+- Updated the visual-style menu runtime seam so the selected recipe is also the rendered recipe.
+- Added Circle-specific menu root classing and an inert spacer-ring element to `ViewerHost`.
+- Added Circle styling for a circular center cluster, quadrant edge buttons, spacer ring, and rounded outer visual-style targets.
+- Updated hook and ViewerHost tests to prove Circle renders as Circle while preserving shared option membership and click behavior.
+
+#### Files Changed
+
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Settings `Circle` recipe selection now changes the visible Shift+D menu layout.
+- Circle still uses click-based behavior for both center edge choices and outer visual-style choices until Phase 4.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2046 -->
+
+### [2046] - 2026-05-21 22:09 - `Visual-Style-Menu-1 / Phase 2 - Recipe Resolver And Square Runtime Preservation`
+
+HUMAN SUMMARY: ``The Shift+D radial menu now reads the Settings-selected visual-style menu recipe through the shared resolver while still rendering the shipped Square layout. Circle can be selected and recognized by the runtime seam, but Circle rendering remains deferred to Phase 3.``
+
+#### Scope / Constraints Honored
+
+- Kept the visible Shift+D radial menu on the existing Square layout.
+- Used the shared visual-style menu recipe resolver instead of branching on raw persisted strings.
+- Preserved existing display-mode, render-preset, and edge-preset action routing.
+- Preserved current active/readback state from real view settings.
+- Left Circle layout rendering, direction-based selection, recipe membership editing, and custom recipe authoring out of scope.
+
+#### Summary of Implementation
+
+- Extended `useViewerDisplayModeMenu(...)` to resolve the selected radial-menu recipe and expose the Phase 2 rendered recipe.
+- Kept the Phase 2 rendered recipe fixed to `Square` for every selected recipe.
+- Added selected/rendered recipe data attributes to the Shift+D menu for focused proof.
+- Added hook tests for default Square resolution, selected Circle runtime readback, and invalid-id fallback.
+- Added ViewerHost proof that Circle selection still renders the six outer items and four center edge controls in the Square layout.
+
+#### Files Changed
+
+- `src/app/useViewerDisplayModeMenu.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Shift+D now consumes the saved radial-menu recipe preference at runtime.
+- Selecting `Circle` in Settings is recognized by the runtime seam, but the menu intentionally continues rendering the Square layout until Phase 3.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Shift\\+D"`
+
+<!-- ENTRY 2045 -->
+
+### [2045] - 2026-05-21 21:50 - `Visual-Style-Menu-1 / Phase 1.1 - Settings Para Control Visual Match`
+
+HUMAN SUMMARY: ``Settings ParaSelect and ParaSlider controls now use the compact Properties-style row treatment. The radial-menu preset selector keeps the same saved Square/Circle behavior, but it now visually lines up with the Properties controls.``
+
+#### Scope / Constraints Honored
+
+- Kept the change to Settings control presentation.
+- Reused the existing Properties compact-control styling direction.
+- Preserved Settings persistence, edit history, and radial-menu recipe behavior.
+- Left runtime `Shift+D` radial-menu consumption deferred to Phase 2.
+
+#### Summary of Implementation
+
+- Applied compact Properties-style Para control styling to Settings editor fields.
+- Switched Settings `ParaSelect` controls to chevron caps.
+- Added focused Settings proof for the radial-menu select cap and viewport highlight slider structure.
+- Updated the Visual Style Menu planning docs to record the shipped Phase 1.1 follow-up.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Settings `ParaSelect` and `ParaSlider` controls now visually match the compact Properties-style controls.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/SettingsSurface.test.tsx -t "radial menu|viewport highlight"`
+
+<!-- ENTRY 2044 -->
+
+### [2044] - 2026-05-21 21:40 - `Visual-Style-Menu-1 / Phase 1 - Viewport Radial Menu Subsection`
+
+HUMAN SUMMARY: ``The Settings Viewport page now gives the radial-menu preset its own Radial Menu subsection instead of placing it in the same editor grid as highlight controls. The saved Square/Circle preference behavior is unchanged.``
+
+#### Scope / Constraints Honored
+
+- Kept the control inside Settings `Viewport`.
+- Changed only the Settings layout grouping around the radial-menu preset.
+- Preserved the existing persisted `Square` / `Circle` recipe owner and `Shift+D` runtime deferral.
+
+#### Summary of Implementation
+
+- Split the Viewport editor panel into `Radial Menu` and `Viewport Highlights` subsections.
+- Moved the radial-menu preset ParaSelect into the `Radial Menu` subsection.
+- Added shared Settings subsection styling and focused Settings proof for the new structure.
+
+#### Files Changed
+
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Settings `Viewport` now visually separates radial-menu recipe selection from viewport highlight tuning.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/SettingsSurface.test.tsx -t "radial menu|viewport highlight"`
+
+<!-- ENTRY 2043 -->
+
+### [2043] - 2026-05-21 21:37 - `Visual-Style-Menu-1 / Phase 1 - Settings Radial Menu Recipe Select`
+
+HUMAN SUMMARY: ``Settings now has a Viewport radial-menu preset selector backed by a saved `Square` / `Circle` recipe id. The shipped Shift+D menu is intentionally unchanged in this phase; the new owner, persistence path, and focused proof are ready for Phase 2 runtime consumption.``
+
+#### Scope / Constraints Honored
+
+- Kept the new control inside the existing Settings `Viewport` surface.
+- Preserved `Square` as the default current-layout recipe.
+- Added `Circle` as an aesthetic-only recipe definition without consuming it in the runtime radial menu yet.
+- Kept current display mode, render preset, and Geometry Display edge preset state on their existing owners.
+- Left add/subtract visual-style membership editing and custom recipe authoring out of scope.
+
+#### Summary of Implementation
+
+- Added a shared visual-style menu recipe module with `Square` and `Circle` ids, labels, options, metadata, and normalization helpers.
+- Added `radialMenuRecipeId` to UI prefs with persisted serialization, hydration, and invalid-value fallback to `Square`.
+- Added a history-wrapped radial-menu recipe preference setter.
+- Added a Settings `Viewport` radial-menu preset ParaSelect and summary row.
+- Added focused Settings, UI prefs, persistence bridge, and preference-history proof.
+
+#### Files Changed
+
+- `src/app/visualStyleMenuRecipes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/uiPreferenceEditHistory.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/store/uiPreferenceEditHistoryStore.test.ts`
+- `src/app/workspace/SettingsSurface.tsx`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Visual-Style-Menu-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Settings `Viewport` now exposes a radial-menu preset selector with `Square` and `Circle`.
+- The selected radial-menu recipe persists across sessions and normalizes unknown saved ids back to `Square`.
+- The live Shift+D radial menu remains visually and behaviorally unchanged until Phase 2.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- --run src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd test -- --run src/app/store/uiPreferenceEditHistoryStore.test.ts`
+
 <!-- ENTRY 2042 -->
 
 ### [2042] - 2026-05-21 20:55 - `Model-Viewport-3 / Shift+D Hidden Line Edge Option`

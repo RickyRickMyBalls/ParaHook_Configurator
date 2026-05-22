@@ -40,7 +40,12 @@ function DisplayModeMenuHarness({ viewportId }: { viewportId: string }) {
   const menu = useViewerDisplayModeMenu(viewportId)
 
   return menu.isOpen ? (
-    <div role="menu" aria-label="Display mode">
+    <div
+      role="menu"
+      aria-label="Display mode"
+      data-visual-style-menu-recipe={menu.recipe.id}
+      data-visual-style-menu-rendered-recipe={menu.renderedRecipe.id}
+    >
       {displayModeOptions.map((mode) => (
         <button key={mode} type="button" onClick={() => menu.selectDisplayMode(mode)}>
           {mode}
@@ -129,6 +134,75 @@ describe('useViewerDisplayModeMenu', () => {
 
     expect(event.defaultPrevented).toBe(true)
     expect(container?.querySelector('[role="menu"][aria-label="Display mode"]')).not.toBeNull()
+  })
+
+  it('resolves the default visual style menu recipe as the Square rendered layout', () => {
+    makeActiveViewerShortcutOwner()
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const menu = container?.querySelector('[role="menu"][aria-label="Display mode"]')
+    expect(menu?.getAttribute('data-visual-style-menu-recipe')).toBe('square')
+    expect(menu?.getAttribute('data-visual-style-menu-rendered-recipe')).toBe('square')
+  })
+
+  it('reads the Circle visual style menu recipe as the rendered layout', () => {
+    makeActiveViewerShortcutOwner()
+    useUiPrefsStore.getState().setRadialMenuRecipeId('circle')
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const menu = container?.querySelector('[role="menu"][aria-label="Display mode"]')
+    expect(menu?.getAttribute('data-visual-style-menu-recipe')).toBe('circle')
+    expect(menu?.getAttribute('data-visual-style-menu-rendered-recipe')).toBe('circle')
+  })
+
+  it('falls invalid visual style menu recipe ids back to Square at the runtime seam', () => {
+    makeActiveViewerShortcutOwner()
+    useUiPrefsStore.setState({
+      radialMenuRecipeId: 'not-a-real-recipe' as ReturnType<
+        typeof useUiPrefsStore.getState
+      >['radialMenuRecipeId'],
+    })
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const menu = container?.querySelector('[role="menu"][aria-label="Display mode"]')
+    expect(menu?.getAttribute('data-visual-style-menu-recipe')).toBe('square')
+    expect(menu?.getAttribute('data-visual-style-menu-rendered-recipe')).toBe('square')
   })
 
   it('does not open while an editable field owns the event target', () => {
