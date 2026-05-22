@@ -4,8 +4,10 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
   CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
   CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+  DEFAULT_ENVIRONMENT_BACKGROUND,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
   DEFAULT_VIEW_SETTINGS,
   createRenderPreviewQualityPresetSettings,
@@ -1721,6 +1723,7 @@ describe('PropertiesSurface', () => {
     expect(renderTab?.getAttribute('aria-selected')).toBe('true')
     expect(renderPanel?.textContent).toContain('Viewport presentation')
     expect(renderPanel?.textContent).toContain('Environment')
+    expect(renderPanel?.textContent).toContain('Color Grade')
     expect(renderPanel?.textContent).toContain('Shadows')
     expect(renderPanel?.textContent).toContain('Ground')
     expect(renderPanel?.textContent).toContain('Grid')
@@ -1738,10 +1741,20 @@ describe('PropertiesSurface', () => {
     const shadowsHeader = renderGroupHeaders.find((header) =>
       header.textContent?.includes('Shadows'),
     )
-    expect(viewportPresentationHeader?.nextElementSibling?.textContent).not.toContain(
-      'Ambient Occlusion',
+    const environmentHeader = renderGroupHeaders.find((header) =>
+      header.textContent?.includes('Environment'),
     )
-    expect(shadowsHeader?.nextElementSibling?.textContent).toContain('Ambient Occlusion')
+    const colorGradeHeader = renderGroupHeaders.find((header) =>
+      header.textContent?.includes('Color Grade'),
+    )
+    expect(viewportPresentationHeader?.nextElementSibling?.textContent).not.toContain(
+      'AO Type',
+    )
+    expect(environmentHeader?.nextElementSibling?.textContent).toContain('Background Source')
+    expect(environmentHeader?.nextElementSibling?.textContent).not.toContain('Exposure')
+    expect(colorGradeHeader?.nextElementSibling?.textContent).toContain('Exposure')
+    expect(colorGradeHeader?.nextElementSibling?.textContent).toContain('Saturation')
+    expect(shadowsHeader?.nextElementSibling?.textContent).toContain('AO Type')
   })
 
   it('keeps render active when the focused target cannot open materials yet', async () => {
@@ -1857,6 +1870,10 @@ describe('PropertiesSurface', () => {
     expect(clayView.viewportStyle).toBe('clayStudio')
     expect(clayView.displayMode).toBe('rendered')
     expect(clayView.environmentGrade).toEqual(CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE)
+    expect(clayView.environmentSource).toMatchObject({
+      kind: 'custom',
+      backgroundColor: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
+    })
     expect(clayView.shadowsEnabled).toBe(false)
     expect(clayView.ground.enabled).toBe(true)
     expect(clayView.gridVisible).toBe(false)
@@ -1889,6 +1906,7 @@ describe('PropertiesSurface', () => {
     expect(standardView.displayMode).toBe('wireframe')
     expect(standardView.geometryDisplay.surfaces.visible).toBe(false)
     expect(standardView.environmentGrade).toEqual(DEFAULT_VIEW_SETTINGS.environmentGrade)
+    expect(standardView.environmentSource).toEqual(DEFAULT_VIEW_SETTINGS.environmentSource)
     expect(standardView.shadowsEnabled).toBe(DEFAULT_VIEW_SETTINGS.shadowsEnabled)
     expect(standardView.ground).toEqual(DEFAULT_VIEW_SETTINGS.ground)
     expect(standardView.gridVisible).toBe(DEFAULT_VIEW_SETTINGS.gridVisible)
@@ -1912,6 +1930,122 @@ describe('PropertiesSurface', () => {
       depthMode: 'xray',
       hiddenEdges: true,
       lineStyle: 'dashed',
+    })
+
+    await act(async () => {
+      if (displayModeSelect !== null) {
+        displayModeSelect.value = 'solid'
+        displayModeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    const solidView = useUiPrefsStore.getState().view
+    expect(solidView.displayMode).toBe('solid')
+    expect(solidView.geometryDisplay.surfaces.visible).toBe(true)
+    expect(solidView.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(solidView.geometryDisplay.edges).toMatchObject({
+      preset: 'visibleOnly',
+      mode: 'visibleOnly',
+      depthMode: 'surface',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+    })
+  })
+
+  it('edits Properties Render environment background and HDRI source controls', async () => {
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const backgroundReadback = container?.querySelector(
+      '[data-properties-render-readback="environment-background"]',
+    ) as HTMLDivElement | null
+    const backgroundSourceSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Background Source"]',
+    ) as HTMLSelectElement | null
+    const hdriSourceSelectBefore = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="HDRI"]',
+    ) as HTMLSelectElement | null
+    const backgroundColorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Background Color"]',
+    ) as HTMLInputElement | null
+
+    expect(renderPanel?.textContent).toContain('Background Source')
+    expect(backgroundReadback?.textContent).toContain('Preset color')
+    expect(backgroundSourceSelect?.value).toBe('preset-color')
+    expect(backgroundSourceSelect?.textContent).toContain('HDRI')
+    expect(hdriSourceSelectBefore).toBeNull()
+    expect(renderPanel?.textContent).not.toContain('Browse HDRI/EXR')
+    expect(backgroundColorInput?.value).toBe(DEFAULT_ENVIRONMENT_BACKGROUND)
+
+    await act(async () => {
+      if (backgroundColorInput !== null) {
+        backgroundColorInput.value = '#ddeeff'
+        backgroundColorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'preset',
+      backgroundColor: '#ddeeff',
+    })
+
+    await act(async () => {
+      if (backgroundSourceSelect !== null) {
+        backgroundSourceSelect.value = 'hdri'
+        backgroundSourceSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'hdri',
+      label: 'Citrus Orchard Road Puresky 2K',
+    })
+
+    const hdriSourceSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="HDRI"]',
+    ) as HTMLSelectElement | null
+    const docklandsOptionValue = Array.from(hdriSourceSelect?.options ?? []).find(
+      (option) => option.textContent === 'Docklands 02 2K',
+    )?.value
+
+    expect(hdriSourceSelect?.textContent).toContain('Docklands 02 2K')
+    expect(docklandsOptionValue).toBeDefined()
+    await act(async () => {
+      if (hdriSourceSelect !== null) {
+        hdriSourceSelect.value = docklandsOptionValue ?? ''
+        hdriSourceSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'hdri',
+      label: 'Docklands 02 2K',
+      assetPath: docklandsOptionValue?.replace(/^hdri:/u, ''),
+    })
+    expect(container?.textContent).toContain('Lighting Intensity')
+    expect(container?.textContent).toContain('Background Intensity')
+
+    const hdriBackgroundSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Background"]',
+    ) as HTMLSelectElement | null
+    const lightingIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Lighting Intensity"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      if (hdriBackgroundSelect !== null) {
+        hdriBackgroundSelect.value = 'hidden'
+        hdriBackgroundSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      lightingIncreaseButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'hdri',
+      backgroundVisible: false,
+      intensity: 1.01,
     })
   })
 
@@ -1967,7 +2101,19 @@ describe('PropertiesSurface', () => {
     expect(renderPanel?.textContent).toContain('Uses the saved shadow setting')
     expect(renderPanel?.textContent).toContain('On at 2.50')
     expect(renderPanel?.textContent).toContain('On at 1.5')
-    expect(renderPanel?.textContent).toContain('Selected Light Shadows')
+    expect(renderPanel?.textContent).toContain('Environment Lights')
+    expect(renderPanel?.textContent).toContain('Light Browser')
+    const environmentLightList = renderPanel?.querySelector(
+      '[data-properties-environment-light-list="compact"]',
+    ) as HTMLDivElement | null
+    const environmentLightListResizeHandle = renderPanel?.querySelector(
+      '[data-properties-environment-light-list-resize-handle="bottom"]',
+    ) as HTMLDivElement | null
+    expect(environmentLightList?.classList.contains('PropertiesEnvironmentLightRows')).toBe(true)
+    expect(
+      environmentLightList?.style.getPropertyValue('--properties-environment-light-list-height'),
+    ).toBe('170px')
+    expect(environmentLightListResizeHandle?.getAttribute('aria-valuenow')).toBe('170')
     expect(renderPanel?.textContent).toContain('Ground Height')
     expect(renderPanel?.textContent).toContain('Grid Height')
     expect(
@@ -1982,6 +2128,33 @@ describe('PropertiesSurface', () => {
     expect(
       renderPanel?.querySelector('[data-properties-render-readback="grid"]'),
     ).not.toBeNull()
+
+    await act(async () => {
+      environmentLightListResizeHandle?.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientY: 100 }),
+      )
+    })
+
+    await act(async () => {
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientY: 136 }))
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+    })
+
+    expect(environmentLightListResizeHandle?.getAttribute('aria-valuenow')).toBe('206')
+    expect(
+      environmentLightList?.style.getPropertyValue('--properties-environment-light-list-height'),
+    ).toBe('206px')
+
+    await act(async () => {
+      environmentLightListResizeHandle?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowUp' }),
+      )
+    })
+
+    expect(environmentLightListResizeHandle?.getAttribute('aria-valuenow')).toBe('194')
+    expect(
+      environmentLightList?.style.getPropertyValue('--properties-environment-light-list-height'),
+    ).toBe('194px')
 
     await act(async () => {
       if (viewportStyleSelect !== null) {
@@ -2003,6 +2176,10 @@ describe('PropertiesSurface', () => {
 
     const view = useUiPrefsStore.getState().view
     expect(view.environmentGrade).toEqual(CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE)
+    expect(view.environmentSource).toMatchObject({
+      kind: 'custom',
+      backgroundColor: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
+    })
     expect(view.shadowsEnabled).toBe(false)
     expect(view.ground).toEqual({
       ...ground,
@@ -2018,7 +2195,7 @@ describe('PropertiesSurface', () => {
     )
   })
 
-  it('writes View Toolbar shadow and ground settings from the Properties Render section', async () => {
+  it('writes environment light shadow and ground settings from the Properties Render section', async () => {
     const environmentGrade = {
       ...DEFAULT_VIEW_SETTINGS.environmentGrade,
       exposure: 1.77,
@@ -2040,8 +2217,13 @@ describe('PropertiesSurface', () => {
           enabled: true,
           color: '#ffffff',
           intensity: 1.25,
+          position: { x: 4, y: 5, z: 6 },
+          target: { x: 0, y: 0, z: 0 },
           castShadow: true,
           shadowBias: -0.0005,
+          shadowNormalBias: 0,
+          shadowRadius: 1,
+          shadowBlurSamples: 8,
           shadowMapSize: 1024,
         },
       ],
@@ -2078,6 +2260,15 @@ describe('PropertiesSurface', () => {
     const shadowMapSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Shadow Map"]',
     ) as HTMLSelectElement | null
+    const normalBiasIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Normal Bias"]',
+    ) as HTMLButtonElement | null
+    const shadowRadiusIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Shadow Radius"]',
+    ) as HTMLButtonElement | null
+    const blurSamplesIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Blur Samples"]',
+    ) as HTMLButtonElement | null
     const contactShadowsSelect = container?.querySelector(
       '.PropertiesRenderSection .ParaSelectNative[aria-label="Contact Shadows"]',
     ) as HTMLSelectElement | null
@@ -2106,6 +2297,10 @@ describe('PropertiesSurface', () => {
     expect(shadowsSelect?.value).toBe('off')
     expect(castShadowSelect?.value).toBe('on')
     expect(shadowMapSelect?.value).toBe('1024')
+    expect(renderPanel?.textContent).toContain('Light Shadows')
+    expect(renderPanel?.textContent).toContain('Normal Bias')
+    expect(renderPanel?.textContent).toContain('Shadow Radius')
+    expect(renderPanel?.textContent).toContain('Blur Samples')
     expect(contactShadowsSelect?.value).toBe('off')
     expect(renderPanel?.textContent).toContain('Contact Shadows')
     expect(renderPanel?.textContent).not.toContain('Contact Opacity')
@@ -2125,6 +2320,9 @@ describe('PropertiesSurface', () => {
         castShadowSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
       shadowBiasIncreaseButton?.click()
+      normalBiasIncreaseButton?.click()
+      shadowRadiusIncreaseButton?.click()
+      blurSamplesIncreaseButton?.click()
       if (shadowMapSelect !== null) {
         shadowMapSelect.value = '2048'
         shadowMapSelect.dispatchEvent(new Event('change', { bubbles: true }))
@@ -2159,6 +2357,9 @@ describe('PropertiesSurface', () => {
     expect(view.shadowsEnabled).toBe(true)
     expect(selectedLight?.castShadow).toBe(false)
     expect(selectedLight?.shadowBias).toBeCloseTo(-0.0004)
+    expect(selectedLight?.shadowNormalBias).toBeCloseTo(0.0005)
+    expect(selectedLight?.shadowRadius).toBeCloseTo(1.25)
+    expect(selectedLight?.shadowBlurSamples).toBe(9)
     expect(selectedLight?.shadowMapSize).toBe(2048)
     expect(view.contactShadows).toEqual({
       enabled: true,
@@ -2174,6 +2375,262 @@ describe('PropertiesSurface', () => {
     expect(view.environmentGrade).toEqual(environmentGrade)
     expect(view.postProcessing).toEqual(createViewAmbientOcclusionPresetSettings('medium'))
     expect(view.renderPreview).toEqual(DEFAULT_RENDER_PREVIEW_SETTINGS)
+  })
+
+  it('selects environment lights and edits common and type-specific light settings', async () => {
+    await act(async () => {
+      useUiPrefsStore.setState((state) => ({
+        view: {
+          ...state.view,
+          lighting: {
+            selectedLightId: 'key',
+            lights: [
+              {
+                id: 'key',
+                name: 'Key',
+                type: 'directional',
+                enabled: true,
+                color: '#ffffff',
+                intensity: 1,
+                position: { x: 4, y: 5, z: 6 },
+                target: { x: 0, y: 0, z: 0 },
+                castShadow: true,
+                shadowBias: -0.0005,
+                shadowMapSize: 1024,
+              },
+              {
+                id: 'fill',
+                name: 'Fill',
+                type: 'ambient',
+                enabled: false,
+                color: '#ddeeff',
+                intensity: 0.4,
+              },
+            ],
+          },
+        },
+      }))
+    })
+
+    await renderSurface()
+
+    const renderPanel = container?.querySelector(
+      '#properties-section-panel-render',
+    ) as HTMLDivElement | null
+    const environmentLightsIndex = renderPanel?.textContent?.indexOf('Environment Lights') ?? -1
+    const colorGradeIndex = renderPanel?.textContent?.indexOf('Color Grade') ?? -1
+    const fillRow = container?.querySelector(
+      '[data-properties-environment-light-row="fill"]',
+    ) as HTMLDivElement | null
+    const fillVisibilityButton = container?.querySelector(
+      '[data-properties-environment-light-visibility="fill"]',
+    ) as HTMLButtonElement | null
+
+    expect(environmentLightsIndex).toBeGreaterThan(-1)
+    expect(colorGradeIndex).toBeGreaterThan(environmentLightsIndex)
+    expect(fillRow?.getAttribute('data-selected')).toBe('false')
+    expect(
+      fillRow?.querySelector('.PropertiesEnvironmentLightSwatch')?.getAttribute('data-light-type'),
+    ).toBe('ambient')
+    expect(fillVisibilityButton?.getAttribute('aria-pressed')).toBe('false')
+    expect(renderPanel?.textContent).not.toContain('Selected Light Shadows')
+
+    await act(async () => {
+      fillVisibilityButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.lighting.selectedLightId).toBe('key')
+    expect(useUiPrefsStore.getState().view.lighting.lights.find((light) => light.id === 'fill')).toMatchObject({
+      enabled: true,
+    })
+
+    await act(async () => {
+      fillRow?.click()
+    })
+
+    const enabledSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Light Enabled"]',
+    ) as HTMLSelectElement | null
+    const nameInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Light Name"]',
+    ) as HTMLInputElement | null
+    const typeSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Light Type"]',
+    ) as HTMLSelectElement | null
+    const colorInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="Light Color"]',
+    ) as HTMLInputElement | null
+    const brightnessIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Brightness"]',
+    ) as HTMLButtonElement | null
+
+    expect(useUiPrefsStore.getState().view.lighting.selectedLightId).toBe('fill')
+    expect(enabledSelect?.value).toBe('on')
+    expect(typeSelect?.value).toBe('ambient')
+    expect(renderPanel?.textContent).toContain('Ambient lights do not support shadows.')
+
+    await act(async () => {
+      if (enabledSelect !== null) {
+        enabledSelect.value = 'on'
+        enabledSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (nameInput !== null) {
+        nameInput.value = 'Soft Fill'
+        nameInput.dispatchEvent(new Event('input', { bubbles: true }))
+        nameInput.dispatchEvent(new Event('blur', { bubbles: true }))
+      }
+      if (typeSelect !== null) {
+        typeSelect.value = 'spot'
+        typeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (colorInput !== null) {
+        colorInput.value = '#123456'
+        colorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      brightnessIncreaseButton?.click()
+    })
+
+    const distanceIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Distance"]',
+    ) as HTMLButtonElement | null
+    const angleIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Angle"]',
+    ) as HTMLButtonElement | null
+    const penumbraIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Penumbra"]',
+    ) as HTMLButtonElement | null
+
+    expect(renderPanel?.textContent).toContain('Distance')
+    expect(renderPanel?.textContent).toContain('Angle')
+    expect(renderPanel?.textContent).toContain('Penumbra')
+
+    await act(async () => {
+      distanceIncreaseButton?.click()
+      angleIncreaseButton?.click()
+      penumbraIncreaseButton?.click()
+    })
+
+    const fill = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((light) => light.id === 'fill')
+    expect(fill).toMatchObject({
+      name: 'Soft Fill',
+      enabled: true,
+      type: 'spot',
+      color: '#123456',
+      intensity: 0.45,
+      distance: 0.5,
+      angleDeg: 36,
+      penumbra: 0.21,
+      position: { x: 5, y: 8, z: 5 },
+      target: { x: 0, y: 0, z: 0 },
+    })
+  })
+
+  it('manages environment light list actions and preset lighting from Properties Render', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000200)
+    await renderSurface()
+
+    const addTypeSelect = container?.querySelector(
+      '.PropertiesRenderSection .ParaSelectNative[aria-label="Add Light Type"]',
+    ) as HTMLSelectElement | null
+    const newLightNameInput = container?.querySelector(
+      '.PropertiesRenderSection input[aria-label="New Light Name"]',
+    ) as HTMLInputElement | null
+    const addLightButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Add Light',
+    ) as HTMLButtonElement | undefined
+
+    await act(async () => {
+      if (addTypeSelect !== null) {
+        addTypeSelect.value = 'rectArea'
+        addTypeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      if (newLightNameInput !== null) {
+        newLightNameInput.value = 'Softbox'
+        newLightNameInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      addLightButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.lighting.selectedLightId).toBe('light_1700000000200_0')
+    expect(container?.textContent).toContain('Area Width')
+    expect(container?.textContent).toContain('Area Height')
+    expect(container?.textContent).toContain('Area lights do not support shadows.')
+
+    const areaWidthIncreaseButton = container?.querySelector(
+      '.PropertiesRenderSection button[aria-label="Increase Area Width"]',
+    ) as HTMLButtonElement | null
+    const duplicateButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Duplicate Light',
+    ) as HTMLButtonElement | undefined
+    const moveUpButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Move Light Up',
+    ) as HTMLButtonElement | undefined
+    const deleteButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Delete Light',
+    ) as HTMLButtonElement | undefined
+
+    await act(async () => {
+      areaWidthIncreaseButton?.click()
+    })
+
+    expect(
+      useUiPrefsStore
+        .getState()
+        .view.lighting.lights.find((light) => light.id === 'light_1700000000200_0'),
+    ).toMatchObject({
+      type: 'rectArea',
+      name: 'Softbox',
+      width: 4.1,
+      height: 2,
+    })
+
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000201)
+    await act(async () => {
+      duplicateButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.lighting.selectedLightId).toBe('light_1700000000201_0')
+
+    await act(async () => {
+      moveUpButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.lighting.lights.at(-2)?.id).toBe(
+      'light_1700000000201_0',
+    )
+
+    await act(async () => {
+      deleteButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.lighting.lights.map((light) => light.id)).not.toContain(
+      'light_1700000000201_0',
+    )
+
+    const keyLight = useUiPrefsStore.getState().view.lighting.lights[0]
+    expect(keyLight).toBeDefined()
+    await act(async () => {
+      useUiPrefsStore.getState().updateLight(keyLight!.id, { intensity: 7 })
+    })
+    expect(container?.textContent).toContain('Custom lighting')
+
+    const restoreButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Restore Preset Lighting',
+    ) as HTMLButtonElement | undefined
+
+    await act(async () => {
+      restoreButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.lighting).toEqual(DEFAULT_VIEW_SETTINGS.lighting)
   })
 
   it('writes View Toolbar grid settings from the Properties Render section', async () => {

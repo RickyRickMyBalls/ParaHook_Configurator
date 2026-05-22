@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+207. 2026-05-22 18:45:37: Added the Build Path presentation boundary so the default modeling surface is a clean Model Viewport-docked CAD icon strip with no content label, while split/tiled/windowed mode keeps normal Console-like titlebar chrome.
+206. 2026-05-22 18:00:21: Prepped `Build-Path-1 / Phase 1 - Accepted Graph Build Event Model` as the current Build Path implementation handoff, grounding the first runtime cut in the live `console/buildPathProjection` helper and keeping the scope to Build Path-owned event records without UI, scrub, branch, worker, or Edit History changes.
+205. 2026-05-22 17:51:51: Added the rebuilt `Build Path` workspace-family home with `Build-Path-Vision.md`, `Build-Path-Gen1-Index.md`, and `Build-Path-1 - Accepted Graph Event Timeline Foundation.md`, routing graph-authored build events, master scrub, branch timelines, and explicit restore/branch boundaries into a dedicated workspace folder separate from Edit History and Spaghetti graph authoring.
 204. 2026-05-21 20:38:33: Recorded `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` as shipped with reusable `ParaSelect` readback display support and fixed Properties Edge Preset `Off` interaction, advancing the current Geometry Display handoff back to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
 203. 2026-05-21 19:53:12: Added `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` as the current Geometry Display handoff before point styling so `Custom` can be a readback-only edge preset display state without staying in the selectable recipe list.
 202. 2026-05-21 19:12:16: Recorded `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` as shipped with read-only `Custom` recipe-drift readback for edge presets, advancing the current Geometry Display handoff to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
@@ -1059,6 +1062,7 @@ The right mental model is:
   - `Browser`
   - `Catalog`
   - `Properties`
+  - `Build Path`
   - `Pubwheel Builder`
   - `Console`
   - `Spaghetti Editor`
@@ -1142,6 +1146,18 @@ The right mental model is:
     - object-focused materials editing lane, including focused object -> target list -> property editor flow, new-material creation, and explicit owner boundaries before wider material-library, assignment, or preview behavior is planned
     - current first child-lane runtime-forward handoff:
       - `Materials-1`
+- `Build Path`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Vision.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+  - dedicated home for the graph-authored build timeline workspace, including accepted build events across graphs, one master linear timeline, view-only master scrub, branch-local timelines for parallel construction work, and explicit boundaries against Edit History Ctrl+Z and Spaghetti graph authoring ownership
+  - presentation boundary:
+    - default modeling presentation is a clean Model Viewport-docked CAD/build icon strip with no visible content label
+    - the strip can dock top or bottom, and bottom dock sits above `Console`
+    - split, tiled, and windowed Build Path surfaces still use normal workspace titlebar chrome like `Console`
+  - current implementation-planning owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
+  - current next implementation phase:
+    - `Build-Path-1 / Phase 1 - Accepted Graph Build Event Model`
 - `Pubwheel Builder`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md`

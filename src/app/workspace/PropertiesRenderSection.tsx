@@ -1,6 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useRef, useState, type ReactNode } from 'react'
 import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
+import {
+  DEFAULT_ENVIRONMENT_BACKGROUND,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
   DEFAULT_VIEW_GEOMETRY_DISPLAY_CUSTOM_SURFACE_MATERIAL,
   MAX_CONTACT_SHADOW_HEIGHT_FADE,
@@ -51,10 +61,12 @@ import {
   VIEW_GEOMETRY_DISPLAY_SURFACE_SOURCES,
   VIEW_RENDER_PRESET_OPTIONS,
   VIEW_SSAO_QUALITY_OPTIONS,
+  createPresetEnvironmentSource,
   createDisplayModeViewPatch,
   createRenderPreviewQualityPresetSettings,
   createRenderPresetViewPatch,
   createViewAmbientOcclusionPresetSettings,
+  getEnvironmentPresetDefinition,
   geometryDisplayEdgeModeToViewEdgeDisplayMode,
   isViewAmbientOcclusionPreset,
   isViewAmbientOcclusionType,
@@ -77,6 +89,7 @@ import {
   resolveViewGeometryDisplayEdgePresetRead,
   type EnvironmentGradeSettings,
   type EnvironmentLookSnapshot,
+  type EnvironmentSourceSettings,
   type GroundMaterialPresetId,
   type GridPresentationLayerId,
   type GridPresentationLayerSettings,
@@ -104,8 +117,10 @@ import {
   type ViewPostProcessSettings,
   type ViewSsaoQuality,
 } from '../../shared/viewSettingsTypes'
+import { readCatalogRepoEnvironmentOptions } from '../catalog/catalogEnvironmentInventory'
 import { ParaSelect } from '../components/ParaSelect'
 import { ParaSlider } from '../components/ParaSlider'
+import { ParaVec3Field } from '../components/ParaVec3Field'
 import {
   captureEnvironmentLookHistorySnapshot,
   commitEnvironmentLookHistory,
@@ -126,6 +141,19 @@ const SAMPLE_STEP = 8
 const BOUNCE_STEP = 1
 const RENDER_SCALE_STEP = 0.05
 const SHADOW_MAP_SIZES = [256, 512, 1024, 2048]
+const ENVIRONMENT_LIGHT_LIST_ROW_HEIGHT = 30
+const ENVIRONMENT_LIGHT_LIST_ROW_GAP = 4
+const ENVIRONMENT_LIGHT_LIST_VERTICAL_PADDING = 4
+const ENVIRONMENT_LIGHT_LIST_DEFAULT_ROW_COUNT = 5
+const ENVIRONMENT_LIGHT_LIST_MIN_HEIGHT =
+  ENVIRONMENT_LIGHT_LIST_ROW_HEIGHT + ENVIRONMENT_LIGHT_LIST_VERTICAL_PADDING
+const ENVIRONMENT_LIGHT_LIST_DEFAULT_HEIGHT =
+  ENVIRONMENT_LIGHT_LIST_ROW_HEIGHT * ENVIRONMENT_LIGHT_LIST_DEFAULT_ROW_COUNT +
+  ENVIRONMENT_LIGHT_LIST_ROW_GAP * (ENVIRONMENT_LIGHT_LIST_DEFAULT_ROW_COUNT - 1) +
+  ENVIRONMENT_LIGHT_LIST_VERTICAL_PADDING
+const ENVIRONMENT_LIGHT_LIST_MAX_HEIGHT = 420
+const ENVIRONMENT_LIGHT_LIST_KEYBOARD_STEP = 12
+const repoEnvironmentOptions = readCatalogRepoEnvironmentOptions()
 
 const NOISE_CLEANUP_LABELS: Record<RenderPreviewNoiseCleanup, string> = {
   off: 'Off',
@@ -202,6 +230,7 @@ const LIGHT_TYPE_LABELS: Record<LightType, string> = {
   spot: 'Spot',
   hemisphere: 'Hemisphere',
   ambient: 'Ambient',
+  rectArea: 'Area',
 }
 
 const noiseCleanupOptions = RENDER_PREVIEW_NOISE_CLEANUP_OPTIONS.map((value) => ({
@@ -223,6 +252,42 @@ const renderPresetOptions = VIEW_RENDER_PRESET_OPTIONS.map((value) => ({
   value,
   label: RENDER_PRESET_LABELS[value],
 }))
+
+const backgroundSourcePresetOption = {
+  value: 'preset-color',
+  label: 'Preset Color',
+}
+
+const backgroundSourceTypeOptions = [
+  backgroundSourcePresetOption,
+  { value: 'hdri', label: 'HDRI' },
+]
+
+const buildBackgroundSourceValue = (environmentSource: EnvironmentSourceSettings): string =>
+  environmentSource.kind === 'hdri' ? 'hdri' : backgroundSourcePresetOption.value
+
+const buildHdriSourceValue = (environmentSource: EnvironmentSourceSettings): string =>
+  environmentSource.kind === 'hdri' && environmentSource.assetPath !== null
+    ? `hdri:${environmentSource.assetPath}`
+    : ''
+
+const buildHdriSourceOptions = (environmentSource: EnvironmentSourceSettings) => {
+  const options = repoEnvironmentOptions.map((option) => ({
+      value: `hdri:${option.assetPath}`,
+      label: option.label,
+    }))
+  if (
+    environmentSource.kind === 'hdri' &&
+    environmentSource.assetPath !== null &&
+    !repoEnvironmentOptions.some((option) => option.assetPath === environmentSource.assetPath)
+  ) {
+    options.push({
+      value: `hdri:${environmentSource.assetPath}`,
+      label: environmentSource.label,
+    })
+  }
+  return options
+}
 
 const geometryDisplayEdgePresetOptions: Array<{
   value: Exclude<ViewGeometryDisplayEdgePresetRead, 'custom'>
@@ -280,6 +345,18 @@ const shadowMapOptions = SHADOW_MAP_SIZES.map((size) => ({
   label: `${size}`,
 }))
 
+const lightTypeOptions: Array<{ value: LightType; label: string }> = ([
+  'directional',
+  'point',
+  'spot',
+  'hemisphere',
+  'ambient',
+  'rectArea',
+] satisfies LightType[]).map((value) => ({
+  value,
+  label: LIGHT_TYPE_LABELS[value],
+}))
+
 const groundMaterialOptions: Array<{ value: GroundMaterialPresetId; label: string }> = [
   { value: 'matte_dark', label: 'Matte Dark' },
   { value: 'matte_mid', label: 'Matte Mid' },
@@ -316,11 +393,105 @@ const formatLightShadowBiasValue = (value: number): string => value.toFixed(4)
 const lightTypeLabel = (type: LightType): string => LIGHT_TYPE_LABELS[type]
 const supportsShadow = (type: LightType): boolean =>
   type === 'directional' || type === 'point' || type === 'spot'
+const supportsPosition = (type: LightType): boolean =>
+  type === 'directional' || type === 'point' || type === 'spot' || type === 'rectArea'
+const supportsTarget = (type: LightType): boolean =>
+  type === 'directional' || type === 'spot' || type === 'rectArea'
+const supportsDistance = (type: LightType): boolean => type === 'point' || type === 'spot'
+const supportsSpot = (type: LightType): boolean => type === 'spot'
+const supportsAreaSize = (type: LightType): boolean => type === 'rectArea'
+const formatLightNumberValue = (value: number): string => Number(value.toFixed(2)).toString()
+const formatLightDistanceValue = (value: number): string => Number(value.toFixed(1)).toString()
+const formatLightAngleValue = (value: number): string => `${Math.round(value)}deg`
+const formatVec3Value = (_axis: 'x' | 'y' | 'z', value: number): string =>
+  Number(value.toFixed(2)).toString()
+
+const getLightTypeDefaults = (type: LightType): Partial<LightSpec> => {
+  if (type === 'directional') {
+    return {
+      position: { x: 6, y: 8, z: 6 },
+      target: { x: 0, y: 0, z: 0 },
+      castShadow: true,
+      shadowBias: -0.0005,
+      shadowMapSize: 1024,
+      distance: undefined,
+      decay: undefined,
+      angleDeg: undefined,
+      penumbra: undefined,
+      width: undefined,
+      height: undefined,
+    }
+  }
+  if (type === 'point') {
+    return {
+      position: { x: 4, y: 6, z: 4 },
+      target: undefined,
+      castShadow: true,
+      shadowBias: -0.0002,
+      shadowMapSize: 1024,
+      distance: 0,
+      decay: 2,
+      angleDeg: undefined,
+      penumbra: undefined,
+      width: undefined,
+      height: undefined,
+    }
+  }
+  if (type === 'spot') {
+    return {
+      position: { x: 5, y: 8, z: 5 },
+      target: { x: 0, y: 0, z: 0 },
+      castShadow: true,
+      shadowBias: -0.0003,
+      shadowMapSize: 1024,
+      distance: 0,
+      decay: 2,
+      angleDeg: 35,
+      penumbra: 0.2,
+      width: undefined,
+      height: undefined,
+    }
+  }
+  if (type === 'rectArea') {
+    return {
+      position: { x: 0, y: 5, z: 3 },
+      target: { x: 0, y: 0, z: 0 },
+      width: 4,
+      height: 2,
+      castShadow: undefined,
+      shadowBias: undefined,
+      shadowMapSize: undefined,
+      distance: undefined,
+      decay: undefined,
+      angleDeg: undefined,
+      penumbra: undefined,
+    }
+  }
+  return {
+    position: undefined,
+    target: undefined,
+    castShadow: undefined,
+    shadowBias: undefined,
+    shadowMapSize: undefined,
+    distance: undefined,
+    decay: undefined,
+    angleDeg: undefined,
+    penumbra: undefined,
+    width: undefined,
+    height: undefined,
+  }
+}
 
 const buildRenderPreviewPatch = (
   current: RenderPreviewSettings,
   patch: Partial<RenderPreviewSettings>,
 ): RenderPreviewSettings => normalizeRenderPreviewSettings({ ...current, ...patch }, current)
+
+const clampEnvironmentLightListHeight = (height: number): number =>
+  Math.min(
+    ENVIRONMENT_LIGHT_LIST_MAX_HEIGHT,
+    Math.max(ENVIRONMENT_LIGHT_LIST_MIN_HEIGHT, height),
+  )
 
 type GeometryDisplaySubsectionId = 'surfaces' | 'edges' | 'points'
 
@@ -337,6 +508,7 @@ export const propertiesRenderSectionDefinition: PropertiesSectionDefinition = {
 function PropertiesRenderSectionContent() {
   const environmentLookDraftRef = useRef<EnvironmentLookSnapshot | null>(null)
   const groundHeightDraftRef = useRef<GroundHistorySnapshot | null>(null)
+  const hdriFileInputRef = useRef<HTMLInputElement | null>(null)
   const [expandedGridColorLayerIds, setExpandedGridColorLayerIds] = useState<
     ReadonlySet<GridPresentationLayerId>
   >(() => new Set())
@@ -349,6 +521,15 @@ function PropertiesRenderSectionContent() {
   const [hiddenEdgeColorExpanded, setHiddenEdgeColorExpanded] = useState(false)
   const [edgeHoverColorExpanded, setEdgeHoverColorExpanded] = useState(false)
   const [edgeSelectedColorExpanded, setEdgeSelectedColorExpanded] = useState(false)
+  const [environmentBackgroundColorExpanded, setEnvironmentBackgroundColorExpanded] =
+    useState(false)
+  const [selectedLightColorExpanded, setSelectedLightColorExpanded] = useState(false)
+  const [newLightType, setNewLightType] = useState<LightType>('point')
+  const [newLightName, setNewLightName] = useState('')
+  const [environmentLightListHeight, setEnvironmentLightListHeight] = useState(
+    ENVIRONMENT_LIGHT_LIST_DEFAULT_HEIGHT,
+  )
+  const [isResizingEnvironmentLightList, setIsResizingEnvironmentLightList] = useState(false)
   const [expandedGeometryDisplaySubsections, setExpandedGeometryDisplaySubsections] = useState<
     Record<GeometryDisplaySubsectionId, boolean>
   >({
@@ -362,7 +543,9 @@ function PropertiesRenderSectionContent() {
   const viewportStyle = useUiPrefsStore((state) => state.view.viewportStyle)
   const postProcessing = useUiPrefsStore((state) => state.view.postProcessing)
   const contactShadows = useUiPrefsStore((state) => state.view.contactShadows)
+  const envPreset = useUiPrefsStore((state) => state.view.envPreset)
   const environmentGrade = useUiPrefsStore((state) => state.view.environmentGrade)
+  const environmentSource = useUiPrefsStore((state) => state.view.environmentSource)
   const shadowsEnabled = useUiPrefsStore((state) => state.view.shadowsEnabled)
   const ground = useUiPrefsStore((state) => state.view.ground)
   const gridVisible = useUiPrefsStore((state) => state.view.gridVisible)
@@ -371,7 +554,94 @@ function PropertiesRenderSectionContent() {
   const setView = useUiPrefsStore((state) => state.setView)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
   const setEnvironmentGrade = useUiPrefsStore((state) => state.setEnvironmentGrade)
+  const applyHdriEnvironment = useUiPrefsStore((state) => state.applyHdriEnvironment)
+  const setHdriEnvironmentBackgroundVisible = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentBackgroundVisible,
+  )
+  const setHdriEnvironmentIntensity = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentIntensity,
+  )
+  const setHdriEnvironmentBackgroundIntensity = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentBackgroundIntensity,
+  )
+  const setHdriEnvironmentRotation = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentRotation,
+  )
   const updateLight = useUiPrefsStore((state) => state.updateLight)
+  const selectLight = useUiPrefsStore((state) => state.selectLight)
+  const addLight = useUiPrefsStore((state) => state.addLight)
+  const duplicateLight = useUiPrefsStore((state) => state.duplicateLight)
+  const deleteLight = useUiPrefsStore((state) => state.deleteLight)
+  const reorderLight = useUiPrefsStore((state) => state.reorderLight)
+  const environmentLightListResizeStartClientYRef = useRef(0)
+  const environmentLightListResizeStartHeightRef = useRef(environmentLightListHeight)
+
+  useEffect(() => {
+    if (!isResizingEnvironmentLightList) {
+      return undefined
+    }
+
+    const handleMouseMove = (event: globalThis.MouseEvent) => {
+      const dragOffset = event.clientY - environmentLightListResizeStartClientYRef.current
+      setEnvironmentLightListHeight(
+        clampEnvironmentLightListHeight(
+          environmentLightListResizeStartHeightRef.current + dragOffset,
+        ),
+      )
+    }
+
+    const handleMouseUp = () => {
+      setIsResizingEnvironmentLightList(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.body.classList.add('PropertiesRenderIsResizingEnvironmentLightList')
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.classList.remove('PropertiesRenderIsResizingEnvironmentLightList')
+    }
+  }, [isResizingEnvironmentLightList])
+
+  const environmentLightListHeightStyle = {
+    '--properties-environment-light-list-height': `${environmentLightListHeight}px`,
+  } as CSSProperties
+
+  const handleEnvironmentLightListResizeStart = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    environmentLightListResizeStartClientYRef.current = event.clientY
+    environmentLightListResizeStartHeightRef.current = environmentLightListHeight
+    setIsResizingEnvironmentLightList(true)
+  }
+
+  const handleEnvironmentLightListResizeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (
+      event.key !== 'ArrowUp' &&
+      event.key !== 'ArrowDown' &&
+      event.key !== 'Home' &&
+      event.key !== 'End'
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    setEnvironmentLightListHeight((currentHeight) => {
+      if (event.key === 'Home') {
+        return ENVIRONMENT_LIGHT_LIST_MIN_HEIGHT
+      }
+
+      if (event.key === 'End') {
+        return ENVIRONMENT_LIGHT_LIST_MAX_HEIGHT
+      }
+
+      const direction = event.key === 'ArrowUp' ? -1 : 1
+      return clampEnvironmentLightListHeight(
+        currentHeight + direction * ENVIRONMENT_LIGHT_LIST_KEYBOARD_STEP,
+      )
+    })
+  }
 
   const updateRenderPreview = (patch: Partial<RenderPreviewSettings>) => {
     setViewKey('renderPreview', buildRenderPreviewPatch(renderPreview, patch))
@@ -409,7 +679,7 @@ function PropertiesRenderSectionContent() {
     if (!isViewRenderPresetId(value)) {
       return
     }
-    setView(createRenderPresetViewPatch(value, { displayMode, ground, gridPresentation }))
+    setView(createRenderPresetViewPatch(value, { displayMode, ground, gridPresentation, lighting }))
   }
 
   const updateGeometryDisplay = (patch: Partial<ViewGeometryDisplaySettings>) => {
@@ -622,6 +892,111 @@ function PropertiesRenderSectionContent() {
     setEnvironmentGrade(patch)
   }
 
+  const setPresetBackgroundSource = () => {
+    const definition = getEnvironmentPresetDefinition(envPreset)
+    setViewKey('environmentSource', createPresetEnvironmentSource(definition))
+  }
+
+  const handleBackgroundSourceChange = (value: string) => {
+    if (value === backgroundSourcePresetOption.value) {
+      runEnvironmentLookCommit(setPresetBackgroundSource, {
+        targetId: 'environment-source:preset-color',
+        targetLabel: 'Preset color background',
+      })
+      return
+    }
+
+    if (value === 'hdri') {
+      if (environmentSource.kind === 'hdri') {
+        return
+      }
+      const firstRepoOption = repoEnvironmentOptions[0]
+      if (firstRepoOption === undefined) {
+        return
+      }
+      runEnvironmentLookCommit(
+        () =>
+          applyHdriEnvironment({
+            label: firstRepoOption.label,
+            assetPath: firstRepoOption.assetPath,
+          }),
+        {
+          targetId: 'environment-source:properties-repo-hdri',
+          targetLabel: firstRepoOption.label,
+        },
+      )
+    }
+  }
+
+  const handleHdriSourceChange = (value: string) => {
+    const repoOption = repoEnvironmentOptions.find(
+      (option) => `hdri:${option.assetPath}` === value,
+    )
+    if (repoOption === undefined) {
+      return
+    }
+
+    runEnvironmentLookCommit(
+      () =>
+        applyHdriEnvironment({
+          label: repoOption.label,
+          assetPath: repoOption.assetPath,
+        }),
+      {
+        targetId: 'environment-source:properties-repo-hdri',
+        targetLabel: repoOption.label,
+      },
+    )
+  }
+
+  const handleBrowseHdriClick = () => {
+    hdriFileInputRef.current?.click()
+  }
+
+  const handleBrowseHdriFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const [file] = Array.from(event.currentTarget.files ?? [])
+    event.currentTarget.value = ''
+    if (file === undefined || !/\.(?:hdr|exr)$/iu.test(file.name.trim())) {
+      return
+    }
+
+    const label = file.name.trim()
+    const assetPath =
+      typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `local:${label}`
+    runEnvironmentLookCommit(
+      () =>
+        applyHdriEnvironment({
+          label,
+          assetPath,
+        }),
+      {
+        targetId: 'environment-source:properties-local-hdri',
+        targetLabel: label,
+      },
+    )
+  }
+
+  const updateEnvironmentBackgroundColor = (backgroundColor: string) => {
+    const currentSource = useUiPrefsStore.getState().view.environmentSource
+    if (currentSource.kind === 'hdri') {
+      return
+    }
+    setViewKey('environmentSource', {
+      ...currentSource,
+      backgroundColor,
+    })
+  }
+
+  const updateHdriBackgroundVisible = (value: string) => {
+    runEnvironmentLookCommit(
+      () => setHdriEnvironmentBackgroundVisible(value !== 'hidden'),
+      {
+        targetId: 'environment-source:background',
+        targetLabel: 'HDRI background',
+      },
+    )
+  }
+
   const beginEnvironmentLookDraft = () => {
     if (environmentLookDraftRef.current === null) {
       environmentLookDraftRef.current = captureEnvironmentLookHistorySnapshot()
@@ -682,6 +1057,82 @@ function PropertiesRenderSectionContent() {
       targetId: selectedLightHistoryTarget(lightId, field),
       targetLabel: selectedLightHistoryLabel(fieldLabel),
     })
+  }
+
+  const updateSelectedLightVectorAxis = (
+    light: LightSpec,
+    field: 'position' | 'target',
+    axis: 'x' | 'y' | 'z',
+    value: number,
+  ) => {
+    const currentVector = light[field] ?? { x: 0, y: 0, z: 0 }
+    updateSelectedLightLive(light.id, {
+      [field]: {
+        ...currentVector,
+        [axis]: value,
+      },
+    })
+  }
+
+  const commitSelectedLightVectorAxis = (
+    lightId: string,
+    field: 'position' | 'target',
+    axis: 'x' | 'y' | 'z',
+  ) => {
+    commitSelectedLightDraft(
+      lightId,
+      `${field}:${axis}`,
+      `${field} ${axis.toUpperCase()}`,
+    )
+  }
+
+  const addEnvironmentLightFromProperties = () => {
+    const name = newLightName.trim()
+    runEnvironmentLookCommit(
+      () => addLight({ type: newLightType, ...(name.length > 0 ? { name } : {}) }),
+      {
+        targetId: 'environment-light:add',
+        targetLabel: 'Environment light add',
+      },
+    )
+    setNewLightName('')
+  }
+
+  const duplicateEnvironmentLightFromProperties = (lightId: string) => {
+    runEnvironmentLookCommit(() => duplicateLight(lightId), {
+      targetId: selectedLightHistoryTarget(lightId, 'duplicate'),
+      targetLabel: selectedLightHistoryLabel('duplicate'),
+    })
+  }
+
+  const deleteEnvironmentLightFromProperties = (lightId: string) => {
+    runEnvironmentLookCommit(() => deleteLight(lightId), {
+      targetId: selectedLightHistoryTarget(lightId, 'delete'),
+      targetLabel: selectedLightHistoryLabel('delete'),
+    })
+  }
+
+  const reorderEnvironmentLightFromProperties = (lightId: string, direction: -1 | 1) => {
+    runEnvironmentLookCommit(() => reorderLight(lightId, direction), {
+      targetId: selectedLightHistoryTarget(lightId, direction < 0 ? 'reorder-up' : 'reorder-down'),
+      targetLabel: selectedLightHistoryLabel(direction < 0 ? 'reorder up' : 'reorder down'),
+    })
+  }
+
+  const restoreRenderPresetLighting = () => {
+    const presetLighting = createRenderPresetViewPatch(viewportStyle, {
+      displayMode,
+      ground,
+      gridPresentation,
+      lighting,
+    }).lighting
+    runEnvironmentLookCommit(
+      () => setViewKey('lighting', presetLighting),
+      {
+        targetId: `render-preset:${viewportStyle}:lighting`,
+        targetLabel: 'Render preset lighting',
+      },
+    )
   }
 
   const updateShadowsEnabled = (value: string) => {
@@ -797,8 +1248,40 @@ function PropertiesRenderSectionContent() {
     lighting.lights.find((light) => light.id === lighting.selectedLightId) ?? null
   const selectedLightSupportsShadow =
     selectedLight !== null && supportsShadow(selectedLight.type)
+  const selectedLightIndex =
+    selectedLight === null
+      ? -1
+      : lighting.lights.findIndex((light) => light.id === selectedLight.id)
+  const renderPresetLighting = createRenderPresetViewPatch(viewportStyle, {
+    displayMode,
+    ground,
+    gridPresentation,
+    lighting,
+  }).lighting
+  const lightingMatchesRenderPreset =
+    JSON.stringify(renderPresetLighting) === JSON.stringify(lighting)
+  const lightingPresetReadback = lightingMatchesRenderPreset ? 'Preset lighting' : 'Custom lighting'
   const environmentGradeReadback = 'View settings grade'
   const environmentGradeNote = 'Uses the saved environment grade.'
+  const backgroundSourceValue = buildBackgroundSourceValue(environmentSource)
+  const hdriSourceOptions = buildHdriSourceOptions(environmentSource)
+  const hdriSourceValue = buildHdriSourceValue(environmentSource)
+  const backgroundReadback =
+    environmentSource.kind === 'hdri'
+      ? `HDRI: ${environmentSource.label}`
+      : 'Preset color'
+  const backgroundNote =
+    environmentSource.kind === 'hdri'
+      ? 'Uses the saved HDRI source and tuning settings.'
+      : 'Uses the saved environment background color.'
+  const environmentBackgroundColor =
+    environmentSource.backgroundColor ??
+    getEnvironmentPresetDefinition(envPreset).background ??
+    DEFAULT_ENVIRONMENT_BACKGROUND
+  const hdriBackgroundVisible = environmentSource.backgroundVisible !== false
+  const hdriIntensity = environmentSource.intensity ?? 1
+  const hdriBackgroundIntensity = environmentSource.backgroundIntensity ?? hdriIntensity
+  const hdriRotation = environmentSource.rotationDeg ?? 0
   const shadowsReadback = shadowsEnabled ? 'On in rendered mode' : 'Off'
   const shadowsNote = 'Uses the saved shadow setting and selected light shadow controls.'
   const groundReadback = ground.enabled ? `On at ${formatGroundHeight(ground.height)}` : 'Off'
@@ -1306,6 +1789,648 @@ function PropertiesRenderSectionContent() {
         <div className="SettingsSurfaceEditorGrid">
           <div
             className="SettingsSurfaceEditorField PropertiesRenderControl"
+            data-properties-render-readback="environment-background"
+          >
+            <span className="SettingsSurfaceFieldLabel">Background</span>
+            <strong>{backgroundReadback}</strong>
+            <p>{backgroundNote}</p>
+          </div>
+          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+            <ParaSelect
+              label="Background Source"
+              value={backgroundSourceValue}
+              options={backgroundSourceTypeOptions}
+              onChange={handleBackgroundSourceChange}
+              menuMode="custom"
+              capGlyph="chevron"
+            />
+          </div>
+          {environmentSource.kind === 'hdri' ? (
+            <>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSelect
+                  label="HDRI"
+                  value={hdriSourceValue}
+                  options={hdriSourceOptions}
+                  onChange={handleHdriSourceChange}
+                  menuMode="custom"
+                  capGlyph="chevron"
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <button
+                  type="button"
+                  className="SettingsSurfaceEditorResetButton"
+                  onClick={handleBrowseHdriClick}
+                >
+                  Browse HDRI/EXR
+                </button>
+                <input
+                  ref={hdriFileInputRef}
+                  type="file"
+                  accept=".hdr,.exr"
+                  hidden
+                  onChange={handleBrowseHdriFileChange}
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSlider
+                  label="Lighting Intensity"
+                  value={hdriIntensity}
+                  min={0}
+                  max={5}
+                  step={0.01}
+                  formatValue={formatEnvironmentGradeMultiplierValue}
+                  onChange={setHdriEnvironmentIntensity}
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSelect
+                  label="Background"
+                  value={hdriBackgroundVisible ? 'visible' : 'hidden'}
+                  options={[
+                    { value: 'visible', label: 'Visible' },
+                    { value: 'hidden', label: 'Hidden' },
+                  ]}
+                  onChange={updateHdriBackgroundVisible}
+                  menuMode="custom"
+                  capGlyph="chevron"
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSlider
+                  label="Background Intensity"
+                  value={hdriBackgroundIntensity}
+                  min={0}
+                  max={5}
+                  step={0.01}
+                  formatValue={formatEnvironmentGradeMultiplierValue}
+                  onChange={setHdriEnvironmentBackgroundIntensity}
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSlider
+                  label="Orientation"
+                  value={hdriRotation}
+                  min={0}
+                  max={360}
+                  step={1}
+                  formatValue={(value) => `${Math.round(value)}deg`}
+                  onChange={setHdriEnvironmentRotation}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+              <PropertiesColorControl
+                id="environment-background-color"
+                label="Background Color"
+                value={environmentBackgroundColor}
+                isExpanded={environmentBackgroundColorExpanded}
+                onExpandedChange={setEnvironmentBackgroundColorExpanded}
+                onChange={updateEnvironmentBackgroundColor}
+                nativeInputLabel="Background Color"
+                expandButtonLabel="Expand background color controls"
+                expandedControlsLabel="Expanded background color controls"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      <header className="SettingsSurfaceGroupHeader">
+        <span className="SettingsSurfaceGroupEyebrow">Render</span>
+        <strong>Environment Lights</strong>
+      </header>
+      <div className="SettingsSurfaceEditorPanel">
+        <div className="SettingsSurfaceEditorGrid">
+          <div
+            className="SettingsSurfaceEditorField PropertiesRenderControl"
+            data-properties-render-readback="environment-lights"
+          >
+            <span className="SettingsSurfaceFieldLabel">Lighting recipe</span>
+            <strong>{lightingPresetReadback}</strong>
+            <p>{lighting.lights.length} environment lights in the saved render setup.</p>
+          </div>
+          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+            <ParaSelect
+              label="Add Light Type"
+              value={newLightType}
+              options={lightTypeOptions}
+              onChange={(value) => setNewLightType(value as LightType)}
+              menuMode="custom"
+              capGlyph="chevron"
+            />
+          </div>
+          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+            <span className="SettingsSurfaceFieldLabel">New Light Name</span>
+            <input
+              aria-label="New Light Name"
+              type="text"
+              value={newLightName}
+              onChange={(event) => setNewLightName(event.target.value)}
+              onInput={(event) => setNewLightName(event.currentTarget.value)}
+            />
+          </div>
+          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+            <button
+              type="button"
+              className="SettingsSurfaceEditorResetButton"
+              onClick={addEnvironmentLightFromProperties}
+            >
+              Add Light
+            </button>
+          </div>
+          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+            <button
+              type="button"
+              className="SettingsSurfaceEditorResetButton"
+              onClick={restoreRenderPresetLighting}
+              disabled={lightingMatchesRenderPreset}
+            >
+              Restore Preset Lighting
+            </button>
+          </div>
+          <div
+            className="SettingsSurfaceEditorField PropertiesRenderControl PropertiesEnvironmentLightBrowser"
+            data-properties-environment-light-browser="compact"
+          >
+            <span className="SettingsSurfaceFieldLabel">Light Browser</span>
+            <div
+              className="PropertiesEnvironmentLightRows"
+              role="list"
+              aria-label="Environment light rows"
+              data-properties-environment-light-list="compact"
+              style={environmentLightListHeightStyle}
+            >
+              {lighting.lights.length === 0 ? (
+                <p>No environment lights.</p>
+              ) : (
+                lighting.lights.map((light, index) => {
+                  const isSelected = light.id === lighting.selectedLightId
+                  const handleLightRowKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                      return
+                    }
+
+                    event.preventDefault()
+                    selectLight(light.id)
+                  }
+                  return (
+                    <div
+                      key={light.id}
+                      className="PropertiesEnvironmentLightRow"
+                      role="listitem"
+                      tabIndex={0}
+                      data-properties-environment-light-row={light.id}
+                      data-selected={isSelected ? 'true' : 'false'}
+                      onClick={() => selectLight(light.id)}
+                      onKeyDown={handleLightRowKeyDown}
+                    >
+                      <span
+                        className="PropertiesEnvironmentLightSwatch"
+                        aria-hidden="true"
+                        data-light-type={light.type}
+                        style={{ '--properties-environment-light-color': light.color } as CSSProperties}
+                      />
+                      <span className="PropertiesEnvironmentLightName">{light.name}</span>
+                      <span className="PropertiesEnvironmentLightMeta">
+                        {lightTypeLabel(light.type)} | {light.enabled ? 'On' : 'Off'} | {index + 1}
+                      </span>
+                      <button
+                        type="button"
+                        className="PropertiesEnvironmentLightVisibilityButton"
+                        aria-label={`${light.enabled ? 'Hide' : 'Show'} ${light.name}`}
+                        aria-pressed={light.enabled}
+                        data-properties-environment-light-visibility={light.id}
+                        data-enabled={light.enabled ? 'true' : 'false'}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          updateLight(light.id, { enabled: !light.enabled })
+                        }}
+                      >
+                        <span aria-hidden="true" className="PropertiesEnvironmentLightEye" />
+                      </button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <div
+              className="PropertiesEnvironmentLightListResizeHandle"
+              role="separator"
+              aria-label="Resize environment light list"
+              aria-orientation="horizontal"
+              aria-valuemin={ENVIRONMENT_LIGHT_LIST_MIN_HEIGHT}
+              aria-valuemax={ENVIRONMENT_LIGHT_LIST_MAX_HEIGHT}
+              aria-valuenow={environmentLightListHeight}
+              tabIndex={0}
+              data-properties-environment-light-list-resize-handle="bottom"
+              onMouseDown={handleEnvironmentLightListResizeStart}
+              onKeyDown={handleEnvironmentLightListResizeKeyDown}
+            />
+          </div>
+          {selectedLight === null ? (
+            <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+              <span className="SettingsSurfaceFieldLabel">Selected Light</span>
+              <p>Select a light to edit settings.</p>
+            </div>
+          ) : (
+            <>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <span className="SettingsSurfaceFieldLabel">Selected Light</span>
+                <strong>{selectedLight.name}</strong>
+                <p>{lightTypeLabel(selectedLight.type)} light settings.</p>
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSelect
+                  label="Light Enabled"
+                  value={selectedLight.enabled ? 'on' : 'off'}
+                  options={enabledOptions}
+                  onChange={(value) =>
+                    runSelectedLightCommit(selectedLight.id, 'enabled', 'enabled', () =>
+                      updateLight(selectedLight.id, { enabled: value === 'on' }),
+                    )
+                  }
+                  menuMode="custom"
+                  capGlyph="chevron"
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <span className="SettingsSurfaceFieldLabel">Light Name</span>
+                <input
+                  aria-label="Light Name"
+                  type="text"
+                  value={selectedLight.name}
+                  onFocus={beginEnvironmentLookDraft}
+                  onChange={(event) => updateLight(selectedLight.id, { name: event.target.value })}
+                  onInput={(event) => updateLight(selectedLight.id, { name: event.currentTarget.value })}
+                  onBlur={() => commitSelectedLightDraft(selectedLight.id, 'name', 'name')}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      commitSelectedLightDraft(selectedLight.id, 'name', 'name')
+                      event.currentTarget.blur()
+                    }
+                  }}
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSelect
+                  label="Light Type"
+                  value={selectedLight.type}
+                  options={lightTypeOptions}
+                  onChange={(value) =>
+                    runSelectedLightCommit(selectedLight.id, 'type', 'type', () =>
+                      updateLight(selectedLight.id, {
+                        type: value as LightType,
+                        ...getLightTypeDefaults(value as LightType),
+                      }),
+                    )
+                  }
+                  menuMode="custom"
+                  capGlyph="chevron"
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <PropertiesColorControl
+                  id={`environment-light-${selectedLight.id}-color`}
+                  label="Light Color"
+                  value={selectedLight.color}
+                  isExpanded={selectedLightColorExpanded}
+                  onExpandedChange={setSelectedLightColorExpanded}
+                  onChange={(color) => updateLight(selectedLight.id, { color })}
+                  nativeInputLabel="Light Color"
+                  expandButtonLabel="Expand light color controls"
+                  expandedControlsLabel="Expanded light color controls"
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <ParaSlider
+                  label="Brightness"
+                  value={selectedLight.intensity}
+                  min={0}
+                  max={8}
+                  step={0.05}
+                  onChange={(value) =>
+                    updateSelectedLightLive(selectedLight.id, { intensity: value })
+                  }
+                  onChangeEnd={() =>
+                    commitSelectedLightDraft(selectedLight.id, 'intensity', 'brightness')
+                  }
+                  formatValue={formatLightNumberValue}
+                />
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <button
+                  type="button"
+                  className="SettingsSurfaceEditorResetButton"
+                  onClick={() => duplicateEnvironmentLightFromProperties(selectedLight.id)}
+                >
+                  Duplicate Light
+                </button>
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <button
+                  type="button"
+                  className="SettingsSurfaceEditorResetButton"
+                  onClick={() => deleteEnvironmentLightFromProperties(selectedLight.id)}
+                >
+                  Delete Light
+                </button>
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <button
+                  type="button"
+                  className="SettingsSurfaceEditorResetButton"
+                  onClick={() => reorderEnvironmentLightFromProperties(selectedLight.id, -1)}
+                  disabled={selectedLightIndex <= 0}
+                >
+                  Move Light Up
+                </button>
+              </div>
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <button
+                  type="button"
+                  className="SettingsSurfaceEditorResetButton"
+                  onClick={() => reorderEnvironmentLightFromProperties(selectedLight.id, 1)}
+                  disabled={
+                    selectedLightIndex < 0 || selectedLightIndex >= lighting.lights.length - 1
+                  }
+                >
+                  Move Light Down
+                </button>
+              </div>
+              {supportsPosition(selectedLight.type) ? (
+                <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                  <ParaVec3Field
+                    label="Position"
+                    value={selectedLight.position ?? { x: 0, y: 5, z: 0 }}
+                    min={-25}
+                    max={25}
+                    step={0.25}
+                    onChangeAxis={(axis, value) =>
+                      updateSelectedLightVectorAxis(selectedLight, 'position', axis, value)
+                    }
+                    onChangeEndAxis={(axis) =>
+                      commitSelectedLightVectorAxis(selectedLight.id, 'position', axis)
+                    }
+                    formatValue={formatVec3Value}
+                    className="PropertiesRenderVec3Field"
+                  />
+                </div>
+              ) : null}
+              {supportsTarget(selectedLight.type) ? (
+                <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                  <ParaVec3Field
+                    label="Target"
+                    value={selectedLight.target ?? { x: 0, y: 0, z: 0 }}
+                    min={-25}
+                    max={25}
+                    step={0.25}
+                    onChangeAxis={(axis, value) =>
+                      updateSelectedLightVectorAxis(selectedLight, 'target', axis, value)
+                    }
+                    onChangeEndAxis={(axis) =>
+                      commitSelectedLightVectorAxis(selectedLight.id, 'target', axis)
+                    }
+                    formatValue={formatVec3Value}
+                    className="PropertiesRenderVec3Field"
+                  />
+                </div>
+              ) : null}
+              {supportsDistance(selectedLight.type) ? (
+                <>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Distance"
+                      value={selectedLight.distance ?? 0}
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { distance: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'distance', 'distance')
+                      }
+                      formatValue={formatLightDistanceValue}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Decay"
+                      value={selectedLight.decay ?? 2}
+                      min={0}
+                      max={5}
+                      step={0.1}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { decay: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'decay', 'decay')
+                      }
+                      formatValue={formatLightNumberValue}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {supportsSpot(selectedLight.type) ? (
+                <>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Angle"
+                      value={selectedLight.angleDeg ?? 35}
+                      min={0}
+                      max={89}
+                      step={1}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { angleDeg: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'angleDeg', 'angle')
+                      }
+                      formatValue={formatLightAngleValue}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Penumbra"
+                      value={selectedLight.penumbra ?? 0.2}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { penumbra: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'penumbra', 'penumbra')
+                      }
+                      formatValue={formatLightNumberValue}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {supportsAreaSize(selectedLight.type) ? (
+                <>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Area Width"
+                      value={selectedLight.width ?? 4}
+                      min={0.1}
+                      max={20}
+                      step={0.1}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { width: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'width', 'area width')
+                      }
+                      formatValue={formatLightNumberValue}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Area Height"
+                      value={selectedLight.height ?? 2}
+                      min={0.1}
+                      max={20}
+                      step={0.1}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { height: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'height', 'area height')
+                      }
+                      formatValue={formatLightNumberValue}
+                    />
+                  </div>
+                </>
+              ) : null}
+              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                <span className="SettingsSurfaceFieldLabel">Light Shadows</span>
+                {!selectedLightSupportsShadow ? (
+                  <p>{lightTypeLabel(selectedLight.type)} lights do not support shadows.</p>
+                ) : (
+                  <p>Shadow quality settings for {selectedLight.name}.</p>
+                )}
+              </div>
+              {selectedLightSupportsShadow ? (
+                <>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSelect
+                      label="Cast Shadow"
+                      value={selectedLight.castShadow ? 'on' : 'off'}
+                      options={enabledOptions}
+                      onChange={(value) =>
+                        runSelectedLightCommit(selectedLight.id, 'castShadow', 'cast shadow', () =>
+                          updateLight(selectedLight.id, { castShadow: value === 'on' }),
+                        )
+                      }
+                      menuMode="custom"
+                      capGlyph="chevron"
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Shadow Bias"
+                      min={-0.01}
+                      max={0.01}
+                      step={0.0001}
+                      value={selectedLight.shadowBias ?? -0.0003}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { shadowBias: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'shadowBias', 'shadow bias')
+                      }
+                      formatValue={formatLightShadowBiasValue}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Normal Bias"
+                      min={0}
+                      max={0.1}
+                      step={0.0005}
+                      value={selectedLight.shadowNormalBias ?? 0}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { shadowNormalBias: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(
+                          selectedLight.id,
+                          'shadowNormalBias',
+                          'normal bias',
+                        )
+                      }
+                      formatValue={formatLightShadowBiasValue}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Shadow Radius"
+                      min={0}
+                      max={25}
+                      step={0.25}
+                      value={selectedLight.shadowRadius ?? 1}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, { shadowRadius: value })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(selectedLight.id, 'shadowRadius', 'shadow radius')
+                      }
+                      formatValue={formatLightNumberValue}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSlider
+                      label="Blur Samples"
+                      min={1}
+                      max={32}
+                      step={1}
+                      value={selectedLight.shadowBlurSamples ?? 8}
+                      onChange={(value) =>
+                        updateSelectedLightLive(selectedLight.id, {
+                          shadowBlurSamples: Math.round(value),
+                        })
+                      }
+                      onChangeEnd={() =>
+                        commitSelectedLightDraft(
+                          selectedLight.id,
+                          'shadowBlurSamples',
+                          'blur samples',
+                        )
+                      }
+                      formatValue={(value) => `${Math.round(value)}`}
+                    />
+                  </div>
+                  <div className="SettingsSurfaceEditorField PropertiesRenderControl">
+                    <ParaSelect
+                      label="Shadow Map"
+                      value={`${selectedLight.shadowMapSize ?? 1024}`}
+                      options={shadowMapOptions}
+                      onChange={(value) =>
+                        runSelectedLightCommit(selectedLight.id, 'shadowMapSize', 'shadow map', () =>
+                          updateLight(selectedLight.id, { shadowMapSize: Number(value) }),
+                        )
+                      }
+                      menuMode="custom"
+                      capGlyph="chevron"
+                    />
+                  </div>
+                </>
+              ) : null}
+            </>
+          )}
+        </div>
+      </div>
+      <header className="SettingsSurfaceGroupHeader">
+        <span className="SettingsSurfaceGroupEyebrow">Render</span>
+        <strong>Color Grade</strong>
+      </header>
+      <div className="SettingsSurfaceEditorPanel">
+        <div className="SettingsSurfaceEditorGrid">
+          <div
+            className="SettingsSurfaceEditorField PropertiesRenderControl"
             data-properties-render-readback="environment"
           >
             <span className="SettingsSurfaceFieldLabel">Grade</span>
@@ -1566,67 +2691,6 @@ function PropertiesRenderSectionContent() {
                   step={0.5}
                   formatValue={(value) => value.toFixed(1)}
                   onChange={(heightFade) => updateContactShadows({ heightFade })}
-                />
-              </div>
-            </>
-          ) : null}
-          <div className="SettingsSurfaceEditorField PropertiesRenderControl">
-            <span className="SettingsSurfaceFieldLabel">Selected Light Shadows</span>
-            {selectedLight === null ? (
-              <p>Select a light to edit shadow controls.</p>
-            ) : !selectedLightSupportsShadow ? (
-              <p>{lightTypeLabel(selectedLight.type)} lights do not support shadows.</p>
-            ) : (
-              <>
-                <strong>{selectedLight.name}</strong>
-                <p>Uses the selected environment light shadow settings.</p>
-              </>
-            )}
-          </div>
-          {selectedLight !== null && selectedLightSupportsShadow ? (
-            <>
-              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
-                <ParaSelect
-                  label="Cast Shadow"
-                  value={selectedLight.castShadow ? 'on' : 'off'}
-                  options={enabledOptions}
-                  onChange={(value) =>
-                    runSelectedLightCommit(selectedLight.id, 'castShadow', 'cast shadow', () =>
-                      updateLight(selectedLight.id, { castShadow: value === 'on' }),
-                    )
-                  }
-                  menuMode="custom"
-                  capGlyph="chevron"
-                />
-              </div>
-              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
-                <ParaSlider
-                  label="Shadow Bias"
-                  min={-0.01}
-                  max={0.01}
-                  step={0.0001}
-                  value={selectedLight.shadowBias ?? -0.0003}
-                  onChange={(value) =>
-                    updateSelectedLightLive(selectedLight.id, { shadowBias: value })
-                  }
-                  onChangeEnd={() =>
-                    commitSelectedLightDraft(selectedLight.id, 'shadowBias', 'shadow bias')
-                  }
-                  formatValue={formatLightShadowBiasValue}
-                />
-              </div>
-              <div className="SettingsSurfaceEditorField PropertiesRenderControl">
-                <ParaSelect
-                  label="Shadow Map"
-                  value={`${selectedLight.shadowMapSize ?? 1024}`}
-                  options={shadowMapOptions}
-                  onChange={(value) =>
-                    runSelectedLightCommit(selectedLight.id, 'shadowMapSize', 'shadow map', () =>
-                      updateLight(selectedLight.id, { shadowMapSize: Number(value) }),
-                    )
-                  }
-                  menuMode="custom"
-                  capGlyph="chevron"
                 />
               </div>
             </>

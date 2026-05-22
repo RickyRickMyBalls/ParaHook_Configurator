@@ -72,6 +72,310 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2068 -->
+
+### [2068] - 2026-05-22 17:22 - `Properties-7 / Phase 1-6 - Environment Light Browser Visibility Toggle`
+
+HUMAN SUMMARY: ``The Properties Render Light Browser now has an eye button on each row so users can turn individual environment lights on or off without opening the full selected-light editor.``
+
+#### Scope / Constraints Honored
+
+- Kept the toggle backed by the existing selected light `enabled` field.
+- Kept row selection separate from the visibility button.
+- Preserved the existing full selected-light enabled control.
+
+#### Summary of Implementation
+
+- Added a per-row eye button to the Environment Lights browser.
+- Stopped eye-button clicks from selecting the row while toggling the light's enabled state.
+- Added focused Properties coverage for browser-row visibility toggling.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Users can toggle environment lights directly from the Light Browser.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npx.cmd tsc -b`
+
+<!-- ENTRY 2067 -->
+
+### [2067] - 2026-05-22 17:20 - `Properties-7 / Phase 1-6 - Environment Light Type Symbols`
+
+HUMAN SUMMARY: ``The Properties Render Light Browser now shows a distinct type symbol for each light kind instead of reusing the same plain circle marker on every row.``
+
+#### Scope / Constraints Honored
+
+- Kept the light browser selection and color data unchanged.
+- Avoided adding a new icon dependency for this small row marker treatment.
+- Kept the symbols scoped to the Properties Render Environment Lights browser.
+
+#### Summary of Implementation
+
+- Replaced the row swatch fill circle with CSS-drawn type markers for directional, point, spot, hemisphere, ambient, and area lights.
+- Kept the marker tinted by the light's saved color.
+- Added focused Properties coverage that rows expose their light type for the marker styling.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Light Browser rows are easier to scan because different light types now have different symbols.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npx.cmd tsc -b`
+
+<!-- ENTRY 2066 -->
+
+### [2066] - 2026-05-22 17:17 - `Properties-7 / Phase 1-6 - Environment Light Browser Scroll`
+
+HUMAN SUMMARY: ``The Properties Render Light Browser now behaves like the material lists: it has a bounded dark scroll area and a bottom resize handle so long light rigs stay manageable.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing Environment Lights data model and selected-light behavior unchanged.
+- Matched the existing material-list resize and scrollbar pattern.
+- Kept the change scoped to the Properties Render light browser surface.
+
+#### Summary of Implementation
+
+- Added a fixed-height, scrollable light-browser list with dark scrollbar styling.
+- Added a bottom resize handle with mouse drag and keyboard adjustment.
+- Added focused Properties coverage for the default list height and resize interactions.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Long Environment Lights lists now scroll inside the Light Browser instead of growing the full Properties Render section.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `npx.cmd tsc -b`
+
+<!-- ENTRY 2065 -->
+
+### [2065] - 2026-05-22 16:09 - `Properties-7 / Phase 1-6 - Environment Light Settings Extraction`
+
+HUMAN SUMMARY: ``Properties Render now has a full Environment Lights editor with a light browser, selected-light controls, light list actions, preset lighting restoration/readback, shadow quality fields, and real area-light support. Environment lights stay saved viewer-presentation settings instead of model, material, graph, or export truth.``
+
+#### Scope / Constraints Honored
+
+- Kept environment lights owned by saved viewer presentation settings.
+- Kept unsupported light controls hidden by selected light type.
+- Kept physical size controls limited to the proved `rectArea` runtime path.
+- Preserved model, material, graph, and export ownership boundaries.
+
+#### Summary of Implementation
+
+- Added a Properties `Render > Environment Lights` section with compact light browser selection and selected-light editing.
+- Moved selected-light shadows into the Environment Lights editor and added common, type-specific, and shadow-quality controls.
+- Added light add, duplicate, delete, reorder, restore preset lighting, and preset/custom lighting readback.
+- Extended the saved light contract, store normalization, toolbar type support, and viewer runtime for `rectArea`, width/height, and advanced shadow fields.
+- Added focused store, Properties, and viewer coverage for the new light editing and runtime behavior.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-7 - Environment Light Settings Extraction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Users can now inspect and edit environment lights from Properties Render, including area-light width/height for `rectArea` lights.
+- Built-in render presets can restore visible lighting recipes, and lighting readback reports when the current lights diverge from the selected preset.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/store/uiPrefsStore.test.ts src/viewer/Viewer.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2064 -->
+
+### [2064] - 2026-05-22 15:30 - `Properties-4 / Phase 4.2 - Background Source Type Split`
+
+HUMAN SUMMARY: ``Properties Render now separates background source type from preloaded HDRI selection. Background Source only chooses Preset Color or HDRI, and the preloaded HDRI list appears as its own HDRI select when HDRI is active.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing saved environment source contract unchanged.
+- Kept repo HDRI choices coming from the shared Catalog environment inventory.
+- Kept browse and HDRI tuning visible only while HDRI is active.
+
+#### Summary of Implementation
+
+- Changed `Background Source` to a two-option source-type select: `Preset Color` or `HDRI`.
+- Added a separate `HDRI` `ParaSelect` for preloaded repo HDRI/EXR choices when an HDRI source is active.
+- Kept switching from Preset Color to HDRI applying the first repo HDRI as the active source.
+- Updated Properties Render coverage for the two-step source selection flow.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Users now choose `HDRI` as a background source type before choosing a specific preloaded HDRI.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+
+<!-- ENTRY 2063 -->
+
+### [2063] - 2026-05-22 15:24 - `Properties-4 / Phase 4.2 - Color Grade Group Split`
+
+HUMAN SUMMARY: ``Properties Render now separates environment background/source controls from the color grade sliders. Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Temperature, Tint, and Saturation now live in their own Color Grade group below Environment.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing environment grade settings contract unchanged.
+- Kept background/source controls in the Environment group.
+- Changed only the Properties Render grouping and focused proof.
+
+#### Summary of Implementation
+
+- Added a new `Render > Color Grade` section below `Render > Environment`.
+- Moved the grade readback and nine environment grade sliders into the new group.
+- Updated Properties Render coverage to prove Environment contains background/source controls while Color Grade contains the grade sliders.
+
+#### Files Changed
+
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Properties Render now shows color grading controls as a separate group below Environment.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx`
+- `git diff --check`
+
+<!-- ENTRY 2062 -->
+
+### [2062] - 2026-05-22 15:04 - `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls`
+
+HUMAN SUMMARY: ``Properties Render now owns environment background/source controls. Clay Studio writes its pale background through saved environment source settings, Properties can select repo HDRI/EXR environments or browse a local HDRI/EXR, and the viewer consumes saved background/source state without a Clay-only background branch.``
+
+#### Scope / Constraints Honored
+
+- Kept background and HDRI state in saved view/environment presentation settings.
+- Reused the existing `applyHdriEnvironment(...)` and HDRI tune setters for repo and browsed HDRI sources.
+- Kept local file object URLs as runtime/session environment inputs, not durable project data.
+- Kept saved custom presets, preset match/divergence reads, lighting rig extraction, presentation material extraction, edge styling, geometry truth, material authoring truth, project content, and export truth out of scope.
+
+#### Summary of Implementation
+
+- Added `EnvironmentSourceSettings.backgroundColor` with normalization, snapshot comparison, preset/custom defaults, and render-preset writes.
+- Added a shared Catalog environment inventory helper for repo HDRI/EXR entries.
+- Added Properties `Render > Environment` controls for background source, repo HDRI/EXR selection, local HDRI/EXR browse, preset background color, and HDRI-only intensity/background/orientation tuning.
+- Removed the viewer's Clay-only background color branch so saved environment background/source state owns the background treatment.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/catalog/catalogEnvironmentInventory.ts`
+- `src/app/catalog/catalogEnvironmentInventory.test.ts`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Future/Properties-4 - Render Presets And Viewport Style Consolidation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Properties/Properties-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Clay Studio's pale background is now produced by saved environment source/background settings instead of a hidden viewer-only constant.
+- Properties `Render > Environment` can switch between preset color and repo/local HDRI/EXR sources.
+- HDRI lighting intensity, background visibility, background intensity, and orientation are editable from Properties when an HDRI source is active.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/viewer/Viewer.test.ts src/app/catalog/catalogEnvironmentInventory.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+
+<!-- ENTRY 2061 -->
+
+### [2061] - 2026-05-22 12:14 - `Visual-Style-Menu-1 / Solid Visible-Only Recipe`
+
+HUMAN SUMMARY: ``The shared Solid display-mode recipe now applies the Geometry Display Visible Only edge preset. Shift+D and Properties > Render both read Solid as surfaces-on with visible-only edges when the edge-follow lock allows display-mode recipes to drive edges.```
+
+#### Scope / Constraints Honored
+
+- Kept the shared display-mode recipe helper as the single behavior path.
+- Preserved the unlocked edge-follow behavior that keeps the current edge preset unchanged.
+- Kept Properties `Render` aligned with Shift+D recipe behavior.
+
+#### Summary of Implementation
+
+- Added an explicit `solid` branch to `createDisplayModeViewPatch(...)` that resolves to the `visibleOnly` edge preset.
+- Updated Shift+D recipe coverage to prove Solid applies Visible Only edges.
+- Updated Properties Render coverage to prove the Display Mode select applies the same Solid recipe.
+
+#### Files Changed
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/useViewerDisplayModeMenu.test.tsx`
+- `src/app/workspace/PropertiesSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Selecting Solid while display-mode edge following is enabled now applies the Visible Only edge preset.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/useViewerDisplayModeMenu.test.tsx src/app/workspace/PropertiesSurface.test.tsx src/app/components/ViewerHost.test.tsx -t "display mode|viewport style|lock"`
+- `npm.cmd run build`
+- `git diff --check`
+
 <!-- ENTRY 2060 -->
 
 ### [2060] - 2026-05-22 11:44 - `Visual-Style-Menu-1 / Phase 6 - Active Lock Color Match`

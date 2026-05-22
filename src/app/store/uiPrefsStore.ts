@@ -143,15 +143,17 @@ const normalizeEnvironmentRotationDeg = (value: number | undefined): number =>
 const createDefaultView = (): ViewSettings => normalizeViewSettings(DEFAULT_VIEW_SETTINGS)
 
 const hasApplicablePosition = (type: LightType): boolean =>
-  type === 'directional' || type === 'point' || type === 'spot'
+  type === 'directional' || type === 'point' || type === 'spot' || type === 'rectArea'
 
 const hasApplicableTarget = (type: LightType): boolean =>
-  type === 'directional' || type === 'spot'
+  type === 'directional' || type === 'spot' || type === 'rectArea'
 
 const hasDistanceSettings = (type: LightType): boolean => type === 'point' || type === 'spot'
 
 const supportsShadows = (type: LightType): boolean =>
   type === 'directional' || type === 'point' || type === 'spot'
+
+const hasAreaSize = (type: LightType): boolean => type === 'rectArea'
 
 const defaultVector = (x: number, y: number, z: number): Vec3 => ({ x, y, z })
 
@@ -212,6 +214,25 @@ const getLightDefaults = (type: LightType): Partial<LightSpec> => {
     }
   }
 
+  if (type === 'rectArea') {
+    return {
+      position: defaultVector(0, 5, 3),
+      target: defaultVector(0, 0, 0),
+      width: 4,
+      height: 2,
+      distance: undefined,
+      angleDeg: undefined,
+      penumbra: undefined,
+      decay: undefined,
+      castShadow: undefined,
+      shadowBias: undefined,
+      shadowNormalBias: undefined,
+      shadowRadius: undefined,
+      shadowBlurSamples: undefined,
+      shadowMapSize: undefined,
+    }
+  }
+
   return {
     position: undefined,
     target: undefined,
@@ -221,7 +242,12 @@ const getLightDefaults = (type: LightType): Partial<LightSpec> => {
     decay: undefined,
     castShadow: undefined,
     shadowBias: undefined,
+    shadowNormalBias: undefined,
+    shadowRadius: undefined,
+    shadowBlurSamples: undefined,
     shadowMapSize: undefined,
+    width: undefined,
+    height: undefined,
   }
 }
 
@@ -231,10 +257,22 @@ const makeLightId = (seed: number, salt: number): string => `light_${seed}_${sal
 const normalizeLight = (light: LightSpec): LightSpec => ({
   ...light,
   intensity: clamp(light.intensity, 0, 8),
-  distance: light.distance === undefined ? undefined : Math.max(light.distance, 0),
-  angleDeg: light.angleDeg === undefined ? undefined : clamp(light.angleDeg, 0, 89),
-  penumbra: light.penumbra === undefined ? undefined : clamp(light.penumbra, 0, 1),
-  decay: light.decay === undefined ? undefined : Math.max(light.decay, 0),
+  distance:
+    hasDistanceSettings(light.type) && light.distance !== undefined
+      ? Math.max(light.distance, 0)
+      : undefined,
+  angleDeg:
+    light.type === 'spot' && light.angleDeg !== undefined
+      ? clamp(light.angleDeg, 0, 89)
+      : undefined,
+  penumbra:
+    light.type === 'spot' && light.penumbra !== undefined
+      ? clamp(light.penumbra, 0, 1)
+      : undefined,
+  decay:
+    hasDistanceSettings(light.type) && light.decay !== undefined
+      ? Math.max(light.decay, 0)
+      : undefined,
   position: hasApplicablePosition(light.type)
     ? light.position ?? defaultVector(0, 5, 0)
     : undefined,
@@ -243,11 +281,35 @@ const normalizeLight = (light: LightSpec): LightSpec => ({
   shadowBias:
     supportsShadows(light.type) && light.castShadow
       ? light.shadowBias ?? -0.0003
-      : light.shadowBias,
+      : supportsShadows(light.type)
+        ? light.shadowBias
+        : undefined,
+  shadowNormalBias:
+    supportsShadows(light.type) && light.castShadow
+      ? light.shadowNormalBias ?? 0
+      : supportsShadows(light.type)
+        ? light.shadowNormalBias
+        : undefined,
+  shadowRadius:
+    supportsShadows(light.type) && light.castShadow
+      ? clamp(light.shadowRadius ?? 1, 0, 25)
+      : supportsShadows(light.type)
+        ? light.shadowRadius
+        : undefined,
+  shadowBlurSamples:
+    supportsShadows(light.type) && light.castShadow
+      ? Math.round(clamp(light.shadowBlurSamples ?? 8, 1, 32))
+      : supportsShadows(light.type)
+        ? light.shadowBlurSamples
+        : undefined,
   shadowMapSize:
     supportsShadows(light.type) && light.castShadow
       ? light.shadowMapSize ?? 1024
-      : light.shadowMapSize,
+      : supportsShadows(light.type)
+        ? light.shadowMapSize
+        : undefined,
+  width: hasAreaSize(light.type) ? clamp(light.width ?? 4, 0.1, 100) : undefined,
+  height: hasAreaSize(light.type) ? clamp(light.height ?? 2, 0.1, 100) : undefined,
 })
 
 const uniqueMaterialId = (presets: MaterialPreset[]): MaterialPresetId => {
@@ -353,7 +415,9 @@ type UiPrefsState = {
   setSketchDrawPlinePointSymbolType: (value: 'crosshair' | 'circle') => void
   selectLight: (id: string | null) => void
   addLight: (spec?: Partial<LightSpec>) => void
+  duplicateLight: (id: string) => void
   deleteLight: (id: string) => void
+  reorderLight: (id: string, direction: -1 | 1) => void
   updateLight: (id: string, patch: Partial<LightSpec>) => void
   selectMaterialPreset: (id: MaterialPresetId) => void
   updateMaterialPreset: (id: MaterialPresetId, patch: Partial<MaterialPreset>) => void
@@ -860,6 +924,63 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
       }),
     })
   },
+  duplicateLight: (id) => {
+    const state = get()
+    const source = state.view.lighting.lights.find((light) => light.id === id)
+    if (source === undefined) {
+      return
+    }
+    const seed = Date.now()
+    let salt = 0
+    let nextId = makeLightId(seed, salt)
+    while (state.view.lighting.lights.some((light) => light.id === nextId)) {
+      salt += 1
+      nextId = makeLightId(seed, salt)
+    }
+    const light = normalizeLight({
+      ...source,
+      id: nextId,
+      name: `${source.name} Copy`,
+      position: source.position === undefined ? undefined : { ...source.position },
+      target: source.target === undefined ? undefined : { ...source.target },
+    })
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        lighting: {
+          selectedLightId: light.id,
+          lights: [...state.view.lighting.lights, light],
+        },
+      }),
+    })
+  },
+  reorderLight: (id, direction) => {
+    const state = get()
+    const currentIndex = state.view.lighting.lights.findIndex((light) => light.id === id)
+    const nextIndex = currentIndex + direction
+    if (
+      currentIndex < 0 ||
+      nextIndex < 0 ||
+      nextIndex >= state.view.lighting.lights.length
+    ) {
+      return
+    }
+    const lights = [...state.view.lighting.lights]
+    const [light] = lights.splice(currentIndex, 1)
+    if (light === undefined) {
+      return
+    }
+    lights.splice(nextIndex, 0, light)
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        lighting: {
+          ...state.view.lighting,
+          lights,
+        },
+      }),
+    })
+  },
   updateLight: (id, patch) => {
     const state = get()
     const nextLights = state.view.lighting.lights.map((light) => {
@@ -884,7 +1005,14 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
       if (!supportsShadows(next.type)) {
         next.castShadow = undefined
         next.shadowBias = undefined
+        next.shadowNormalBias = undefined
+        next.shadowRadius = undefined
+        next.shadowBlurSamples = undefined
         next.shadowMapSize = undefined
+      }
+      if (!hasAreaSize(next.type)) {
+        next.width = undefined
+        next.height = undefined
       }
       return next
     })

@@ -98,7 +98,7 @@ import type {
 } from '../workspace/workspaceShellTypes'
 
 const cameraPresets: CameraPreset[] = ['iso', 'top', 'front', 'left', 'right']
-const lightTypes: LightType[] = ['directional', 'point', 'spot', 'hemisphere', 'ambient']
+const lightTypes: LightType[] = ['directional', 'point', 'spot', 'hemisphere', 'ambient', 'rectArea']
 const shadowSizes = [256, 512, 1024, 2048]
 const axisLabelVisibilityOptions = [
   { value: 'on', label: 'On' },
@@ -677,6 +677,21 @@ const getLightTypeDefaults = (type: LightType): Partial<LightSpec> => {
       penumbra: 0.2,
     }
   }
+  if (type === 'rectArea') {
+    return {
+      position: { x: 0, y: 5, z: 3 },
+      target: { x: 0, y: 0, z: 0 },
+      width: 4,
+      height: 2,
+      castShadow: undefined,
+      shadowBias: undefined,
+      shadowMapSize: undefined,
+      distance: undefined,
+      decay: undefined,
+      angleDeg: undefined,
+      penumbra: undefined,
+    }
+  }
   return {
     position: undefined,
     target: undefined,
@@ -691,10 +706,10 @@ const getLightTypeDefaults = (type: LightType): Partial<LightSpec> => {
 }
 
 const supportsPosition = (type: LightType): boolean =>
-  type === 'directional' || type === 'point' || type === 'spot'
+  type === 'directional' || type === 'point' || type === 'spot' || type === 'rectArea'
 
 const supportsTarget = (type: LightType): boolean =>
-  type === 'directional' || type === 'spot'
+  type === 'directional' || type === 'spot' || type === 'rectArea'
 
 const supportsSpot = (type: LightType): boolean => type === 'spot'
 
@@ -716,6 +731,9 @@ const lightTypeLabel = (type: LightType): string => {
   }
   if (type === 'hemisphere') {
     return 'Hemisphere'
+  }
+  if (type === 'rectArea') {
+    return 'Area'
   }
   return 'Ambient'
 }

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
+  CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
   DEFAULT_ENVIRONMENT_GRADE,
   DEFAULT_GRID_PRESENTATION_SETTINGS,
   DEFAULT_RENDER_PREVIEW_SETTINGS,
@@ -12,6 +14,7 @@ import {
   DEFAULT_VIEW_SETTINGS,
   areEnvironmentLookSnapshotsEqual,
   createEnvironmentLookSnapshot,
+  createRenderPresetViewPatch,
   createViewAmbientOcclusionPresetSettings,
   getEnvironmentPresetDefinition,
   normalizeViewSettings,
@@ -135,7 +138,39 @@ describe('uiPrefsStore environment source state', () => {
     expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
       kind: 'preset',
       label: 'Baseline',
+      backgroundColor: getEnvironmentPresetDefinition('baseline').background,
     })
+  })
+
+  it('lets render presets write saved environment background source settings', () => {
+    useUiPrefsStore.getState().setView(
+      createRenderPresetViewPatch('clayStudio', {
+        displayMode: useUiPrefsStore.getState().view.displayMode,
+        ground: useUiPrefsStore.getState().view.ground,
+        gridPresentation: useUiPrefsStore.getState().view.gridPresentation,
+      }),
+    )
+
+    expect(useUiPrefsStore.getState().view.environmentGrade).toEqual(
+      CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+    )
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'custom',
+      label: 'Clay Studio',
+      backgroundColor: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
+    })
+
+    useUiPrefsStore.getState().setView(
+      createRenderPresetViewPatch('standard', {
+        displayMode: useUiPrefsStore.getState().view.displayMode,
+        ground: useUiPrefsStore.getState().view.ground,
+        gridPresentation: useUiPrefsStore.getState().view.gridPresentation,
+      }),
+    )
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toEqual(
+      DEFAULT_VIEW_SETTINGS.environmentSource,
+    )
   })
 
   it('defaults and normalizes grid presentation as view-only presentation state', () => {
@@ -292,6 +327,129 @@ describe('uiPrefsStore environment source state', () => {
       kind: 'custom',
       label: 'Custom Studio',
     })
+  })
+
+  it('normalizes rect area lights as sized non-shadowing lights', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000100)
+
+    useUiPrefsStore.getState().addLight({
+      type: 'rectArea',
+      name: 'Soft Panel',
+      color: '#ffeecc',
+      intensity: 2.4,
+      width: -3,
+      height: 140,
+      distance: 9,
+      decay: 2,
+      angleDeg: 24,
+      penumbra: 0.5,
+      castShadow: true,
+      shadowBias: -0.4,
+      shadowNormalBias: 0.2,
+      shadowRadius: 12,
+      shadowBlurSamples: 16,
+      shadowMapSize: 2048,
+    })
+
+    const light = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((candidate) => candidate.id === 'light_1700000000100_0')
+
+    expect(light).toMatchObject({
+      type: 'rectArea',
+      name: 'Soft Panel',
+      color: '#ffeecc',
+      intensity: 2.4,
+      position: { x: 0, y: 5, z: 3 },
+      target: { x: 0, y: 0, z: 0 },
+      width: 0.1,
+      height: 100,
+    })
+    expect(light?.distance).toBeUndefined()
+    expect(light?.decay).toBeUndefined()
+    expect(light?.angleDeg).toBeUndefined()
+    expect(light?.penumbra).toBeUndefined()
+    expect(light?.castShadow).toBeUndefined()
+    expect(light?.shadowBias).toBeUndefined()
+    expect(light?.shadowNormalBias).toBeUndefined()
+    expect(light?.shadowRadius).toBeUndefined()
+    expect(light?.shadowBlurSamples).toBeUndefined()
+    expect(light?.shadowMapSize).toBeUndefined()
+  })
+
+  it('keeps advanced shadow quality fields only on shadow-capable light types', () => {
+    const selectedLightId = useUiPrefsStore.getState().view.lighting.selectedLightId
+    expect(selectedLightId).not.toBeNull()
+
+    useUiPrefsStore.getState().updateLight(selectedLightId as string, {
+      type: 'spot',
+      castShadow: true,
+      shadowNormalBias: 0.075,
+      shadowRadius: -4,
+      shadowBlurSamples: 99,
+      shadowMapSize: 2048,
+    })
+
+    const spot = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((light) => light.id === selectedLightId)
+    expect(spot).toMatchObject({
+      type: 'spot',
+      castShadow: true,
+      shadowNormalBias: 0.075,
+      shadowRadius: 0,
+      shadowBlurSamples: 32,
+      shadowMapSize: 2048,
+    })
+
+    useUiPrefsStore.getState().updateLight(selectedLightId as string, {
+      type: 'rectArea',
+    })
+
+    const rectArea = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((light) => light.id === selectedLightId)
+    expect(rectArea).toMatchObject({
+      type: 'rectArea',
+      width: 4,
+      height: 2,
+    })
+    expect(rectArea?.castShadow).toBeUndefined()
+    expect(rectArea?.shadowNormalBias).toBeUndefined()
+    expect(rectArea?.shadowRadius).toBeUndefined()
+    expect(rectArea?.shadowBlurSamples).toBeUndefined()
+    expect(rectArea?.shadowMapSize).toBeUndefined()
+  })
+
+  it('duplicates and reorders environment lights while preserving selected light identity', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000300)
+
+    const initialIds = useUiPrefsStore.getState().view.lighting.lights.map((light) => light.id)
+    useUiPrefsStore.getState().duplicateLight('fill')
+
+    const duplicated = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((light) => light.id === 'light_1700000000300_0')
+    expect(duplicated).toMatchObject({
+      id: 'light_1700000000300_0',
+      name: 'Fill Copy',
+      type: 'hemisphere',
+    })
+    expect(useUiPrefsStore.getState().view.lighting.selectedLightId).toBe(
+      'light_1700000000300_0',
+    )
+
+    useUiPrefsStore.getState().reorderLight('light_1700000000300_0', -1)
+
+    expect(useUiPrefsStore.getState().view.lighting.lights.map((light) => light.id)).toEqual([
+      initialIds[0],
+      initialIds[1],
+      'light_1700000000300_0',
+      initialIds[2],
+    ])
+    expect(useUiPrefsStore.getState().view.lighting.selectedLightId).toBe(
+      'light_1700000000300_0',
+    )
   })
 
   it('normalizes legacy grade fields into the nested environment grade seam', () => {

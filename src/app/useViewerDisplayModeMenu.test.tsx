@@ -340,6 +340,37 @@ describe('useViewerDisplayModeMenu', () => {
       hiddenEdges: true,
       lineStyle: 'dashed',
     })
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          code: 'KeyD',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const solidButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'solid',
+    ) as HTMLButtonElement | undefined
+
+    act(() => {
+      solidButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.displayMode).toBe('solid')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.surfaces.visible).toBe(true)
+    expect(useUiPrefsStore.getState().view.edgeDisplayMode).toBe('visibleEdgesOnly')
+    expect(useUiPrefsStore.getState().view.geometryDisplay.edges).toMatchObject({
+      preset: 'visibleOnly',
+      mode: 'visibleOnly',
+      depthMode: 'surface',
+      hiddenEdges: false,
+      lineStyle: 'solid',
+    })
   })
 
   it('preserves the current edge recipe on display mode changes while the edge follow lock is off', () => {

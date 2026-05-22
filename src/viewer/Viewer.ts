@@ -38,6 +38,7 @@ import {
   PointsMaterial,
   Quaternion,
   Raycaster,
+  RectAreaLight,
   Scene,
   SpotLight,
   Texture,
@@ -48,6 +49,7 @@ import {
   WireframeGeometry,
 } from 'three'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import type { ArtifactMesh, ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
@@ -262,7 +264,6 @@ const CLAY_STUDIO_GROUND_MATERIAL: Omit<MaterialPreset, 'id' | 'name'> = {
   transparent: false,
   doubleSided: true,
 }
-const CLAY_STUDIO_ENVIRONMENT_BACKGROUND = '#e8e8e5'
 const CLAY_STUDIO_LIGHTS: LightSpec[] = [
   {
     id: 'clay-studio-key',
@@ -596,10 +597,10 @@ export type ViewerViewportRenderLayers = {
 }
 
 const supportsPosition = (type: LightType): boolean =>
-  type === 'directional' || type === 'point' || type === 'spot'
+  type === 'directional' || type === 'point' || type === 'spot' || type === 'rectArea'
 
 const supportsTarget = (type: LightType): boolean =>
-  type === 'directional' || type === 'spot'
+  type === 'directional' || type === 'spot' || type === 'rectArea'
 
 const toLightType = (light: Light): LightType | null => {
   if (light instanceof DirectionalLight) {
@@ -616,6 +617,9 @@ const toLightType = (light: Light): LightType | null => {
   }
   if (light instanceof AmbientLight) {
     return 'ambient'
+  }
+  if (light instanceof RectAreaLight) {
+    return 'rectArea'
   }
   return null
 }
@@ -895,6 +899,7 @@ export class Viewer {
 
   public constructor(container: HTMLElement) {
     this.container = container
+    RectAreaLightUniformsLib.init()
     if (window.getComputedStyle(this.container).position === 'static') {
       this.container.style.position = 'relative'
     }
@@ -1537,21 +1542,6 @@ export class Viewer {
       return
     }
 
-    if (this.resolveClayStudioActive()) {
-      this.environmentLoadRequestId += 1
-      this.environmentTextureSourcePath = null
-      this.disposeEnvironmentTexture()
-      this.applyEnvironmentLightingContribution(null)
-      this.applyEnvironmentBackgroundTreatment(
-        {
-          kind: 'preset-color',
-          color: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
-        },
-        null,
-      )
-      return
-    }
-
     const lightingRuntime = this.resolveEnvironmentLightingRuntime(settings)
     const backgroundRuntime = this.resolveEnvironmentBackgroundRuntime(settings)
     const environmentScene = this.scene as Scene & {
@@ -1680,9 +1670,14 @@ export class Viewer {
       }
     }
 
+    const presetDefinition = getEnvironmentPresetDefinition(settings.envPreset)
     return {
       kind: 'preset-color',
-      color: getEnvironmentPresetDefinition(settings.envPreset).background,
+      color:
+        settings.environmentSource.kind === 'preset' &&
+        settings.environmentSource.label !== presetDefinition.label
+          ? presetDefinition.background
+          : (settings.environmentSource.backgroundColor ?? presetDefinition.background),
     }
   }
 
@@ -3793,6 +3788,13 @@ export class Viewer {
       }
     }
 
+    if (spec.type === 'rectArea') {
+      return {
+        light: new RectAreaLight(0xffffff, 1, 4, 2),
+        targetObject: new Object3D(),
+      }
+    }
+
     return {
       light: new AmbientLight(0xffffff, 1),
       targetObject: null,
@@ -3822,6 +3824,9 @@ export class Viewer {
       if (light instanceof DirectionalLight || light instanceof SpotLight) {
         light.target = targetObject
       }
+      if (light instanceof RectAreaLight) {
+        light.lookAt(targetObject.position)
+      }
     }
 
     if (light instanceof PointLight || light instanceof SpotLight) {
@@ -3835,6 +3840,11 @@ export class Viewer {
       light.penumbra = clamp(spec.penumbra ?? 0.2, 0, 1)
     }
 
+    if (light instanceof RectAreaLight) {
+      light.width = Math.max(spec.width ?? 4, 0.1)
+      light.height = Math.max(spec.height ?? 2, 0.1)
+    }
+
     if (
       light instanceof DirectionalLight ||
       light instanceof SpotLight ||
@@ -3845,6 +3855,15 @@ export class Viewer {
 
       if (spec.shadowBias !== undefined) {
         light.shadow.bias = spec.shadowBias
+      }
+      if (spec.shadowNormalBias !== undefined) {
+        light.shadow.normalBias = spec.shadowNormalBias
+      }
+      if (spec.shadowRadius !== undefined) {
+        light.shadow.radius = spec.shadowRadius
+      }
+      if (spec.shadowBlurSamples !== undefined && 'blurSamples' in light.shadow) {
+        light.shadow.blurSamples = spec.shadowBlurSamples
       }
 
       if (spec.shadowMapSize !== undefined) {
@@ -3926,6 +3945,22 @@ export class Viewer {
           material,
         ),
       )
+      return helper
+    }
+
+    if (spec.type === 'rectArea') {
+      const width = Math.max(spec.width ?? 4, 0.1)
+      const height = Math.max(spec.height ?? 2, 0.1)
+      const rect = new LineLoop(
+        new BufferGeometry().setFromPoints([
+          new Vector3(-width / 2, 0, -height / 2),
+          new Vector3(width / 2, 0, -height / 2),
+          new Vector3(width / 2, 0, height / 2),
+          new Vector3(-width / 2, 0, height / 2),
+        ]),
+        material,
+      )
+      helper.add(rect)
       return helper
     }
 

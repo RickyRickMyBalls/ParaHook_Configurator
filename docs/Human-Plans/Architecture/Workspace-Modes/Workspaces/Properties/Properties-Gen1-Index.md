@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+90. 2026-05-22 16:09:28: Marked `Properties-7 - Environment Light Settings Extraction` shipped after Properties Render gained the Environment Lights browser/editor, selected-light controls, light list actions, preset lighting recipe restoration/readback, shadow quality fields, and true `rectArea` support.
+89. 2026-05-22 15:47:07: Updated `Properties-7 / Phase 1` so the Environment Lights section starts with a compact mini browser list for selecting the environment light before editing selected-light settings.
+88. 2026-05-22 15:40:13: Added `Properties-7 - Environment Light Settings Extraction` as the future planning lane for moving environment light brightness, type, type-specific controls, and selected-light shadows into a fuller Properties `Render > Environment Lights` section.
+87. 2026-05-22 15:04:55: Marked `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls` shipped after saved background color/source settings, Properties Environment background/HDRI controls, shared repo HDRI inventory, preset background writes, and viewer saved-source consumption landed.
+86. 2026-05-22 13:55:50: Prepped `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls` against the live environment source contract, existing HDRI apply/tune setters, Catalog browse handoff, Properties `Render > Environment` section, and viewer background runtime seams.
+85. 2026-05-22 13:21:33: Added `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls` to the Properties render-preset consolidation handoff, routing Clay Studio background extraction, Properties environment background controls, repo HDRI listing, and user HDRI/EXR browse behavior into the existing Properties-4 ladder.
 84. 2026-05-21 20:38:33: Marked `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` shipped after `ParaSelect` gained readback display-label support, `Custom` left the normal Edge Preset choices, and Properties edge writes started syncing the legacy edge display mode bridge so `Off` remains reachable.
 83. 2026-05-21 19:53:12: Added and prepped `Properties-6 / Phase 5.6 - Recipe Select Readback Option Model` as the next Geometry Display handoff before point work so `Custom` can display only as edge preset readback while `Off`, `Visible Only`, `Xray`, and `Hidden Line` remain the selectable recipe list.
 82. 2026-05-21 19:12:16: Marked `Properties-6 / Phase 5.5 - Edge Preset Custom Readback` shipped after adding a read-only `Custom` edge preset state for recipe drift, keeping saved presets built-in-only, and advancing the Geometry Display handoff to `Properties-6 / Phase 6 - Point Visibility And Default Style`.
@@ -161,6 +167,7 @@ Current legal family-phase ladder:
 - `Properties-4` - Render Presets And Viewport Style Consolidation
 - `Properties-5` - Render Section Detail And Feature Organization
 - `Properties-6` - Geometry Display Surfaces Edges And Points
+- `Properties-7` - Environment Light Settings Extraction
 
 Current subfamily read:
 - `Materials` is the first active `Properties` subfamily
@@ -187,6 +194,7 @@ Current landed shared-shell follow-on:
 
 Current next family-level handoff:
 - `Properties-6 - Geometry Display Surfaces Edges And Points` for the new Surfaces / Edges / Points render-display section and the path from Wireframe to Clay Studio as editable settings
+- `Properties-7 - Environment Light Settings Extraction` is now available as the future environment-light planning lane when selected-light brightness, type-specific controls, and shadow controls need to move into one fuller Properties Render section.
 
 Current render/presentation prep read:
 - `Properties-3 / Phase 1` is complete as a docs-only ViewSettings inventory pass.
@@ -253,6 +261,32 @@ Current Properties-4 Phase 4.1 landed read:
 - Clay Studio writes enabled contact-shadow settings through the built-in preset helper; Standard resets them to defaults
 - viewer contact-shadow rings now render from saved settings in rendered mode with visible ground instead of requiring Clay Studio identity
 - ring color, ring count, ring ratios, y-offset, per-object controls, Background, Presentation Material, Presentation Ground Material, Lighting, Edges, graph geometry, material truth, real light truth, export truth, saved custom presets, and Display Mode / Render Preset collapse remain out of scope
+- next render-preset consolidation handoff is `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls`
+
+Current Properties-4 Phase 4.2 prep read:
+- extract background color/source behavior after Contact Shadows while keeping `Display Mode` and `Render Preset` separate
+- move Clay Studio's pale background out of the hidden `CLAY_STUDIO_ENVIRONMENT_BACKGROUND` viewer branch once equivalent saved settings exist
+- add Properties `Render > Environment > Background` controls for background source, repo HDRI/EXR entries, user HDRI/EXR browse, and HDRI-only tune controls
+- reuse the existing environment source/HDRI runtime path through `applyHdriEnvironment(...)` instead of creating a Properties-only owner
+- list the current repo-backed HDRI/EXR inventory from `public/HDRI`: `citrus_orchard_road_puresky_2k.exr`, `docklands_02_2k.hdr`, `rogland_clear_night_2k.hdr`, `studio_small_09_2k.exr`, and `studio_small_09_2k.hdr`
+- keep Catalog as the browseable asset source and Environment/view state as the active runtime source after apply
+- keep lighting rig extraction, presentation material extraction, ground material extraction, edge styling, graph geometry, material truth, export truth, saved custom presets, and preset match/divergence readback out of this phase
+
+Current Properties-4 Phase 4.2 implementation prep read:
+- use `ViewSettings.environmentSource` as the first implementation owner for source/background identity unless implementation proves a separate saved background color/source field is unavoidable
+- keep user-browsed HDRI/EXR files as runtime object URL sources applied through `applyHdriEnvironment(...)`; do not claim durable local-file persistence in this phase
+- derive Properties repo HDRI choices from an existing catalog/environment inventory seam or a small shared helper, not a second hard-coded component-local list
+- place the first controls in the existing Properties `Render > Environment` group above grade sliders so source/background selection reads before look tuning
+- first UI should stay compact: `Background Source`, `Browse HDRI/EXR`, and HDRI-only `Lighting Intensity`, `Background`, `Background Intensity`, and `Orientation`
+- focused proof should cover the repo HDRI option list, repo HDRI apply, browse apply, Clay Studio preset background reproduction, viewer consumption without Clay identity, and non-durable object URL expectations
+
+Current Properties-4 Phase 4.2 landed read:
+- `EnvironmentSourceSettings.backgroundColor` now carries preset/custom background color without adding a parallel background owner
+- Clay Studio writes its pale studio background through saved environment source settings, and Standard resets to the default environment source
+- Properties `Render > Environment` now exposes `Background Source`, repo HDRI/EXR entries, `Browse HDRI/EXR`, preset background color, and HDRI-only intensity/background/orientation controls
+- repo HDRI choices come from a shared Catalog environment inventory helper instead of a component-local hard-coded list
+- the viewer consumes saved background/source state and no longer needs a Clay-only background color branch
+- saved custom presets, preset match/divergence reads, lighting rig extraction, presentation material extraction, ground material extraction, edge styling, graph geometry, material truth, project content, export truth, and Display Mode / Render Preset collapse remain out of scope
 - next render-preset consolidation handoff is `Properties-4 / Phase 5 - Preset Match And Custom Readback`
 
 Current Properties-4 Phase 4 landed read:
@@ -349,6 +383,12 @@ Current Properties-6 Phase 5.N follow-up read:
 - Edge Preset selectable recipes now stay limited to `Off`, `Visible Only`, `Xray`, and `Hidden Line`, with `Custom` shown only when the current settings no longer match a built-in recipe.
 - Properties edge writes now sync the legacy `edgeDisplayMode` bridge so `Off` is not overwritten by stale compatibility state.
 - `Properties-6 / Phase 6 - Point Visibility And Default Style` is the next Geometry Display handoff.
+
+Current environment-light planning read:
+- `Properties-7 - Environment Light Settings Extraction` is now shipped.
+- Properties `Render > Environment Lights` now owns compact environment-light browsing, selected-light editing, type-gated controls, light-local shadows, light list actions, preset lighting recipe restoration/readback, and true `rectArea` width/height controls.
+- Environment lights remain saved viewer-presentation settings and do not change model, material, graph, or export truth.
+- Any later lighting work should be opened as a new follow-on phase instead of reopening Properties-7.
 
 Current Properties-3 Phase 2 prep read:
 - implement against `src/app/workspace/PropertiesRenderSection.tsx`
@@ -464,6 +504,7 @@ Important boundary rule:
 - [ ] `Properties-Gen1-HLG-5. The umbrella family should leave room for later non-material property groups without pretending they are already planned in detail.`
 - [ ] `Properties-Gen1-HLG-6. Properties should be able to host workspace-level view/render presentation controls without becoming the owner of viewer runtime behavior.`
 - [ ] `Properties-Gen1-HLG-7. Properties Render should expose editable geometry-display settings for surfaces, edges, and points so display styles like Wireframe and Clay Studio can become visible recipes instead of hidden viewer branches.`
+- [ ] `Properties-Gen1-HLG-8. Properties Render should expose environment light settings as visible editable controls instead of leaving light customization hidden in viewer-only paths or a selected-light shadow-only island.`
 
 ### Codex Level Goals
 
@@ -474,6 +515,7 @@ Important boundary rule:
 - [ ] Properties-Gen1-CLG-5. Create one shared-shell follow-on family phase so nested property-group lanes can mount into a real `Properties` workspace surface before child-lane runtime behavior widens.
 - [ ] Properties-Gen1-CLG-6. Create one view/render presentation controls family phase so `Viewport Style`, Ambient Occlusion, Environment Grade Controls, ground/contact presentation, and Render Preview quality can be organized under Properties `Render`.
 - [ ] Properties-Gen1-CLG-7. Create one geometry-display family phase so surfaces, edges, points, custom display material, hover/highlight styling, and Wireframe/Clay Studio recipe migration have an explicit implementation ladder.
+- [ ] Properties-Gen1-CLG-8. Create one environment-light settings family phase so selected-light brightness, type, type-specific light controls, shadows, and later area-light candidates have an explicit implementation ladder.
 
 ### `Properties-1`
 
@@ -546,6 +588,7 @@ Landed read:
 - [x] Turn viewport styles into visible render-setting presets instead of hidden viewer-only override modes.
 - [x] Make preset-applied values visible in Properties `Render` as the controls below the preset select change.
 - [x] Move runtime presentation values into neutral Properties Render settings only after matching setting or preset contracts exist.
+- [x] Add the `Properties-4 / Phase 4.2` background/source extraction so Clay Studio background, repo HDRI selection, and user HDRI/EXR browse behavior flow through visible render environment settings.
 - [ ] Plan the path toward `Rendered (Custom)`, `Clay Studio (Custom)`, and later saved custom render presets.
 - [ ] `Properties-Gen1-HLG-1`
 - [ ] `Properties-Gen1-HLG-2`
@@ -576,6 +619,25 @@ Landed read:
 - [ ] Properties-Gen1-CLG-3.
 - [ ] Properties-Gen1-CLG-6.
 - [ ] Properties-Gen1-CLG-7.
+
+### `Properties-7`
+
+- [x] Create the standalone `Future/Properties-7 - Environment Light Settings Extraction.md` Family Phase Doc.
+- [x] Add a dedicated Properties `Render > Environment Lights` section.
+- [x] Add a compact mini browser list of all environment lights so the user can select which light to edit inside the section.
+- [x] Move the current selected-light shadow controls into the fuller environment-light section.
+- [x] Expose common selected-light controls such as enabled state, name, type, color, and brightness from the existing `LightSpec` contract.
+- [x] Expose type-specific direction, target, falloff, cone, and shadow controls only when they honestly apply to the selected light type.
+- [x] Keep physical disk-size or area-light controls deferred until a real area-light contract and renderer proof exist.
+- [x] `Properties-Gen1-HLG-1`
+- [x] `Properties-Gen1-HLG-2`
+- [x] `Properties-Gen1-HLG-3`
+- [x] `Properties-Gen1-HLG-6`
+- [x] `Properties-Gen1-HLG-8`
+- [x] Properties-Gen1-CLG-1.
+- [x] Properties-Gen1-CLG-3.
+- [x] Properties-Gen1-CLG-6.
+- [x] Properties-Gen1-CLG-8.
 
 ### Phase Prep Notes
 

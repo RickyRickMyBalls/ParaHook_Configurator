@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+16. 2026-05-22 15:04:55: Implemented `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls` by adding saved environment background color/source settings, Properties `Render > Environment` background and HDRI controls, shared repo HDRI inventory, Clay Studio preset background writes, and viewer consumption of saved background source state.
+15. 2026-05-22 13:55:50: Prepped `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls` for implementation against the live environment source contract, existing HDRI apply/tune setters, Catalog browse handoff, Properties `Render > Environment` section, and viewer background runtime seams.
+14. 2026-05-22 13:21:33: Added `Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls` as the next render-preset extraction pass, covering the Clay Studio background constant, Properties `Render > Environment` background controls, repo HDRI listing, and user HDRI/EXR browse handoff through the existing environment source path.
 13. 2026-05-21 09:22:52: Recorded the shipped `Properties-4 / Phase 4.1 - First Remaining Setting Extraction` implementation after contact shadows moved into neutral saved render settings, Properties `Render > Shadows` controls, built-in preset recipe writes, and viewer setting consumption.
 12. 2026-05-21 09:13:14: Prepped `Properties-4 / Phase 4.1 - First Remaining Setting Extraction` for implementation as a contact-shadow extraction slice, grounding the next code cut in a neutral `ViewSettings.contactShadows` contract, Properties `Render > Shadows` controls, built-in preset recipe writes, viewer consumption, and focused Properties/store/viewer proof.
 11. 2026-05-21 09:10:13: Implemented `Properties-4 / Phase 4 - Remaining Render Presentation Contracts` as a docs-only contract matrix, classifying the remaining hidden presentation ingredients and selecting `Contact Shadows` as the first `Properties-4 / Phase 4.1` extraction target.
@@ -188,6 +191,17 @@ This preserves the larger project vision:
 - [ ] `Properties-4-HLG-2`
 - [ ] `Properties-4-HLG-3`
 - [ ] `Properties-4-HLG-5`
+
+### `Properties-4 / Phase 4.2`
+
+- [x] Add a visible `Render > Environment > Background` control surface in Properties.
+- [x] Move Clay Studio background color/source behavior out of the hidden viewer-only branch into preset-written render settings.
+- [x] Let Properties list repo-backed HDRI/EXR environments already available in the app.
+- [x] Add a Browse HDRI/EXR button that applies user-selected `.hdr` / `.exr` files through the existing environment source path.
+- [x] Keep HDRI lighting contribution, background visibility, background intensity, and orientation attached to environment-owned view state.
+- [x] `Properties-4-HLG-2`
+- [x] `Properties-4-HLG-3`
+- [x] `Properties-4-HLG-5`
 
 ### `Properties-4 / Phase 5`
 
@@ -1087,6 +1101,217 @@ Run at least:
 - do not mutate graph geometry, real object materials, export truth, or authored content
 - do not add saved custom preset management yet
 - do not collapse `Display Mode` and `Render Preset`
+
+## [x] `Properties-4 / Phase 4.2` - `Environment Background And HDRI Source Controls`
+
+### Phase 4.2 Summary
+
+Extract the next hidden render-preset ingredient into visible Properties `Render` controls.
+
+This phase should make background color/source behavior editable and preset-written without collapsing `Display Mode` and `Render Preset`. It should also bring the existing HDRI/EXR environment source path into Properties so users can choose repo-backed environments or browse for their own HDRI file from the render environment surface.
+
+### Why This Cut Comes Next
+
+`Phase 4.1` already moved Contact Shadows out of Clay-specific viewer identity and into neutral saved render settings. Background is the next clean extraction target because the current Clay Studio background is still a hard-coded viewer constant:
+
+- `Viewer.ts` owns `CLAY_STUDIO_ENVIRONMENT_BACKGROUND`.
+- `Viewer.applyEnvironmentSource(...)` bypasses normal environment source behavior when Clay Studio is active.
+- Properties `Render > Environment` exposes grade controls, but not background color/source.
+- The Environment family already shipped the HDRI runtime and active environment source contract, so this phase can reuse existing ownership instead of inventing a new one.
+
+### Live Code Seams
+
+- `src/shared/viewSettingsTypes.ts`
+  - `EnvironmentSourceSettings`
+  - `createHdriEnvironmentSource(...)`
+  - `createRenderPresetViewPatch(...)`
+  - environment preset/source normalization and snapshot comparison
+- `src/app/store/uiPrefsStore.ts`
+  - `applyHdriEnvironment(...)`
+  - `setHdriEnvironmentBackgroundVisible(...)`
+  - `setHdriEnvironmentIntensity(...)`
+  - `setHdriEnvironmentBackgroundIntensity(...)`
+  - `setHdriEnvironmentRotation(...)`
+- `src/app/workspace/PropertiesRenderSection.tsx`
+  - existing `Render > Environment` section
+  - environment look history helper usage
+  - render preset select path
+- `src/viewer/Viewer.ts`
+  - `CLAY_STUDIO_ENVIRONMENT_BACKGROUND`
+  - `applyEnvironmentSource(...)`
+  - `resolveEnvironmentBackgroundRuntime(...)`
+  - `applyEnvironmentBackgroundTreatment(...)`
+  - `loadHdriTexture(...)`
+- `src/app/workspace/CatalogSurface.tsx`
+  - existing HDRI/EXR browse and `applyHdriEnvironment(...)` handoff
+- `src/app/catalog/catalogSeedItems.ts`
+  - current repo-backed HDRI/EXR inventory
+
+### Phase 4.2 Prep Read
+
+#### Implementation Decision
+
+Use the existing environment source path as the first implementation owner instead of creating a new background-only state object.
+
+The narrow first cut should treat background source as a visible Properties read/write surface over `ViewSettings.environmentSource`:
+
+- preset/custom environment sources keep the existing preset-color background behavior
+- HDRI/EXR sources use the existing `environmentSource.kind === 'hdri'` path
+- user-browsed files become runtime object URL HDRI sources through `applyHdriEnvironment(...)`
+- local-file object URLs remain session-runtime inputs unless a later persistence phase adds durable local-file storage
+
+#### Contract Direction
+
+Prefer the smallest contract change that lets Clay Studio stop owning a hidden background branch.
+
+Default contract direction:
+
+- keep `EnvironmentSourceSettings` as the source identity owner
+- add a preset-written background color/source field only if the current `environmentSource` plus `envPreset` read cannot reproduce Clay Studio without ambiguity
+- do not create a parallel `ViewSettings.background` field unless the implementation proves `environmentSource` cannot carry the first honest cut
+- keep Material display mode background/lighting inspection behavior out of this phase unless it blocks Clay Studio extraction
+
+#### Inventory Direction
+
+Properties should get repo-backed HDRI options from an existing catalog/environment inventory seam where possible.
+
+Preferred source order:
+
+1. Reuse Catalog environment item resolution if it can be imported without pulling UI concerns into Properties.
+2. Extract a small shared environment inventory helper from the catalog source layer if direct import would create a bad dependency.
+3. As a last resort, keep a tiny shared constant close to the catalog seed source, with tests proving it matches the current repo HDRI entries.
+
+Do not hard-code a second HDRI list inside `PropertiesRenderSection.tsx`.
+
+#### Browse Handoff
+
+The Properties browse button should mirror the existing Catalog behavior:
+
+- render an `<input type="file" accept=".hdr,.exr">`
+- create a browser object URL for the selected file
+- call `applyHdriEnvironment({ label, assetPath })`
+- preserve existing active HDRI tune defaults through the store's current `applyHdriEnvironment(...)` behavior
+- do not persist blob URLs as durable project or user data
+
+#### UI Placement
+
+Place the first controls inside the existing Properties `Render > Environment` group, after the current Environment readback and before grade sliders if that keeps source selection above look tuning.
+
+The first implementation should keep the UI compact:
+
+- one `Background Source` select
+- one `Browse HDRI/EXR` button/input
+- HDRI tune controls only when `environmentSource.kind === 'hdri'`
+- no saved custom preset management
+- no separate library picker modal
+
+### Current Repo HDRI Inventory
+
+Properties should list the currently known repo-backed HDRI/EXR files through a shared inventory source instead of hard-coding a second list in the component.
+
+Current files under `public/HDRI`:
+
+- `HDRI/citrus_orchard_road_puresky_2k.exr`
+- `HDRI/docklands_02_2k.hdr`
+- `HDRI/rogland_clear_night_2k.hdr`
+- `HDRI/studio_small_09_2k.exr`
+- `HDRI/studio_small_09_2k.hdr`
+
+### Expected User Controls
+
+Add the first Properties `Render > Environment > Background` controls:
+
+- `Background Source`
+  - `Preset Color`
+  - repo HDRI/EXR entries
+  - active custom HDRI/EXR when a user browses a local file
+- `Browse HDRI/EXR`
+  - accepts `.hdr,.exr`
+  - creates a browser object URL only as runtime/app source input
+  - applies through `applyHdriEnvironment(...)`
+- HDRI-only controls when an HDRI/EXR source is active:
+  - `Lighting Intensity`
+  - `Background`
+  - `Background Intensity`
+  - `Orientation`
+- color control or preset-color read for non-HDRI background behavior, scoped to background presentation only
+
+Use existing para-style controls where they fit:
+
+- `ParaSelect` for source/background visibility choices
+- `ParaSlider` for intensity and orientation
+- existing color-control patterns for background color only if a saved background color setting is added
+
+### Exact First Code Cut
+
+1. Add the smallest neutral background/source contract needed.
+   - First try to use existing `EnvironmentSourceSettings` and preset definitions.
+   - Add a new saved background color/source setting only if Clay Studio cannot be reproduced honestly through the existing source shape.
+   - Do not create a second owner beside `environmentSource` without documenting why.
+2. Add a shared repo HDRI option list.
+   - Prefer extracting from the existing catalog environment source layer.
+   - Keep labels and paths aligned with the current `public/HDRI` files.
+   - Add focused proof that the Properties option list includes the current repo HDRI inventory.
+3. Add Properties `Render > Environment` controls.
+   - show current source/background read
+   - add a `Background Source` select for preset/current source plus repo HDRI entries
+   - add Browse HDRI/EXR using `.hdr,.exr`
+   - call the existing `applyHdriEnvironment(...)` path for both repo and browsed HDRIs
+   - reuse existing HDRI intensity, background visibility, background intensity, and orientation setters
+4. Update built-in render-preset helpers.
+   - `Clay Studio` should write the background/source values that reproduce the current pale studio background.
+   - `Standard` should reset to the current default/background source behavior.
+   - normal display-mode changes should preserve render-preset background settings.
+5. Update `Viewer.ts`.
+   - Remove the Clay-only background color branch after equivalent saved settings exist.
+   - Keep Material display mode's inspection background behavior separate if it is still a display-mode runtime detail.
+   - Keep HDRI lighting contribution and HDRI background treatment split.
+6. Add focused proof.
+   - Clay Studio preset writes background settings that reproduce the current pale background.
+   - Properties can switch from preset/background color to repo HDRI.
+   - Browse applies a user `.hdr` / `.exr` source through `applyHdriEnvironment(...)`.
+   - viewer consumes saved background/source settings without requiring Clay Studio identity.
+   - local object URLs are not overclaimed as durable persistence.
+
+### Implementation Boundaries
+
+- do not add saved custom render presets
+- do not add preset match/divergence readback yet
+- do not collapse `Display Mode` and `Render Preset`
+- do not make background state part of graph geometry, material authoring truth, project content, or export output
+- do not make Catalog the owner of active environment state after a user chooses an HDRI
+- do not invent a separate Properties-only HDRI source owner
+- do not move lighting rig extraction, presentation material extraction, ground material extraction, or edge styling into this phase
+- do not overclaim local file persistence; browser object URLs are runtime session inputs unless a later persistence phase adds durable local-file support
+
+### Verification
+
+Run at least:
+
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx src/app/store/uiPrefsStore.test.ts src/app/store/scenePresentationEditHistoryReadiness.test.ts src/viewer/Viewer.test.ts`
+- focused Catalog/Properties tests if the shared HDRI inventory or browse handoff changes
+- `npm.cmd run build`
+- `git diff --check`
+
+### Done Shape
+
+`Phase 4.2` is done when:
+
+- Clay Studio's pale background is produced by saved render/environment settings rather than a hidden Clay-only viewer constant
+- Properties `Render > Environment` can choose a preset/background source, list app-local HDRI/EXR files, and browse a user HDRI/EXR
+- the viewer consumes that saved source without treating background as geometry, material, or export truth
+- the next remaining hidden ingredients stay explicitly deferred to later `Properties-4` extraction phases
+
+### Phase 4.2 Landed Read
+
+- Added `EnvironmentSourceSettings.backgroundColor` as the smallest saved preset/custom background color contract, keeping source identity under `environmentSource` instead of adding a parallel background owner.
+- Updated built-in render-preset writes so `Clay Studio` saves the pale studio background source/color and `Standard` resets to the default saved environment source.
+- Added a shared Catalog environment inventory helper for the repo HDRI/EXR list and proved it covers the current `public/HDRI` files.
+- Added Properties `Render > Environment` background controls for `Background Source`, repo HDRI/EXR selection, Browse HDRI/EXR, preset-color background color, and HDRI-only lighting/background intensity, visibility, and orientation controls.
+- Updated the viewer background runtime so saved environment source/background settings produce Clay Studio's pale background without a Clay-only background branch, while Material display mode keeps its inspection background behavior separate.
+- Kept local HDRI file object URLs as runtime/session environment inputs, not durable project data.
+- Kept saved custom presets, preset match/divergence reads, lighting rig extraction, presentation material extraction, ground material extraction, edge styling, graph geometry, material authoring truth, project content, export truth, and Display Mode / Render Preset collapse out of scope.
+- Verified with focused Properties/store/scene-presentation/viewer/Catalog tests, production build, and `git diff --check`.
 
 ## [ ] `Properties-4 / Phase 5` - `Preset Match And Custom Readback`
 

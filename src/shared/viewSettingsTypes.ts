@@ -17,6 +17,7 @@ export type EnvironmentSourceSettings = {
   kind: EnvironmentSourceKind
   label: string
   assetPath: string | null
+  backgroundColor?: string
   backgroundVisible?: boolean
   intensity?: number
   backgroundIntensity?: number
@@ -168,6 +169,7 @@ export const MAX_VIEW_GEOMETRY_DISPLAY_HIDDEN_LINE_GAP_SIZE = 10
 export const DEFAULT_ENVIRONMENT_BACKGROUND = '#0b0b0f'
 export const STUDIO_ENVIRONMENT_BACKGROUND = '#151922'
 export const DARK_STUDIO_ENVIRONMENT_BACKGROUND = '#06080d'
+export const CLAY_STUDIO_ENVIRONMENT_BACKGROUND = '#e8e8e5'
 export const DEFAULT_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
   toneMapping: 'aces',
   exposure: 1.15,
@@ -181,7 +183,7 @@ export const DEFAULT_ENVIRONMENT_GRADE: EnvironmentGradeSettings = {
   saturation: 1,
 }
 
-export type LightType = 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient'
+export type LightType = 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient' | 'rectArea'
 
 export type Vec3 = { x: number; y: number; z: number }
 
@@ -211,7 +213,12 @@ export type LightSpec = {
   decay?: number
   castShadow?: boolean
   shadowBias?: number
+  shadowNormalBias?: number
+  shadowRadius?: number
+  shadowBlurSamples?: number
   shadowMapSize?: number
+  width?: number
+  height?: number
 }
 
 export type MaterialPresetId = string
@@ -529,6 +536,8 @@ export const createDisplayModeViewPatch = (
   const edgePreset: ViewGeometryDisplayEdgePreset =
     displayMode === 'material'
       ? 'hiddenLine'
+      : displayMode === 'solid'
+        ? 'visibleOnly'
       : geometryDisplayEdgeModeAndDepthToPreset(
           viewEdgeDisplayModeToGeometryDisplayEdgeMode(
             displayMode === 'wireframe' ? 'on' : 'off',
@@ -661,24 +670,37 @@ export const resolveViewGeometryDisplayEdgePresetRead = (
 
 export const createRenderPresetViewPatch = (
   renderPresetId: RenderPresetId,
-  currentView: Pick<ViewSettings, 'displayMode' | 'ground' | 'gridPresentation'>,
+  currentView: Pick<ViewSettings, 'displayMode' | 'ground' | 'gridPresentation'> &
+    Partial<Pick<ViewSettings, 'lighting'>>,
 ): Pick<
   ViewSettings,
   | 'displayMode'
   | 'viewportStyle'
   | 'environmentGrade'
+  | 'environmentSource'
   | 'shadowsEnabled'
   | 'ground'
   | 'gridVisible'
   | 'gridPresentation'
   | 'postProcessing'
   | 'contactShadows'
+  | 'lighting'
 > => {
   if (renderPresetId === 'clayStudio') {
     return {
       viewportStyle: renderPresetId,
       displayMode: 'rendered',
       environmentGrade: { ...CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE },
+      environmentSource: {
+        kind: 'custom',
+        label: 'Clay Studio',
+        assetPath: null,
+        backgroundColor: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
+        backgroundVisible: true,
+        intensity: 1,
+        backgroundIntensity: 1,
+        rotationDeg: 0,
+      },
       shadowsEnabled: false,
       ground: {
         ...currentView.ground,
@@ -690,18 +712,21 @@ export const createRenderPresetViewPatch = (
       contactShadows: {
         ...CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
       },
+      lighting: cloneLightingSettings(STUDIO_ENVIRONMENT_PRESET_LIGHTING),
     }
   }
   return {
     viewportStyle: renderPresetId,
     displayMode: currentView.displayMode,
     environmentGrade: cloneEnvironmentGrade(DEFAULT_VIEW_SETTINGS.environmentGrade),
+    environmentSource: cloneEnvironmentSource(DEFAULT_VIEW_SETTINGS.environmentSource),
     shadowsEnabled: DEFAULT_VIEW_SETTINGS.shadowsEnabled,
     ground: { ...DEFAULT_VIEW_SETTINGS.ground },
     gridVisible: DEFAULT_VIEW_SETTINGS.gridVisible,
     gridPresentation: cloneGridPresentationSettings(DEFAULT_VIEW_SETTINGS.gridPresentation),
     postProcessing: normalizeViewPostProcessSettings(DEFAULT_VIEW_SETTINGS.postProcessing),
     contactShadows: normalizeViewContactShadowSettings(DEFAULT_VIEW_SETTINGS.contactShadows),
+    lighting: cloneLightingSettings(DEFAULT_VIEW_SETTINGS.lighting),
   }
 }
 
@@ -1746,14 +1771,26 @@ const normalizeEnvironmentSource = (view: ViewSettings): ViewSettings => {
   }
 
   const environmentRead = resolveEnvironmentPresetRead(view)
-  const environmentSource = environmentRead.isDiverged
+  const resolvedSource = environmentRead.isDiverged
     ? createCustomEnvironmentSource(environmentRead.definition)
     : createPresetEnvironmentSource(environmentRead.definition)
+  const environmentSource = {
+    ...resolvedSource,
+    label:
+      view.environmentSource.kind === 'custom' && view.environmentSource.label.trim().length > 0
+        ? view.environmentSource.label
+        : resolvedSource.label,
+    backgroundColor: normalizeHexColor(
+      view.environmentSource.backgroundColor,
+      resolvedSource.backgroundColor ?? environmentRead.definition.background,
+    ),
+  }
 
   if (
     view.environmentSource.kind === environmentSource.kind &&
     view.environmentSource.label === environmentSource.label &&
-    view.environmentSource.assetPath === environmentSource.assetPath
+    view.environmentSource.assetPath === environmentSource.assetPath &&
+    view.environmentSource.backgroundColor === environmentSource.backgroundColor
   ) {
     return view
   }
@@ -1770,6 +1807,7 @@ export const createPresetEnvironmentSource = (
   kind: 'preset',
   label: definition.label,
   assetPath: null,
+  backgroundColor: definition.background,
   backgroundVisible: true,
   intensity: 1,
   backgroundIntensity: 1,
@@ -1782,6 +1820,7 @@ export const createCustomEnvironmentSource = (
   kind: 'custom',
   label: `Custom ${definition.label}`,
   assetPath: null,
+  backgroundColor: definition.background,
   backgroundVisible: true,
   intensity: 1,
   backgroundIntensity: 1,
@@ -1823,7 +1862,12 @@ const areLightSpecEqual = (left: LightSpec, right: LightSpec): boolean =>
   left.decay === right.decay &&
   left.castShadow === right.castShadow &&
   left.shadowBias === right.shadowBias &&
-  left.shadowMapSize === right.shadowMapSize
+  left.shadowNormalBias === right.shadowNormalBias &&
+  left.shadowRadius === right.shadowRadius &&
+  left.shadowBlurSamples === right.shadowBlurSamples &&
+  left.shadowMapSize === right.shadowMapSize &&
+  left.width === right.width &&
+  left.height === right.height
 
 const areLightingSettingsEqual = (
   left: ViewSettings['lighting'],
@@ -1860,6 +1904,7 @@ const areEnvironmentLookSnapshotsEqualInternal = (
   left.environmentSource.kind === right.environmentSource.kind &&
   left.environmentSource.label === right.environmentSource.label &&
   left.environmentSource.assetPath === right.environmentSource.assetPath &&
+  left.environmentSource.backgroundColor === right.environmentSource.backgroundColor &&
   left.environmentSource.backgroundVisible === right.environmentSource.backgroundVisible &&
   left.environmentSource.intensity === right.environmentSource.intensity &&
   left.environmentSource.backgroundIntensity === right.environmentSource.backgroundIntensity &&

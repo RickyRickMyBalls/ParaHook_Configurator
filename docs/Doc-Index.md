@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+305. 2026-05-22 17:51:51: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Vision.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`, and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md` to the docs map and refreshed the Workspace Modes umbrella so Build Path has a dedicated workspace-family setup for graph-authored build events, master scrub, branch timelines, and later explicit restore/branch actions.
 304. 2026-05-22 00:12:51: Added `Summary 4` to the `### Doc Stats` section using a fresh read-only Markdown scan under `/20/parahook/docs`, updating the non-`/archive/` versus `/archive/` file and raw-line totals to today's counts while preserving the older summaries for comparison.
 303. 2026-05-21 21:05:45: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md` to the docs map and refreshed the Visual Style Menu generation index so Settings-backed radial-menu recipe presets have a dedicated future planning surface.
 302. 2026-05-21 20:59:19: Added the new `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/` subtree to the docs map, listing the Visual Style Menu vision and Generation 1 index so `Shift+D` radial-menu ownership and future visual-style menu cleanup are discoverable under Model Viewport.
@@ -869,7 +870,10 @@ Rule notes:
 ###### -------------Browser
             - `Workspaces/Browser/Browser-Index.md`
 ###### -------------Build-Path
-            - `Workspaces/Build-Path/Build-Path-Index.md`
+            - `Workspaces/Build-Path/Build-Path-Vision.md`
+            - `Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+####### --------------Future
+            - `Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
 ###### -------------Home-Page
             - `Workspaces/Home-Page/Home-Page-Vision.md`
             - `Workspaces/Home-Page/Home-Page-Gen1-Index.md`

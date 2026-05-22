@@ -13,6 +13,7 @@ import {
   MeshStandardMaterial,
   Points,
   Texture,
+  RectAreaLight,
   Vector3,
 } from 'three'
 import type { Camera, Vector3 as ThreeVector3 } from 'three'
@@ -2517,6 +2518,17 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.renderer.domElement.style.filter).toContain('contrast(')
     expect(runtime.renderer.domElement.style.filter).toContain('saturate(')
     expect(runtime.renderer.domElement.style.filter).toContain('hue-rotate(')
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      viewportStyle: 'standard',
+      environmentSource: {
+        ...DEFAULT_VIEW_SETTINGS.environmentSource,
+        backgroundColor: '#ddeeff',
+      },
+    })
+
+    expect(runtime.scene.background?.getHexString()).toBe('ddeeff')
   })
 
   it('applies an active HDRI as one lighting contribution seam while keeping background treatment separate', async () => {
@@ -2602,6 +2614,104 @@ describe('Viewer baseline replacement', () => {
     expect(runtime.scene.backgroundIntensity).toBe(0.45)
     expect(runtime.scene.environmentRotation.y).toBeCloseTo(Math.PI)
     expect(runtime.scene.backgroundRotation.y).toBeCloseTo(Math.PI)
+  })
+
+  it('applies advanced shadow fields and rect area lights through the runtime light seam', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      lightsById: Map<string, unknown>
+    }
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      shadowsEnabled: true,
+      lighting: {
+        selectedLightId: 'panel',
+        lights: [
+          {
+            id: 'key-shadow',
+            name: 'Key Shadow',
+            type: 'directional',
+            enabled: true,
+            color: '#ffffff',
+            intensity: 1.2,
+            position: { x: 5, y: 8, z: 4 },
+            target: { x: 0, y: 0, z: 0 },
+            castShadow: true,
+            shadowBias: -0.001,
+            shadowNormalBias: 0.08,
+            shadowRadius: 3,
+            shadowBlurSamples: 12,
+            shadowMapSize: 2048,
+          },
+          {
+            id: 'panel',
+            name: 'Soft Panel',
+            type: 'rectArea',
+            enabled: true,
+            color: '#ffeecc',
+            intensity: 2.5,
+            position: { x: 1, y: 4, z: 3 },
+            target: { x: 0, y: 1, z: 0 },
+            width: 5,
+            height: 2.5,
+            castShadow: true,
+            shadowBias: -0.1,
+            shadowNormalBias: 0.2,
+            shadowRadius: 8,
+            shadowBlurSamples: 16,
+            shadowMapSize: 4096,
+          },
+        ],
+      },
+    })
+
+    const key = runtime.lightsById.get('key-shadow') as {
+      castShadow: boolean
+      shadow: {
+        bias: number
+        normalBias: number
+        radius: number
+        blurSamples: number
+        mapSize: { x: number; y: number }
+      }
+    }
+    expect(key.castShadow).toBe(true)
+    expect(key.shadow.bias).toBe(-0.001)
+    expect(key.shadow.normalBias).toBe(0.08)
+    expect(key.shadow.radius).toBe(3)
+    expect(key.shadow.blurSamples).toBe(12)
+    expect(key.shadow.mapSize.x).toBe(2048)
+    expect(key.shadow.mapSize.y).toBe(2048)
+
+    const panel = runtime.lightsById.get('panel')
+    expect(panel).toBeInstanceOf(RectAreaLight)
+    expect(panel).toMatchObject({
+      name: 'Soft Panel',
+      visible: true,
+      intensity: 2.5,
+      width: 5,
+      height: 2.5,
+      castShadow: false,
+    })
   })
 
   it('creates wireframe helpers for environment lights and picks them through the shared target contract', async () => {
@@ -3488,6 +3598,7 @@ describe('Viewer baseline replacement', () => {
     const { Viewer } = await import('./Viewer')
     const { toViewerRenderablePart } = await import('../shared/buildTypes')
     const {
+      CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
       CLAY_STUDIO_CONTACT_SHADOW_SETTINGS,
       CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
       DEFAULT_VIEW_SETTINGS,
@@ -3590,6 +3701,16 @@ describe('Viewer baseline replacement', () => {
       ...renderedSettings,
       viewportStyle: 'clayStudio' as const,
       environmentGrade: CLAY_STUDIO_RENDER_PRESET_ENVIRONMENT_GRADE,
+      environmentSource: {
+        kind: 'custom' as const,
+        label: 'Clay Studio',
+        assetPath: null,
+        backgroundColor: CLAY_STUDIO_ENVIRONMENT_BACKGROUND,
+        backgroundVisible: true,
+        intensity: 1,
+        backgroundIntensity: 1,
+        rotationDeg: 0,
+      },
       shadowsEnabled: false,
       ground: {
         ...renderedSettings.ground,
