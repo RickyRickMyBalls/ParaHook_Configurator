@@ -147,6 +147,7 @@ describe('ViewportWorkspaceHost', () => {
 
     expect(primaryHost?.dataset.bottomConsoleBarReserved).toBe('true')
     expect(secondaryHost?.dataset.bottomConsoleBarReserved).toBe('false')
+    expect(primaryHost?.querySelector('[data-build-path-viewport-dock="bottom"]')).not.toBeNull()
   })
 
   it('mounts the active overlay editor inside the active viewport host only', async () => {

@@ -45,6 +45,7 @@ describe('workspaceViewportTypeChoices', () => {
     expect(byKind.homePage).toEqual(['HP', 'HOME'])
     expect(byKind.properties).toEqual(['PROP', 'PROPS'])
     expect(byKind.export).toEqual(['EXP'])
+    expect(byKind.buildPath).toEqual(['BP', 'PATH'])
     expect(byKind.settings).toEqual([])
   })
 })

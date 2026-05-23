@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildDispatcher } from '../../buildDispatcher'
 import { useConsoleStore } from '../../console/useConsoleStore'
 import { useWorkspaceStore } from '../../workspace/useWorkspaceStore'
+import { useBuildPathRuntimeStore } from '../../buildPath/useBuildPathRuntimeStore'
 import {
   loadGraphDocumentFromFile,
   saveGraphDocumentToFile,
@@ -193,6 +194,7 @@ describe('useSpaghettiStore graph normalization', () => {
     vi.restoreAllMocks()
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+    useBuildPathRuntimeStore.getState().resetRuntimeState()
   })
 
   it('setGraph auto-creates OutputPreview singleton when missing', () => {
@@ -1979,7 +1981,7 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedGraphRevision).toBe(0)
   })
 
-  it('loadGraphDocumentFromFile creates a clean file-load cached entry', async () => {
+  it('loadGraphDocumentFromFile creates a clean file-load cached entry and reconstructed Build Path read', async () => {
     const loadedDocument = {
       graphDocumentId: 'graph-document-loaded',
       name: 'Loaded Graph',
@@ -1988,12 +1990,23 @@ describe('useSpaghettiStore graph normalization', () => {
         schemaVersion: 1 as const,
         nodes: [
           {
-            nodeId: 'node-loaded-1',
-            type: 'Part/Baseplate',
+            nodeId: 'node-sketch-loaded',
+            type: 'Geometry/Sketch',
+            params: {},
+          },
+          {
+            nodeId: 'node-extrude-loaded',
+            type: 'Geometry/Extrude',
             params: {},
           },
         ],
-        edges: [],
+        edges: [
+          {
+            edgeId: 'edge-sketch-to-extrude-loaded',
+            from: { nodeId: 'node-sketch-loaded', portId: 'SketchProfiles' },
+            to: { nodeId: 'node-extrude-loaded', portId: 'Profile' },
+          },
+        ],
       },
     }
     const input = {
@@ -2042,6 +2055,27 @@ describe('useSpaghettiStore graph normalization', () => {
       source: 'file-load',
       isDirty: false,
     })
+    expect(useBuildPathRuntimeStore.getState().readEvents()).toMatchObject([
+      {
+        commandFamily: 'Sketch',
+        sourceKind: 'reconstructed',
+        affectedNodeIds: ['node-sketch-loaded'],
+      },
+      {
+        commandFamily: 'Extrude',
+        sourceKind: 'reconstructed',
+        affectedNodeIds: ['node-extrude-loaded'],
+      },
+    ])
+    expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toEqual([
+      {
+        edgeId: 'edge-sketch-to-extrude-loaded',
+        fromNodeId: 'node-sketch-loaded',
+        toNodeId: 'node-extrude-loaded',
+        graphDocumentId: 'graph-document-loaded',
+        sourceKind: 'reconstructed',
+      },
+    ])
   })
 
   it('loadGraphDocumentIntoNewGraphFromFile clones file contents into a fresh dirty graph identity', async () => {

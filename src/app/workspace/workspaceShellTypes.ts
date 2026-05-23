@@ -64,6 +64,7 @@ export type WorkspaceSurfaceKind =
   | 'properties'
   | 'export'
   | 'editHistory'
+  | 'buildPath'
 
 export type WorkspaceSurfaceInstanceId = string
 export type WorkspaceViewportId = WorkspaceSurfaceInstanceId
@@ -423,6 +424,9 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   if (surfaceKind === 'editHistory') {
     return `edit-history-${slotId}`
   }
+  if (surfaceKind === 'buildPath') {
+    return `build-path-${slotId}`
+  }
   return `spaghetti-${slotId}`
 }
 
@@ -440,7 +444,8 @@ export const workspacePrimarySlotSupportsSurfaceKind = (
   surfaceKind === 'settings' ||
   surfaceKind === 'properties' ||
   surfaceKind === 'export' ||
-  surfaceKind === 'editHistory'
+  surfaceKind === 'editHistory' ||
+  surfaceKind === 'buildPath'
 
 export const resolveWorkspaceActiveSurfaceInstanceId = ({
   preferredSurfaceInstanceId,

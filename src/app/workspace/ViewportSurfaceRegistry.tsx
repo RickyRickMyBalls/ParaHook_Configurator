@@ -3,6 +3,7 @@ import { BrowserPanel } from '../panels/BrowserPanel'
 import { SpaghettiPanel } from '../panels/SpaghettiPanel'
 import { selectEditorViewportById, useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { NotepadSurface } from '../notepad/NotepadSurface'
+import { BuildPathSurface } from '../buildPath/BuildPathSurface'
 import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
 import { EditHistoryReaderSurface } from './EditHistoryReaderSurface'
@@ -171,6 +172,10 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
 
   if (renderFamily === 'editHistory') {
     return <EditHistoryReaderSurface surfaceInstanceId={surfaceInstanceId} />
+  }
+
+  if (renderFamily === 'buildPath') {
+    return <BuildPathSurface surfaceInstanceId={surfaceInstanceId} hostMode="workspace" />
   }
 
   return (

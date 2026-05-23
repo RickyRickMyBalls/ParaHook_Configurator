@@ -28,41 +28,59 @@ Do not use it for:
 
 ### Active Objective
 
-- Status: none
-- User objective: none active
-- Active family: none
-- Active vision/planning surface: none
-- Active generation/index surface: none
-- Active family phase plan doc: none
-- Active phase packet: none
-- Manager resume point: wait for user direction before opening a Dispatch 5 loop.
+- Status: ready
+- User objective: prep `Build-Path-12.1` for `Graph Created` and `Graph Loaded` Build Path timeline cards
+- Active family: `Build Path`
+- Active vision/planning surface: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Vision.md`
+- Active generation/index surface: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- Active family phase plan doc: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-12.1 - Graph Lifecycle Timeline Cards.md`
+- Active phase packet: `Build-Path-12.1 / Phase 1 - Lifecycle Card Contract`
+- Manager resume point: `Build-Path-12.1` is packeted and waiting for user approval/product direction before implementation.
 
 ### Active Roles
 
 - Manager: live user-facing Codex
-- Worker: none active
+- Worker: none active.
 - Separate spec agent: none active
 
 ### Current Phase Packet
 
-- Phase: none
-- Scope: none
-- Exclusions: none
-- Likely files or seams: none
-- Verification: none
-- Build gate: none
-- Tracking docs: none
-- Stop condition: none
-- Approval mode: none
+- Phase: `Build-Path-12.1 / Phase 1 - Lifecycle Card Contract`
+- Scope: define explicit non-geometry lifecycle cards for `Graph Created` and `Graph Loaded`, including their event/card contract, timeline ordering, display labels/icons, and safety boundaries.
+- Exclusions: runtime implementation during this prep pass, graph-file schema changes, persisted Build Path event history, viewport masking lifecycle cards as geometry, graph truth mutation, Edit History ownership, worker checkpoint replay, restore behavior, branch execution, compare UI, and pin persistence.
+- Likely files or seams if implemented: `src/app/buildPath/buildPathEvents.ts`, `src/app/buildPath/buildPathTimeline.ts`, `src/app/buildPath/BuildPathSurface.tsx`, `src/app/buildPath/useBuildPathRuntimeStore.ts`, `src/app/spaghetti/store/useSpaghettiStore.ts`, focused Build Path tests, focused graph-load store tests, Build Path family docs, `docs/CHANGELOG.md`, `docs/Doc-Log.md`.
+- Verification: docs-only prep pass; later implementation should run focused Build Path lifecycle-card tests, graph-load intake tests, `npx.cmd tsc -b`, and `npm.cmd run build`.
+- Build gate: not required for docs-only prep.
+- Tracking docs: updated.
+- Stop condition: ready for implementation once the user confirms lifecycle cards should land before `Build-Path-11`.
+- Approval mode: approval-gated before implementation.
 
 ### Last Accepted Result
 
-- None yet.
+- 2026-05-23 13:54:15: Prepped `Build-Path-12.1 - Graph Lifecycle Timeline Cards` for explicit `Graph Created` and `Graph Loaded` Build Path cards, with lifecycle-card scope, implementation ladder, exclusions, and verification plan.
+- 2026-05-23 12:45:30: Accepted `Build-Path-12 - Loaded Graph Build Path Reconstruction` with reconstructed Sketch/Extrude events from loaded graph structure, reconstructed dependency hints, graph-load runtime intake, focused tests, TypeScript, and production build.
+- 2026-05-23 12:27:02: Prepped `Build-Path-11 - Parallel Lane Icon Layout` as a packet-only collaborative phase for drawing Parallel-mode branch-local icons in derived parallel lanes while preserving master timeline order, graph truth, and Edit History.
+- 2026-05-23 10:21:56: Accepted `Build-Path-10 - Viewport Scrub Preview Masking` with a Build Path-owned preview read model, source-node fallback, default first-step preview alignment, presentation-only Model Viewport layer masking, focused tests, TypeScript, production build, and browser smoke coverage.
+- 2026-05-23 10:06:28: Prepped `Build-Path-10 - Viewport Scrub Preview Masking` with a Phase 1 preview read-model packet, Phase 2 viewport masking handoff, and Phase 3 safety/browser proof plan.
+- 2026-05-23 09:09:09: Accepted `Build-Path-9 - Compare Pin And Checkpoint Contracts` with explicit Compare source/target/read-model readiness, Pin/checkpoint persistence boundaries, worker checkpoint/cache owner routing, non-executable Compare/Pin/checkpoint replay proof, TypeScript, and production build.
+- 2026-05-23 08:59:03: Accepted `Build-Path-8 - Branch From Here Contract` with branch-from-here readiness data, new graph-document destination policy, branch name preview, graph ownership/storage requirements, confirmation/Edit History policy, non-executable Branch proof, TypeScript, and production build.
+- 2026-05-23 08:54:37: Accepted `Build-Path-7 - Restore Readiness Contract` with restore readiness data, missing graph snapshot/worker checkpoint requirements, confirmation/Edit History policy, non-executable Restore proof, TypeScript, and production build.
+- 2026-05-23 01:38:53: Accepted `Build-Path-6 - Explicit Actions And Checkpoint Readiness` with checkpoint readiness reads, disabled planned Restore/Branch/Compare/Pin workspace affordances, scrub-trigger safety proof, Edit History safety proof, TypeScript, and production build.
+- 2026-05-23 01:21:42: Accepted `Build-Path-5.1 - Dependency Proof And Follow-Up Routing` with a fresh Sketch to dependent Extrude recording-path proof, ready Parallel lane proof, Edit History safety proof, and new future owner docs for restore readiness, branch-from-here, compare/pin, and checkpoint readiness.
+- 2026-05-23 00:39:55: Accepted `Build-Path-5 / Phases 2-3 - Branch Lane Rendering And Branch Local Playheads` with explicit graph dependency hints, dependency-backed branch lane rendering, classification readbacks, branch-local playheads, focused Build Path tests, TypeScript, and production build.
+- 2026-05-22 23:13:04: Accepted `Build-Path-5 / Phase 1 - Parallel Mode Entry` with a workspace-hosted Master/Parallel switch, dependency-hints-unavailable read, master order preservation proof, Edit History redo safety proof, TypeScript, and production build.
+- 2026-05-22 23:09:24: Accepted `Build-Path-4.1 - Viewport Dock Scrub Readback` with compact dock selected-step readback, previous/next controls, focused Edit History safety proof, TypeScript, production build, and browser verification against the live side-panel app.
+- 2026-05-22 22:45:13: Accepted the `Build-Path-4` dependent Extrude source Sketch repair with missing source Sketch nodes backfilled before new accepted Extrude events, focused tests, TypeScript, and production build.
+- 2026-05-22 21:20:57: Accepted the `Build-Path-4` live event population repair with committed live Sketch/Extrude console commands now feeding the Build Path runtime store, repeated commands receiving distinct live projection ids, cancelled summaries still skipped, focused tests, TypeScript, production build, and browser mounted-strip verification.
+- 2026-05-22 21:07:40: Accepted `Build-Path-4` with Build Path-owned visible timeline selection, selected-step styling, selected event readback, focused Edit History/graph safety proof, build proof, and browser mounted-strip verification.
 
 ### Blockers
 
-- None.
+- Full `src/app/spaghetti/store/useSpaghettiStore.test.ts` still has unrelated OutputPreview expectation mismatches around normalized `publicationMode` fields; the focused graph-load test for Build-Path-12 passes.
+- Existing in-memory Build Path events are not retroactively reordered; the source-Sketch backfill applies to new accepted dependent Extrude commits after the hot update.
+- Existing in-memory Build Path events are not retroactively annotated with dependency hints; branch lanes appear for new accepted graph command summaries that emit dependency hints.
+- Full `src/app/workspace/ViewportSurfaceRegistry.test.tsx` still has an unrelated Properties assertion failure: the existing Properties surface test expects `Object` text that is no longer present in that body. The targeted Build Path registry test from Build-Path-3 passes.
 
 ### Next Legal Task
 
-Wait for user direction before opening a Dispatch 5 loop.
+Next legal task is `Build-Path-12.1 / Phase 1 - Lifecycle Card Contract` if the user approves lifecycle cards now; otherwise return to user-guided `Build-Path-11 / Phase 1 - Parallel Lane Visual Model`, now with loaded-graph reconstruction available as a lane data source.

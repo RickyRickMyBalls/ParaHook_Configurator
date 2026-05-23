@@ -3,6 +3,27 @@
 ## Doc Header
 
 ### Doc History
+24. 2026-05-23 13:54:15: Added and prepped `Build-Path-12.1 - Graph Lifecycle Timeline Cards` to plan explicit `Graph Created` and `Graph Loaded` Build Path cards before returning to Parallel lane icon layout.
+23. 2026-05-23 12:45:30: Added, implemented, and closed `Build-Path-12 - Loaded Graph Build Path Reconstruction` with reconstructed Sketch/Extrude events from loaded graph structure, reconstructed dependency hints, graph-load runtime intake, focused tests, typecheck, and production build.
+22. 2026-05-23 12:27:02: Added and prepped `Build-Path-11 - Parallel Lane Icon Layout` as the next collaborative Build Path phase for cleaning up Parallel mode by drawing branch-local icons in parallel lanes while preserving master timeline order and derived graph truth.
+21. 2026-05-23 10:21:56: Recorded `Build-Path-10 - Viewport Scrub Preview Masking` as implemented with a Build Path-owned preview read model, presentation-only Model Viewport layer masking, source-node fallback, default first-step preview alignment, focused tests, typecheck, production build, and honest browser smoke coverage.
+20. 2026-05-23 10:06:28: Added and prepped `Build-Path-10 - Viewport Scrub Preview Masking` after live review showed Build Path could select `Sketch` while the Model Viewport still showed later Extrudes, making derived viewport preview masking the next legal Build Path handoff.
+19. 2026-05-23 09:09:09: Recorded `Build-Path-9 - Compare Pin And Checkpoint Contracts` as implemented with explicit Compare source/target/read-model readiness, Pin/checkpoint persistence boundaries, worker checkpoint/cache owner routing, and non-executable Compare, Pin, and checkpoint replay proof, closing the Generation 1 action-boundary ladder.
+18. 2026-05-23 08:59:03: Recorded `Build-Path-8 - Branch From Here Contract` as implemented with branch-from-here readiness data, new graph-document destination policy, branch name preview, graph ownership/storage requirements, confirmation/Edit History policy, and non-executable Branch proof, advancing the action handoff to `Build-Path-9`.
+17. 2026-05-23 08:54:37: Recorded `Build-Path-7 - Restore Readiness Contract` as implemented with restore readiness data, explicit missing graph snapshot/worker checkpoint requirements, confirmation/Edit History policy, and non-executable Restore proof, advancing the action handoff to `Build-Path-8` or `Build-Path-9`.
+16. 2026-05-23 01:38:53: Recorded `Build-Path-6 - Explicit Actions And Checkpoint Readiness` as implemented with checkpoint readiness reads, disabled planned action affordances for Restore/Branch/Compare/Pin, and confirmed follow-on owners for restore, branch-from-here, compare/pin, and checkpoint readiness.
+15. 2026-05-23 01:21:42: Added and closed `Build-Path-5.1 - Dependency Proof And Follow-Up Routing` with a fresh Sketch to dependent Extrude Parallel-lane proof, and added explicit future owners for restore readiness, branch-from-here, compare/pin, and checkpoint readiness before `Build-Path-6` starts.
+14. 2026-05-23 00:39:55: Recorded `Build-Path-5 / Phases 2-3` as implemented with explicit graph dependency hints, dependency-backed branch lanes, role readbacks, branch-local playhead state, and view-only safety proof, advancing the Build Path handoff to `Build-Path-6`.
+13. 2026-05-22 23:13:04: Recorded `Build-Path-5 / Phase 1 - Parallel Mode Entry` as implemented with a workspace-hosted Master/Parallel mode switch and dependency-hints-unavailable read, keeping branch lane rendering deferred until graph dependency hints are available.
+12. 2026-05-22 23:09:24: Added and closed `Build-Path-4.1 - Viewport Dock Scrub Readback`, making the docked Build Path scrub selection visible with previous/next controls before the broader `Build-Path-5` parallel branch UI handoff.
+11. 2026-05-22 22:45:13: Recorded the dependent Extrude intake repair after browser review showed a Sketch plus Extrude graph with only one Build Path icon, backfilling missing source Sketch nodes before the accepted Extrude event so new dependent Extrudes preserve the visible Sketch -> Extrude timeline.
+10. 2026-05-22 21:20:57: Recorded the `Build-Path-4` live event population repair after browser review showed the mounted Build Path surface had no runtime events, wiring accepted live Sketch and Extrude command summaries into the Build Path store with distinct live projection ids and advancing the handoff to `Build-Path-5`.
+9. 2026-05-22 21:07:40: Recorded `Build-Path-4 - View Only Scrub Inspection Integration` as implemented with Build Path-owned visible timeline selection, selected-step styling, workspace event readback, and safety proof that selection leaves Edit History redo plus authored graph snapshots unchanged, advancing the handoff to live event population or `Build-Path-5`.
+8. 2026-05-22 20:42:43: Recorded `Build-Path-3 - Viewport Docked Icon Strip And Workspace Surface` as implemented with shared workspace surface registration, a bottom Model Viewport-docked no-label icon strip, workspace/floating hosted chrome, focused tests, build proof, and browser verification, advancing the handoff to `Build-Path-4`.
+7. 2026-05-22 20:04:43: Recorded `Build-Path-2 - Runtime Event Intake And Timeline State` as implemented with a Build Path-owned runtime event state seam, deterministic command projection intake, duplicate/cancelled skip behavior, master timeline reads, and Edit History safety proof, advancing the handoff to `Build-Path-3`.
+6. 2026-05-22 19:55:49: Expanded the Build Path Generation 1 index beyond the completed foundation phase, adding the next family-phase ladder for runtime event intake, viewport-docked UI, scrub inspection, parallel mode UI, and explicit action/checkpoint planning, with matching `Future/` phase-doc handoffs.
+5. 2026-05-22 19:43:21: Recorded `Build-Path-1 / Phases 2-6` as implemented with the first pure master timeline, view-only master scrub state, dependency-aware branch projection, branch-local parallel scrub, and explicit restore/branch/compare/pin boundaries, closing the Generation 1 foundation without adding UI or Edit History ownership.
+4. 2026-05-22 18:53:41: Recorded `Build-Path-1 / Phase 1 - Accepted Graph Build Event Model` as implemented with a Build Path-owned event helper and focused tests, advancing the current handoff to `Build-Path-1 / Phase 2 - Master Linear Timeline`.
 3. 2026-05-22 18:45:37: Added the Generation 1 presentation boundary for a clean Model Viewport-docked CAD icon timeline with no content label, plus Console-like titlebar chrome when Build Path is split, tiled, or windowed.
 2. 2026-05-22 18:00:21: Prepped `Build-Path-1 / Phase 1` as the current implementation handoff, grounding it in the live `console/buildPathProjection` seam and narrowing the first runtime cut to a Build Path-owned event wrapper over existing command projections.
 1. 2026-05-22 17:51:51: Added this active Generation 1 planning index for the `Build Path` workspace family, routing graph-authored build events, master scrub, branch timelines, and later restore/branch actions into the first standalone `Build-Path-1` future plan.
@@ -65,6 +86,20 @@ This file owns the active `Generation 1` family-phase routing.
 
 Current legal family-phase ladder:
 - `Build-Path-1` - accepted graph event timeline foundation, master scrub, branch detection, and parallel scrub planning
+- `Build-Path-2` - runtime event intake and Build Path state ownership
+- `Build-Path-3` - viewport-docked icon strip and workspace surface mounting
+- `Build-Path-4` - view-only scrub inspection and graph/viewport readback
+- `Build-Path-4.1` - viewport-docked scrub readback and previous/next controls
+- `Build-Path-5` - parallel branch timeline UI and branch-local scrub controls
+- `Build-Path-5.1` - fresh dependency proof and follow-up phase routing
+- `Build-Path-6` - explicit restore, branch, compare, pin, and checkpoint action planning
+- `Build-Path-7` - restore readiness contract
+- `Build-Path-8` - branch-from-here contract
+- `Build-Path-9` - compare, pin, and checkpoint contracts
+- `Build-Path-10` - viewport scrub preview masking
+- `Build-Path-11` - parallel lane icon layout
+- `Build-Path-12` - loaded graph build path reconstruction
+- `Build-Path-12.1` - graph lifecycle timeline cards
 
 Important planning rule:
 - use this index to choose and bound the next `Build-Path-N` family phase
@@ -72,8 +107,15 @@ Important planning rule:
 - do not start runtime implementation from this index alone
 
 Dispatch next:
-- implement `Build-Path-1 / Phase 1 - Accepted Graph Build Event Model` from `Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
-- start with a Build Path-owned event helper that consumes existing `BuildPathCommandProjection` records from `src/app/console/buildPathProjection.ts`
+- Build Path Generation 1 visual-preview and action-boundary ladder is complete through `Build-Path-10`.
+- next legal collaborative task can be `Build-Path-12.1 - Graph Lifecycle Timeline Cards / Phase 1 - Lifecycle Card Contract` if lifecycle cards should land before Parallel lane rendering.
+- after lifecycle-card direction is accepted, return to `Build-Path-11 - Parallel Lane Icon Layout / Phase 1 - Parallel Lane Visual Model` with loaded-graph reconstruction and lifecycle markers available.
+- `Build-Path-12` is complete for reconstructed loaded-graph structure; exact persisted Build Path event history remains a later schema/file-format phase.
+- `Build-Path-11` remains packet-only; wait for user visual direction before implementation.
+- later action runtime still needs a new explicit phase for compare UI, pin persistence, restore/branch execution, worker checkpoint/cache ownership, or deeper seeded browser replay proof.
+- the accepted live Sketch/Extrude command population seam is now wired and covered by a fresh dependency proof in `Build-Path-5.1`; new accepted Extrudes also backfill missing source Sketch nodes before the Extrude event and emit Build Path dependency hints for branch lane projection.
+- `Build-Path-6` now confirms `Build-Path-7`, `Build-Path-8`, and `Build-Path-9` as follow-on owners for restore, branch-from-here, compare/pin, and checkpoint/cache readiness.
+- keep any live event population pass separate from scrub mutation, restore, branch, compare, pin, and checkpoint behavior.
 
 ## Vision
 
@@ -88,6 +130,7 @@ The healthy Generation 1 read is:
 - master scrub is the main global playhead
 - branch scrub controls are branch-local inspection playheads anchored to the same master story
 - scrub navigation is view-only by default
+- viewport scrub preview can hide or ghost later geometry as derived presentation, but it must not become restore, replay, or authored graph mutation
 - Edit History remains the canonical Ctrl+Z and Redo owner
 - Spaghetti remains the graph authoring owner
 - the default Build Path presentation is a compact Model Viewport-docked icon strip
@@ -107,57 +150,235 @@ The canonical human-level goals live in `Build-Path-Vision.md` under `## Doc Bod
 
 This index repeats them so current `Generation 1` family-phase routing stays readable.
 
-- [ ] `Build-Path-Gen1-HLG-1. Build Path should have its own dedicated workspace-family folder with a vision, generation index, and future implementation plan.`
-- [ ] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
-- [ ] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
-- [ ] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
-- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
-- [ ] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
-- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
-- [ ] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
-- [ ] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] `Build-Path-Gen1-HLG-1. Build Path should have its own dedicated workspace-family folder with a vision, generation index, and future implementation plan.`
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
+- [x] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
 
 ### Codex Level Goals
 
-- [ ] Build-Path-Gen1-CLG-1. Add a workspace-family planning home and route `Build Path` through the shared workspace surface model.
-- [ ] Build-Path-Gen1-CLG-2. Define a stable accepted graph build event record over committed graph command summaries.
-- [ ] Build-Path-Gen1-CLG-3. Derive one master timeline from accepted graph build events without depending on Edit History private payloads.
-- [ ] Build-Path-Gen1-CLG-4. Define view-only master scrub behavior that does not create canonical undo entries or mutate the authored graph head.
-- [ ] Build-Path-Gen1-CLG-5. Derive branch lanes from graph dependency structure so Build Path can distinguish linear chains, parallel work, and merge/checkpoint boundaries.
-- [ ] Build-Path-Gen1-CLG-6. Define branch-local scrub mode over derived branch timelines while preserving one master timeline and one source event model.
-- [ ] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
-- [ ] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
+- [x] Build-Path-Gen1-CLG-1. Add a workspace-family planning home and route `Build Path` through the shared workspace surface model.
+- [x] Build-Path-Gen1-CLG-2. Define a stable accepted graph build event record over committed graph command summaries.
+- [x] Build-Path-Gen1-CLG-3. Derive one master timeline from accepted graph build events without depending on Edit History private payloads.
+- [x] Build-Path-Gen1-CLG-4. Define view-only master scrub behavior that does not create canonical undo entries or mutate the authored graph head.
+- [x] Build-Path-Gen1-CLG-5. Derive branch lanes from graph dependency structure so Build Path can distinguish linear chains, parallel work, and merge/checkpoint boundaries.
+- [x] Build-Path-Gen1-CLG-6. Define branch-local scrub mode over derived branch timelines while preserving one master timeline and one source event model.
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+- [x] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
+- [x] Build-Path-Gen1-CLG-9. Add a derived viewport preview mask for Build Path scrub selection without changing graph truth, viewer build truth, or Edit History.
+- [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
+- [x] Build-Path-Gen1-CLG-11. Reconstruct a derived Build Path timeline and dependency read when graph files are loaded, while marking the source as reconstructed and preserving graph/Edit History truth.
+- [ ] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
 
 ### `Build-Path-1`
 
 - [x] Create the standalone `Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md` Family Phase Doc.
-- [~] Define accepted graph build event shape.
-- [ ] Derive a master linear timeline from accepted graph build events.
-- [ ] Define view-only master scrub behavior.
-- [ ] Derive branch lanes from graph dependencies.
-- [ ] Define branch-local scrub mode.
-- [ ] Preserve explicit restore, branch, compare, and pin actions as later commands.
-- [ ] Keep Edit History, Spaghetti graph authoring, and worker checkpoint ownership separate.
-- [ ] Preserve the no-content-label icon timeline direction for the default viewport-docked Build Path surface and the titlebar rule for split/tiled/windowed mode.
-- [ ] `Build-Path-Gen1-HLG-1`
-- [ ] `Build-Path-Gen1-HLG-2`
-- [ ] `Build-Path-Gen1-HLG-3`
-- [ ] `Build-Path-Gen1-HLG-4`
+- [x] Define accepted graph build event shape.
+- [x] Derive a master linear timeline from accepted graph build events.
+- [x] Define view-only master scrub behavior.
+- [x] Derive branch lanes from graph dependencies.
+- [x] Define branch-local scrub mode.
+- [x] Preserve explicit restore, branch, compare, and pin actions as later commands.
+- [x] Keep Edit History, Spaghetti graph authoring, and worker checkpoint ownership separate.
+- [x] Preserve the no-content-label icon timeline direction for the default viewport-docked Build Path surface and the titlebar rule for split/tiled/windowed mode.
+- [x] `Build-Path-Gen1-HLG-1`
+- [x] `Build-Path-Gen1-HLG-2`
+- [x] `Build-Path-Gen1-HLG-3`
+- [x] `Build-Path-Gen1-HLG-4`
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-6`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] `Build-Path-Gen1-HLG-9`
+- [x] Build-Path-Gen1-CLG-1.
+- [x] Build-Path-Gen1-CLG-2.
+- [x] Build-Path-Gen1-CLG-3.
+- [x] Build-Path-Gen1-CLG-4.
+- [x] Build-Path-Gen1-CLG-5.
+- [x] Build-Path-Gen1-CLG-6.
+- [x] Build-Path-Gen1-CLG-7.
+- [x] Build-Path-Gen1-CLG-8.
+
+### `Build-Path-2`
+
+- [x] Create a Build Path-owned runtime state seam for accepted event intake.
+- [x] Connect accepted command projections to Build Path events without making Console, Spaghetti, or Edit History own the timeline.
+- [x] Derive the master timeline from live Build Path state.
+- [x] Preserve empty-state behavior when no accepted events exist.
+- [x] Keep event intake idempotent and ordered by accepted sequence.
+- [x] Avoid UI mounting, scrub visual replay, branch UI, restore actions, and worker checkpoint/cache behavior.
+- [x] `Build-Path-Gen1-HLG-2`
+- [x] `Build-Path-Gen1-HLG-4`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-2.
+- [x] Build-Path-Gen1-CLG-3.
+
+### `Build-Path-3`
+
+- [x] Register Build Path as a real workspace surface or viewport-attached child surface through the shared workspace model.
+- [x] Render the default Model Viewport-docked icon strip with no visible content label.
+- [x] Support top or bottom viewport docking, with bottom sitting above Console.
+- [x] Preserve normal titlebar chrome when Build Path is split, tiled, windowed, or otherwise hosted as a workspace pane.
+- [x] Render accepted events as CAD/build icons using the Phase 2/3 timeline display metadata.
+- [x] Avoid scrub movement, branch UI, restore actions, comparison UI, and worker checkpoint/cache behavior.
+- [x] `Build-Path-Gen1-HLG-4`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-9`
+- [x] Build-Path-Gen1-CLG-1.
+- [x] Build-Path-Gen1-CLG-3.
+- [x] Build-Path-Gen1-CLG-8.
+
+### `Build-Path-4`
+
+- [x] Wire Build Path timeline selection to view-only master scrub inspection.
+- [x] Show the selected build step and related graph/build references without mutating authored graph truth.
+- [x] Preserve Edit History undo/redo stacks while scrub selection changes.
+- [x] Add graph/node highlighting or readback only as derived inspection, not authored selection mutation.
+- [x] Keep restore, branch-from-here, compare, pin, and worker checkpoint replay out of implicit scrub.
+- [x] `Build-Path-Gen1-HLG-3`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] Build-Path-Gen1-CLG-4.
+- [x] Build-Path-Gen1-CLG-7.
+
+### `Build-Path-5`
+
+- [x] Add a parallel mode UI entry over the Build Path workspace surface.
+- [x] Render branch-local timelines without replacing the master timeline.
+- [x] Let branch-local playheads move independently inside their lanes while staying anchored to master context.
+- [x] Classify and present linear, branch-local, merge, and checkpoint candidate events clearly.
+- [x] Keep branch-local scrub view-only and avoid graph layout/arrangement behavior.
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-6`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-5.
+- [x] Build-Path-Gen1-CLG-6.
+
+### `Build-Path-5.1`
+
+- [x] Add a fresh Sketch to dependent Extrude dependency proof through the public Build Path recording helpers.
+- [x] Prove dependency-backed Parallel mode reaches `ready`.
+- [x] Prove the proof path preserves master order and Edit History redo.
+- [x] Add future phase docs for restore readiness, branch-from-here, compare/pin, and checkpoint readiness.
+- [x] Keep `Build-Path-6` as the next legal action-boundary task.
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-6`
+- [x] `Build-Path-Gen1-HLG-7`
+- [ ] `Build-Path-Gen1-HLG-8`
+- [x] Build-Path-Gen1-CLG-5.
+- [x] Build-Path-Gen1-CLG-6.
+- [ ] Build-Path-Gen1-CLG-7.
+
+### `Build-Path-4.1`
+
+- [x] Add a compact selected-step readback to the viewport-docked Build Path strip.
+- [x] Add previous/next dock controls over Build Path-owned selection state.
+- [x] Preserve the no-content-label dock presentation.
+- [x] Prove dock scrub controls do not create Edit History entries or clear redo.
+- [x] `Build-Path-Gen1-HLG-3`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-9`
+- [x] Build-Path-Gen1-CLG-4.
+- [x] Build-Path-Gen1-CLG-8.
+
+### `Build-Path-6`
+
+- [x] Plan and gate explicit restore, branch-from-here, compare, and pin commands after view-only scrub is visible.
+- [x] Define checkpoint/readiness requirements before any action mutates authored graph truth or stores worker replay state.
+- [x] Keep actions user-invoked and never triggered by scrub movement alone.
+- [x] Route worker checkpoint/cache details into their own implementation phase before runtime storage ships.
+- [x] Create follow-on family phases if restore, branch creation, comparison UI, or checkpoint storage proves too broad for one pass.
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-7.
+
+### `Build-Path-7`
+
+- [x] Define restore-ready event/checkpoint requirements.
+- [x] Define restore command UX, confirmation, and Edit History relationship.
+- [x] Keep restore explicit and separate from scrub movement.
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-7.
+
+### `Build-Path-8`
+
+- [x] Define branch-from-here authored ownership rules.
+- [x] Decide graph/document/storage implications.
+- [x] Define branch naming, visibility, and Edit History relationship.
+- [x] Preserve view-only branch-local scrub.
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-7.
+
+### `Build-Path-9`
+
+- [x] Define compare boundary and needed read models.
+- [x] Define pin/checkpoint candidate persistence boundaries.
+- [x] Define worker checkpoint/cache readiness or split it into a dedicated owner.
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-7.
+
+### `Build-Path-10`
+
+- [x] Define the selected-step viewport preview read model.
+- [x] Map accepted Build Path events to included/excluded output ids where the data supports it.
+- [x] Apply the preview read to the Model Viewport as presentation-only masking.
+- [x] Hide or ghost later geometry when an earlier Build Path step is selected.
+- [x] Preserve final geometry when scrub preview is cleared or the latest step is selected.
+- [x] Prove preview masking does not mutate graph truth, Browser content truth, worker cache state, or Edit History.
+- [x] `Build-Path-Gen1-HLG-3`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-8`
+- [x] Build-Path-Gen1-CLG-9.
+
+### `Build-Path-11`
+
+- [ ] Define the Parallel-mode visual lane model for side-by-side branch-local icons.
+- [ ] Render branch-local icons in derived parallel lanes where existing branch data supports it.
+- [ ] Keep Master mode and master timeline order unchanged.
+- [ ] Preserve branch-local playhead/readback safety and Edit History separation.
+- [ ] Record any follow-up visual decisions after user direction.
 - [ ] `Build-Path-Gen1-HLG-5`
 - [ ] `Build-Path-Gen1-HLG-6`
 - [ ] `Build-Path-Gen1-HLG-7`
-- [ ] `Build-Path-Gen1-HLG-8`
-- [ ] `Build-Path-Gen1-HLG-9`
-- [ ] Build-Path-Gen1-CLG-1.
-- [ ] Build-Path-Gen1-CLG-2.
-- [ ] Build-Path-Gen1-CLG-3.
-- [ ] Build-Path-Gen1-CLG-4.
-- [ ] Build-Path-Gen1-CLG-5.
-- [ ] Build-Path-Gen1-CLG-6.
-- [ ] Build-Path-Gen1-CLG-7.
-- [ ] Build-Path-Gen1-CLG-8.
+- [ ] Build-Path-Gen1-CLG-10.
 
-## [ ] `Build-Path-1` - `Accepted Graph Event Timeline Foundation`
+### `Build-Path-12`
+
+- [x] Add a pure graph-structure reconstruction helper.
+- [x] Derive supported Sketch and Extrude events from loaded graph nodes.
+- [x] Derive reconstructed dependency hints from graph edges.
+- [x] Feed reconstructed events into Build Path runtime when graph files are loaded.
+- [x] Replace stale reconstructed events for the same graph without clearing unrelated recorded events.
+- [x] Defer persisted Build Path event history to a later schema/file-format phase.
+- [x] `Build-Path-Gen1-HLG-2`
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-6`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-11.
+
+### `Build-Path-12.1`
+
+- [ ] Define lifecycle event/card data for `Graph Created` and `Graph Loaded`.
+- [ ] Record or derive a `Graph Created` card when a graph document is created.
+- [ ] Record or derive a `Graph Loaded` card when a graph file is loaded.
+- [ ] Render lifecycle cards distinctly from Sketch/Extrude build-operation cards.
+- [ ] Prove lifecycle cards do not affect viewport geometry preview masking.
+- [ ] Keep lifecycle cards structural, non-geometry, and separate from Edit History.
+- [ ] `Build-Path-Gen1-HLG-2`
+- [ ] `Build-Path-Gen1-HLG-5`
+- [ ] `Build-Path-Gen1-HLG-7`
+- [ ] `Build-Path-Gen1-HLG-9`
+- [ ] Build-Path-Gen1-CLG-12.
+
+## [x] `Build-Path-1` - `Accepted Graph Event Timeline Foundation`
 
 ### Family Phase Summary
 
@@ -174,28 +395,28 @@ The first family phase should be small enough to ship in slices:
 6. explicit restore/branch action boundaries
 
 Current handoff:
-- `Build-Path-1 / Phase 1 - Accepted Graph Build Event Model`
-- first code cut should consume `BuildPathCommandProjection` instead of replacing the existing `projectGraphCommandCommitForBuildPath(...)` helper
+- `Build-Path-1` is implemented through Phase 6.
+- next Build Path runtime work should create a new explicit future phase for UI mounting, restore/branch actions, compare, pin, or worker checkpoint behavior.
 
 ### HLG / CLG Coverage
 
-- [ ] `Build-Path-Gen1-HLG-1. Build Path should have its own dedicated workspace-family folder with a vision, generation index, and future implementation plan.`
-- [ ] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
-- [ ] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
-- [ ] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
-- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
-- [ ] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
-- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
-- [ ] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
-- [ ] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
-- [ ] Build-Path-Gen1-CLG-1. Add a workspace-family planning home and route `Build Path` through the shared workspace surface model.
-- [ ] Build-Path-Gen1-CLG-2. Define a stable accepted graph build event record over committed graph command summaries.
-- [ ] Build-Path-Gen1-CLG-3. Derive one master timeline from accepted graph build events without depending on Edit History private payloads.
-- [ ] Build-Path-Gen1-CLG-4. Define view-only master scrub behavior that does not create canonical undo entries or mutate the authored graph head.
-- [ ] Build-Path-Gen1-CLG-5. Derive branch lanes from graph dependency structure so Build Path can distinguish linear chains, parallel work, and merge/checkpoint boundaries.
-- [ ] Build-Path-Gen1-CLG-6. Define branch-local scrub mode over derived branch timelines while preserving one master timeline and one source event model.
-- [ ] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
-- [ ] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
+- [x] `Build-Path-Gen1-HLG-1. Build Path should have its own dedicated workspace-family folder with a vision, generation index, and future implementation plan.`
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
+- [x] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] Build-Path-Gen1-CLG-1. Add a workspace-family planning home and route `Build Path` through the shared workspace surface model.
+- [x] Build-Path-Gen1-CLG-2. Define a stable accepted graph build event record over committed graph command summaries.
+- [x] Build-Path-Gen1-CLG-3. Derive one master timeline from accepted graph build events without depending on Edit History private payloads.
+- [x] Build-Path-Gen1-CLG-4. Define view-only master scrub behavior that does not create canonical undo entries or mutate the authored graph head.
+- [x] Build-Path-Gen1-CLG-5. Derive branch lanes from graph dependency structure so Build Path can distinguish linear chains, parallel work, and merge/checkpoint boundaries.
+- [x] Build-Path-Gen1-CLG-6. Define branch-local scrub mode over derived branch timelines while preserving one master timeline and one source event model.
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+- [x] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
 
 ### Owns
 
@@ -236,3 +457,483 @@ The first runtime pass should stay conservative:
 ### Family Phase Doc
 
 - [x] `Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
+
+## [x] `Build-Path-2` - `Runtime Event Intake And Timeline State`
+
+### Family Phase Summary
+
+Make the shipped Build Path event and timeline helpers part of live runtime state.
+
+Current handoff:
+- `Build-Path-2` is implemented.
+- next code cut should use `Future/Build-Path-3 - Viewport Docked Icon Strip And Workspace Surface.md` to register and mount the first visible Build Path surface.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-2. Define a stable accepted graph build event record over committed graph command summaries.
+- [x] Build-Path-Gen1-CLG-3. Derive one master timeline from accepted graph build events without depending on Edit History private payloads.
+
+### Owns
+
+- Build Path runtime state ownership
+- accepted event intake
+- timeline read derivation from stored Build Path events
+- ordering/idempotency policy for accepted events
+
+### Does Not Own
+
+- visible Build Path UI
+- scrub replay or inspection presentation
+- branch lane UI
+- restore, branch, compare, or pin actions
+- worker checkpoint/cache storage
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-2 - Runtime Event Intake And Timeline State.md`
+
+## [x] `Build-Path-3` - `Viewport Docked Icon Strip And Workspace Surface`
+
+### Family Phase Summary
+
+Mount Build Path visibly as the compact viewport-docked icon strip and as a normal workspace-hosted surface when split, tiled, or windowed.
+
+Current handoff:
+- `Build-Path-3` is implemented.
+- next code cut should use `Future/Build-Path-4 - View Only Scrub Inspection Integration.md` to connect visible timeline selection to view-only inspection state.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] Build-Path-Gen1-CLG-1. Add a workspace-family planning home and route `Build Path` through the shared workspace surface model.
+- [x] Build-Path-Gen1-CLG-3. Derive one master timeline from accepted graph build events without depending on Edit History private payloads.
+- [x] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
+
+### Owns
+
+- workspace surface registration or viewport-attached surface routing
+- compact icon timeline rendering
+- dock placement rules
+- split/tiled/windowed titlebar behavior
+
+### Does Not Own
+
+- scrub movement
+- branch mode UI
+- restore/branch/compare/pin actions
+- worker checkpoint/cache storage
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-3 - Viewport Docked Icon Strip And Workspace Surface.md`
+
+## [x] `Build-Path-4` - `View Only Scrub Inspection Integration`
+
+### Family Phase Summary
+
+Connect visible timeline selection to view-only master scrub inspection without touching authored graph truth or Edit History stacks.
+
+Current handoff:
+- `Build-Path-4` is implemented.
+- next practical integration is live accepted command population into the Build Path runtime store, then `Build-Path-5 - Parallel Branch Timeline UI`.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] Build-Path-Gen1-CLG-4. Define view-only master scrub behavior that does not create canonical undo entries or mutate the authored graph head.
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+
+### Owns
+
+- timeline selection interaction
+- selected-step readback
+- derived graph/build reference highlighting
+- proof that scrub selection is not undo/redo
+
+### Does Not Own
+
+- authored restore
+- branch creation
+- comparison UI
+- worker checkpoint replay
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-4 - View Only Scrub Inspection Integration.md`
+
+## [x] `Build-Path-5` - `Parallel Branch Timeline UI`
+
+### Family Phase Summary
+
+Add the visible parallel mode over derived branch lanes and branch-local playheads while preserving one master story.
+
+Current handoff:
+- `Build-Path-5` is implemented.
+- next code cut should use `Future/Build-Path-6 - Explicit Actions And Checkpoint Readiness.md` to plan restore, branch-from-here, compare, pin, and checkpoint readiness as explicit later commands.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-5. Derive branch lanes from graph dependency structure so Build Path can distinguish linear chains, parallel work, and merge/checkpoint boundaries.
+- [x] Build-Path-Gen1-CLG-6. Define branch-local scrub mode over derived branch timelines while preserving one master timeline and one source event model.
+
+### Owns
+
+- parallel mode toggle or surface state
+- branch lane rendering
+- branch-local playhead controls
+- merge/checkpoint candidate presentation
+
+### Does Not Own
+
+- graph layout or arrangement UI
+- authored branch creation
+- restore/compare runtime
+- worker checkpoint/cache implementation
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-5 - Parallel Branch Timeline UI.md`
+
+## [x] `Build-Path-5.1` - `Dependency Proof And Follow-Up Routing`
+
+### Family Phase Summary
+
+Prove the fresh dependency-backed Parallel path before action-boundary planning, then create the explicit follow-up action owner docs that `Build-Path-6` should confirm or revise.
+
+Current handoff:
+- `Build-Path-5.1` is implemented.
+- next code/docs cut should use `Future/Build-Path-6 - Explicit Actions And Checkpoint Readiness.md`.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [ ] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] Build-Path-Gen1-CLG-5. Derive branch lanes from graph dependency structure so Build Path can distinguish linear chains, parallel work, and merge/checkpoint boundaries.
+- [x] Build-Path-Gen1-CLG-6. Define branch-local scrub mode over derived branch timelines while preserving one master timeline and one source event model.
+- [ ] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+
+### Owns
+
+- fresh Build Path dependency proof
+- follow-up phase routing for action owners
+- Dispatch handoff to `Build-Path-6`
+
+### Does Not Own
+
+- restore runtime
+- branch creation runtime
+- comparison UI
+- pin persistence
+- worker checkpoint/cache implementation
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-5.1 - Dependency Proof And Follow-Up Routing.md`
+
+## [x] `Build-Path-6` - `Explicit Actions And Checkpoint Readiness`
+
+### Family Phase Summary
+
+Plan the first explicit command surfaces after Build Path has visible, trustworthy view-only scrub behavior.
+
+Current handoff:
+- `Build-Path-6` is implemented.
+- next legal action-lane task is `Future/Build-Path-7 - Restore Readiness Contract.md`, unless the user chooses branch-from-here or compare/pin first.
+- follow-on owner docs exist for `Build-Path-7`, `Build-Path-8`, and `Build-Path-9`.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+
+### Owns
+
+- explicit action command boundaries
+- checkpoint readiness rules
+- worker/cache handoff planning
+- follow-on phase routing for restore, branch, compare, or pin
+- disabled planned workspace action affordance boundaries
+
+### Does Not Own
+
+- implicit scrub side effects
+- unapproved authored graph restore
+- unapproved branch graph storage
+- comparison UI before a reader truth exists
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-6 - Explicit Actions And Checkpoint Readiness.md`
+
+## [x] `Build-Path-7` - `Restore Readiness Contract`
+
+### Family Phase Summary
+
+Define what a real restore command needs before Build Path can mutate authored graph truth from a timeline point.
+
+Current handoff:
+- `Build-Path-7` is implemented.
+- restore readiness is closed; any Restore execution now needs a new explicit runtime phase.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+
+### Owns
+
+- restore-ready data requirements
+- restore command boundary
+- Edit History relationship planning
+- explicit proof that Restore is not executable without graph snapshot semantics and worker checkpoint data
+
+### Does Not Own
+
+- implicit scrub restore
+- runtime graph replay
+- branch creation
+- comparison UI
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-7 - Restore Readiness Contract.md`
+
+## [x] `Build-Path-8` - `Branch From Here Contract`
+
+### Family Phase Summary
+
+Define branch-from-here as an authored command separate from view-only branch-local scrub.
+
+Current handoff:
+- `Build-Path-8` is implemented.
+- branch-from-here readiness is closed; any Branch execution now needs a new explicit runtime phase.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+
+### Owns
+
+- branch-from-here ownership rules
+- graph/document/storage implications
+- branch naming and history relationship
+- explicit proof that Branch is not executable without branch storage policy
+
+### Does Not Own
+
+- hidden branch creation
+- restore replay
+- comparison UI
+- worker checkpoint storage
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-8 - Branch From Here Contract.md`
+
+## [x] `Build-Path-9` - `Compare Pin And Checkpoint Contracts`
+
+### Family Phase Summary
+
+Define compare, pin, and checkpoint/cache readiness boundaries without making Build Path a hidden graph truth or worker cache owner.
+
+Current handoff:
+- `Build-Path-9` is implemented.
+- next Build Path action runtime needs a new explicit phase for compare UI, pin persistence, restore/branch execution, or worker checkpoint/cache ownership.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
+
+### Owns
+
+- compare read model planning
+- pin/checkpoint persistence boundaries
+- worker checkpoint/cache readiness routing
+- explicit proof that Compare, Pin, and checkpoint replay are not executable without later runtime owners
+
+### Does Not Own
+
+- comparison UI execution
+- pin persistence before ownership is accepted
+- worker cache implementation
+- restore or branch runtime
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-9 - Compare Pin And Checkpoint Contracts.md`
+
+## [x] `Build-Path-10` - `Viewport Scrub Preview Masking`
+
+### Family Phase Summary
+
+Make Build Path scrub visually legible in the Model Viewport by hiding or ghosting geometry that belongs to later Build Path steps.
+
+Current handoff:
+- `Future/Build-Path-10 - Viewport Scrub Preview Masking.md`
+- implemented and closed with a pure preview read model plus presentation-only viewer masking.
+- next Build Path runtime work must create a new explicit future phase before adding compare UI, pin persistence, restore/branch execution, worker checkpoint/cache ownership, or seeded browser replay proof.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] Build-Path-Gen1-CLG-9. Add a derived viewport preview mask for Build Path scrub selection without changing graph truth, viewer build truth, or Edit History.
+
+### Owns
+
+- selected-step viewport preview read model
+- included/excluded output id mapping from accepted Build Path events where available
+- presentation-only masking or ghosting of later geometry in Model Viewport
+- safety proof that visual preview is not restore, replay, Browser visibility mutation, or Edit History mutation
+
+### Does Not Own
+
+- authored graph restore
+- worker checkpoint replay
+- graph rebuild execution
+- Compare UI
+- Pin persistence
+- Branch or Restore command execution
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-10 - Viewport Scrub Preview Masking.md`
+
+## [ ] `Build-Path-11` - `Parallel Lane Icon Layout`
+
+### Family Phase Summary
+
+Clean up Build Path Parallel mode so independent branch-local build icons can be drawn in parallel lanes instead of reading as one cramped linear strip.
+
+Current handoff:
+- `Future/Build-Path-11 - Parallel Lane Icon Layout.md`
+- packet-only setup is complete.
+- next step is collaborative visual direction from the user before implementation starts.
+
+### HLG / CLG Coverage
+
+- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [ ] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
+
+### Owns
+
+- Parallel-mode icon lane visual model
+- side-by-side branch-local icon placement where existing lane data supports it
+- selected branch-local playhead/readback styling inside the parallel lane view
+- proof that master order, graph truth, and Edit History stay unchanged
+
+### Does Not Own
+
+- new dependency inference
+- authored graph restore
+- graph layout or Spaghetti node layout
+- Compare UI
+- Pin persistence
+- Branch or Restore command execution
+- worker checkpoint/cache implementation
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-11 - Parallel Lane Icon Layout.md`
+
+## [x] `Build-Path-12` - `Loaded Graph Build Path Reconstruction`
+
+### Family Phase Summary
+
+Reconstruct an honest Build Path timeline and dependency read from loaded graph files so reopened Sketch/Extrude graphs are not blank in Build Path.
+
+Current handoff:
+- `Future/Build-Path-12 - Loaded Graph Build Path Reconstruction.md`
+- implemented and closed with graph-structure reconstruction.
+- next Parallel visual work can return to `Build-Path-11` with reconstructed loaded-graph lanes available.
+- exact persisted Build Path event history remains deferred to a later schema/file-format phase.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-11. Reconstruct a derived Build Path timeline and dependency read when graph files are loaded, while marking the source as reconstructed and preserving graph/Edit History truth.
+
+### Owns
+
+- loaded-graph structural Build Path reconstruction
+- reconstructed source markers on Build Path events
+- dependency hints from graph edges between supported build nodes
+- graph-load runtime intake for reconstructed events
+- replacement of stale reconstructed data for the same graph id
+
+### Does Not Own
+
+- graph-file export schema changes
+- persisted Build Path event history
+- exact historical command replay from loaded files
+- Build-Path-11 icon-lane rendering implementation
+- Restore, Branch, Compare, or Pin execution
+- worker checkpoint/cache implementation
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-12 - Loaded Graph Build Path Reconstruction.md`
+
+## [ ] `Build-Path-12.1` - `Graph Lifecycle Timeline Cards`
+
+### Family Phase Summary
+
+Add explicit structural Build Path cards for graph lifecycle events so `Graph Created` and `Graph Loaded` can anchor graph timelines before Sketch/Extrude operation cards appear.
+
+Current handoff:
+- `Future/Build-Path-12.1 - Graph Lifecycle Timeline Cards.md`
+- packet-only setup is complete.
+- implementation should happen before Build-Path-11 if lifecycle cards are accepted as lane anchors.
+
+### HLG / CLG Coverage
+
+- [ ] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [ ] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [ ] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
+
+### Owns
+
+- `Graph Created` lifecycle card planning
+- `Graph Loaded` lifecycle card planning
+- structural/non-geometry lifecycle card display metadata
+- lifecycle card ordering before graph build/reconstructed events
+- safety proof that lifecycle cards do not drive viewport preview masking or Edit History
+
+### Does Not Own
+
+- graph-file export schema changes
+- persisted Build Path event history
+- exact historical command replay from loaded files
+- full Build-Path-11 Parallel lane rendering
+- Restore, Branch, Compare, or Pin execution
+- worker checkpoint/cache implementation
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-12.1 - Graph Lifecycle Timeline Cards.md`

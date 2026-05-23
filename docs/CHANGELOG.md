@@ -72,6 +72,796 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2085 -->
+
+### [2085] - 2026-05-23 12:45 - `Build-Path-12 - Loaded Graph Build Path Reconstruction`
+
+HUMAN SUMMARY: ``Loaded graph files now reconstruct an honest Build Path timeline from supported Sketch/Extrude graph structure, so reopened graphs can feed Build Path and future Parallel lanes without pretending to restore exact historical command order.``
+
+#### Scope / Constraints Honored
+
+- Added loaded-graph structural reconstruction only; did not change graph export schema or persist Build Path event history.
+- Marked reconstructed events separately from live recorded events.
+- Preserved graph truth, Browser visibility, worker/cache ownership, and Edit History.
+- Kept Build-Path-11 Parallel icon rendering deferred until user visual direction.
+
+#### Summary of Implementation
+
+- Added a pure loaded-graph reconstruction helper for `Geometry/Sketch` and `Geometry/Extrude` nodes.
+- Derived deterministic reconstructed Build Path events, graph dependency hints, and Output Preview output ids where graph edges provide them.
+- Added `sourceKind` to Build Path events so reconstructed data stays honest.
+- Added runtime replacement for reconstructed data by graph id without clearing unrelated live recorded events.
+- Wired graph-file load and load-into-new-graph flows to populate reconstructed Build Path runtime data after graph normalization.
+- Closed `Build-Path-12 / Phases 1-3` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/reconstructBuildPathFromGraph.ts`
+- `src/app/buildPath/reconstructBuildPathFromGraph.test.ts`
+- `src/app/buildPath/buildPathEvents.ts`
+- `src/app/buildPath/buildPathRuntime.ts`
+- `src/app/buildPath/buildPathRuntime.test.ts`
+- `src/app/buildPath/buildPathTimeline.ts`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/console/commandCommitContract.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-12 - Loaded Graph Build Path Reconstruction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Loading a graph file with supported `Geometry/Sketch` and `Geometry/Extrude` nodes now feeds Build Path reconstructed events and dependency hints.
+- Re-loading the same graph replaces stale reconstructed Build Path data for that graph without clearing unrelated recorded events.
+- Build Path event reads can now distinguish `recorded` and `reconstructed` sources.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/reconstructBuildPathFromGraph.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathViewportPreview.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts -t "reconstructBuildPathFromLoadedGraph|Build Path runtime state|deriveBuildPathMasterTimeline|BuildPathSurface|deriveBuildPathViewportPreviewRead|applyBuildPathViewportPreviewMaskToLayerRecipe|loadGraphDocumentFromFile creates a clean file-load cached entry"`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Full `src/app/spaghetti/store/useSpaghettiStore.test.ts` still has unrelated OutputPreview expectation mismatches around normalized `publicationMode` fields; the focused Build-Path-12 graph-load test passed.
+
+<!-- ENTRY 2084 -->
+
+### [2084] - 2026-05-23 10:21 - `Build-Path-10 - Viewport Scrub Preview Masking`
+
+HUMAN SUMMARY: ``Build Path scrub now feeds the Model Viewport a derived preview mask, so an earlier selected build step can hide later output presentation without changing graph truth, Browser visibility, worker cache state, or Edit History.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path scrub preview presentation-only.
+- Did not implement restore, replay, branch creation, Compare UI, Pin persistence, or worker checkpoint/cache storage.
+- Preserved authored graph truth, Browser content visibility, viewer build truth, and Edit History ownership.
+- Kept the fallback honest when live output ids are unavailable by using affected source-node ids as a read/masking strategy.
+
+#### Summary of Implementation
+
+- Added a Build Path viewport preview helper that derives selected, included, and excluded timeline/event/output/node reads.
+- Applied the preview read in `ViewerHost` before viewport render-layer construction by filtering excluded later parts from the layer recipe.
+- Matched the viewport preview default to the Build Path dock default: no explicit stored selection previews the first timeline step.
+- Added debug attributes on `ViewportRoot` for preview state, mapping strategy, excluded outputs, and excluded nodes.
+- Closed `Build-Path-10 / Phases 1-3` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathViewportPreview.ts`
+- `src/app/buildPath/buildPathViewportPreview.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-10 - Viewport Scrub Preview Masking.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Selecting an earlier Build Path step can now derive a Model Viewport presentation mask that removes later output/source-node parts from the rendered layer recipe.
+- Selecting the latest step keeps the final viewport presentation.
+- Build Path preview masking remains a view-only read and does not mutate graph, Browser, worker, or Edit History state.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/buildPathViewportPreview.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- In-app browser smoke at `http://localhost:5173/ParaHook_Configurator/`: preview attributes mounted; the page reload cleared the in-memory Build Path timeline, so the captured state was `previewState=empty`, `excludedOutputs=0`, and `excludedNodes=0`.
+
+<!-- ENTRY 2083 -->
+
+### [2083] - 2026-05-23 09:09 - `Build-Path-9 - Compare Pin And Checkpoint Contracts`
+
+HUMAN SUMMARY: ``Build Path Compare, Pin, and checkpoint replay now have explicit readiness contracts: Compare knows its source/target/read models, Pin stays separate from restore-ready worker checkpoints, and checkpoint replay remains blocked until a worker/cache owner phase exists.``
+
+#### Scope / Constraints Honored
+
+- Added compare, pin, and worker checkpoint readiness data without implementing comparison UI, pin persistence, worker cache storage, replay execution, restore runtime, branch creation, or authored graph mutation.
+- Kept Compare and Pin disabled and explicit-command-only.
+- Preserved view-only scrub and Edit History safety.
+- Routed checkpoint/cache implementation to a later worker-family follow-up instead of making Build Path a hidden execution cache.
+
+#### Summary of Implementation
+
+- Added `BuildPathCompareReadiness` with selected-step source, explicit target requirements, supported read models, and `canCompare: false`.
+- Added `BuildPathPinCheckpointReadiness` so visual pin persistence, checkpoint candidate reads, and restore-ready checkpoint storage stay distinct.
+- Added `BuildPathWorkerCheckpointReadiness` to name the missing worker cache owner and keep checkpoint replay non-executable.
+- Exposed compare and pin readiness attributes on the workspace action buttons for focused proof.
+- Closed `Build-Path-9 / Phases 1-3` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathActions.ts`
+- `src/app/buildPath/buildPathActions.test.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-9 - Compare Pin And Checkpoint Contracts.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Workspace-hosted Compare and Pin affordances now carry explicit readiness state and still cannot execute.
+- Build Path now reports the worker checkpoint/cache gap needed by Restore, Compare, and Pin without storing or replaying checkpoints.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathActions.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2082 -->
+
+### [2082] - 2026-05-23 08:59 - `Build-Path-8 - Branch From Here Contract`
+
+HUMAN SUMMARY: ``Build Path Branch now has a concrete branch-from-here contract: selected steps can preview a new graph-document branch destination/name, but branch creation remains non-executable until storage, graph ownership, confirmation, and Edit History policy are implemented in a later runtime phase.``
+
+#### Scope / Constraints Honored
+
+- Added branch-from-here readiness data without implementing branch runtime, graph duplication, restore replay, comparison UI, worker checkpoint storage, or authored graph mutation.
+- Kept Branch disabled and explicit-command-only.
+- Preserved view-only branch-local scrub and Edit History safety.
+- Kept compare, pin, and checkpoint work routed to `Build-Path-9`.
+
+#### Summary of Implementation
+
+- Added a `BuildPathBranchFromHereReadiness` contract derived from the selected timeline step.
+- Exposed Branch readiness on the workspace action button with `canCreateBranch: false`.
+- Added focused tests proving branch-from-here would target a new Spaghetti-owned graph document, preview a branch name, and require branch storage policy before creating authored state.
+- Closed `Build-Path-8 / Phases 1-2` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathActions.ts`
+- `src/app/buildPath/buildPathActions.test.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-8 - Branch From Here Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Workspace-hosted Branch affordances now carry explicit branch-from-here readiness state and still cannot execute.
+- Branch-from-here now has a documented destination/readiness model without creating graph branches from scrub selection.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathActions.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2081 -->
+
+### [2081] - 2026-05-23 08:54 - `Build-Path-7 - Restore Readiness Contract`
+
+HUMAN SUMMARY: ``Build Path Restore now has a concrete readiness contract: selected checkpoint candidates report missing graph snapshot semantics and worker checkpoint data, require explicit confirmation/Edit History policy, and remain non-executable until a later restore runtime phase.``
+
+#### Scope / Constraints Honored
+
+- Added restore-readiness data without implementing restore runtime, graph replay, branch creation, comparison UI, worker checkpoint replay, or authored graph mutation.
+- Kept Restore disabled and explicit-command-only.
+- Preserved view-only scrub and Edit History safety.
+- Kept future branch and compare/pin work routed to `Build-Path-8` and `Build-Path-9`.
+
+#### Summary of Implementation
+
+- Added a `BuildPathRestoreReadiness` contract derived from checkpoint readiness.
+- Exposed Restore readiness on the workspace action button with `canExecuteRestore: false`.
+- Added focused tests proving checkpoint candidates are not executable restore points and require graph snapshot plus worker checkpoint data.
+- Closed `Build-Path-7 / Phases 1-2` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathActions.ts`
+- `src/app/buildPath/buildPathActions.test.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-7 - Restore Readiness Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Workspace-hosted Restore affordances now carry explicit restore readiness state and still cannot execute.
+- Checkpoint candidates now explain that authored graph snapshot semantics and worker checkpoint data are required before restore can ship.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathActions.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathActions.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2080 -->
+
+### [2080] - 2026-05-23 01:38 - `Build-Path-6 - Explicit Actions And Checkpoint Readiness`
+
+HUMAN SUMMARY: ``Build Path now has explicit action boundaries: selected steps can show checkpoint readiness and disabled planned Restore, Branch, Compare, and Pin affordances, while the actual action runtimes stay routed to Build-Path-7, Build-Path-8, and Build-Path-9.``
+
+#### Scope / Constraints Honored
+
+- Added readiness/action-boundary reads without implementing restore, branch creation, compare UI, pin persistence, worker checkpoint storage, or graph mutation.
+- Kept all action affordances disabled and explicitly user-command owned.
+- Preserved view-only scrub and avoided Edit History ownership.
+- Confirmed `Build-Path-7`, `Build-Path-8`, and `Build-Path-9` as future action owners.
+
+#### Summary of Implementation
+
+- Added `buildPathActions.ts` for checkpoint readiness and explicit action availability reads.
+- Added focused action-boundary tests proving checkpoint candidates are not restore-ready and planned actions are not scrub-triggered.
+- Added a workspace Build Path action boundary panel with disabled Restore, Branch, Compare, and Pin buttons.
+- Updated Build Path CSS for the compact disabled action boundary panel.
+- Closed `Build-Path-6 / Phases 1-3` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathActions.ts`
+- `src/app/buildPath/buildPathActions.test.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-6 - Explicit Actions And Checkpoint Readiness.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-7 - Restore Readiness Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-8 - Branch From Here Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-9 - Compare Pin And Checkpoint Contracts.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Workspace-hosted Build Path selected-step readback now displays disabled planned action boundaries for Restore, Branch, Compare, and Pin.
+- Checkpoint candidates are visible as candidates but remain explicitly not restore-ready until later worker/checkpoint and graph restore contracts are implemented.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathActions.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2079 -->
+
+### [2079] - 2026-05-23 01:21 - `Build-Path-5.1 - Dependency Proof And Follow-Up Routing`
+
+HUMAN SUMMARY: ``Build Path now has a fresh Sketch-to-dependent-Extrude proof that reaches ready Parallel lanes through the public recording helpers, plus explicit future owners for restore readiness, branch-from-here, compare/pin, and checkpoint readiness before Build-Path-6.``
+
+#### Scope / Constraints Honored
+
+- Kept the runtime change to proof coverage only.
+- Preserved one master timeline and dependency-backed branch truth.
+- Kept restore, branch creation, compare, pin, checkpoint, worker cache, graph mutation, and Edit History ownership deferred.
+- Added follow-up action owner docs without marking action behavior implemented.
+
+#### Summary of Implementation
+
+- Added a focused Build Path surface test for a fresh Sketch source plus dependent Extrude recording path.
+- Proved the same public Build Path recording helpers produce dependency hints and ready Parallel lanes.
+- Added `Build-Path-5.1` as the completed pre-`Build-Path-6` proof/routing phase.
+- Added future docs for `Build-Path-7`, `Build-Path-8`, and `Build-Path-9`.
+- Updated the Build Path index, `Build-Path-6` handoff, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-5.1 - Dependency Proof And Follow-Up Routing.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-6 - Explicit Actions And Checkpoint Readiness.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-7 - Restore Readiness Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-8 - Branch From Here Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-9 - Compare Pin And Checkpoint Contracts.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- No shipped user-facing action behavior changed.
+- Build Path now has automated proof that a fresh dependency-backed Sketch to Extrude path can reach ready workspace Parallel lanes without Edit History mutation.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2078 -->
+
+### [2078] - 2026-05-23 00:39 - `Build-Path-5 / Phases 2-3 - Branch Lane Rendering And Branch Local Playheads`
+
+HUMAN SUMMARY: ``Build Path Parallel mode now renders branch lanes from explicit graph dependency hints and lets each branch lane keep a view-only local playhead without replacing the master timeline or touching Edit History.``
+
+#### Scope / Constraints Honored
+
+- Rendered branch lanes only from explicit dependency hints, not from event order alone.
+- Preserved one master timeline and one accepted Build Path event model.
+- Kept branch-local playhead movement view-only.
+- Avoided graph layout, authored branch creation, restore, compare, pin, checkpoint, worker behavior, graph mutation, and Edit History ownership.
+
+#### Summary of Implementation
+
+- Added Build Path runtime storage for graph dependency hints.
+- Added live graph command dependency recording from Extrude source and target node relationships.
+- Rendered dependency-backed branch lanes and role readbacks in workspace Parallel mode.
+- Added branch-local playhead selection state keyed by branch lane and timeline step.
+- Added focused tests for dependency hint storage, branch lane rendering, branch-local playhead movement, master order preservation, and Edit History safety.
+- Updated Build Path family docs and Dispatch run-state to close `Build-Path-5` and advance the handoff to `Build-Path-6`.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathRuntime.ts`
+- `src/app/buildPath/buildPathRuntime.test.ts`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-5 - Parallel Branch Timeline UI.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Workspace-hosted Build Path Parallel mode now shows dependency-backed branch lanes when graph dependency hints are available.
+- Branch lane steps can be selected independently as branch-local playheads.
+- Parallel mode still reports dependency hints unavailable when multiple master steps exist without dependency hints, preserving honest branch truth.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2077 -->
+
+### [2077] - 2026-05-22 23:13 - `Build-Path-5 / Phase 1 - Parallel Mode Entry`
+
+HUMAN SUMMARY: ``Build Path workspace mode now has a Master/Parallel switch, but Parallel mode stays honest: until graph dependency hints reach the UI, it shows a dependency-hints-unavailable read instead of drawing fake branch lanes.``
+
+#### Scope / Constraints Honored
+
+- Added only the first Parallel mode entry/read surface.
+- Preserved one master timeline and master order.
+- Kept branch lane rendering deferred until graph dependency hints are available.
+- Avoided graph layout, authored branch creation, restore, compare, pin, checkpoint, worker behavior, graph mutation, and Edit History ownership.
+
+#### Summary of Implementation
+
+- Added Build Path runtime state for workspace Parallel mode.
+- Added workspace-hosted Master/Parallel mode switch.
+- Added a Parallel mode read panel that reports empty, single-step, or dependency-hints-unavailable state.
+- Added focused tests for entering Parallel mode without changing master order or Edit History redo.
+- Updated `Build-Path-5` docs to close Phase 1 and block Phase 2 on dependency hints.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-5 - Parallel Branch Timeline UI.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Workspace-hosted Build Path surfaces can switch between Master and Parallel mode.
+- Parallel mode does not yet render branch lanes; it reports missing dependency hints when branch truth is unavailable.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2076 -->
+
+### [2076] - 2026-05-22 23:09 - `Build-Path-4.1 - Viewport Dock Scrub Readback`
+
+HUMAN SUMMARY: ``The Build Path dock now shows which build step is selected and offers compact previous/next scrub controls, making scrub state visible in the side-panel viewport without replaying geometry or touching Edit History.``
+
+#### Scope / Constraints Honored
+
+- Kept dock scrub behavior view-only and owned by Build Path selected-step state.
+- Preserved the no-content-label viewport dock presentation.
+- Avoided graph replay, graph mutation, authored selection mutation, restore, branch, compare, pin, checkpoint, worker behavior, and Edit History ownership.
+
+#### Summary of Implementation
+
+- Added viewport-docked selected-step readback for step number and command family.
+- Added previous/next dock scrub controls that move the Build Path selected step.
+- Added styling for compact dock readback and controls.
+- Added focused tests proving dock scrub movement preserves Edit History redo.
+- Added and closed the `Build-Path-4.1` follow-up phase doc.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-4.1 - Viewport Dock Scrub Readback.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- The viewport-docked Build Path surface now displays the selected build step and lets the user move to the previous or next timeline step.
+- The controls change Build Path inspection state only and do not replay model geometry.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Browser verification at `http://localhost:5173/ParaHook_Configurator/`: the viewport-docked Build Path strip was `ready`, the selected-step dock readback was present, and the live session showed Sketch/Extrude steps with the selected Extrude reflected in the dock readback.
+
+<!-- ENTRY 2075 -->
+
+### [2075] - 2026-05-22 22:45 - `Build-Path-4 - Dependent Extrude Source Sketch Repair`
+
+HUMAN SUMMARY: ``Build Path now backfills a missing source Sketch before recording a dependent Extrude, so a Sketch-plus-Extrude graph no longer starts its visible build story at only the Extrude icon for new accepted Extrude commits.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair limited to Build Path event intake ordering for dependent Extrude commits.
+- Preserved Build Path as a derived read model and avoided graph truth, authored selection, Edit History, restore, branch, compare, pin, checkpoint, and worker behavior.
+- Avoided duplicate Sketch backfills when the source Sketch is already present in Build Path events.
+
+#### Summary of Implementation
+
+- Added `recordSketchSourceForBuildPathIfMissing(...)` to backfill a source Sketch event for a graph/sketch node pair only when absent.
+- Updated live Extrude commit handling to capture selected source Sketch nodes before acceptance and record missing Sketch entries before the Extrude entry.
+- Added focused proof that Sketch backfill happens once and precedes the dependent Extrude event.
+
+#### Files Changed
+
+- `src/app/buildPath/recordBuildPathGraphCommand.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-4 - View Only Scrub Inspection Integration.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- New accepted Extrude commits now record any missing source Sketch event first, then record the Extrude event.
+- Existing in-memory Build Path events are not retroactively reordered by this repair.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/recordBuildPathGraphCommand.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/console/buildPathProjection.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2074 -->
+
+### [2074] - 2026-05-22 21:20 - `Build-Path-4 - Live Command Event Population Repair`
+
+HUMAN SUMMARY: ``Build Path no longer stops at a mounted empty strip: accepted live Sketch and Extrude console commands now feed the Build Path runtime store as distinct timeline events while cancelled commands still stay out and Edit History redo remains untouched.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair narrowly on live command-summary intake into the Build Path runtime store.
+- Preserved Build Path as a derived read model instead of graph truth, authored selection, or Edit History ownership.
+- Added distinct live projection ids so repeated accepted commands do not collapse into a duplicate event.
+- Kept cancelled commands skipped and avoided restore, branch, compare, pin, checkpoint, worker, and scrub mutation behavior.
+
+#### Summary of Implementation
+
+- Added `recordGraphCommandSummaryForBuildPath(...)` as the live command-summary bridge for Build Path event intake.
+- Extended `useBuildPathRuntimeStore` with a graph command commit intake method over the existing pure runtime helper.
+- Wired successful live console Sketch and Extrude commit paths into the Build Path bridge.
+- Added focused tests for repeated command intake, cancelled summary skips, and Edit History redo preservation.
+- Updated Build Path manager/family docs to mark the live event population blocker as repaired.
+
+#### Files Changed
+
+- `src/app/buildPath/recordBuildPathGraphCommand.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-4 - View Only Scrub Inspection Integration.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- New accepted live Sketch and Extrude console commands now appear as Build Path timeline events.
+- Already-idle sessions still show the empty strip until a new accepted command is made.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/recordBuildPathGraphCommand.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/console/buildPathProjection.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Browser verification at `http://localhost:5173/ParaHook_Configurator/`: the Build Path dock and strip are mounted; the strip remains empty until a new accepted Sketch or Extrude command is made in the live session.
+
+<!-- ENTRY 2073 -->
+
+### [2073] - 2026-05-22 21:07 - `Build-Path-4 - View Only Scrub Inspection Integration`
+
+HUMAN SUMMARY: ``Build Path timeline icons can now be selected as view-only scrub inspection state, with selected-step styling and workspace-hosted event readback, while tests prove selection does not mutate graph truth or disturb Edit History redo.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path selection state inside the Build Path runtime store.
+- Reused the Phase 1 master scrub helpers over the derived Build Path timeline.
+- Added readback from Build Path event references rather than authored graph writes.
+- Kept restore, branch-from-here, compare, pin, checkpoint, graph mutation, authored selection mutation, and Edit History behavior out of the interaction.
+- Kept the live viewport-docked strip label-light; workspace-hosted readback appears only in workspace host mode.
+
+#### Summary of Implementation
+
+- Extended `useBuildPathRuntimeStore` with selected timeline step state, master scrub reads, selected step reads, and selection updates.
+- Updated `BuildPathTimelineStrip` so timeline step buttons can select steps, expose selected data attributes, and use `aria-pressed`.
+- Added workspace-hosted selected event readback for command family, graph id, affected node count, edge count, output count, and build result state.
+- Added selected-step styling plus compact readback styling.
+- Expanded Build Path surface tests to cover runtime-backed readback, Extrude selection, selected styling, Edit History redo preservation, and unchanged graph snapshot proof.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-4 - View Only Scrub Inspection Integration.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Build Path timeline steps are now selectable when events exist. Selection updates only Build Path inspection state, marks the selected icon, and shows event reference readback in workspace-hosted mode.
+- The live app strip still appears empty until accepted graph command commits are wired into the Build Path runtime store.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Browser verification at `http://localhost:5173/ParaHook_Configurator/`: one `[data-build-path-viewport-dock="bottom"]` and one `.BuildPathTimelineStrip--viewport-dock` were present in the Model Viewport. The live browser runtime still had no accepted Build Path events, so browser verification covered the mounted empty strip while focused tests covered Sketch/Extrude selection and readback.
+
+<!-- ENTRY 2072 -->
+
+### [2072] - 2026-05-22 20:42 - `Build-Path-3 - Viewport Docked Icon Strip And Workspace Surface`
+
+HUMAN SUMMARY: ``Build Path is now visible: it is registered as a shared workspace surface, renders a compact bottom icon strip inside the Model Viewport above Console, and keeps split/tiled/floating hosted chrome separate from the no-label strip body.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path rendering read-only and downstream from the Build Path runtime timeline state.
+- Preserved the compact viewport-docked strip with no visible `Build Path` content label.
+- Reused the shared workspace surface catalog, registry, viewport frame, and floating host paths.
+- Kept Sketch and Extrude display metadata presentational.
+- Avoided scrub movement, branch UI, restore actions, comparison UI, pin/checkpoint behavior, worker checkpoint/cache storage, graph mutation, and Edit History ownership.
+
+#### Summary of Implementation
+
+- Added a Build Path runtime store wrapper for UI reads and future intake wiring.
+- Added `BuildPathSurface`, `BuildPathTimelineStrip`, and `BuildPathViewportDock` for empty, Sketch, and Extrude icon rendering.
+- Registered `buildPath` as an optional persisted workspace surface with explicit slot ids and compact viewport type aliases.
+- Routed Build Path through `ViewportSurfaceRegistry`, mounted the default bottom dock in `ViewportWorkspaceHost`, and added floating hosted chrome through `SimpleFloatingSurfaceHost`.
+- Added CSS for the docked strip, empty glyph, and compact Sketch/Extrude CAD icons.
+- Added focused tests for the strip body, runtime-backed workspace surface, catalog registration, viewport host mounting, and targeted registry routing.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `src/app/workspace/workspaceViewportTypeChoices.ts`
+- `src/app/workspace/workspaceViewportTypeChoices.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-3 - Viewport Docked Icon Strip And Workspace Surface.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Build Path now appears in the app as a small empty bottom-docked strip in the Model Viewport. The strip is visible above Console, has no visible `Build Path` body label, and can render timeline steps as compact Sketch/Extrude icons when runtime events exist.
+- Build Path is now selectable as a shared workspace surface and can be hosted in split/tiled/floating workspace chrome, with popout still deferred.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/workspaceViewportTypeChoices.test.ts src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/ViewportSurfaceRegistry.test.tsx -t "build path"`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Browser verification at `http://localhost:5173/ParaHook_Configurator/`: `[data-build-path-viewport-dock="bottom"]` and `.BuildPathTimelineStrip--viewport-dock` were present, the strip status was `empty`, the strip visible text was empty, and the dock bottom was above the Console row top.
+- Adjacent blocker recorded: full `src/app/workspace/ViewportSurfaceRegistry.test.tsx` still has an unrelated existing Properties assertion failure around missing `Object` text; the targeted Build Path registry branch passed.
+
+<!-- ENTRY 2071 -->
+
+### [2071] - 2026-05-22 20:04 - `Build-Path-2 - Runtime Event Intake And Timeline State`
+
+HUMAN SUMMARY: ``Build Path now has its own runtime event state seam: accepted Sketch and Extrude command projections can be ingested into ordered Build Path events, duplicate/cancelled intake is guarded, and the master timeline can be read from live Build Path state without creating Edit History entries.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path runtime state owned under `src/app/buildPath`.
+- Reused the existing graph command projection and Build Path event helpers.
+- Preserved deterministic event sequencing and duplicate projection guards.
+- Kept cancelled command summaries out of Build Path runtime events.
+- Avoided UI mounting, scrub visual replay, branch UI, restore actions, worker checkpoint/cache storage, authored graph mutation, and Edit History ownership.
+
+#### Summary of Implementation
+
+- Added `BuildPathRuntimeState` and pure read/intake helpers.
+- Added runtime reads for copied events and derived master timeline state.
+- Added direct event append support plus accepted graph command projection intake.
+- Added duplicate event id and duplicate source projection protection.
+- Added focused tests for empty state, append copying, duplicate guards, Sketch/Extrude intake, cancelled skip behavior, deterministic sequencing, and Edit History safety.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathRuntime.ts`
+- `src/app/buildPath/buildPathRuntime.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-2 - Runtime Event Intake And Timeline State.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- No visible UI changed. Build Path now has a runtime event intake/read seam that later visible surfaces can consume.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/buildPathEvents.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/console/buildPathProjection.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2070 -->
+
+### [2070] - 2026-05-22 19:43 - `Build-Path-1 / Phases 2-6 - Timeline Scrub Branch And Action Boundaries`
+
+HUMAN SUMMARY: ``Build Path now has the rest of its Generation 1 foundation: a pure master timeline, view-only master scrub state, dependency-aware branch projection, branch-local parallel scrub state, and explicit restore/branch/compare/pin boundaries, all without adding UI, worker storage, graph mutation, or Edit History ownership.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path derived from accepted event records and explicit graph dependency hints.
+- Preserved one master timeline while deriving branch lanes separately.
+- Kept master and branch scrub as view-only inspection state.
+- Kept restore, branch-from-here, compare, and pin as explicit future commands.
+- Avoided runtime UI, worker checkpoint/cache storage, authored graph writes, and canonical undo/redo changes.
+
+#### Summary of Implementation
+
+- Added `deriveBuildPathMasterTimeline(...)` with stable step ids, event references, empty state, and icon-first display metadata.
+- Added master scrub and parallel branch scrub helpers that select playheads without touching Edit History.
+- Added dependency-aware branch projection for linear chains, independent branch roots, merge candidates, checkpoint candidates, and preserved master ordering.
+- Added explicit action-boundary records for restore, branch-from-here, compare, and pin.
+- Extended Build Path timeline-role typing beyond the Phase 1 `unclassified` role.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathEvents.ts`
+- `src/app/buildPath/buildPathTimeline.ts`
+- `src/app/buildPath/buildPathTimeline.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- No visible UI changed. Build Path now has pure runtime helpers for timeline, scrub, branch, parallel scrub, and explicit action-boundary behavior that later UI can consume.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/buildPathEvents.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/console/buildPathProjection.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2069 -->
+
+### [2069] - 2026-05-22 18:53 - `Build-Path-1 / Phase 1 - Accepted Graph Build Event Model`
+
+HUMAN SUMMARY: ``Build Path now has its first owned event model: accepted Sketch and Extrude command projections can become stable Build Path events without adding UI, scrub behavior, branch logic, worker storage, or Edit History changes.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing `projectGraphCommandCommitForBuildPath(...)` helper in place as the console/Spaghetti-side handoff.
+- Added the new Build Path-owned event layer downstream from existing command projections.
+- Kept events unclassified so branch, merge, and checkpoint roles remain Phase 4 work.
+- Avoided runtime workspace UI, scrub state, worker checkpoints, restore actions, and undo/redo changes.
+
+#### Summary of Implementation
+
+- Added `BuildPathEvent` and `BuildPathTimelineRole` types.
+- Added `createBuildPathEventFromCommandProjection(...)` to preserve projection ids, graph ids, command family, entry point, affected graph ids, mutation summary, build result state, event sequence, and optional accepted timestamp.
+- Added focused tests for Sketch and Extrude projection conversion, linked build result/output preservation, copied array boundaries, and unclassified timeline roles.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathEvents.ts`
+- `src/app/buildPath/buildPathEvents.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- No user-facing behavior changed. This adds a pure Build Path event model for later timeline and scrub phases.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/buildPathEvents.test.ts src/app/console/buildPathProjection.test.ts`
+- `npx.cmd tsc -b`
+
 <!-- ENTRY 2068 -->
 
 ### [2068] - 2026-05-22 17:22 - `Properties-7 / Phase 1-6 - Environment Light Browser Visibility Toggle`

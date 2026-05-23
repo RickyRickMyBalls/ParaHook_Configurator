@@ -23,6 +23,8 @@ const workspaceViewportTypeAliasesByKind: Partial<
   homePage: ['HP', 'HOME'],
   properties: ['PROP', 'PROPS'],
   export: ['EXP'],
+  editHistory: ['EH', 'HIST'],
+  buildPath: ['BP', 'PATH'],
 }
 
 export function getWorkspaceViewportTypeLabel(surfaceKind: WorkspaceSurfaceKind): string {

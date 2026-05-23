@@ -4929,6 +4929,454 @@ button.FloatingWindowHeaderAction:disabled {
   bottom: 34px;
 }
 
+.BuildPathViewportDock {
+  position: absolute;
+  left: 50%;
+  z-index: 55;
+  display: flex;
+  justify-content: center;
+  max-width: min(420px, calc(100% - 96px));
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.BuildPathViewportDock--top {
+  top: 12px;
+}
+
+.BuildPathViewportDock--bottom {
+  bottom: 46px;
+}
+
+.BuildPathSurface {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: rgba(241, 245, 249, 0.9);
+}
+
+.BuildPathSurface--workspace {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  justify-content: center;
+  align-content: center;
+  padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(10, 14, 20, 0.96) 0%, rgba(5, 8, 13, 0.98) 100%);
+}
+
+.BuildPathSurface--viewport-dock {
+  position: relative;
+  gap: 6px;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.BuildPathTimelineStrip {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.BuildPathTimelineStrip--viewport-dock {
+  min-height: 34px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid rgba(226, 232, 240, 0.18);
+  border-radius: 8px;
+  background: rgba(8, 12, 18, 0.72);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.BuildPathTimelineStrip--workspace {
+  width: 100%;
+  min-height: 58px;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.BuildPathTimelineEmpty {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 20px;
+}
+
+.BuildPathTimelineEmptyGlyph {
+  width: 28px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.36), rgba(226, 232, 240, 0.68));
+}
+
+.BuildPathTimelineStepList {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+.BuildPathTimelineStepItem {
+  flex: 0 0 auto;
+}
+
+.BuildPathTimelineStep {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(226, 232, 240, 0.22);
+  border-radius: 6px;
+  color: rgba(241, 245, 249, 0.92);
+  background: rgba(15, 23, 42, 0.88);
+}
+
+.BuildPathTimelineStep--sketch {
+  border-color: rgba(96, 165, 250, 0.34);
+}
+
+.BuildPathTimelineStep--extrude {
+  border-color: rgba(74, 222, 128, 0.34);
+}
+
+.BuildPathTimelineStep.isSelected {
+  border-color: rgba(248, 250, 252, 0.82);
+  background: rgba(37, 99, 235, 0.68);
+  box-shadow:
+    0 0 0 1px rgba(147, 197, 253, 0.42),
+    0 0 18px rgba(96, 165, 250, 0.26);
+}
+
+.BuildPathStepGlyph {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.BuildPathSelectedEventReadback {
+  width: min(320px, 100%);
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.BuildPathReadbackMuted {
+  color: rgba(203, 213, 225, 0.68);
+  font-size: 12px;
+}
+
+.BuildPathReadbackPrimary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.BuildPathReadbackFamily {
+  color: rgba(248, 250, 252, 0.95);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.BuildPathReadbackIndex {
+  color: rgba(203, 213, 225, 0.72);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.BuildPathReadbackGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.BuildPathReadbackGrid div {
+  min-width: 0;
+}
+
+.BuildPathReadbackGrid dt {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 10px;
+}
+
+.BuildPathReadbackGrid dd {
+  margin: 1px 0 0;
+  overflow: hidden;
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.BuildPathActionBoundaryPanel {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(226, 232, 240, 0.1);
+}
+
+.BuildPathActionBoundarySummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(241, 245, 249, 0.9);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.BuildPathActionBoundarySummary span:last-child {
+  color: rgba(203, 213, 225, 0.68);
+  font-size: 10px;
+}
+
+.BuildPathActionBoundaryReason {
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.BuildPathActionButtonRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.BuildPathActionButton {
+  min-width: 0;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 6px;
+  color: rgba(148, 163, 184, 0.72);
+  background: rgba(15, 23, 42, 0.46);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.BuildPathActionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.BuildPathViewportScrubReadback {
+  display: grid;
+  grid-template-columns: 22px minmax(56px, auto) 22px;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 4px;
+  border: 1px solid rgba(226, 232, 240, 0.16);
+  border-radius: 8px;
+  background: rgba(8, 12, 18, 0.72);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.BuildPathViewportScrubButton {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(226, 232, 240, 0.18);
+  border-radius: 6px;
+  color: rgba(226, 232, 240, 0.92);
+  background: rgba(15, 23, 42, 0.88);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.BuildPathViewportScrubButton:disabled {
+  color: rgba(148, 163, 184, 0.42);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.BuildPathViewportScrubLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: rgba(241, 245, 249, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.BuildPathViewportScrubIndex {
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  color: rgba(15, 23, 42, 0.95);
+  background: rgba(191, 219, 254, 0.92);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.BuildPathViewportScrubName {
+  overflow: hidden;
+  max-width: 74px;
+  text-overflow: ellipsis;
+}
+
+.BuildPathWorkspaceModeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(76px, 1fr));
+  gap: 4px;
+  width: min(320px, 100%);
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.BuildPathWorkspaceModeButton {
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 6px;
+  color: rgba(203, 213, 225, 0.82);
+  background: rgba(15, 23, 42, 0.58);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.BuildPathWorkspaceModeButton.isSelected {
+  border-color: rgba(147, 197, 253, 0.42);
+  color: rgba(248, 250, 252, 0.96);
+  background: rgba(37, 99, 235, 0.58);
+}
+
+.BuildPathParallelModeRead {
+  width: min(320px, 100%);
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.BuildPathParallelModeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(248, 250, 252, 0.95);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.BuildPathParallelModeHeader span:last-child {
+  color: rgba(203, 213, 225, 0.7);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.BuildPathParallelModeBody {
+  margin-top: 8px;
+  color: rgba(203, 213, 225, 0.76);
+  font-size: 11px;
+}
+
+.BuildPathBranchLaneList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.BuildPathBranchLane {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.BuildPathBranchLaneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: rgba(241, 245, 249, 0.9);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.BuildPathBranchLaneHeader span:last-child {
+  color: rgba(203, 213, 225, 0.66);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.BuildPathBranchStepList {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.BuildPathBranchStep {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 26px;
+  padding: 4px 6px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 6px;
+  color: rgba(226, 232, 240, 0.9);
+  background: rgba(8, 12, 18, 0.54);
+  font-size: 11px;
+}
+
+.BuildPathBranchStep.isSelected {
+  border-color: rgba(147, 197, 253, 0.5);
+  background: rgba(37, 99, 235, 0.38);
+}
+
+.BuildPathBranchStepName {
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.BuildPathBranchStepRole {
+  color: rgba(191, 219, 254, 0.84);
+  font-size: 10px;
+}
+
 .ViewportCanvasLayer {
   position: absolute;
   inset: 0;

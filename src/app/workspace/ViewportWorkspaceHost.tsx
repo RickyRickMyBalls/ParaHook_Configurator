@@ -1,6 +1,7 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { useEffect } from 'react'
 import { SpaghettiPanel } from '../panels/SpaghettiPanel'
+import { BuildPathViewportDock } from '../buildPath/BuildPathSurface'
 import { ViewToolbar } from '../components/ViewToolbar'
 import { ViewerHost } from '../components/ViewerHost'
 import { ViewportOverlay } from '../components/ViewportOverlay'
@@ -117,6 +118,7 @@ export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
       ) : null}
       <ViewportOverlay viewportId={viewportId} />
       <ViewToolbar viewportId={viewportId} />
+      <BuildPathViewportDock placement="bottom" />
     </div>
   )
 }

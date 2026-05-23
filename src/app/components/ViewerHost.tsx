@@ -94,6 +94,11 @@ import {
   selectViewportResultState,
   type ViewportLayerRecipe,
 } from '../spaghetti/selectors/selectViewportResultState'
+import {
+  applyBuildPathViewportPreviewMaskToLayerRecipe,
+  deriveBuildPathViewportPreviewRead,
+} from '../buildPath/buildPathViewportPreview'
+import { useBuildPathRuntimeStore } from '../buildPath/useBuildPathRuntimeStore'
 import type { ExtrudeCommandSession } from '../spaghetti/commands/extrudeCommandSession'
 import { buildViewportResultSelectorOptions } from './buildViewportResultSelectorOptions'
 import {
@@ -721,6 +726,18 @@ export function ViewerHost(props: ViewerHostProps) {
     interactionAcceptedPreviewBuildOutputs,
     interactionPreviewPreparation,
   ])
+  const buildPathRuntimeState = useBuildPathRuntimeStore((state) => state.runtimeState)
+  const buildPathSelectedTimelineStepId = useBuildPathRuntimeStore(
+    (state) => state.selectedTimelineStepId,
+  )
+  const buildPathViewportPreviewRead = useMemo(
+    () =>
+      deriveBuildPathViewportPreviewRead({
+        selectedTimelineStepId: buildPathSelectedTimelineStepId,
+        timeline: useBuildPathRuntimeStore.getState().readMasterTimeline(),
+      }),
+    [buildPathRuntimeState, buildPathSelectedTimelineStepId],
+  )
 
   const viewportResultState = useMemo(
     () =>
@@ -790,13 +807,21 @@ export function ViewerHost(props: ViewerHostProps) {
   )
 
   const renderList: PreviewRenderVm = viewportResultState.renderVm
+  const buildPathMaskedLayerRecipe = useMemo(
+    () =>
+      applyBuildPathViewportPreviewMaskToLayerRecipe(
+        viewportResultState.layerRecipe,
+        buildPathViewportPreviewRead,
+      ),
+    [buildPathViewportPreviewRead, viewportResultState.layerRecipe],
+  )
   const viewportRenderLayers = useMemo<ViewerViewportRenderLayers>(
     () =>
       buildViewerViewportRenderLayers({
         viewportPresentationSettings,
-        layerRecipe: viewportResultState.layerRecipe,
+        layerRecipe: buildPathMaskedLayerRecipe,
       }),
-    [viewportPresentationSettings, viewportResultState.layerRecipe],
+    [buildPathMaskedLayerRecipe, viewportPresentationSettings],
   )
 
   useEffect(() => {
@@ -2441,7 +2466,17 @@ export function ViewerHost(props: ViewerHostProps) {
   }, [sketchPlanePickOverlay])
 
   return (
-    <div className="ViewportRoot">
+    <div
+      className="ViewportRoot"
+      data-build-path-viewport-preview-state={buildPathViewportPreviewRead.status}
+      data-build-path-viewport-preview-strategy={buildPathViewportPreviewRead.mappingStrategy}
+      data-build-path-viewport-preview-excluded-outputs={
+        buildPathViewportPreviewRead.excludedOutputIds.length
+      }
+      data-build-path-viewport-preview-excluded-nodes={
+        buildPathViewportPreviewRead.excludedNodeIds.length
+      }
+    >
       <div className="ViewportCanvasLayer" ref={mountRef} />
       {extrudeCommandSession !== null ? (
         <ExtrudeCommandToolbar

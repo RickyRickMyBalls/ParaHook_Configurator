@@ -15,6 +15,7 @@ export type GraphCommandEntryPoint =
   | 'viewport-shortcut'
   | 'viewport-toolbar'
   | 'feature-assist'
+  | 'loaded-graph-reconstruction'
 
 export type GraphCommandMutationKind =
   | 'create-node'

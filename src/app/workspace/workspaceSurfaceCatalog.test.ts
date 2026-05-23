@@ -203,4 +203,36 @@ describe('workspaceSurfaceCatalog', () => {
       'edit-history-workspace-slot-history',
     )
   })
+
+  it('registers build path as an optional persisted split-capable workspace surface with popout deferred', () => {
+    expect(parseWorkspaceSurfaceKind('buildPath')).toBe('buildPath')
+    expect(isWorkspaceSurfaceOptional('buildPath')).toBe(true)
+    expect(workspaceSurfaceSupportsSplit('buildPath')).toBe(true)
+    expect(workspaceSurfaceParticipatesInPersistence('buildPath')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('buildPath', 'floating')).toBe(true)
+    expect(workspaceSurfaceSupportsHostMode('buildPath', 'popout')).toBe(false)
+    expect(workspacePrimarySlotSupportsSurfaceKind('buildPath')).toBe(true)
+    expect(getWorkspaceSurfaceCatalogEntry('buildPath')).toEqual(
+      expect.objectContaining({
+        kind: 'buildPath',
+        defaultLabel: 'Build Path',
+        renderFamily: 'buildPath',
+        scope: 'optional',
+        participatesInPersistence: true,
+        coordination: 'plain',
+        supports: expect.objectContaining({
+          slotted: true,
+          floating: true,
+          popout: false,
+          split: true,
+        }),
+      }),
+    )
+  })
+
+  it('creates explicit slot instance ids for build path instead of falling through to spaghetti ids', () => {
+    expect(createWorkspaceSurfaceInstanceIdForSlot('buildPath', 'workspace-slot-build-path')).toBe(
+      'build-path-workspace-slot-build-path',
+    )
+  })
 })

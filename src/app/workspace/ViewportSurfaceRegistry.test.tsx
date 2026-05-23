@@ -323,4 +323,30 @@ describe('ViewportSurfaceRegistry', () => {
     expect(editHistorySurface?.textContent).toContain('Edit History')
     expect(editHistorySurface?.textContent).toContain('No diagnostic activity recorded')
   })
+
+  it('renders build path through the canonical workspace surface registry branch without a body label', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ViewportSurfaceRegistry
+          slotId="workspace-slot-build-path"
+          surfaceKind="buildPath"
+          surfaceInstanceId="build-path-workspace-slot-build-path"
+          onActivateSpaghettiSurface={vi.fn()}
+        />,
+      )
+    })
+
+    const buildPathSurface = container?.querySelector(
+      '.WorkspaceViewportSlotSurface--buildPath[data-workspace-surface-instance-id="build-path-workspace-slot-build-path"]',
+    ) as HTMLDivElement | null
+
+    expect(buildPathSurface).not.toBeNull()
+    expect(buildPathSurface?.getAttribute('data-build-path-host-mode')).toBe('workspace')
+    expect(buildPathSurface?.textContent).not.toContain('Build Path')
+    expect(buildPathSurface?.querySelector('.BuildPathTimelineStrip--workspace')).not.toBeNull()
+  })
 })

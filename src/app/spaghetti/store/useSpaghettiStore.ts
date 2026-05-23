@@ -113,6 +113,8 @@ import {
   createReadyGraphCommandCommitPlan,
   type GraphCommandCommitSummary,
 } from '../../console/commandCommitContract'
+import { reconstructBuildPathFromLoadedGraph } from '../../buildPath/reconstructBuildPathFromGraph'
+import { useBuildPathRuntimeStore } from '../../buildPath/useBuildPathRuntimeStore'
 import {
   createDefaultEditorPopoutState,
   createDefaultEditorWorkspaceSurfaceState,
@@ -5952,6 +5954,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         fallbackGraphDocumentId: graphDocumentId,
       }),
     )
+    const reconstruction = reconstructBuildPathFromLoadedGraph(nextDocument)
+    useBuildPathRuntimeStore.getState().replaceGraphReconstruction({
+      graphDocumentId,
+      events: reconstruction.events,
+      dependencies: reconstruction.dependencies,
+    })
     releaseAuthoritativeHandleIds([previousAuthoritativeHandleId])
 
     return graphDocumentId
@@ -6219,6 +6227,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         fallbackGraphDocumentId: graphDocumentId,
       }),
     )
+    const nextDocument = get().graphDocumentsById[graphDocumentId]
+    if (nextDocument !== undefined) {
+      const reconstruction = reconstructBuildPathFromLoadedGraph(nextDocument)
+      useBuildPathRuntimeStore.getState().replaceGraphReconstruction({
+        graphDocumentId,
+        events: reconstruction.events,
+        dependencies: reconstruction.dependencies,
+      })
+    }
 
     return graphDocumentId
   },

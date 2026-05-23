@@ -201,6 +201,11 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
         getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'notepad' &&
         surface.hostMode === 'popout',
     )
+    const detachedBuildPathFloatingSurfaces = Object.values(detachedSlotSurfaceById).filter(
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'buildPath' &&
+        surface.hostMode === 'floating',
+    )
 
     const rootNode = viewportLayoutNodesById[viewportSlotRootNodeId] ?? null
     const rootLeftSplitSlotIds =
@@ -259,6 +264,7 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
         ),
         detachedNotepadFloatingSurfaces,
         detachedNotepadPopoutSurfaces,
+        detachedBuildPathFloatingSurfaces,
       },
       dockSuppression: {
         suppressLegacyDockedBrowserSurface,

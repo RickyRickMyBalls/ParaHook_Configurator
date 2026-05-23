@@ -8,6 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { BuildPathSurface } from './buildPath/BuildPathSurface'
 import { ConsoleDock } from './console/ConsoleDock'
 import { FloatingWindowQuickDockButton } from './components/FloatingWindowQuickDockButton'
 import {
@@ -617,6 +618,7 @@ export function AppShell() {
       detachedCatalogFloatingSurfaces,
       detachedNotepadFloatingSurfaces,
       detachedNotepadPopoutSurfaces,
+      detachedBuildPathFloatingSurfaces,
     },
     dockSuppression: {
       suppressLegacyDockedBrowserSurface,
@@ -1605,6 +1607,21 @@ export function AppShell() {
           minHeight={240}
           renderSurface={(surface) => (
             <CatalogSurface surfaceInstanceId={surface.surfaceInstanceId} hostMode="floating" />
+          )}
+        />
+        <SimpleFloatingSurfaceHost
+          viewportRef={viewportRef}
+          floatingSurfaces={detachedBuildPathFloatingSurfaces}
+          onQuickDock={redockDetachedSurface}
+          title="Build Path"
+          windowClassName="BuildPathFloatingWindow"
+          headerClassName="BuildPathFloatingWindowHeader"
+          quickDockClassName="BuildPathFloatingWindowQuickDock"
+          defaultRect={{ x: 96, y: 96, width: 360, height: 132 }}
+          minWidth={260}
+          minHeight={96}
+          renderSurface={(surface) => (
+            <BuildPathSurface surfaceInstanceId={surface.surfaceInstanceId} hostMode="workspace" />
           )}
         />
         <NotepadWindowHost

@@ -16,6 +16,7 @@ export type WorkspaceSurfaceRenderFamily =
   | 'properties'
   | 'export'
   | 'editHistory'
+  | 'buildPath'
 
 export type WorkspaceSurfaceScope = 'core' | 'optional'
 export type WorkspaceSurfaceCoordination =
@@ -54,6 +55,7 @@ export type OptionalWorkspaceSurfaceKind =
   | 'properties'
   | 'export'
   | 'editHistory'
+  | 'buildPath'
 
 const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = [
   {
@@ -219,6 +221,20 @@ const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = 
       slotted: true,
       floating: true,
       popout: true,
+      split: true,
+    },
+    participatesInPersistence: true,
+    coordination: 'plain',
+  },
+  {
+    kind: 'buildPath',
+    defaultLabel: 'Build Path',
+    renderFamily: 'buildPath',
+    scope: 'optional',
+    supports: {
+      slotted: true,
+      floating: true,
+      popout: false,
       split: true,
     },
     participatesInPersistence: true,

@@ -135,6 +135,11 @@ import {
 import type { GraphCommandEntryPoint } from './commandCommitContract'
 import { authorSketchGraphCommand } from './graphCommandAuthoring'
 import {
+  recordGraphDependenciesForBuildPath,
+  recordGraphCommandSummaryForBuildPath,
+  recordSketchSourceForBuildPathIfMissing,
+} from '../buildPath/recordBuildPathGraphCommand'
+import {
   listExtrudeProfileConsoleChoices,
   resolveExtrudeProfileConsoleToken,
   type ExtrudeProfileConsoleChoice,
@@ -1851,6 +1856,10 @@ export function useConsoleInteraction(
       graphDocumentId,
       sketchNodeId,
     )
+    recordGraphCommandSummaryForBuildPath({
+      commandSummary: sketchCommandResult.commitSummary,
+      graphDocumentId,
+    })
     clearStagedNavigationSession()
     const sketchPlaneDescriptor = getActiveFeatureAssistDescriptor({
       sketchPlanePickSession: useSpaghettiStore.getState().sketchPlanePickSession,
@@ -2255,6 +2264,11 @@ export function useConsoleInteraction(
           return
         }
 
+        const activeExtrudeSession = useSpaghettiStore.getState().extrudeCommandSession
+        const activeExtrudeGraphDocumentId = activeExtrudeSession?.graphDocumentId ?? null
+        const activeExtrudeSketchSourceNodeIds = [
+          ...new Set(activeExtrudeSession?.selectedProfileSources.map((source) => source.nodeId) ?? []),
+        ]
         useSpaghettiStore.getState().setExtrudeCommandDepth(depth)
         const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
         if (summary.lifecycleState !== 'committed') {
@@ -2289,6 +2303,30 @@ export function useConsoleInteraction(
           source: 'console',
           severity: 'info',
         })
+        if (activeExtrudeGraphDocumentId !== null) {
+          activeExtrudeSketchSourceNodeIds.forEach((sketchNodeId) => {
+            recordSketchSourceForBuildPathIfMissing({
+              graphDocumentId: activeExtrudeGraphDocumentId,
+              sketchNodeId,
+            })
+          })
+          recordGraphDependenciesForBuildPath({
+            graphDocumentId: activeExtrudeGraphDocumentId,
+            sourceNodeIds: activeExtrudeSketchSourceNodeIds,
+            targetNodeIds: [
+              ...new Set([
+                ...summary.createdNodeIds,
+                ...summary.reusedNodeIds,
+                ...summary.updatedNodeIds,
+              ]),
+            ],
+            edgeIds: summary.addedEdgeIds,
+          })
+          recordGraphCommandSummaryForBuildPath({
+            commandSummary: summary,
+            graphDocumentId: activeExtrudeGraphDocumentId,
+          })
+        }
         return
       }
 
