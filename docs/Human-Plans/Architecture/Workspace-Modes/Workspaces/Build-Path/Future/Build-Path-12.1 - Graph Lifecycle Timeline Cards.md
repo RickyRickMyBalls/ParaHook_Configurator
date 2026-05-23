@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-05-23 15:09:00: Implemented and closed `Build-Path-12.1 / Phases 1-3` with separate structural lifecycle cards, master timeline merge, graph create/load intake, distinct display, viewport-mask safety proof, focused tests, typecheck, production build, and browser smoke coverage.
+2. 2026-05-23 14:07:33: Tightened the implementation spec before runtime work so lifecycle cards are Build Path-owned structural timeline cards stored separately from command events, merged into the master timeline by sequence, and ignored by geometry preview masking plus dependency classification.
 1. 2026-05-23 13:54:15: Added and prepped this Build Path follow-up phase to plan explicit `Graph Created` and `Graph Loaded` timeline cards before returning to Parallel lane icon layout.
 
 ### Purpose
@@ -42,43 +44,71 @@ The healthy Build Path read is:
 - lifecycle cards can anchor Parallel lanes without pretending to be CAD operations
 - loaded graph reconstruction remains honest and labeled as reconstructed
 
+## Manager Implementation Read
+
+`Build-Path-12.1` should implement the three phases as one bounded runtime pass because the same type contract, store shape, and display path need to land together to avoid a half-visible timeline model.
+
+Implementation decision:
+- lifecycle cards are a separate Build Path-owned runtime record, not `BuildPathEvent`
+- lifecycle cards are merged into `deriveBuildPathMasterTimeline` next to command events using `eventSequence`
+- command-event timeline steps keep their existing `BuildPathEvent` truth
+- lifecycle timeline steps carry a lifecycle card reference and no `BuildPathEvent`
+- graph dependency classification, checkpoint/action readiness, and viewport preview masking must ignore lifecycle cards
+
+Likely runtime seams:
+- `src/app/buildPath/buildPathLifecycle.ts`
+- `src/app/buildPath/buildPathRuntime.ts`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/buildPath/buildPathTimeline.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/buildPathViewportPreview.ts`
+- `src/app/buildPath/reconstructBuildPathFromGraph.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+
+Manager acceptance gates:
+- focused Build Path tests prove lifecycle card sorting, display, no viewport masking behavior, and runtime replacement
+- focused graph-load/store tests prove `Graph Loaded` appears before reconstructed Sketch/Extrude events
+- graph creation store tests prove `Graph Created` appears when a new graph document is created
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
 ## Wishlist Organization
 
 ### High Level Goals
 
-- [ ] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
-- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
-- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
-- [ ] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
 
 ### Codex Level Goals
 
-- [ ] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
+- [x] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
 
 ### `Build-Path-12.1 / Phase 1`
 
-- [ ] Define lifecycle event/card data for `Graph Created` and `Graph Loaded`.
-- [ ] Decide how lifecycle cards relate to existing Build Path events and reconstructed events.
-- [ ] Keep lifecycle cards non-geometry and non-restore.
-- [ ] `Build-Path-Gen1-HLG-2`
-- [ ] `Build-Path-Gen1-HLG-7`
+- [x] Define lifecycle event/card data for `Graph Created` and `Graph Loaded`.
+- [x] Decide how lifecycle cards relate to existing Build Path events and reconstructed events.
+- [x] Keep lifecycle cards non-geometry and non-restore.
+- [x] `Build-Path-Gen1-HLG-2`
+- [x] `Build-Path-Gen1-HLG-7`
 
 ### `Build-Path-12.1 / Phase 2`
 
-- [ ] Record or derive a `Graph Created` card when a graph document is created.
-- [ ] Record or derive a `Graph Loaded` card when a graph file is loaded.
-- [ ] Ensure loaded graph reconstructed events appear after the load marker.
-- [ ] `Build-Path-Gen1-HLG-5`
-- [ ] `Build-Path-Gen1-HLG-7`
+- [x] Record or derive a `Graph Created` card when a graph document is created.
+- [x] Record or derive a `Graph Loaded` card when a graph file is loaded.
+- [x] Ensure loaded graph reconstructed events appear after the load marker.
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-7`
 
 ### `Build-Path-12.1 / Phase 3`
 
-- [ ] Render lifecycle cards distinctly from Sketch/Extrude build-operation cards.
-- [ ] Prove lifecycle cards do not affect viewport geometry preview masking.
-- [ ] Verify lifecycle cards support the later Parallel lane visual model.
-- [ ] `Build-Path-Gen1-HLG-9`
+- [x] Render lifecycle cards distinctly from Sketch/Extrude build-operation cards.
+- [x] Prove lifecycle cards do not affect viewport geometry preview masking.
+- [x] Verify lifecycle cards support the later Parallel lane visual model.
+- [x] `Build-Path-Gen1-HLG-9`
 
-## [ ] `Build-Path-12.1 / Phase 1` - `Lifecycle Card Contract`
+## [x] `Build-Path-12.1 / Phase 1` - `Lifecycle Card Contract`
 
 ### Phase 1 Summary
 
@@ -87,7 +117,7 @@ Define Build Path lifecycle card semantics for graph creation and graph loading.
 ### Phase 1 Implementation Spec
 
 The implementation pass should:
-- decide whether lifecycle cards are represented as a wider Build Path event union or as a separate timeline card model
+- represent lifecycle cards as a separate timeline card model owned by Build Path runtime
 - support at least `graph-created` and `graph-loaded`
 - include graph document id, graph label/name, source kind, sequence, and display metadata
 - mark lifecycle cards as structural and non-geometry
@@ -105,7 +135,7 @@ Verification should cover:
 - lifecycle cards preserve graph document identity
 - lifecycle cards are not classified as Sketch/Extrude command truth
 
-## [ ] `Build-Path-12.1 / Phase 2` - `Graph Created And Loaded Intake`
+## [x] `Build-Path-12.1 / Phase 2` - `Graph Created And Loaded Intake`
 
 ### Phase 2 Summary
 
@@ -132,7 +162,7 @@ Verification should cover:
 - repeated load refresh replaces stale loaded lifecycle/reconstructed data for that graph
 - Edit History redo remains intact
 
-## [ ] `Build-Path-12.1 / Phase 3` - `Lifecycle Card Display And Safety Proof`
+## [x] `Build-Path-12.1 / Phase 3` - `Lifecycle Card Display And Safety Proof`
 
 ### Phase 3 Summary
 
@@ -181,4 +211,20 @@ Build gate:
 - runtime implementation phases will require focused Build Path tests, `npx.cmd tsc -b`, and `npm.cmd run build`
 
 Stop condition:
-- Build-Path-12.1 is ready for implementation once the user confirms lifecycle cards should land before Build-Path-11 visual lane work.
+- complete; Build Path now has structural `Graph Created` and `Graph Loaded` lifecycle cards before returning to Build-Path-11 visual lane work.
+
+## Completion Read
+
+Implemented:
+- separate Build Path lifecycle card contract in `src/app/buildPath/buildPathLifecycle.ts`
+- master timeline merge for lifecycle cards and command events
+- `Graph Created` card intake from graph-document creation
+- `Graph Loaded` card intake before loaded-graph reconstructed Sketch/Extrude events
+- distinct lifecycle card rendering and readback
+- viewport preview masking and action-readiness safety so lifecycle cards remain structural
+
+Verification:
+- `npm.cmd test -- --run src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathViewportPreview.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts -t "deriveBuildPathMasterTimeline|Build Path runtime state|deriveBuildPathViewportPreviewRead|BuildPathSurface|createGraphDocument adds a second graph document|loadGraphDocumentFromFile creates a clean file-load cached entry"`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Browser smoke: reloaded `http://localhost:5173/ParaHook_Configurator/` and confirmed the Build Path timeline surface mounted; the live page state was empty, so lifecycle-card visual behavior is covered by focused DOM tests.

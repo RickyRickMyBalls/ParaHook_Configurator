@@ -72,6 +72,230 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2090 -->
+
+### [2090] - 2026-05-23 18:44 - `Extrude-8 - Command-First Depth Prompt Cleanup`
+
+HUMAN SUMMARY: ``Extrude Depth focus now clears stale guided-root text such as \`Graph\` when the user starts Extrude from Console-first `e`, presses `Enter`, clicks a profile, and immediately types a depth number.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair inside the existing Console-owned `extrude-depth` focus request.
+- Did not change Extrude geometry, graph wiring, shortcut bindings, or camera behavior.
+
+#### Summary of Implementation
+
+- Made the `extrude-depth` focus request clear stale staged navigation, prompt state, staged choice tracking, history draft, and input text.
+- Expanded the profile-pick focus regression so it starts with `Graph` autofilled and proves the profile click leaves Console blank for numeric depth entry.
+
+#### Files Changed
+
+- `src/app/console/useConsoleStore.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-8 - Command Flow Console Focus Cleanup.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Command-first Console-first Extrude no longer leaves `Graph` in the input after profile selection advances the command to Depth.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "requests console input focus after a profile pick advances active Extrude to depth"`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "starts viewport Extrude at depth with a selected sketch profile and clears root prompt input"`
+- `npm.cmd test -- --run src/app/inputRouting.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2089 -->
+
+### [2089] - 2026-05-23 17:58 - `Extrude-8 - Command Flow Console Focus Cleanup`
+
+HUMAN SUMMARY: ``Extrude now hands keyboard focus back to clean Console depth entry after viewport profile picks and when selected profiles start Extrude directly at Depth. Focused tests also lock the Shortcuts-first numeric input path away from viewer camera shortcut capture while the Console input is focused.``
+
+#### Scope / Constraints Honored
+
+- Kept the change inside Console, active Extrude, ViewerHost profile-pick, and shared input-routing seams.
+- Did not change Extrude graph/runtime geometry semantics, multi-wire profile execution, camera shortcut bindings, or broad Console staged-navigation behavior.
+
+#### Summary of Implementation
+
+- Added a Console-owned input focus request with a sequence id and `extrude-depth` reason.
+- Made `ConsoleDock` consume that request and focus the visible docked, floating, or popout input.
+- Requested clean Console focus after active Extrude profile picks move the session to `Depth`.
+- Requested the same focus handoff when valid preselected profiles start Extrude directly at `Depth`.
+- Added regression proof for focused Console numeric input staying out of viewer camera shortcut routing.
+
+#### Files Changed
+
+- `src/app/console/useConsoleStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/inputRouting.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-8 - Command Flow Console Focus Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Command-first Extrude can now go viewport shortcut, profile pick, type depth, Enter without an extra Console click.
+- Selected-first Extrude now arrives at an empty focused Console depth input when valid viewport-selected profiles are present.
+- Focused Console numeric input is explicitly protected from viewer camera shortcut routing in Shortcuts-first mode.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/inputRouting.test.ts`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "starts viewport Extrude at depth with a selected sketch profile and clears root prompt input"`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "requests console input focus after a profile pick advances active Extrude to depth"`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Full `src/app/console/ConsoleDock.test.tsx` was also attempted and still has unrelated older failures outside the new Extrude coverage.
+
+<!-- ENTRY 2088 -->
+
+### [2088] - 2026-05-23 16:22 - `Build-Path-12.2 - Timeline Selection Edit History`
+
+HUMAN SUMMARY: ``Build Path master timeline moves now participate in global Edit History, so Ctrl+Z/Ctrl+Y can walk user-driven timeline selection changes without restoring CAD graph truth.``
+
+#### Scope / Constraints Honored
+
+- Limited the first pass to user-driven master timeline selection changes.
+- Preserved authored graph truth, Browser visibility, restore/branch/compare/pin behavior, and worker/cache ownership.
+- Kept accepted CAD command auto-follow as internal selection state instead of adding a second history entry.
+- Left branch-local playhead history as a later Build Path follow-up.
+
+#### Summary of Implementation
+
+- Added Edit History commits when Build Path master timeline selection changes through `selectTimelineStep`.
+- Added undo/redo handlers that restore previous/later selected Build Path timeline steps.
+- Avoided no-op history entries when selection does not change.
+- Updated focused Build Path surface tests to prove Ctrl+Z/Ctrl+Y restores timeline selection while graph truth remains unchanged.
+
+#### Files Changed
+
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-12.2 - Timeline Selection Edit History.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Clicking or stepping the Build Path master timeline now creates a global Edit History entry.
+- Undo restores the previous Build Path selected timeline step.
+- Redo reapplies the later Build Path selected timeline step.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2087 -->
+
+### [2087] - 2026-05-23 15:35 - `Build-Path - Accepted CAD Command Selection Follow`
+
+HUMAN SUMMARY: ``Build Path now follows the CAD command the user just committed, so after Sketch or Extrude is accepted the dock/readback advances to that new build step instead of staying parked on an older scrub selection.``
+
+#### Scope / Constraints Honored
+
+- Limited the behavior to accepted Build Path CAD/build events.
+- Did not make lifecycle cards, cancelled commands, or skipped commands steal selection.
+- Preserved Edit History, graph truth, Browser visibility, restore/branch/compare/pin behavior, and worker/cache ownership.
+
+#### Summary of Implementation
+
+- Updated Build Path runtime-store intake so accepted `BuildPathEvent` results select their newly derived master timeline step.
+- Kept skipped/cancelled command summaries from changing the selected Build Path step.
+- Covered repeated command intake, dependent Sketch-to-Extrude backfill, and cancelled-command selection preservation.
+
+#### Files Changed
+
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Accepted CAD/build commands now automatically advance Build Path selection to the committed command's new timeline step.
+- Cancelled commands preserve the previously selected Build Path step.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/recordBuildPathGraphCommand.test.ts src/app/buildPath/useBuildPathRuntimeStore.ts src/app/buildPath/BuildPathSurface.test.tsx -t "recordGraphCommandSummaryForBuildPath|shows docked scrub readback|selects a visible timeline step"`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+
+<!-- ENTRY 2086 -->
+
+### [2086] - 2026-05-23 15:09 - `Build-Path-12.1 - Graph Lifecycle Timeline Cards`
+
+HUMAN SUMMARY: ``Build Path now has real structural `Graph Created` and `Graph Loaded` timeline cards, so new graphs and loaded graph reconstructions can announce their graph context before Sketch/Extrude operation cards appear.``
+
+#### Scope / Constraints Honored
+
+- Kept lifecycle cards separate from Sketch/Extrude command events.
+- Preserved graph truth, Edit History, Browser visibility, restore/branch/compare/pin behavior, and worker/cache ownership.
+- Kept graph-file schema and persisted Build Path event history unchanged.
+- Left full Parallel lane icon layout to `Build-Path-11`.
+
+#### Summary of Implementation
+
+- Added a Build Path lifecycle card contract for `graph-created` and `graph-loaded`.
+- Merged lifecycle cards into the master timeline by sequence while preserving command-event truth for Sketch/Extrude steps.
+- Recorded `Graph Created` when a graph document is created and `Graph Loaded` before reconstructed graph-load events.
+- Rendered lifecycle cards with distinct icon treatment and lifecycle readback.
+- Made dependency classification, action readiness, and viewport preview masking ignore lifecycle cards as geometry operations.
+- Closed `Build-Path-12.1 / Phases 1-3` in the phase doc, Build Path index, Workspace Modes index, and Dispatch run-state.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathLifecycle.ts`
+- `src/app/buildPath/buildPathRuntime.ts`
+- `src/app/buildPath/buildPathRuntime.test.ts`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/buildPath/buildPathTimeline.ts`
+- `src/app/buildPath/buildPathTimeline.test.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/buildPath/buildPathViewportPreview.ts`
+- `src/app/buildPath/buildPathViewportPreview.test.ts`
+- `src/app/buildPath/reconstructBuildPathFromGraph.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-12.1 - Graph Lifecycle Timeline Cards.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+
+- Creating a new graph document now appends a structural `Graph Created` Build Path lifecycle card.
+- Loading a graph file now appends a structural `Graph Loaded` card before reconstructed Sketch/Extrude cards for that graph.
+- Selecting lifecycle cards reads as structural lifecycle context and does not drive viewport preview geometry masking.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/buildPathViewportPreview.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts -t "deriveBuildPathMasterTimeline|Build Path runtime state|deriveBuildPathViewportPreviewRead|BuildPathSurface|createGraphDocument adds a second graph document|loadGraphDocumentFromFile creates a clean file-load cached entry"`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- Browser smoke: reloaded `http://localhost:5173/ParaHook_Configurator/` and confirmed the Build Path timeline surface mounted without runtime failure; the live page state was empty, so lifecycle-card visual behavior is covered by focused DOM tests.
+
 <!-- ENTRY 2085 -->
 
 ### [2085] - 2026-05-23 12:45 - `Build-Path-12 - Loaded Graph Build Path Reconstruction`

@@ -1,18 +1,22 @@
 import { create } from 'zustand'
+import { editHistoryStore } from '../store/editHistoryStore'
 import {
   addBuildPathRuntimeGraphDependencies,
+  appendBuildPathRuntimeLifecycleCard,
   appendBuildPathRuntimeEvent,
   createBuildPathRuntimeState,
   intakeGraphCommandCommitForBuildPath,
   intakeBuildPathCommandProjection,
   readBuildPathRuntimeEvents,
   readBuildPathRuntimeGraphDependencies,
+  readBuildPathRuntimeLifecycleCards,
   readBuildPathRuntimeMasterTimeline,
   replaceBuildPathRuntimeGraphReconstruction,
   type BuildPathRuntimeIntakeResult,
   type BuildPathRuntimeState,
 } from './buildPathRuntime'
 import type { BuildPathEvent } from './buildPathEvents'
+import type { BuildPathLifecycleCard, BuildPathLifecycleKind } from './buildPathLifecycle'
 import type {
   BuildPathCommandProjection,
   BuildPathProjectionBuildResultState,
@@ -33,9 +37,16 @@ export type BuildPathRuntimeStoreState = {
   isParallelModeEnabled: boolean
   selectedBranchTimelineStepIdByLaneId: Record<string, string>
   appendEvent: (event: BuildPathEvent) => BuildPathRuntimeIntakeResult
+  appendLifecycleCard: (request: {
+    lifecycleKind: BuildPathLifecycleKind
+    graphDocumentId: string
+    graphLabel?: string
+    acceptedAt?: string
+  }) => void
   addGraphDependencies: (dependencies: readonly BuildPathGraphDependency[]) => void
   replaceGraphReconstruction: (request: {
     graphDocumentId: string
+    lifecycleCards?: readonly BuildPathLifecycleCard[]
     events: readonly BuildPathEvent[]
     dependencies: readonly BuildPathGraphDependency[]
   }) => void
@@ -52,6 +63,7 @@ export type BuildPathRuntimeStoreState = {
     acceptedAt?: string
   }) => BuildPathRuntimeIntakeResult
   readEvents: () => BuildPathEvent[]
+  readLifecycleCards: () => BuildPathLifecycleCard[]
   readGraphDependencies: () => BuildPathGraphDependency[]
   readMasterTimeline: () => BuildPathMasterTimeline
   readMasterScrubState: () => BuildPathMasterScrubState
@@ -61,6 +73,41 @@ export type BuildPathRuntimeStoreState = {
   selectBranchTimelineStep: (branchLaneId: string, timelineStepId: string) => void
   resetRuntimeState: (events?: readonly BuildPathEvent[]) => void
 }
+
+const readTimelineStepIdForEvent = (
+  timeline: BuildPathMasterTimeline,
+  event: BuildPathEvent | null,
+): string | null => {
+  if (event === null) {
+    return null
+  }
+
+  return timeline.steps.find(
+    (step) =>
+      step.stepKind === 'build-event' &&
+      step.eventReference.buildPathEventId === event.buildPathEventId,
+  )?.timelineStepId ?? null
+}
+
+const readSelectedTimelineStepIdForAcceptedResult = (
+  result: BuildPathRuntimeIntakeResult,
+): string | null => {
+  if (result.status !== 'accepted') {
+    return null
+  }
+
+  return readTimelineStepIdForEvent(
+    readBuildPathRuntimeMasterTimeline(result.state),
+    result.event,
+  )
+}
+
+const createBuildPathTimelineSelectionHistoryEntryId = (nextTimelineStepId: string | null): string =>
+  [
+    'build-path-select-timeline-step',
+    nextTimelineStepId ?? 'none',
+    Date.now().toString(),
+  ].join(':')
 
 export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set, get) => ({
   runtimeState: createBuildPathRuntimeState(),
@@ -73,9 +120,24 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
       state: get().runtimeState,
     })
     if (result.state !== get().runtimeState) {
-      set({ runtimeState: result.state })
+      set({
+        runtimeState: result.state,
+        selectedTimelineStepId: readSelectedTimelineStepIdForAcceptedResult(result),
+      })
     }
     return result
+  },
+  appendLifecycleCard: ({ acceptedAt, graphDocumentId, graphLabel, lifecycleKind }) => {
+    const nextState = appendBuildPathRuntimeLifecycleCard({
+      acceptedAt,
+      graphDocumentId,
+      graphLabel,
+      lifecycleKind,
+      state: get().runtimeState,
+    })
+    if (nextState !== get().runtimeState) {
+      set({ runtimeState: nextState })
+    }
   },
   addGraphDependencies: (dependencies) => {
     const nextState = addBuildPathRuntimeGraphDependencies({
@@ -86,11 +148,12 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
       set({ runtimeState: nextState })
     }
   },
-  replaceGraphReconstruction: ({ dependencies, events, graphDocumentId }) => {
+  replaceGraphReconstruction: ({ dependencies, events, graphDocumentId, lifecycleCards }) => {
     const nextState = replaceBuildPathRuntimeGraphReconstruction({
       dependencies,
       events,
       graphDocumentId,
+      lifecycleCards,
       state: get().runtimeState,
     })
     if (nextState !== get().runtimeState) {
@@ -104,7 +167,10 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
       state: get().runtimeState,
     })
     if (result.state !== get().runtimeState) {
-      set({ runtimeState: result.state })
+      set({
+        runtimeState: result.state,
+        selectedTimelineStepId: readSelectedTimelineStepIdForAcceptedResult(result),
+      })
     }
     return result
   },
@@ -126,11 +192,15 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
       state: get().runtimeState,
     })
     if (result.state !== get().runtimeState) {
-      set({ runtimeState: result.state })
+      set({
+        runtimeState: result.state,
+        selectedTimelineStepId: readSelectedTimelineStepIdForAcceptedResult(result),
+      })
     }
     return result
   },
   readEvents: () => readBuildPathRuntimeEvents(get().runtimeState),
+  readLifecycleCards: () => readBuildPathRuntimeLifecycleCards(get().runtimeState),
   readGraphDependencies: () => readBuildPathRuntimeGraphDependencies(get().runtimeState),
   readMasterTimeline: () => readBuildPathRuntimeMasterTimeline(get().runtimeState),
   readMasterScrubState: () => {
@@ -151,9 +221,43 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
   },
   selectTimelineStep: (timelineStepId) => {
     const timeline = readBuildPathRuntimeMasterTimeline(get().runtimeState)
+    const previousScrubState = get().readMasterScrubState()
     const scrubState = selectBuildPathMasterTimelineStep(timeline, timelineStepId)
 
+    if (previousScrubState.selectedTimelineStepId === scrubState.selectedTimelineStepId) {
+      return scrubState
+    }
+
     set({ selectedTimelineStepId: scrubState.selectedTimelineStepId })
+    editHistoryStore.commitEntry({
+      entryId: createBuildPathTimelineSelectionHistoryEntryId(scrubState.selectedTimelineStepId),
+      label: 'Build Path timeline selection',
+      source: {
+        surface: 'build-path',
+        sourceId: 'master-timeline',
+        sourceLabel: 'Build Path',
+      },
+      targetId: scrubState.selectedTimelineStepId ?? undefined,
+      targetLabel: scrubState.selectedOrderIndex === null
+        ? undefined
+        : `Step ${scrubState.selectedOrderIndex + 1}`,
+      undo: () => {
+        const nextTimeline = readBuildPathRuntimeMasterTimeline(get().runtimeState)
+        const previousState = selectBuildPathMasterTimelineStep(
+          nextTimeline,
+          previousScrubState.selectedTimelineStepId,
+        )
+        set({ selectedTimelineStepId: previousState.selectedTimelineStepId })
+      },
+      redo: () => {
+        const nextTimeline = readBuildPathRuntimeMasterTimeline(get().runtimeState)
+        const nextState = selectBuildPathMasterTimelineStep(
+          nextTimeline,
+          scrubState.selectedTimelineStepId,
+        )
+        set({ selectedTimelineStepId: nextState.selectedTimelineStepId })
+      },
+    })
 
     return scrubState
   },

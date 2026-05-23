@@ -115,6 +115,13 @@ const DEFAULT_FLOATING_RECT: ConsoleFloatingRect = {
 const CLEAR_PRESET_BACKGROUND_OPACITY = 10
 const CLEAR_PRESET_BACKGROUND_FILL_MODE: ConsoleBackgroundFillMode = 'flat'
 
+export type ConsoleInputFocusReason = 'extrude-depth'
+
+export type ConsoleInputFocusRequest = {
+  seq: number
+  reason: ConsoleInputFocusReason
+}
+
 type ConsoleState = {
   isExpanded: boolean
   windowMode: ConsoleWindowMode
@@ -122,6 +129,7 @@ type ConsoleState = {
   expandedHeight: number
   summaryWidth: number | null
   inputText: string
+  inputFocusRequest: ConsoleInputFocusRequest | null
   commandHistory: string[]
   historyIndex: number | null
   historyDraft: string
@@ -157,6 +165,7 @@ type ConsoleState = {
       preserveGuidedReplace?: boolean
     },
   ) => void
+  requestInputFocus: (reason: ConsoleInputFocusReason) => void
   seedInputText: (value: string) => void
   pushCommandHistory: (value: string) => void
   recallPreviousHistory: () => void
@@ -509,6 +518,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   expandedHeight: DEFAULT_EXPANDED_HEIGHT,
   summaryWidth: DEFAULT_SUMMARY_WIDTH,
   inputText: '',
+  inputFocusRequest: null,
   commandHistory: [],
   historyIndex: null,
   historyDraft: '',
@@ -581,6 +591,25 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
           activeDescriptor === null ? false : nextTracking.isStagedChoiceManualOverride,
       }
     })
+  },
+  requestInputFocus: (reason) => {
+    set((state) => ({
+      inputFocusRequest: {
+        seq: (state.inputFocusRequest?.seq ?? 0) + 1,
+        reason,
+      },
+      ...(reason === 'extrude-depth'
+        ? {
+            stagedNavigationSession: null,
+            consolePromptSession: null,
+            stagedChoiceIndex: null,
+            isStagedChoiceManualOverride: false,
+            inputText: '',
+            historyIndex: null,
+            historyDraft: '',
+          }
+        : {}),
+    }))
   },
   seedInputText: (value) => {
     set((state) => {

@@ -1208,6 +1208,104 @@ describe('ViewerHost reference loading', () => {
     expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
   })
 
+  it('requests console input focus after a profile pick advances active Extrude to depth', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: {
+              sketch: {
+                type: 'sketch',
+                featureId: 'sketch-1',
+                plane: 'XY',
+                components: [],
+                outputs: {
+                  profiles: [
+                    {
+                      profileId: 'profile-a',
+                      profileIndex: 0,
+                      area: 100,
+                      loop: { winding: 'CCW', segments: [] },
+                      verticesProxy: [],
+                    },
+                  ],
+                },
+                uiState: { collapsed: false },
+              },
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'viewport-shortcut',
+      })
+      useConsoleStore.getState().setStagedNavigationSession({
+        scopeId: 'root',
+        breadcrumb: ['Root'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+        },
+        validChoices: [
+          {
+            canonicalToken: 'GRAPH',
+            aliases: ['G'],
+            label: 'Graph',
+            kind: 'scope',
+          },
+        ],
+      })
+    })
+
+    expect(useConsoleStore.getState().inputText).toBe('Graph')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const profilePickHandler = viewerSetOnGeometrySketchSelectProfile.mock.calls.at(-1)?.[0] as
+      | GeometrySketchProfilePickHandler
+      | undefined
+
+    act(() => {
+      profilePickHandler?.({
+        sketchNodeId: 'node-sketch-1',
+        profileId: 'profile-a',
+        shiftKey: false,
+      })
+    })
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toMatchObject({
+      activeStep: 'depth',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+    })
+    expect(useConsoleStore.getState().inputFocusRequest).toMatchObject({
+      seq: 1,
+      reason: 'extrude-depth',
+    })
+    expect(useConsoleStore.getState().inputText).toBe('')
+    expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
+  })
+
   it('toggles multiple viewport sketch profile preselections outside Extrude', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')

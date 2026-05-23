@@ -6368,6 +6368,9 @@ describe('ConsoleDock', () => {
       summaryLeadText: ' > Enter depth',
     })
     expect(useConsoleStore.getState().inputText).toBe('')
+    expect(document.activeElement).toBe(
+      container.querySelector('input[aria-label="Console input"]'),
+    )
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Extrude > Depth',
     )

@@ -4,7 +4,10 @@ import type {
   BuildPathExplicitActionKind,
   BuildPathTimelineStep,
 } from './buildPathTimeline'
-import { BUILD_PATH_EXPLICIT_ACTION_BOUNDARIES } from './buildPathTimeline'
+import {
+  BUILD_PATH_EXPLICIT_ACTION_BOUNDARIES,
+  isBuildPathBuildEventTimelineStep,
+} from './buildPathTimeline'
 
 export type BuildPathCheckpointReadinessStatus =
   | 'no-selected-step'
@@ -132,9 +135,12 @@ export const deriveBuildPathCheckpointReadiness = ({
   }
 
   const isCheckpointCandidate =
-    classification?.isCheckpointCandidate === true ||
-    selectedStep.event.affectedOutputIds.length > 0 ||
-    selectedStep.event.buildResultState.kind === 'linked'
+    isBuildPathBuildEventTimelineStep(selectedStep) &&
+    (
+      classification?.isCheckpointCandidate === true ||
+      selectedStep.event.affectedOutputIds.length > 0 ||
+      selectedStep.event.buildResultState.kind === 'linked'
+    )
 
   return {
     status: isCheckpointCandidate ? 'missing-worker-checkpoint' : 'read-only-candidate',

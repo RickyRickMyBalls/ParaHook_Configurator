@@ -97,6 +97,25 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('keeps focused console numeric input out of viewer camera shortcut routing', () => {
+    const input = document.createElement('input')
+    input.dataset.consoleInput = 'true'
+
+    expect(routeKeyboardInput({
+      event: {
+        key: '5',
+        code: 'Numpad5',
+        target: input,
+      },
+      allowFlatConsoleCapture: true,
+      viewerCameraShortcutsEnabled: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+    })).toEqual({
+      owner: 'text-field',
+      decision: 'defer-native',
+    })
+  })
+
   it('preserves native undo for focused console input with a meaningful unsent draft', () => {
     const input = document.createElement('input')
     input.dataset.consoleInput = 'true'

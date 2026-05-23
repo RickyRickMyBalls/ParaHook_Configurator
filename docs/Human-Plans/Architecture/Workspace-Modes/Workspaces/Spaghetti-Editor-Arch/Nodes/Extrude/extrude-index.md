@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+92. 2026-05-23 17:58:13: Marked `Extrude-8 - Command Flow Console Focus Cleanup` shipped after the Console-owned focus request seam, command-first profile-pick focus handoff, selected-first clean Depth entry, shortcut/camera numeric input proof, focused tests, TypeScript, and production build landed.
+91. 2026-05-23 17:35:37: Added `Extrude-8 - Command Flow Console Focus Cleanup` as the next future lane for active Extrude profile-pick to Console focus handoff, selected-first Depth entry, and shortcut/camera input-ownership proof after read-only code research showed the state transition and input clearing are already present but the viewport profile click does not explicitly focus Console.
 90. 2026-04-09 00:31: Marked `Extrude 7 Phase 4 - Hardening And Family Handoff` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after graph-native preview invalidation began clearing stale extrude geometry the moment `Extrude.SketchProfiles` stops publishing a valid body, then closed the family read so `Extrude-7` now stands as the shipped first honest multi-wire extrude input subset
 89. 2026-04-09 00:15: Tightened `Extrude 7 Phase 4 - Hardening And Family Handoff` inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` again after the contributor-runtime fix so the final slice now explicitly owns the remaining draft plus authoritative worker proof for cross-sketch whole-port `SketchProfiles` contributors, along with any last copy drift and the final family closeout wording
 88. 2026-04-09 00:03: Marked `Extrude 7 Phase 3 - Selector And Surface Multi-Wire Parity` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after the live selector, node surface, and canvas seams adopted authored-order child-entry anchoring, then tightened `Phase 4 - Hardening And Family Handoff` into the next implementation-ready final slice around focused verification cleanup and explicit family closeout boundaries
@@ -929,3 +931,33 @@ Current status:
   - contributor-mode draft plus authoritative worker execution is now covered for cross-sketch whole-port `SketchProfiles` sources
   - graph-native preview invalidation now drops stale extrude geometry immediately when the current graph no longer resolves a valid `SolidBody`
 - Keep broader viewport-owned selection flows, toolbar auto-wiring, and sketch-taxonomy widening outside this lane unless the graph contract work directly requires a narrow follow-on.
+
+## [x] Extrude-8 - Command Flow Console Focus Cleanup
+
+### Summary
+
+This umbrella now has a dedicated future-phase home:
+- `Future/Extrude_Phase Extrude-8 - Command Flow Console Focus Cleanup.md`
+
+That doc owns the actual `Extrude 8 Phase 1` through `Phase 3` breakdown.
+
+Current status:
+- `Extrude 8 Phase 1 - Profile Pick To Console Focus Handoff`
+  - shipped
+- `Extrude 8 Phase 2 - Selected-First Depth Entry`
+  - shipped
+- `Extrude 8 Phase 3 - Shortcut Priority And Camera Collision Proof`
+  - shipped
+
+### Questions
+
+- Should active Extrude profile clicks explicitly hand keyboard focus to Console when the command reaches `Depth`?
+- Should selected-profile-first Extrude startup use the same focus handoff so typing a number and pressing `Enter` commits cleanly?
+- Should the shortcut and camera priority proof stay in the existing shared input-routing seams instead of adding another keyboard owner?
+
+### Spec
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Extrude-8` future doc for the actual phase ladder and execution-ready details.
+- Keep `Extrude-8` focused on command-flow cleanup around active Extrude, Console focus, clean Depth input, and shortcut/camera ownership proof.
+- Do not reopen graph/runtime extrusion semantics, multi-wire profile execution, or broader Console staged-navigation design in this lane.

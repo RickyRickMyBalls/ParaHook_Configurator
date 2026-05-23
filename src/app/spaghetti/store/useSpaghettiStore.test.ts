@@ -848,6 +848,15 @@ describe('useSpaghettiStore graph normalization', () => {
     ])
     expect(selectGraphDocumentById(state, secondGraphId)?.name).toBe('Graph 2')
     expect(state.activeGraphDocumentId).toBe('graph-document-1')
+    expect(useBuildPathRuntimeStore.getState().readLifecycleCards()).toMatchObject([
+      {
+        lifecycleKind: 'graph-created',
+        graphDocumentId: secondGraphId,
+        graphLabel: 'Graph 2',
+        isStructural: true,
+        affectsGeometry: false,
+      },
+    ])
   })
 
   it('seeds cached graph entries for live graph documents and marks in-memory graphs dirty', () => {
@@ -2059,14 +2068,30 @@ describe('useSpaghettiStore graph normalization', () => {
       {
         commandFamily: 'Sketch',
         sourceKind: 'reconstructed',
+        eventSequence: 2,
         affectedNodeIds: ['node-sketch-loaded'],
       },
       {
         commandFamily: 'Extrude',
         sourceKind: 'reconstructed',
+        eventSequence: 3,
         affectedNodeIds: ['node-extrude-loaded'],
       },
     ])
+    expect(useBuildPathRuntimeStore.getState().readLifecycleCards()).toMatchObject([
+      {
+        lifecycleKind: 'graph-loaded',
+        graphDocumentId: 'graph-document-loaded',
+        graphLabel: 'Loaded Graph',
+        sourceKind: 'reconstructed',
+        eventSequence: 1,
+        isStructural: true,
+        affectsGeometry: false,
+      },
+    ])
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+      (step) => step.display.label,
+    )).toEqual(['Graph Loaded', 'Sketch', 'Extrude'])
     expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toEqual([
       {
         edgeId: 'edge-sketch-to-extrude-loaded',

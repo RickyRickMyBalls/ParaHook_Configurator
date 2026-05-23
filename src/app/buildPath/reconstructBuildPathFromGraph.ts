@@ -18,6 +18,10 @@ export type LoadedGraphBuildPathReconstruction = {
   unsupportedNodeIds: string[]
 }
 
+export type ReconstructBuildPathFromLoadedGraphOptions = {
+  startEventSequence?: number
+}
+
 const commandFamilyByNodeType: Record<string, GraphCommandFamily> = {
   'Geometry/Sketch': 'Sketch',
   'Geometry/Extrude': 'Extrude',
@@ -147,6 +151,7 @@ const collectNodeEdgeIds = (
 
 export const reconstructBuildPathFromLoadedGraph = (
   document: GraphDocument,
+  options: ReconstructBuildPathFromLoadedGraphOptions = {},
 ): LoadedGraphBuildPathReconstruction => {
   const supportedNodes = document.graph.nodes.filter(
     (node) => readSupportedCommandFamily(node) !== null,
@@ -171,7 +176,7 @@ export const reconstructBuildPathFromLoadedGraph = (
     graphDocumentId: document.graphDocumentId,
     events: orderedNodes.map((node, index): BuildPathEvent => {
       const commandFamily = readSupportedCommandFamily(node)
-      const eventSequence = index + 1
+      const eventSequence = (options.startEventSequence ?? 1) + index
       const sourceProjectionId = [
         'build-path-reconstructed',
         document.graphDocumentId,

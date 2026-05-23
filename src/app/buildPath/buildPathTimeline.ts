@@ -1,10 +1,11 @@
 import type { BuildPathEvent } from './buildPathEvents'
+import type { BuildPathLifecycleCard } from './buildPathLifecycle'
 
 export const BUILD_PATH_MASTER_TIMELINE_ID = 'build-path-master-linear-timeline'
 
 export type BuildPathTimelineStatus = 'empty' | 'ready'
 
-export type BuildPathTimelineStepIcon = 'sketch' | 'extrude'
+export type BuildPathTimelineStepIcon = 'sketch' | 'extrude' | 'graph-created' | 'graph-loaded'
 
 export type BuildPathTimelineStepDisplayMetadata = {
   label: string
@@ -19,13 +20,27 @@ export type BuildPathTimelineEventReference = {
   eventSequence: number
 }
 
-export type BuildPathTimelineStep = {
+export type BuildPathBuildEventTimelineStep = {
   timelineStepId: string
+  stepKind: 'build-event'
   orderIndex: number
   eventReference: BuildPathTimelineEventReference
   event: BuildPathEvent
   display: BuildPathTimelineStepDisplayMetadata
 }
+
+export type BuildPathLifecycleTimelineStep = {
+  timelineStepId: string
+  stepKind: 'lifecycle-card'
+  orderIndex: number
+  eventReference: BuildPathTimelineEventReference
+  lifecycleCard: BuildPathLifecycleCard
+  display: BuildPathTimelineStepDisplayMetadata
+}
+
+export type BuildPathTimelineStep =
+  | BuildPathBuildEventTimelineStep
+  | BuildPathLifecycleTimelineStep
 
 export type BuildPathTimelineEmptyState = {
   title: string
@@ -132,8 +147,27 @@ const displayMetadataByCommandFamily: Record<
   },
 }
 
+const displayMetadataByLifecycleKind: Record<
+  BuildPathLifecycleCard['lifecycleKind'],
+  BuildPathTimelineStepDisplayMetadata
+> = {
+  'graph-created': {
+    label: 'Graph Created',
+    icon: 'graph-created',
+    iconLabel: 'Graph created lifecycle card',
+  },
+  'graph-loaded': {
+    label: 'Graph Loaded',
+    icon: 'graph-loaded',
+    iconLabel: 'Graph loaded lifecycle card',
+  },
+}
+
 const createBuildPathTimelineStepId = (event: BuildPathEvent): string =>
   ['build-path-step', event.eventSequence.toString(), event.buildPathEventId].join(':')
+
+const createBuildPathLifecycleTimelineStepId = (card: BuildPathLifecycleCard): string =>
+  ['build-path-step', card.eventSequence.toString(), card.buildPathLifecycleCardId].join(':')
 
 const createBuildPathTimelineEventReference = (
   event: BuildPathEvent,
@@ -144,32 +178,84 @@ const createBuildPathTimelineEventReference = (
   eventSequence: event.eventSequence,
 })
 
+const createBuildPathLifecycleEventReference = (
+  card: BuildPathLifecycleCard,
+): BuildPathTimelineEventReference => ({
+  buildPathEventId: card.buildPathLifecycleCardId,
+  sourceProjectionId: card.buildPathLifecycleCardId,
+  graphDocumentId: card.graphDocumentId,
+  eventSequence: card.eventSequence,
+})
+
 const getDisplayMetadataForEvent = (
   event: BuildPathEvent,
 ): BuildPathTimelineStepDisplayMetadata => ({
   ...displayMetadataByCommandFamily[event.commandFamily],
 })
 
+const getDisplayMetadataForLifecycleCard = (
+  card: BuildPathLifecycleCard,
+): BuildPathTimelineStepDisplayMetadata => ({
+  ...displayMetadataByLifecycleKind[card.lifecycleKind],
+})
+
+export const isBuildPathBuildEventTimelineStep = (
+  step: BuildPathTimelineStep,
+): step is BuildPathBuildEventTimelineStep => step.stepKind === 'build-event'
+
+const compareTimelineSourceOrder = (
+  left: { eventSequence: number; id: string },
+  right: { eventSequence: number; id: string },
+): number => {
+  const sequenceOrder = left.eventSequence - right.eventSequence
+
+  if (sequenceOrder !== 0) {
+    return sequenceOrder
+  }
+
+  return left.id.localeCompare(right.id)
+}
+
 export const deriveBuildPathMasterTimeline = (
   events: readonly BuildPathEvent[],
+  lifecycleCards: readonly BuildPathLifecycleCard[] = [],
 ): BuildPathMasterTimeline => {
-  const orderedEvents = [...events].sort((left, right) => {
-    const sequenceOrder = left.eventSequence - right.eventSequence
+  const orderedSources = [
+    ...events.map((event) => ({
+      sourceKind: 'build-event' as const,
+      eventSequence: event.eventSequence,
+      id: event.buildPathEventId,
+      event,
+    })),
+    ...lifecycleCards.map((lifecycleCard) => ({
+      sourceKind: 'lifecycle-card' as const,
+      eventSequence: lifecycleCard.eventSequence,
+      id: lifecycleCard.buildPathLifecycleCardId,
+      lifecycleCard,
+    })),
+  ].sort(compareTimelineSourceOrder)
 
-    if (sequenceOrder !== 0) {
-      return sequenceOrder
+  const steps = orderedSources.map((source, orderIndex): BuildPathTimelineStep => {
+    if (source.sourceKind === 'lifecycle-card') {
+      return {
+        timelineStepId: createBuildPathLifecycleTimelineStepId(source.lifecycleCard),
+        stepKind: 'lifecycle-card',
+        orderIndex,
+        eventReference: createBuildPathLifecycleEventReference(source.lifecycleCard),
+        lifecycleCard: source.lifecycleCard,
+        display: getDisplayMetadataForLifecycleCard(source.lifecycleCard),
+      }
     }
 
-    return left.buildPathEventId.localeCompare(right.buildPathEventId)
+    return {
+      timelineStepId: createBuildPathTimelineStepId(source.event),
+      stepKind: 'build-event',
+      orderIndex,
+      eventReference: createBuildPathTimelineEventReference(source.event),
+      event: source.event,
+      display: getDisplayMetadataForEvent(source.event),
+    }
   })
-
-  const steps = orderedEvents.map((event, orderIndex): BuildPathTimelineStep => ({
-    timelineStepId: createBuildPathTimelineStepId(event),
-    orderIndex,
-    eventReference: createBuildPathTimelineEventReference(event),
-    event,
-    display: getDisplayMetadataForEvent(event),
-  }))
 
   return {
     timelineId: BUILD_PATH_MASTER_TIMELINE_ID,
@@ -235,7 +321,7 @@ export const deriveBuildPathBranchProjection = ({
   const nodeOwnerByNodeId = new Map<string, { branchLaneId: string; timelineStepId: string }>()
   const rootStepIds = new Set<string>()
 
-  timeline.steps.forEach((step) => {
+  timeline.steps.filter(isBuildPathBuildEventTimelineStep).forEach((step) => {
     const affectedNodeIds = new Set(step.event.affectedNodeIds)
     const predecessorMatches = dependencies.flatMap((dependency) => {
       if (!affectedNodeIds.has(dependency.toNodeId)) {

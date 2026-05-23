@@ -1952,6 +1952,9 @@ export function useConsoleInteraction(
           ),
     )
     useConsoleStore.getState().setInputText('')
+    if (session.activeStep === 'depth') {
+      useConsoleStore.getState().requestInputFocus('extrude-depth')
+    }
     appendConsoleEntry({
       layer: 'Commands',
       text: 'Extrude',

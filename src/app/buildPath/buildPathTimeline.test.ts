@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { createEditHistoryStore } from '../store/editHistoryStore'
 import type { BuildPathEvent } from './buildPathEvents'
+import { createBuildPathLifecycleCard } from './buildPathLifecycle'
 import {
   BUILD_PATH_EXPLICIT_ACTION_BOUNDARIES,
   createBuildPathMasterScrubState,
   createBuildPathParallelScrubState,
   deriveBuildPathBranchProjection,
   deriveBuildPathMasterTimeline,
+  isBuildPathBuildEventTimelineStep,
   selectBuildPathBranchTimelineStep,
   selectBuildPathMasterTimelineStep,
 } from './buildPathTimeline'
@@ -125,6 +127,9 @@ describe('deriveBuildPathMasterTimeline', () => {
       icon: 'extrude',
       iconLabel: 'Extrude build event',
     })
+    if (step.stepKind !== 'build-event') {
+      throw new Error('Expected timeline step to be a build event.')
+    }
     expect(step.event.commandFamily).toBe('Extrude')
     expect(step.eventReference).toEqual({
       buildPathEventId: 'build-path-event:1:projection-extrude-display',
@@ -132,6 +137,35 @@ describe('deriveBuildPathMasterTimeline', () => {
       graphDocumentId: 'graph-document-1',
       eventSequence: 1,
     })
+  })
+
+  it('sorts structural graph lifecycle cards alongside build events without command truth', () => {
+    const graphLoadedCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId: 'graph-document-loaded',
+      graphLabel: 'Loaded Graph',
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
+    const sketchEvent = createBuildPathEvent({
+      commandFamily: 'Sketch',
+      eventSequence: 2,
+      projectionId: 'projection-loaded-sketch',
+    })
+
+    const timeline = deriveBuildPathMasterTimeline([sketchEvent], [graphLoadedCard])
+
+    expect(timeline.steps.map((step) => step.display.label)).toEqual([
+      'Graph Loaded',
+      'Sketch',
+    ])
+    expect(timeline.steps.map((step) => step.display.icon)).toEqual([
+      'graph-loaded',
+      'sketch',
+    ])
+    expect(timeline.steps[0].stepKind).toBe('lifecycle-card')
+    expect(isBuildPathBuildEventTimelineStep(timeline.steps[0])).toBe(false)
+    expect(timeline.steps[0].eventReference.graphDocumentId).toBe('graph-document-loaded')
   })
 })
 

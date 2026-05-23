@@ -4,6 +4,7 @@ import {
   type BuildPathBranchProjection,
   type BuildPathMasterTimeline,
   type BuildPathTimelineStep,
+  isBuildPathBuildEventTimelineStep,
 } from './buildPathTimeline'
 import {
   deriveBuildPathActionBoundaryRead,
@@ -34,6 +35,27 @@ type BuildPathViewportDockProps = {
 }
 
 function BuildPathStepIcon({ step }: { step: BuildPathTimelineStep }) {
+  if (step.display.icon === 'graph-created') {
+    return (
+      <svg className="BuildPathStepGlyph" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M4.5 5.5h11v9h-11v-9Z" />
+        <path d="M7 8.5h6" />
+        <path d="M10 11.5v-6" />
+      </svg>
+    )
+  }
+
+  if (step.display.icon === 'graph-loaded') {
+    return (
+      <svg className="BuildPathStepGlyph" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M4.5 5.5h11v9h-11v-9Z" />
+        <path d="M7 10.5h6" />
+        <path d="m8.5 8 1.5-1.5L11.5 8" />
+        <path d="M10 6.5v6" />
+      </svg>
+    )
+  }
+
   if (step.display.icon === 'extrude') {
     return (
       <svg className="BuildPathStepGlyph" viewBox="0 0 20 20" aria-hidden="true">
@@ -53,6 +75,10 @@ function BuildPathStepIcon({ step }: { step: BuildPathTimelineStep }) {
 }
 
 const formatBuildResultState = (step: BuildPathTimelineStep): string => {
+  if (!isBuildPathBuildEventTimelineStep(step)) {
+    return 'structural'
+  }
+
   const state = step.event.buildResultState
 
   if (state.kind === 'linked') {
@@ -87,28 +113,49 @@ function BuildPathSelectedEventReadback({
         <span className="BuildPathReadbackFamily">{step.display.label}</span>
         <span className="BuildPathReadbackIndex">{`#${step.orderIndex + 1}`}</span>
       </div>
-      <dl className="BuildPathReadbackGrid">
-        <div>
-          <dt>Graph</dt>
-          <dd>{step.eventReference.graphDocumentId}</dd>
-        </div>
-        <div>
-          <dt>Nodes</dt>
-          <dd>{step.event.affectedNodeIds.length}</dd>
-        </div>
-        <div>
-          <dt>Edges</dt>
-          <dd>{step.event.affectedEdgeIds.length}</dd>
-        </div>
-        <div>
-          <dt>Outputs</dt>
-          <dd>{step.event.affectedOutputIds.length}</dd>
-        </div>
-        <div>
-          <dt>Result</dt>
-          <dd>{formatBuildResultState(step)}</dd>
-        </div>
-      </dl>
+      {isBuildPathBuildEventTimelineStep(step) ? (
+        <dl className="BuildPathReadbackGrid">
+          <div>
+            <dt>Graph</dt>
+            <dd>{step.eventReference.graphDocumentId}</dd>
+          </div>
+          <div>
+            <dt>Nodes</dt>
+            <dd>{step.event.affectedNodeIds.length}</dd>
+          </div>
+          <div>
+            <dt>Edges</dt>
+            <dd>{step.event.affectedEdgeIds.length}</dd>
+          </div>
+          <div>
+            <dt>Outputs</dt>
+            <dd>{step.event.affectedOutputIds.length}</dd>
+          </div>
+          <div>
+            <dt>Result</dt>
+            <dd>{formatBuildResultState(step)}</dd>
+          </div>
+        </dl>
+      ) : (
+        <dl className="BuildPathReadbackGrid">
+          <div>
+            <dt>Graph</dt>
+            <dd>{step.lifecycleCard.graphLabel}</dd>
+          </div>
+          <div>
+            <dt>Kind</dt>
+            <dd>Lifecycle</dd>
+          </div>
+          <div>
+            <dt>Geometry</dt>
+            <dd>None</dd>
+          </div>
+          <div>
+            <dt>Source</dt>
+            <dd>{step.lifecycleCard.sourceKind}</dd>
+          </div>
+        </dl>
+      )}
       {actionBoundaryRead !== undefined ? (
         <BuildPathActionBoundaryPanel actionBoundaryRead={actionBoundaryRead} />
       ) : null}
@@ -502,13 +549,13 @@ export function BuildPathSurface({
       classification,
     ]),
   )
-  const actionBoundaryRead = deriveBuildPathActionBoundaryRead({
-    classification:
-      selectedStep === null
-        ? null
-        : branchClassificationByStepId.get(selectedStep.timelineStepId) ?? null,
-    selectedStep,
-  })
+  const actionBoundaryRead =
+    selectedStep !== null && isBuildPathBuildEventTimelineStep(selectedStep)
+      ? deriveBuildPathActionBoundaryRead({
+          classification: branchClassificationByStepId.get(selectedStep.timelineStepId) ?? null,
+          selectedStep,
+        })
+      : undefined
   const timelineStepById = new Map(
     resolvedTimeline.steps.map((step) => [step.timelineStepId, step]),
   )

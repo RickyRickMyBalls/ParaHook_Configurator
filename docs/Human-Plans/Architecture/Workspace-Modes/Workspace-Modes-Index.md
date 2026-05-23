@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+230. 2026-05-23 16:22:05: Added, implemented, and closed `Build-Path-12.2 - Timeline Selection Edit History` so user-driven Build Path master timeline selection changes now enter global Edit History and undo/redo selection without mutating CAD graph truth.
+229. 2026-05-23 15:35:05: Recorded the Build Path accepted CAD command selection-follow repair so committed Sketch/Extrude events now advance the Build Path selection to the newly accepted timeline step while cancelled commands preserve the previous selection.
+228. 2026-05-23 15:09:00: Recorded `Build-Path-12.1 - Graph Lifecycle Timeline Cards` as implemented with structural `Graph Created` and `Graph Loaded` Build Path cards, graph create/load intake, distinct lifecycle display, viewport-mask safety proof, focused tests, typecheck, build, and browser smoke coverage.
 227. 2026-05-23 13:54:15: Added and prepped `Build-Path-12.1 - Graph Lifecycle Timeline Cards` for explicit `Graph Created` and `Graph Loaded` Build Path timeline cards before returning to Parallel lane icon layout.
 226. 2026-05-23 12:45:30: Added, implemented, and closed `Build-Path-12 - Loaded Graph Build Path Reconstruction` with reconstructed Sketch/Extrude events from loaded graph structure, reconstructed dependency hints, graph-load runtime intake, focused tests, typecheck, and production build.
 225. 2026-05-23 12:27:02: Added and prepped `Build-Path-11 - Parallel Lane Icon Layout` as the next collaborative Build Path visual cleanup phase for drawing branch-local icons in parallel lanes while preserving master timeline order and derived graph truth.

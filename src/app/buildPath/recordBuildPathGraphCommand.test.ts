@@ -53,6 +53,10 @@ describe('recordGraphCommandSummaryForBuildPath', () => {
         eventSequence: 2,
       },
     ])
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.eventReference).toMatchObject({
+      buildPathEventId: second.event?.buildPathEventId,
+      eventSequence: 2,
+    })
   })
 
   it('skips cancelled graph commands and preserves canonical redo history', () => {
@@ -79,6 +83,38 @@ describe('recordGraphCommandSummaryForBuildPath', () => {
     expect(useBuildPathRuntimeStore.getState().readEvents()).toEqual([])
     expect(editHistoryStore.getUndoEntries()).toEqual([])
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
+  })
+
+  it('keeps the selected committed CAD step when a later command is cancelled', () => {
+    const accepted = recordGraphCommandSummaryForBuildPath({
+      commandSummary: commitReadyGraphCommandPlan(
+        createReadyGraphCommandCommitPlan({
+          commandFamily: 'Sketch',
+          entryPoint: 'console-root',
+          intendedMutations: ['reuse-node'],
+        }),
+        {
+          reusedNodeIds: ['sketch-node-1'],
+        },
+      ),
+      graphDocumentId: 'graph-document-1',
+    })
+    const selectedBeforeCancel = useBuildPathRuntimeStore.getState().readSelectedTimelineStep()
+
+    const skipped = recordGraphCommandSummaryForBuildPath({
+      commandSummary: cancelGraphCommandBeforeCommit({
+        commandFamily: 'Extrude',
+        entryPoint: 'console-root',
+        reason: 'missing-profile-selection',
+      }),
+      graphDocumentId: 'graph-document-1',
+    })
+
+    expect(accepted.status).toBe('accepted')
+    expect(skipped.status).toBe('skipped')
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.timelineStepId).toBe(
+      selectedBeforeCancel?.timelineStepId,
+    )
   })
 
   it('backfills a missing source Sketch before recording a dependent Extrude', () => {
@@ -121,6 +157,10 @@ describe('recordGraphCommandSummaryForBuildPath', () => {
         eventSequence: 2,
       },
     ])
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.eventReference).toMatchObject({
+      buildPathEventId: extrude.event?.buildPathEventId,
+      eventSequence: 2,
+    })
   })
 
   it('records Build Path dependency hints without creating Edit History entries', () => {

@@ -919,6 +919,7 @@ export function ConsoleDock({
   const lastHandledConsoleContextSyncSeqRef = useRef(0)
   const lastHandledConsoleWorkspaceContextHandoffSeqRef = useRef(0)
   const lastHandledReferenceTransformShellExitSeqRef = useRef(0)
+  const lastInputFocusRequestSeqRef = useRef(0)
   const suppressNextReferenceTransformShellExitRef = useRef(false)
   const environmentLightTransformWarningRef = useRef<string | null>(null)
   const previousSketchPlanePickSessionRef = useRef<
@@ -1050,6 +1051,7 @@ export function ConsoleDock({
   const setExpanded = useConsoleStore((state) => state.setExpanded)
   const pushCommandHistory = useConsoleStore((state) => state.pushCommandHistory)
   const consoleInputText = useConsoleStore((state) => state.inputText)
+  const inputFocusRequest = useConsoleStore((state) => state.inputFocusRequest)
   const seedInputText = useConsoleStore((state) => state.seedInputText)
   const stagedNavigationSession = useConsoleStore((state) => state.stagedNavigationSession)
   const consolePromptSession = useConsoleStore((state) => state.consolePromptSession)
@@ -1236,6 +1238,21 @@ export function ConsoleDock({
   const focusPopoutConsoleInput = useCallback(() => {
     popoutInputRef.current?.focus()
   }, [])
+
+  useEffect(() => {
+    if (
+      inputFocusRequest === null ||
+      inputFocusRequest.seq === lastInputFocusRequestSeqRef.current
+    ) {
+      return
+    }
+    lastInputFocusRequestSeqRef.current = inputFocusRequest.seq
+    if (windowMode === 'popout') {
+      focusPopoutConsoleInput()
+      return
+    }
+    focusMainConsoleInput()
+  }, [focusMainConsoleInput, focusPopoutConsoleInput, inputFocusRequest, windowMode])
 
   const handleConsolePopoutBlocked = useCallback(() => {
     appendConsoleEntry({

@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-05-23 16:22:05: Added, implemented, and closed `Build-Path-12.2 - Timeline Selection Edit History` so user-driven Build Path master timeline selection changes now enter global Edit History and undo/redo selection without mutating CAD graph truth.
+26. 2026-05-23 15:35:05: Recorded the Build Path accepted CAD command selection-follow repair so committed CAD/build events now advance the Build Path scrub selection to the newly accepted timeline step while cancelled commands leave selection alone.
+25. 2026-05-23 15:09:00: Recorded `Build-Path-12.1 - Graph Lifecycle Timeline Cards` as implemented with structural `Graph Created` and `Graph Loaded` timeline cards, graph create/load intake, distinct lifecycle card display, viewport-mask safety proof, focused tests, typecheck, build, and browser smoke coverage.
 24. 2026-05-23 13:54:15: Added and prepped `Build-Path-12.1 - Graph Lifecycle Timeline Cards` to plan explicit `Graph Created` and `Graph Loaded` Build Path cards before returning to Parallel lane icon layout.
 23. 2026-05-23 12:45:30: Added, implemented, and closed `Build-Path-12 - Loaded Graph Build Path Reconstruction` with reconstructed Sketch/Extrude events from loaded graph structure, reconstructed dependency hints, graph-load runtime intake, focused tests, typecheck, and production build.
 22. 2026-05-23 12:27:02: Added and prepped `Build-Path-11 - Parallel Lane Icon Layout` as the next collaborative Build Path phase for cleaning up Parallel mode by drawing branch-local icons in parallel lanes while preserving master timeline order and derived graph truth.
@@ -100,6 +103,7 @@ Current legal family-phase ladder:
 - `Build-Path-11` - parallel lane icon layout
 - `Build-Path-12` - loaded graph build path reconstruction
 - `Build-Path-12.1` - graph lifecycle timeline cards
+- `Build-Path-12.2` - timeline selection Edit History
 
 Important planning rule:
 - use this index to choose and bound the next `Build-Path-N` family phase
@@ -108,8 +112,10 @@ Important planning rule:
 
 Dispatch next:
 - Build Path Generation 1 visual-preview and action-boundary ladder is complete through `Build-Path-10`.
-- next legal collaborative task can be `Build-Path-12.1 - Graph Lifecycle Timeline Cards / Phase 1 - Lifecycle Card Contract` if lifecycle cards should land before Parallel lane rendering.
-- after lifecycle-card direction is accepted, return to `Build-Path-11 - Parallel Lane Icon Layout / Phase 1 - Parallel Lane Visual Model` with loaded-graph reconstruction and lifecycle markers available.
+- `Build-Path-12.1` is complete; structural `Graph Created` and `Graph Loaded` cards are now available as graph/lane anchors.
+- accepted CAD/build command intake now auto-selects the newly accepted Build Path timeline step so the dock follows the user's latest commit.
+- `Build-Path-12.2` is complete; user-driven master timeline selection changes now enter global Edit History so Ctrl+Z/Ctrl+Y can walk Build Path timeline moves.
+- next legal collaborative task is `Build-Path-11 - Parallel Lane Icon Layout / Phase 1 - Parallel Lane Visual Model` with loaded-graph reconstruction and lifecycle markers available.
 - `Build-Path-12` is complete for reconstructed loaded-graph structure; exact persisted Build Path event history remains a later schema/file-format phase.
 - `Build-Path-11` remains packet-only; wait for user visual direction before implementation.
 - later action runtime still needs a new explicit phase for compare UI, pin persistence, restore/branch execution, worker checkpoint/cache ownership, or deeper seeded browser replay proof.
@@ -173,7 +179,8 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Build-Path-Gen1-CLG-9. Add a derived viewport preview mask for Build Path scrub selection without changing graph truth, viewer build truth, or Edit History.
 - [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
 - [x] Build-Path-Gen1-CLG-11. Reconstruct a derived Build Path timeline and dependency read when graph files are loaded, while marking the source as reconstructed and preserving graph/Edit History truth.
-- [ ] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
+- [x] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
+- [x] Build-Path-Gen1-CLG-13. Add global Edit History entries for user-driven Build Path master timeline selection changes without mutating graph truth.
 
 ### `Build-Path-1`
 
@@ -366,17 +373,28 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 
 ### `Build-Path-12.1`
 
-- [ ] Define lifecycle event/card data for `Graph Created` and `Graph Loaded`.
-- [ ] Record or derive a `Graph Created` card when a graph document is created.
-- [ ] Record or derive a `Graph Loaded` card when a graph file is loaded.
-- [ ] Render lifecycle cards distinctly from Sketch/Extrude build-operation cards.
-- [ ] Prove lifecycle cards do not affect viewport geometry preview masking.
-- [ ] Keep lifecycle cards structural, non-geometry, and separate from Edit History.
-- [ ] `Build-Path-Gen1-HLG-2`
-- [ ] `Build-Path-Gen1-HLG-5`
-- [ ] `Build-Path-Gen1-HLG-7`
-- [ ] `Build-Path-Gen1-HLG-9`
-- [ ] Build-Path-Gen1-CLG-12.
+- [x] Define lifecycle event/card data for `Graph Created` and `Graph Loaded`.
+- [x] Record or derive a `Graph Created` card when a graph document is created.
+- [x] Record or derive a `Graph Loaded` card when a graph file is loaded.
+- [x] Render lifecycle cards distinctly from Sketch/Extrude build-operation cards.
+- [x] Prove lifecycle cards do not affect viewport geometry preview masking.
+- [x] Keep lifecycle cards structural, non-geometry, and separate from Edit History.
+- [x] `Build-Path-Gen1-HLG-2`
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-9`
+- [x] Build-Path-Gen1-CLG-12.
+
+### `Build-Path-12.2`
+
+- [x] Record user-driven master timeline selection changes in global Edit History.
+- [x] Undo restores the previous Build Path selected timeline step.
+- [x] Redo restores the later Build Path selected timeline step.
+- [x] Keep accepted CAD command auto-follow as internal selection state.
+- [x] Preserve graph truth, restore boundaries, and worker/cache boundaries.
+- [x] `Build-Path-Gen1-HLG-4`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-13.
 
 ## [x] `Build-Path-1` - `Accepted Graph Event Timeline Foundation`
 
@@ -898,7 +916,7 @@ Current handoff:
 
 - [x] `Future/Build-Path-12 - Loaded Graph Build Path Reconstruction.md`
 
-## [ ] `Build-Path-12.1` - `Graph Lifecycle Timeline Cards`
+## [x] `Build-Path-12.1` - `Graph Lifecycle Timeline Cards`
 
 ### Family Phase Summary
 
@@ -906,16 +924,16 @@ Add explicit structural Build Path cards for graph lifecycle events so `Graph Cr
 
 Current handoff:
 - `Future/Build-Path-12.1 - Graph Lifecycle Timeline Cards.md`
-- packet-only setup is complete.
-- implementation should happen before Build-Path-11 if lifecycle cards are accepted as lane anchors.
+- implementation is complete.
+- next handoff is `Build-Path-11 - Parallel Lane Icon Layout` with lifecycle cards available as lane anchors.
 
 ### HLG / CLG Coverage
 
-- [ ] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
-- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
-- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
-- [ ] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
-- [ ] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
 
 ### Owns
 
@@ -937,3 +955,39 @@ Current handoff:
 ### Family Phase Doc
 
 - [x] `Future/Build-Path-12.1 - Graph Lifecycle Timeline Cards.md`
+
+## [x] `Build-Path-12.2` - `Timeline Selection Edit History`
+
+### Family Phase Summary
+
+Make user-driven Build Path master timeline movement participate in the global app Edit History so Ctrl+Z/Ctrl+Y can walk timeline selection changes.
+
+Current handoff:
+- `Future/Build-Path-12.2 - Timeline Selection Edit History.md`
+- implementation is complete.
+- next handoff remains `Build-Path-11 - Parallel Lane Icon Layout`; branch-local playhead history can be a later follow-up if Parallel lane movement should receive the same Edit History treatment.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-4. Build Path should keep one master linear timeline even when the graph contains parallel construction work.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-13. Add global Edit History entries for user-driven Build Path master timeline selection changes without mutating graph truth.
+
+### Owns
+
+- user-driven master timeline selection Edit History entries
+- undo/redo restoration of Build Path selected timeline step
+- no-op selection skip behavior
+- proof that graph truth remains unchanged
+
+### Does Not Own
+
+- authored graph restore
+- branch-local playhead history
+- automatic accepted-command selection history entries
+- worker checkpoint replay
+- Compare, Pin, Branch, or Restore command execution
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-12.2 - Timeline Selection Edit History.md`

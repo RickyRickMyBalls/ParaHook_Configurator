@@ -114,6 +114,7 @@ import {
   type GraphCommandCommitSummary,
 } from '../../console/commandCommitContract'
 import { reconstructBuildPathFromLoadedGraph } from '../../buildPath/reconstructBuildPathFromGraph'
+import { createBuildPathLifecycleCard } from '../../buildPath/buildPathLifecycle'
 import { useBuildPathRuntimeStore } from '../../buildPath/useBuildPathRuntimeStore'
 import {
   createDefaultEditorPopoutState,
@@ -5405,6 +5406,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         graphDocumentOrder: [...current.graphDocumentOrder, graphDocumentId],
       }),
     )
+    useBuildPathRuntimeStore.getState().appendLifecycleCard({
+      lifecycleKind: 'graph-created',
+      graphDocumentId,
+      graphLabel: graphName,
+    })
     return graphDocumentId
   },
   duplicateActiveGraphDocument: () => {
@@ -5954,9 +5960,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         fallbackGraphDocumentId: graphDocumentId,
       }),
     )
-    const reconstruction = reconstructBuildPathFromLoadedGraph(nextDocument)
+    const lifecycleCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId,
+      graphLabel: nextDocument.name,
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
+    const reconstruction = reconstructBuildPathFromLoadedGraph(nextDocument, {
+      startEventSequence: 2,
+    })
     useBuildPathRuntimeStore.getState().replaceGraphReconstruction({
       graphDocumentId,
+      lifecycleCards: [lifecycleCard],
       events: reconstruction.events,
       dependencies: reconstruction.dependencies,
     })
@@ -6229,9 +6245,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
     )
     const nextDocument = get().graphDocumentsById[graphDocumentId]
     if (nextDocument !== undefined) {
-      const reconstruction = reconstructBuildPathFromLoadedGraph(nextDocument)
+      const lifecycleCard = createBuildPathLifecycleCard({
+        lifecycleKind: 'graph-loaded',
+        graphDocumentId,
+        graphLabel: nextDocument.name,
+        sourceKind: 'reconstructed',
+        eventSequence: 1,
+      })
+      const reconstruction = reconstructBuildPathFromLoadedGraph(nextDocument, {
+        startEventSequence: 2,
+      })
       useBuildPathRuntimeStore.getState().replaceGraphReconstruction({
         graphDocumentId,
+        lifecycleCards: [lifecycleCard],
         events: reconstruction.events,
         dependencies: reconstruction.dependencies,
       })

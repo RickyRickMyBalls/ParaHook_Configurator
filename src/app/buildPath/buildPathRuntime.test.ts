@@ -6,13 +6,16 @@ import {
 } from '../console/commandCommitContract'
 import { createEditHistoryStore } from '../store/editHistoryStore'
 import type { BuildPathEvent } from './buildPathEvents'
+import { createBuildPathLifecycleCard } from './buildPathLifecycle'
 import {
   addBuildPathRuntimeGraphDependencies,
+  appendBuildPathRuntimeLifecycleCard,
   appendBuildPathRuntimeEvent,
   createBuildPathRuntimeState,
   intakeGraphCommandCommitForBuildPath,
   readBuildPathRuntimeEvents,
   readBuildPathRuntimeGraphDependencies,
+  readBuildPathRuntimeLifecycleCards,
   readBuildPathRuntimeMasterTimeline,
   replaceBuildPathRuntimeGraphReconstruction,
 } from './buildPathRuntime'
@@ -160,8 +163,22 @@ describe('Build Path runtime state', () => {
       projectionId: 'next-reconstructed',
       sourceKind: 'reconstructed',
     })
+    const staleLoadedCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId: 'graph-document-loaded',
+      graphLabel: 'Stale Loaded Graph',
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
+    const nextLoadedCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId: 'graph-document-loaded',
+      graphLabel: 'Next Loaded Graph',
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
     const state = addBuildPathRuntimeGraphDependencies({
-      state: createBuildPathRuntimeState([recordedEvent, staleReconstructedEvent]),
+      state: createBuildPathRuntimeState([recordedEvent, staleReconstructedEvent], [staleLoadedCard]),
       dependencies: [
         {
           edgeId: 'edge-stale',
@@ -181,6 +198,7 @@ describe('Build Path runtime state', () => {
     const nextState = replaceBuildPathRuntimeGraphReconstruction({
       state,
       graphDocumentId: 'graph-document-loaded',
+      lifecycleCards: [nextLoadedCard],
       events: [nextReconstructedEvent],
       dependencies: [
         {
@@ -197,6 +215,9 @@ describe('Build Path runtime state', () => {
       'recorded-live',
       'next-reconstructed',
     ])
+    expect(readBuildPathRuntimeLifecycleCards(nextState).map((card) => card.graphLabel)).toEqual([
+      'Next Loaded Graph',
+    ])
     expect(readBuildPathRuntimeGraphDependencies(nextState)).toEqual([
       {
         edgeId: 'edge-recorded',
@@ -211,6 +232,33 @@ describe('Build Path runtime state', () => {
         sourceKind: 'reconstructed',
       },
     ])
+  })
+
+  it('appends Graph Created lifecycle cards without creating build events', () => {
+    const state = appendBuildPathRuntimeLifecycleCard({
+      state: createBuildPathRuntimeState(),
+      lifecycleKind: 'graph-created',
+      graphDocumentId: 'graph-document-new',
+      graphLabel: 'Graph New',
+    })
+    const timeline = readBuildPathRuntimeMasterTimeline(state)
+
+    expect(readBuildPathRuntimeEvents(state)).toEqual([])
+    expect(readBuildPathRuntimeLifecycleCards(state)).toMatchObject([
+      {
+        lifecycleKind: 'graph-created',
+        graphDocumentId: 'graph-document-new',
+        graphLabel: 'Graph New',
+        isStructural: true,
+        affectsGeometry: false,
+      },
+    ])
+    expect(timeline.steps).toHaveLength(1)
+    expect(timeline.steps[0].display).toEqual({
+      label: 'Graph Created',
+      icon: 'graph-created',
+      iconLabel: 'Graph created lifecycle card',
+    })
   })
 })
 

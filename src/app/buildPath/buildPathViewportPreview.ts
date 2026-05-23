@@ -1,6 +1,9 @@
 import type { ViewerRenderablePart } from '../../shared/buildTypes'
 import type { ViewportLayerRecipe } from '../spaghetti/selectors/selectViewportResultState'
-import type { BuildPathMasterTimeline } from './buildPathTimeline'
+import {
+  isBuildPathBuildEventTimelineStep,
+  type BuildPathMasterTimeline,
+} from './buildPathTimeline'
 
 export type BuildPathViewportPreviewStatus =
   | 'empty'
@@ -124,7 +127,11 @@ export const deriveBuildPathViewportPreviewRead = ({
       ? timeline.steps[0] ?? null
       : timeline.steps.find((step) => step.timelineStepId === selectedTimelineStepId) ?? null
 
-  if (selectedStep === null || selectedStep.orderIndex >= timeline.steps.length - 1) {
+  if (
+    selectedStep === null ||
+    !isBuildPathBuildEventTimelineStep(selectedStep) ||
+    selectedStep.orderIndex >= timeline.steps.length - 1
+  ) {
     return emptyPreviewRead(
       'final',
       selectedStep?.timelineStepId ?? null,
@@ -132,8 +139,12 @@ export const deriveBuildPathViewportPreviewRead = ({
     )
   }
 
-  const includedSteps = timeline.steps.filter((step) => step.orderIndex <= selectedStep.orderIndex)
-  const excludedSteps = timeline.steps.filter((step) => step.orderIndex > selectedStep.orderIndex)
+  const includedSteps = timeline.steps
+    .filter((step) => step.orderIndex <= selectedStep.orderIndex)
+    .filter(isBuildPathBuildEventTimelineStep)
+  const excludedSteps = timeline.steps
+    .filter((step) => step.orderIndex > selectedStep.orderIndex)
+    .filter(isBuildPathBuildEventTimelineStep)
   const excludedOutputIds = uniqueInOrder(
     excludedSteps.flatMap((step) => step.event.affectedOutputIds),
   )

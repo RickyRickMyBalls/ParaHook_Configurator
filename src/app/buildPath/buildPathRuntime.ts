@@ -9,6 +9,11 @@ import {
   type BuildPathEvent,
 } from './buildPathEvents'
 import {
+  createBuildPathLifecycleCard,
+  type BuildPathLifecycleCard,
+  type BuildPathLifecycleKind,
+} from './buildPathLifecycle'
+import {
   deriveBuildPathMasterTimeline,
   type BuildPathGraphDependency,
   type BuildPathMasterTimeline,
@@ -16,6 +21,7 @@ import {
 
 export type BuildPathRuntimeState = {
   events: BuildPathEvent[]
+  lifecycleCards: BuildPathLifecycleCard[]
   graphDependencies: BuildPathGraphDependency[]
   nextEventSequence: number
 }
@@ -51,23 +57,39 @@ export type IntakeGraphCommandCommitForBuildPathRequest = {
 export type ReplaceBuildPathRuntimeGraphReconstructionRequest = {
   state: BuildPathRuntimeState
   graphDocumentId: string
+  lifecycleCards?: readonly BuildPathLifecycleCard[]
   events: readonly BuildPathEvent[]
   dependencies: readonly BuildPathGraphDependency[]
 }
 
+export type AppendBuildPathRuntimeLifecycleCardRequest = {
+  state: BuildPathRuntimeState
+  lifecycleKind: BuildPathLifecycleKind
+  graphDocumentId: string
+  graphLabel?: string
+  acceptedAt?: string
+}
+
 export const createBuildPathRuntimeState = (
   events: readonly BuildPathEvent[] = [],
+  lifecycleCards: readonly BuildPathLifecycleCard[] = [],
 ): BuildPathRuntimeState => {
   const copiedEvents = events.map(cloneBuildPathEvent)
+  const copiedLifecycleCards = lifecycleCards.map(cloneBuildPathLifecycleCard)
   const maxSequence = copiedEvents.reduce(
     (max, event) => Math.max(max, event.eventSequence),
+    0,
+  )
+  const maxLifecycleSequence = copiedLifecycleCards.reduce(
+    (max, card) => Math.max(max, card.eventSequence),
     0,
   )
 
   return {
     events: copiedEvents,
+    lifecycleCards: copiedLifecycleCards,
     graphDependencies: [],
-    nextEventSequence: maxSequence + 1,
+    nextEventSequence: Math.max(maxSequence, maxLifecycleSequence) + 1,
   }
 }
 
@@ -75,13 +97,17 @@ export const readBuildPathRuntimeEvents = (
   state: BuildPathRuntimeState,
 ): BuildPathEvent[] => state.events.map(cloneBuildPathEvent)
 
+export const readBuildPathRuntimeLifecycleCards = (
+  state: BuildPathRuntimeState,
+): BuildPathLifecycleCard[] => state.lifecycleCards.map(cloneBuildPathLifecycleCard)
+
 export const readBuildPathRuntimeGraphDependencies = (
   state: BuildPathRuntimeState,
 ): BuildPathGraphDependency[] => state.graphDependencies.map(cloneBuildPathGraphDependency)
 
 export const readBuildPathRuntimeMasterTimeline = (
   state: BuildPathRuntimeState,
-): BuildPathMasterTimeline => deriveBuildPathMasterTimeline(state.events)
+): BuildPathMasterTimeline => deriveBuildPathMasterTimeline(state.events, state.lifecycleCards)
 
 export const appendBuildPathRuntimeEvent = ({
   event,
@@ -99,6 +125,37 @@ export const appendBuildPathRuntimeEvent = ({
   }
 
   return acceptEvent(state, event)
+}
+
+export const appendBuildPathRuntimeLifecycleCard = ({
+  acceptedAt,
+  graphDocumentId,
+  graphLabel,
+  lifecycleKind,
+  state,
+}: AppendBuildPathRuntimeLifecycleCardRequest): BuildPathRuntimeState => {
+  const card = createBuildPathLifecycleCard({
+    acceptedAt,
+    eventSequence: state.nextEventSequence,
+    graphDocumentId,
+    graphLabel,
+    lifecycleKind,
+  })
+
+  if (state.lifecycleCards.some(
+    (candidate) => candidate.buildPathLifecycleCardId === card.buildPathLifecycleCardId,
+  )) {
+    return state
+  }
+
+  return {
+    ...state,
+    lifecycleCards: [
+      ...state.lifecycleCards.map(cloneBuildPathLifecycleCard),
+      cloneBuildPathLifecycleCard(card),
+    ],
+    nextEventSequence: card.eventSequence + 1,
+  }
 }
 
 export const addBuildPathRuntimeGraphDependencies = ({
@@ -135,10 +192,14 @@ export const replaceBuildPathRuntimeGraphReconstruction = ({
   dependencies,
   events,
   graphDocumentId,
+  lifecycleCards = [],
   state,
 }: ReplaceBuildPathRuntimeGraphReconstructionRequest): BuildPathRuntimeState => {
   const retainedEvents = state.events.filter(
     (event) => !(event.graphDocumentId === graphDocumentId && event.sourceKind === 'reconstructed'),
+  )
+  const retainedLifecycleCards = state.lifecycleCards.filter(
+    (card) => !(card.graphDocumentId === graphDocumentId && card.sourceKind === 'reconstructed'),
   )
   const retainedDependencies = state.graphDependencies.filter(
     (dependency) =>
@@ -148,18 +209,31 @@ export const replaceBuildPathRuntimeGraphReconstruction = ({
       ),
   )
   const nextEvents = [...retainedEvents, ...events].map(cloneBuildPathEvent)
-  const maxSequence = nextEvents.reduce(
+  const nextLifecycleCards = [
+    ...retainedLifecycleCards,
+    ...lifecycleCards,
+  ].map(cloneBuildPathLifecycleCard)
+  const maxEventSequence = nextEvents.reduce(
     (max, event) => Math.max(max, event.eventSequence),
+    0,
+  )
+  const maxLifecycleSequence = nextLifecycleCards.reduce(
+    (max, card) => Math.max(max, card.eventSequence),
     0,
   )
 
   return {
     events: nextEvents,
+    lifecycleCards: nextLifecycleCards,
     graphDependencies: [
       ...retainedDependencies.map(cloneBuildPathGraphDependency),
       ...dependencies.map(cloneBuildPathGraphDependency),
     ],
-    nextEventSequence: Math.max(state.nextEventSequence, maxSequence + 1),
+    nextEventSequence: Math.max(
+      state.nextEventSequence,
+      maxEventSequence + 1,
+      maxLifecycleSequence + 1,
+    ),
   }
 }
 
@@ -223,6 +297,7 @@ const acceptEvent = (
   event: cloneBuildPathEvent(event),
   state: {
     events: [...state.events.map(cloneBuildPathEvent), cloneBuildPathEvent(event)],
+    lifecycleCards: state.lifecycleCards.map(cloneBuildPathLifecycleCard),
     graphDependencies: state.graphDependencies.map(cloneBuildPathGraphDependency),
     nextEventSequence: Math.max(state.nextEventSequence, event.eventSequence + 1),
   },
@@ -251,6 +326,10 @@ const cloneBuildPathEvent = (event: BuildPathEvent): BuildPathEvent => ({
     removedEdgeIds: [...event.mutationSummary.removedEdgeIds],
   },
 })
+
+const cloneBuildPathLifecycleCard = (
+  card: BuildPathLifecycleCard,
+): BuildPathLifecycleCard => ({ ...card })
 
 const cloneBuildPathGraphDependency = (
   dependency: BuildPathGraphDependency,

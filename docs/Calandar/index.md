@@ -66,11 +66,19 @@ Do not use it for:
     <strong>May 21</strong>
     <p>Properties Render became the active lane with presets, Shadows/AO controls, SAO, condensed controls, and Geometry Display surface/edge work.</p>
   </div>
+  <div class="calendar-week-card phase-parity">
+    <strong>May 22</strong>
+    <p>Visual Style Menu recipes and Properties environment controls handed off into the Build Path timeline, runtime, docked strip, scrub, and Parallel mode foundation.</p>
+  </div>
+  <div class="calendar-week-card phase-workspace-foundation">
+    <strong>May 23</strong>
+    <p>Build Path deepened through branch lanes, dependency proof, restore/branch/compare readiness, viewport preview masking, loaded-graph reconstruction, and graph lifecycle cards.</p>
+  </div>
 </div>
 
 ## Activity
 
-<section class="activity-section" data-activity-graph data-activity-start="2026-03-04" data-activity-end="2026-05-21">
+<section class="activity-section" data-activity-graph data-activity-start="2026-03-04" data-activity-end="2026-05-23">
   <div class="activity-head">
     <div>
       <h3>Git Lines Changed By Day</h3>
@@ -80,8 +88,8 @@ Do not use it for:
       <button class="activity-range-button" type="button" data-activity-range="7d" aria-pressed="true">7D</button>
       <button class="activity-range-button" type="button" data-activity-range="1m" aria-pressed="false">1M</button>
       <button class="activity-range-button" type="button" data-activity-range="all" aria-pressed="false">All</button>
-      <label class="activity-date-control">From <input type="date" data-activity-from min="2026-03-04" max="2026-05-21" value="2026-05-15"></label>
-      <label class="activity-date-control">To <input type="date" data-activity-to min="2026-03-04" max="2026-05-21" value="2026-05-21"></label>
+      <label class="activity-date-control">From <input type="date" data-activity-from min="2026-03-04" max="2026-05-23" value="2026-05-17"></label>
+      <label class="activity-date-control">To <input type="date" data-activity-to min="2026-03-04" max="2026-05-23" value="2026-05-23"></label>
       <button class="activity-range-button" type="button" data-activity-range="custom" aria-pressed="false">Custom</button>
     </div>
   </div>
@@ -97,7 +105,7 @@ Do not use it for:
   <div class="activity-plot" data-activity-max>
     <div class="activity-bars" data-activity-bars></div>
   </div>
-  <script type="application/json" data-activity-data>[{"date":"2026-03-04","codeAdd":27658,"codeDel":2,"publicAdd":1,"publicDel":0,"docsAdd":4860,"docsDel":0,"commits":3},{"date":"2026-03-05","codeAdd":20109,"codeDel":1870,"publicAdd":0,"publicDel":0,"docsAdd":22759,"docsDel":3690,"commits":1},{"date":"2026-03-10","codeAdd":5252,"codeDel":1208,"publicAdd":0,"publicDel":0,"docsAdd":29670,"docsDel":20980,"commits":1},{"date":"2026-03-13","codeAdd":14776,"codeDel":978,"publicAdd":0,"publicDel":0,"docsAdd":19304,"docsDel":7091,"commits":1},{"date":"2026-03-16","codeAdd":1863,"codeDel":190,"publicAdd":0,"publicDel":0,"docsAdd":885,"docsDel":44,"commits":1},{"date":"2026-03-17","codeAdd":19639,"codeDel":3246,"publicAdd":792281,"publicDel":0,"docsAdd":20142,"docsDel":1376,"commits":6},{"date":"2026-03-19","codeAdd":21430,"codeDel":3162,"publicAdd":0,"publicDel":0,"docsAdd":14804,"docsDel":1551,"commits":2},{"date":"2026-03-20","codeAdd":14955,"codeDel":1282,"publicAdd":0,"publicDel":0,"docsAdd":10078,"docsDel":112,"commits":3},{"date":"2026-03-21","codeAdd":1628,"codeDel":67,"publicAdd":0,"publicDel":0,"docsAdd":5544,"docsDel":4090,"commits":1},{"date":"2026-03-22","codeAdd":25918,"codeDel":15150,"publicAdd":0,"publicDel":0,"docsAdd":25968,"docsDel":10643,"commits":5},{"date":"2026-03-23","codeAdd":5001,"codeDel":608,"publicAdd":0,"publicDel":0,"docsAdd":6017,"docsDel":446,"commits":3},{"date":"2026-03-25","codeAdd":14602,"codeDel":4883,"publicAdd":0,"publicDel":0,"docsAdd":11150,"docsDel":1330,"commits":5},{"date":"2026-03-26","codeAdd":8230,"codeDel":1507,"publicAdd":0,"publicDel":0,"docsAdd":12104,"docsDel":7882,"commits":2},{"date":"2026-03-27","codeAdd":13837,"codeDel":1871,"publicAdd":0,"publicDel":0,"docsAdd":8828,"docsDel":2211,"commits":7},{"date":"2026-03-28","codeAdd":11592,"codeDel":1630,"publicAdd":0,"publicDel":0,"docsAdd":8050,"docsDel":1571,"commits":1},{"date":"2026-03-29","codeAdd":911,"codeDel":308,"publicAdd":0,"publicDel":0,"docsAdd":702,"docsDel":1,"commits":1},{"date":"2026-03-30","codeAdd":8865,"codeDel":1583,"publicAdd":0,"publicDel":0,"docsAdd":7693,"docsDel":734,"commits":3},{"date":"2026-03-31","codeAdd":8443,"codeDel":788,"publicAdd":0,"publicDel":0,"docsAdd":9947,"docsDel":3151,"commits":2},{"date":"2026-04-01","codeAdd":6533,"codeDel":1696,"publicAdd":0,"publicDel":0,"docsAdd":5972,"docsDel":261,"commits":4},{"date":"2026-04-02","codeAdd":4931,"codeDel":703,"publicAdd":0,"publicDel":0,"docsAdd":6306,"docsDel":176,"commits":2},{"date":"2026-04-03","codeAdd":19613,"codeDel":9083,"publicAdd":0,"publicDel":0,"docsAdd":10489,"docsDel":2523,"commits":3},{"date":"2026-04-04","codeAdd":10089,"codeDel":28,"publicAdd":0,"publicDel":0,"docsAdd":8193,"docsDel":552,"commits":1},{"date":"2026-04-05","codeAdd":6336,"codeDel":1024,"publicAdd":0,"publicDel":0,"docsAdd":8355,"docsDel":780,"commits":1},{"date":"2026-04-06","codeAdd":2628,"codeDel":172,"publicAdd":0,"publicDel":0,"docsAdd":50104,"docsDel":46639,"commits":1},{"date":"2026-04-07","codeAdd":5289,"codeDel":543,"publicAdd":0,"publicDel":0,"docsAdd":9197,"docsDel":4369,"commits":1},{"date":"2026-04-08","codeAdd":3255,"codeDel":304,"publicAdd":0,"publicDel":0,"docsAdd":2687,"docsDel":187,"commits":1},{"date":"2026-04-09","codeAdd":5656,"codeDel":366,"publicAdd":0,"publicDel":0,"docsAdd":11365,"docsDel":4945,"commits":2},{"date":"2026-04-10","codeAdd":13188,"codeDel":616,"publicAdd":0,"publicDel":0,"docsAdd":14214,"docsDel":1057,"commits":3},{"date":"2026-04-12","codeAdd":10980,"codeDel":2033,"publicAdd":0,"publicDel":0,"docsAdd":16580,"docsDel":1654,"commits":5},{"date":"2026-04-13","codeAdd":6812,"codeDel":2249,"publicAdd":0,"publicDel":0,"docsAdd":22636,"docsDel":10942,"commits":4},{"date":"2026-04-14","codeAdd":8696,"codeDel":560,"publicAdd":0,"publicDel":0,"docsAdd":11098,"docsDel":421,"commits":3},{"date":"2026-04-15","codeAdd":1119,"codeDel":33,"publicAdd":0,"publicDel":0,"docsAdd":2763,"docsDel":97,"commits":2},{"date":"2026-04-16","codeAdd":18664,"codeDel":1592,"publicAdd":0,"publicDel":0,"docsAdd":17506,"docsDel":111,"commits":3},{"date":"2026-04-17","codeAdd":10616,"codeDel":1153,"publicAdd":926546,"publicDel":0,"docsAdd":21736,"docsDel":3158,"commits":2},{"date":"2026-04-18","codeAdd":6894,"codeDel":474,"publicAdd":792376,"publicDel":792281,"docsAdd":56005,"docsDel":1424,"commits":3},{"date":"2026-04-19","codeAdd":7684,"codeDel":512,"publicAdd":57,"publicDel":0,"docsAdd":18311,"docsDel":90917,"commits":1},{"date":"2026-04-20","codeAdd":5188,"codeDel":433,"publicAdd":0,"publicDel":0,"docsAdd":6826,"docsDel":194,"commits":1},{"date":"2026-04-21","codeAdd":17353,"codeDel":98,"publicAdd":2193571,"publicDel":0,"docsAdd":14916,"docsDel":167,"commits":1},{"date":"2026-04-22","codeAdd":32709,"codeDel":1332,"publicAdd":0,"publicDel":0,"docsAdd":69310,"docsDel":247,"commits":1},{"date":"2026-05-01","codeAdd":5239,"codeDel":190,"publicAdd":0,"publicDel":0,"docsAdd":12569,"docsDel":7264,"commits":1},{"date":"2026-05-05","codeAdd":14244,"codeDel":6159,"publicAdd":0,"publicDel":0,"docsAdd":9579,"docsDel":49645,"commits":3},{"date":"2026-05-09","codeAdd":5613,"codeDel":3395,"publicAdd":0,"publicDel":0,"docsAdd":3311,"docsDel":48,"commits":2},{"date":"2026-05-10","codeAdd":7922,"codeDel":277,"publicAdd":0,"publicDel":0,"docsAdd":9380,"docsDel":118,"commits":3},{"date":"2026-05-11","codeAdd":7652,"codeDel":608,"publicAdd":0,"publicDel":0,"docsAdd":5547,"docsDel":417,"commits":6},{"date":"2026-05-12","codeAdd":3280,"codeDel":89,"publicAdd":0,"publicDel":0,"docsAdd":2701,"docsDel":164,"commits":2},{"date":"2026-05-17","codeAdd":1760,"codeDel":35,"publicAdd":0,"publicDel":0,"docsAdd":1486,"docsDel":8,"commits":2},{"date":"2026-05-18","codeAdd":6854,"codeDel":137,"publicAdd":0,"publicDel":0,"docsAdd":5157,"docsDel":330,"commits":4},{"date":"2026-05-19","codeAdd":8197,"codeDel":373,"publicAdd":0,"publicDel":0,"docsAdd":6602,"docsDel":301,"commits":6},{"date":"2026-05-20","codeAdd":1147,"codeDel":74,"publicAdd":0,"publicDel":0,"docsAdd":2284,"docsDel":0,"commits":1},{"date":"2026-05-21","codeAdd":9735,"codeDel":897,"publicAdd":0,"publicDel":0,"docsAdd":11506,"docsDel":207,"commits":5}]</script>
+  <script type="application/json" data-activity-data>[{"date":"2026-03-04","codeAdd":27658,"codeDel":2,"publicAdd":1,"publicDel":0,"docsAdd":4860,"docsDel":0,"commits":3},{"date":"2026-03-05","codeAdd":20109,"codeDel":1870,"publicAdd":0,"publicDel":0,"docsAdd":22759,"docsDel":3690,"commits":1},{"date":"2026-03-10","codeAdd":5252,"codeDel":1208,"publicAdd":0,"publicDel":0,"docsAdd":29670,"docsDel":20980,"commits":1},{"date":"2026-03-13","codeAdd":14776,"codeDel":978,"publicAdd":0,"publicDel":0,"docsAdd":19304,"docsDel":7091,"commits":1},{"date":"2026-03-16","codeAdd":1863,"codeDel":190,"publicAdd":0,"publicDel":0,"docsAdd":885,"docsDel":44,"commits":1},{"date":"2026-03-17","codeAdd":19639,"codeDel":3246,"publicAdd":792281,"publicDel":0,"docsAdd":20142,"docsDel":1376,"commits":6},{"date":"2026-03-19","codeAdd":21430,"codeDel":3162,"publicAdd":0,"publicDel":0,"docsAdd":14804,"docsDel":1551,"commits":2},{"date":"2026-03-20","codeAdd":14955,"codeDel":1282,"publicAdd":0,"publicDel":0,"docsAdd":10078,"docsDel":112,"commits":3},{"date":"2026-03-21","codeAdd":1628,"codeDel":67,"publicAdd":0,"publicDel":0,"docsAdd":5544,"docsDel":4090,"commits":1},{"date":"2026-03-22","codeAdd":25918,"codeDel":15150,"publicAdd":0,"publicDel":0,"docsAdd":25968,"docsDel":10643,"commits":5},{"date":"2026-03-23","codeAdd":5001,"codeDel":608,"publicAdd":0,"publicDel":0,"docsAdd":6017,"docsDel":446,"commits":3},{"date":"2026-03-25","codeAdd":14602,"codeDel":4883,"publicAdd":0,"publicDel":0,"docsAdd":11150,"docsDel":1330,"commits":5},{"date":"2026-03-26","codeAdd":8230,"codeDel":1507,"publicAdd":0,"publicDel":0,"docsAdd":12104,"docsDel":7882,"commits":2},{"date":"2026-03-27","codeAdd":13837,"codeDel":1871,"publicAdd":0,"publicDel":0,"docsAdd":8828,"docsDel":2211,"commits":7},{"date":"2026-03-28","codeAdd":11592,"codeDel":1630,"publicAdd":0,"publicDel":0,"docsAdd":8050,"docsDel":1571,"commits":1},{"date":"2026-03-29","codeAdd":911,"codeDel":308,"publicAdd":0,"publicDel":0,"docsAdd":702,"docsDel":1,"commits":1},{"date":"2026-03-30","codeAdd":8865,"codeDel":1583,"publicAdd":0,"publicDel":0,"docsAdd":7693,"docsDel":734,"commits":3},{"date":"2026-03-31","codeAdd":8443,"codeDel":788,"publicAdd":0,"publicDel":0,"docsAdd":9947,"docsDel":3151,"commits":2},{"date":"2026-04-01","codeAdd":6533,"codeDel":1696,"publicAdd":0,"publicDel":0,"docsAdd":5972,"docsDel":261,"commits":4},{"date":"2026-04-02","codeAdd":4931,"codeDel":703,"publicAdd":0,"publicDel":0,"docsAdd":6306,"docsDel":176,"commits":2},{"date":"2026-04-03","codeAdd":19613,"codeDel":9083,"publicAdd":0,"publicDel":0,"docsAdd":10489,"docsDel":2523,"commits":3},{"date":"2026-04-04","codeAdd":10089,"codeDel":28,"publicAdd":0,"publicDel":0,"docsAdd":8193,"docsDel":552,"commits":1},{"date":"2026-04-05","codeAdd":6336,"codeDel":1024,"publicAdd":0,"publicDel":0,"docsAdd":8355,"docsDel":780,"commits":1},{"date":"2026-04-06","codeAdd":2628,"codeDel":172,"publicAdd":0,"publicDel":0,"docsAdd":50104,"docsDel":46639,"commits":1},{"date":"2026-04-07","codeAdd":5289,"codeDel":543,"publicAdd":0,"publicDel":0,"docsAdd":9197,"docsDel":4369,"commits":1},{"date":"2026-04-08","codeAdd":3255,"codeDel":304,"publicAdd":0,"publicDel":0,"docsAdd":2687,"docsDel":187,"commits":1},{"date":"2026-04-09","codeAdd":5656,"codeDel":366,"publicAdd":0,"publicDel":0,"docsAdd":11365,"docsDel":4945,"commits":2},{"date":"2026-04-10","codeAdd":13188,"codeDel":616,"publicAdd":0,"publicDel":0,"docsAdd":14214,"docsDel":1057,"commits":3},{"date":"2026-04-12","codeAdd":10980,"codeDel":2033,"publicAdd":0,"publicDel":0,"docsAdd":16580,"docsDel":1654,"commits":5},{"date":"2026-04-13","codeAdd":6812,"codeDel":2249,"publicAdd":0,"publicDel":0,"docsAdd":22636,"docsDel":10942,"commits":4},{"date":"2026-04-14","codeAdd":8696,"codeDel":560,"publicAdd":0,"publicDel":0,"docsAdd":11098,"docsDel":421,"commits":3},{"date":"2026-04-15","codeAdd":1119,"codeDel":33,"publicAdd":0,"publicDel":0,"docsAdd":2763,"docsDel":97,"commits":2},{"date":"2026-04-16","codeAdd":18664,"codeDel":1592,"publicAdd":0,"publicDel":0,"docsAdd":17506,"docsDel":111,"commits":3},{"date":"2026-04-17","codeAdd":10616,"codeDel":1153,"publicAdd":926546,"publicDel":0,"docsAdd":21736,"docsDel":3158,"commits":2},{"date":"2026-04-18","codeAdd":6894,"codeDel":474,"publicAdd":792376,"publicDel":792281,"docsAdd":56005,"docsDel":1424,"commits":3},{"date":"2026-04-19","codeAdd":7684,"codeDel":512,"publicAdd":57,"publicDel":0,"docsAdd":18311,"docsDel":90917,"commits":1},{"date":"2026-04-20","codeAdd":5188,"codeDel":433,"publicAdd":0,"publicDel":0,"docsAdd":6826,"docsDel":194,"commits":1},{"date":"2026-04-21","codeAdd":17353,"codeDel":98,"publicAdd":2193571,"publicDel":0,"docsAdd":14916,"docsDel":167,"commits":1},{"date":"2026-04-22","codeAdd":32709,"codeDel":1332,"publicAdd":0,"publicDel":0,"docsAdd":69310,"docsDel":247,"commits":1},{"date":"2026-05-01","codeAdd":5239,"codeDel":190,"publicAdd":0,"publicDel":0,"docsAdd":12569,"docsDel":7264,"commits":1},{"date":"2026-05-05","codeAdd":14244,"codeDel":6159,"publicAdd":0,"publicDel":0,"docsAdd":9579,"docsDel":49645,"commits":3},{"date":"2026-05-09","codeAdd":5613,"codeDel":3395,"publicAdd":0,"publicDel":0,"docsAdd":3311,"docsDel":48,"commits":2},{"date":"2026-05-10","codeAdd":7922,"codeDel":277,"publicAdd":0,"publicDel":0,"docsAdd":9380,"docsDel":118,"commits":3},{"date":"2026-05-11","codeAdd":7652,"codeDel":608,"publicAdd":0,"publicDel":0,"docsAdd":5547,"docsDel":417,"commits":6},{"date":"2026-05-12","codeAdd":3280,"codeDel":89,"publicAdd":0,"publicDel":0,"docsAdd":2701,"docsDel":164,"commits":2},{"date":"2026-05-17","codeAdd":1760,"codeDel":35,"publicAdd":0,"publicDel":0,"docsAdd":1486,"docsDel":8,"commits":2},{"date":"2026-05-18","codeAdd":6854,"codeDel":137,"publicAdd":0,"publicDel":0,"docsAdd":5157,"docsDel":330,"commits":4},{"date":"2026-05-19","codeAdd":8197,"codeDel":373,"publicAdd":0,"publicDel":0,"docsAdd":6602,"docsDel":301,"commits":6},{"date":"2026-05-20","codeAdd":1147,"codeDel":74,"publicAdd":0,"publicDel":0,"docsAdd":2284,"docsDel":0,"commits":1},{"date":"2026-05-21","codeAdd":9735,"codeDel":897,"publicAdd":0,"publicDel":0,"docsAdd":11506,"docsDel":207,"commits":5},{"date":"2026-05-22","codeAdd":2957,"codeDel":232,"publicAdd":0,"publicDel":0,"docsAdd":2927,"docsDel":23,"commits":2},{"date":"2026-05-23","codeAdd":5397,"codeDel":8,"publicAdd":0,"publicDel":0,"docsAdd":4089,"docsDel":163,"commits":1}]</script>
 </section>
 
 ## April 2026
@@ -2394,7 +2402,7 @@ Do not use it for:
   <div class="month-header">
     <div>
       <h3>May 2026</h3>
-      <p>Opened with Edit History and Spaghetti overlay work, then moved through Nodes-6 hardening, Cleanup Gen3 extraction, Workspace-9 corner split gestures, Properties and Materials buildout, Model Viewport display/render-preview work, Settings key binding and input priority work, export and topology work, Spaghetti command authoring, Clay Studio/AO, and Properties render/geometry display controls.</p>
+      <p>Opened with Edit History and Spaghetti overlay work, then moved through Nodes-6 hardening, Cleanup Gen3 extraction, Workspace-9 corner split gestures, Properties and Materials buildout, Model Viewport display/render-preview work, Settings key binding and input priority work, export and topology work, Spaghetti command authoring, Clay Studio/AO, Properties render/geometry display controls, Visual Style Menu recipes, and Build Path foundation work.</p>
     </div>
   </div>
 
@@ -2590,11 +2598,25 @@ Do not use it for:
       <div class="day-diff"><span class="day-diff-neutral">26 changelog entries</span></div>
       <div class="day-tag">Properties render and geometry display sprint</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">22</div>
+    <div class="day phase-parity" data-target="may-22">
+      <div class="day-head"><div class="day-number">22</div><div class="day-title">Build Path Start</div></div>
+      <ul class="day-bullets">
+        <li>Visual Style Menu recipe lock</li>
+        <li>Environment light settings</li>
+        <li>Build Path timeline and dock</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">21 changelog entries</span></div>
+      <div class="day-tag">Visual recipes, Properties, and Build Path start</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">23</div>
+    <div class="day phase-workspace-foundation" data-target="may-23">
+      <div class="day-head"><div class="day-number">23</div><div class="day-title">Build Path</div></div>
+      <ul class="day-bullets">
+        <li>Branch lanes and dependency proof</li>
+        <li>Action readiness contracts</li>
+        <li>Loaded graph lifecycle cards</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">9 changelog entries</span></div>
+      <div class="day-tag">Build Path reconstruction and lifecycle</div>
     </div>
 
     <div class="day empty">
@@ -2929,7 +2951,7 @@ Do not use it for:
   </details>
 
   <details class="calendar-week-details">
-  <summary>Week of May 18-21</summary>
+  <summary>Week of May 18-23</summary>
 
   <details class="calendar-day-details" id="may-18">
   <summary>May 18 - Monday</summary>
@@ -3092,6 +3114,63 @@ Do not use it for:
       <li>`Properties-3 - Phase 4 - Ground And Contact Presentation Controls`</li>
       <li>`Properties-3 - Phase 3 - Environment Grade Controls And Clay Studio Policy`</li>
       <li>`Properties-3 - Phase 2 - Render Section Grouping And Readback`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-22">
+  <summary>May 22 - Friday</summary>
+  <ul>
+    <li>Moved the Visual Style Menu through wireframe, material hidden-line, Solid visible-only, and edge-recipe follow lock work, then expanded Properties environment controls through background/HDRI splits and environment light extraction.</li>
+    <li>Opened Build Path with accepted graph event modeling, runtime/timeline state, a docked workspace/icon strip, view-only scrub inspection, live command event repairs, and the first Parallel mode entry.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 21 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (21)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Build-Path-5 / Phase 1 - Parallel Mode Entry`</li>
+      <li>`Build-Path-4.1 - Viewport Dock Scrub Readback`</li>
+      <li>`Build-Path-4 - Dependent Extrude Source Sketch Repair`</li>
+      <li>`Build-Path-4 - Live Command Event Population Repair`</li>
+      <li>`Build-Path-4 - View Only Scrub Inspection Integration`</li>
+      <li>`Build-Path-3 - Viewport Docked Icon Strip And Workspace Surface`</li>
+      <li>`Build-Path-2 - Runtime Event Intake And Timeline State`</li>
+      <li>`Build-Path-1 / Phases 2-6 - Timeline Scrub Branch And Action Boundaries`</li>
+      <li>`Build-Path-1 / Phase 1 - Accepted Graph Build Event Model`</li>
+      <li>`Properties-7 / Phase 1-6 - Environment Light Browser Visibility Toggle`</li>
+      <li>`Properties-7 / Phase 1-6 - Environment Light Type Symbols`</li>
+      <li>`Properties-7 / Phase 1-6 - Environment Light Browser Scroll`</li>
+      <li>`Properties-7 / Phase 1-6 - Environment Light Settings Extraction`</li>
+      <li>`Properties-4 / Phase 4.2 - Background Source Type Split`</li>
+      <li>`Properties-4 / Phase 4.2 - Color Grade Group Split`</li>
+      <li>`Properties-4 / Phase 4.2 - Environment Background And HDRI Source Controls`</li>
+      <li>`Visual-Style-Menu-1 / Solid Visible-Only Recipe`</li>
+      <li>`Visual-Style-Menu-1 / Phase 6 - Active Lock Color Match`</li>
+      <li>`Visual-Style-Menu-1 / Phase 6 - Edge Recipe Follow Lock`</li>
+      <li>`Visual-Style-Menu-1 / Material Hidden-Line Recipe`</li>
+      <li>`Visual-Style-Menu-1 / Wireframe Surface-Off Recipe`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="may-23">
+  <summary>May 23 - Saturday</summary>
+  <ul>
+    <li>Deepened Build Path with branch-lane rendering, dependency proof, explicit Restore/Branch/Compare/Pin readiness contracts, viewport scrub preview masking, loaded-graph reconstruction, and graph created/loaded lifecycle cards.</li>
+  </ul>
+  <div class="calendar-day-git">Changelog coverage: 9 entries.</div>
+  <details>
+    <summary>Condensed landed phases from CHANGELOG.md (9)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Build-Path-12.1 - Graph Lifecycle Timeline Cards`</li>
+      <li>`Build-Path-12 - Loaded Graph Build Path Reconstruction`</li>
+      <li>`Build-Path-10 - Viewport Scrub Preview Masking`</li>
+      <li>`Build-Path-9 - Compare Pin And Checkpoint Contracts`</li>
+      <li>`Build-Path-8 - Branch From Here Contract`</li>
+      <li>`Build-Path-7 - Restore Readiness Contract`</li>
+      <li>`Build-Path-6 - Explicit Actions And Checkpoint Readiness`</li>
+      <li>`Build-Path-5.1 - Dependency Proof And Follow-Up Routing`</li>
+      <li>`Build-Path-5 / Phases 2-3 - Branch Lane Rendering And Branch Local Playheads`</li>
     </ul>
   </details>
   </details>

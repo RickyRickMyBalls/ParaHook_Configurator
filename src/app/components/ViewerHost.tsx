@@ -5,7 +5,7 @@ import {
   useState,
   type CSSProperties,
 } from 'react'
-import { appendConsoleEntry } from '../console/useConsoleStore'
+import { appendConsoleEntry, useConsoleStore } from '../console/useConsoleStore'
 import {
   consumeQueuedViewerCameraPose,
   getLatestViewerCameraPose,
@@ -1711,6 +1711,9 @@ export function ViewerHost(props: ViewerHostProps) {
             portId: selection.portId,
           })),
         )
+        if (nextSelections.length > 0) {
+          useConsoleStore.getState().requestInputFocus('extrude-depth')
+        }
       }
     })
     viewer.setOnGeometrySketchHoverProfile((event) => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ViewerRenderablePart } from '../../shared/buildTypes'
 import type { ViewportLayerRecipe } from '../spaghetti/selectors/selectViewportResultState'
 import type { BuildPathEvent } from './buildPathEvents'
+import { createBuildPathLifecycleCard } from './buildPathLifecycle'
 import {
   applyBuildPathViewportPreviewMaskToLayerRecipe,
   deriveBuildPathViewportPreviewRead,
@@ -184,6 +185,44 @@ describe('deriveBuildPathViewportPreviewRead', () => {
       mappingStrategy: 'none',
       selectedTimelineStepId: timeline.steps[1].timelineStepId,
       excludedOutputIds: [],
+      excludedNodeIds: [],
+    })
+  })
+
+  it('does not treat graph lifecycle cards as geometry preview steps', () => {
+    const graphLoadedCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId: 'graph-document-1',
+      graphLabel: 'Graph 1',
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
+    const timeline = deriveBuildPathMasterTimeline([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 2,
+        projectionId: 'projection-sketch',
+        affectedNodeIds: ['node-sketch'],
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 3,
+        projectionId: 'projection-extrude',
+        affectedNodeIds: ['node-extrude'],
+      }),
+    ], [graphLoadedCard])
+
+    const previewRead = deriveBuildPathViewportPreviewRead({
+      selectedTimelineStepId: timeline.steps[0].timelineStepId,
+      timeline,
+    })
+
+    expect(timeline.steps[0].stepKind).toBe('lifecycle-card')
+    expect(previewRead).toMatchObject({
+      status: 'final',
+      mappingStrategy: 'none',
+      selectedTimelineStepId: timeline.steps[0].timelineStepId,
+      excludedBuildPathEventIds: [],
       excludedNodeIds: [],
     })
   })

@@ -9,6 +9,7 @@ import {
 } from '../console/commandCommitContract'
 import { editHistoryStore } from '../store/editHistoryStore'
 import type { BuildPathEvent } from './buildPathEvents'
+import { createBuildPathLifecycleCard } from './buildPathLifecycle'
 import { deriveBuildPathMasterTimeline } from './buildPathTimeline'
 import {
   BuildPathSurface,
@@ -133,7 +134,7 @@ describe('BuildPathSurface', () => {
     expect(container?.textContent).not.toContain('Build Path')
   })
 
-  it('shows docked scrub readback and moves selection without Edit History entries', async () => {
+  it('shows docked scrub readback and records timeline moves in Edit History', async () => {
     editHistoryStore.commitEntry({
       entryId: 'viewport-dock-redo-proof',
       label: 'Authored edit',
@@ -175,11 +176,27 @@ describe('BuildPathSurface', () => {
 
     const selectedStep = useBuildPathRuntimeStore.getState().readSelectedTimelineStep()
 
-    expect(selectedStep?.event.commandFamily).toBe('Extrude')
+    if (selectedStep?.stepKind !== 'build-event') {
+      throw new Error('Expected selected Build Path step to be a build event.')
+    }
+    expect(selectedStep.event.commandFamily).toBe('Extrude')
     expect(readback?.textContent).toContain('2')
     expect(readback?.textContent).toContain('Extrude')
-    expect(editHistoryStore.getUndoEntries()).toEqual([])
-    expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Build Path timeline selection',
+      source: { surface: 'build-path' },
+      targetLabel: 'Step 2',
+    })
+    expect(editHistoryStore.getRedoEntries()).toEqual([])
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.display.label).toBe(
+      'Sketch',
+    )
+    expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).not.toEqual(redoBefore)
   })
 
   it('reads the Build Path runtime store for workspace-hosted surfaces', async () => {
@@ -212,7 +229,7 @@ describe('BuildPathSurface', () => {
     expect(surface?.textContent).toContain('Nodes')
   })
 
-  it('selects a visible timeline step into view-only scrub state without touching Edit History or graph truth', async () => {
+  it('selects a visible timeline step into undoable scrub state without touching graph truth', async () => {
     const graphSnapshot = {
       graphDocumentId: 'graph-document-1',
       nodes: ['node-sketch', 'node-extrude'],
@@ -263,13 +280,35 @@ describe('BuildPathSurface', () => {
     const selectedStep = useBuildPathRuntimeStore.getState().readSelectedTimelineStep()
     const readback = container?.querySelector('[data-build-path-readback-state="selected"]')
 
-    expect(selectedStep?.event.commandFamily).toBe('Extrude')
+    if (selectedStep?.stepKind !== 'build-event') {
+      throw new Error('Expected selected Build Path step to be a build event.')
+    }
+    expect(selectedStep.event.commandFamily).toBe('Extrude')
     expect(extrudeStep?.getAttribute('aria-pressed')).toBe('true')
     expect(extrudeStep?.getAttribute('data-build-path-step-selected')).toBe('true')
     expect(readback?.textContent).toContain('Extrude')
     expect(readback?.textContent).toContain('Linked result build-result-1')
-    expect(editHistoryStore.getUndoEntries()).toEqual([])
-    expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Build Path timeline selection',
+      source: { surface: 'build-path' },
+      targetLabel: 'Step 2',
+    })
+    expect(editHistoryStore.getRedoEntries()).toEqual([])
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.display.label).toBe(
+      'Sketch',
+    )
+    await act(async () => {
+      editHistoryStore.redo()
+    })
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.display.label).toBe(
+      'Extrude',
+    )
+    expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).not.toEqual(redoBefore)
     expect(graphSnapshot).toEqual({
       graphDocumentId: 'graph-document-1',
       nodes: ['node-sketch', 'node-extrude'],
@@ -348,6 +387,49 @@ describe('BuildPathSurface', () => {
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
   })
 
+  it('renders graph lifecycle cards distinctly without action boundaries', async () => {
+    const graphLoadedCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId: 'graph-document-loaded',
+      graphLabel: 'Loaded Graph',
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 2,
+        projectionId: 'projection-loaded-sketch',
+      }),
+    ])
+    useBuildPathRuntimeStore.setState((state) => ({
+      runtimeState: {
+        ...state.runtimeState,
+        lifecycleCards: [graphLoadedCard],
+      },
+    }))
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-lifecycle-test" hostMode="workspace" />,
+      )
+    })
+
+    const lifecycleStep = container?.querySelector(
+      '.BuildPathTimelineStep--graph-loaded',
+    ) as HTMLButtonElement | null
+    const selectedStep = useBuildPathRuntimeStore.getState().readSelectedTimelineStep()
+    const readback = container?.querySelector('[data-build-path-readback-state="selected"]')
+
+    expect(lifecycleStep).not.toBeNull()
+    expect(lifecycleStep?.getAttribute('aria-label')).toBe('1. Graph loaded lifecycle card')
+    expect(selectedStep?.stepKind).toBe('lifecycle-card')
+    expect(readback?.textContent).toContain('Graph Loaded')
+    expect(readback?.textContent).toContain('Lifecycle')
+    expect(readback?.textContent).toContain('None')
+    expect(container?.querySelector('[data-build-path-action-boundary-state]')).toBeNull()
+  })
+
   it('enters workspace parallel mode without mutating master order or Edit History', async () => {
     editHistoryStore.commitEntry({
       entryId: 'parallel-mode-redo-proof',
@@ -392,8 +474,8 @@ describe('BuildPathSurface', () => {
       'dependency-hints-unavailable',
     )
     expect(parallelRead?.textContent).toContain('2 steps')
-    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
-      (step) => step.event.commandFamily,
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.flatMap(
+      (step) => step.stepKind === 'build-event' ? [step.event.commandFamily] : [],
     )).toEqual(['Sketch', 'Extrude'])
     expect(editHistoryStore.getUndoEntries()).toEqual([])
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
@@ -463,8 +545,8 @@ describe('BuildPathSurface', () => {
     expect(extrudeBranchStep?.getAttribute('aria-pressed')).toBe('true')
     expect(useBuildPathRuntimeStore.getState().selectedBranchTimelineStepIdByLaneId[laneId])
       .toContain('projection-branch-extrude')
-    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
-      (step) => step.event.commandFamily,
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.flatMap(
+      (step) => step.stepKind === 'build-event' ? [step.event.commandFamily] : [],
     )).toEqual(['Sketch', 'Extrude'])
     expect(editHistoryStore.getUndoEntries()).toEqual([])
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
@@ -544,8 +626,8 @@ describe('BuildPathSurface', () => {
         toNodeId: 'node-live-extrude',
       },
     ])
-    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
-      (step) => step.event.commandFamily,
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.flatMap(
+      (step) => step.stepKind === 'build-event' ? [step.event.commandFamily] : [],
     )).toEqual(['Sketch', 'Extrude'])
     expect(editHistoryStore.getUndoEntries()).toEqual([])
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
