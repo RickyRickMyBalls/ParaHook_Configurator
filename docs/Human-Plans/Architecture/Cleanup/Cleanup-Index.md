@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-05-25 12:24:33: Added `Cleanup-Gen5-Index.md`, added `Future/Gen5 - Cleanup 1 - Lint Gate Baseline Recovery.md`, and refreshed this family index so Cleanup now has an explicit Gen 5 planning surface for restoring `npm run lint` as a trustworthy quality gate through a research-first baseline recovery lane.
 26. 2026-05-10 13:30:05: Added `Cleanup-Gen4-Index.md`, added `Future/Gen4 - Cleanup 1 - Shared Workspace Panel Shell.md`, and refreshed this family index so Cleanup now has an explicit Gen 4 planning surface for unifying the visible two-panel workspace pattern across `Catalog`, `Settings`, and `Properties` without flattening their workspace-specific content.
 25. 2026-05-05 20:30:15: Added `Future/Gen3 - Cleanup 2 - useSpaghettiStore Ownership Decomposition.md`, `Future/Gen3 - Cleanup 3 - ViewportOverlay Runtime Surface Decomposition.md`, and `Future/Gen3 - Cleanup 4 - Viewer Runtime Boundary Decomposition.md`, then refreshed the Cleanup family read so `Gen3` now carries an explicit next-lane sink ladder with small-phase future docs instead of leaving the post-`useAppStore` cleanup wave as a recommendation-only note
 24. 2026-05-05 16:19:03: Added `Cleanup-Gen3-Index.md`, added `Future/Cleanup-Gen3-1 - useAppStore Ownership Decomposition.md`, and refreshed this family index so Cleanup now has an explicit Gen 3 planning surface for oversized ownership-sink decomposition starting with a phased `useAppStore.ts` split plan instead of leaving that next cleanup wave as review-only notes
@@ -63,6 +64,8 @@ Use this folder like this:
   - third-generation oversized ownership-sink decomposition routing
 - `Cleanup-Gen4-Index.md`
   - fourth-generation shared workspace panel-shell cleanup routing
+- `Cleanup-Gen5-Index.md`
+  - fifth-generation lint-gate baseline recovery routing
 - `Cleanup-Vision.md`
   - broad cleanup north star
   - lane framing
@@ -95,6 +98,9 @@ Use this folder like this:
 
 - `Cleanup-Gen4-Index.md`
   - post-family shared workspace panel-shell cleanup planning for unifying the two-panel shell pattern across `Catalog`, `Settings`, and `Properties`
+
+- `Cleanup-Gen5-Index.md`
+  - post-family lint-gate baseline recovery planning for making `npm run lint` trustworthy again
 
 - `Canonical-Ownership-Targets.md`
   - one-owner target map
@@ -143,7 +149,7 @@ It is the place where ParaHook records deliberate cleanup work around:
 `Cleanup-Vision.md` explains the north star.
 `Canonical-Ownership-Targets.md` explains where one true owners should live.
 `Cleanup-Index.md` is the family map that points at concrete cleanup phases.
-`Cleanup-Gen2-Index.md`, `Cleanup-Gen3-Index.md`, and `Cleanup-Gen4-Index.md` hold later-generation follow-on planning after the original family ladder.
+`Cleanup-Gen2-Index.md`, `Cleanup-Gen3-Index.md`, `Cleanup-Gen4-Index.md`, and `Cleanup-Gen5-Index.md` hold later-generation follow-on planning after the original family ladder.
 
 ### Scope
 
@@ -155,6 +161,7 @@ This family covers:
 - residue, migration, and compatibility seam retirement
 - future cleanup phase sequencing
 - oversized ownership-sink decomposition generations after the main family ladder
+- toolchain and lint-gate recovery when the baseline is too noisy to trust
 
 This family does not replace:
 - feature-family architecture docs such as `AppShell/`, `Worker/`, or `Workspace-Modes/`
@@ -514,6 +521,7 @@ Current read:
 - Browser, node-authoring, and graph-result cleanup should follow the owner decisions rather than precede them
 - `Cleanup Gen3` is now the active post-family oversized-sink ladder, with `useAppStore` closed and `useSpaghettiStore`, `ViewportOverlay`, and `Viewer` queued as explicit future family phases that each already have one-pass Codex-sized internal ladders
 - `Cleanup Gen4` is now queued as the shared workspace panel-shell cleanup lane for turning the visible `Catalog` / `Settings` / `Properties` two-panel pattern into one reusable adjustable shell foundation
+- `Cleanup Gen5` is now planned as the lint-gate baseline recovery lane, starting with taxonomy/research before production React fixes, boundary repair, test lint policy, and final enforcement
 
 ### Success Read
 

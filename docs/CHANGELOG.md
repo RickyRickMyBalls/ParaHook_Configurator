@@ -72,6 +72,802 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2127 -->
+
+### [2127] - 2026-05-25 14:39 - `Spaghetti-Editor 11 - Phase 1 - Canvas Viewport Persistence Build Isolation`
+
+HUMAN SUMMARY: ``Spaghetti graph-canvas pan/zoom persistence now updates document-only viewport metadata instead of geometry revision truth, preventing canvas navigation from triggering worker build churn.``
+
+#### Scope / Constraints Honored
+
+- Kept the fix scoped to Spaghetti graph-canvas viewport persistence.
+- Preserved persisted `graph.ui.viewport` behavior for graph reopen/remount.
+- Reused the existing document-only revision pattern already used by node-position UI metadata.
+- Did not change worker build scheduling policy or model-viewport camera behavior.
+
+#### Summary of Implementation
+
+- Added `setGraphViewport(...)` to the Spaghetti store as the dedicated graph-canvas viewport persistence action.
+- Routed `SpaghettiCanvas` debounced viewport writes through `setGraphViewport(...)` instead of generic `applyGraphPatch(...)`.
+- Added store coverage proving graph viewport edits advance document revision without advancing geometry revision.
+- Extended app/build-subscription coverage proving viewport metadata edits do not call `buildDispatcher.requestGraphBuild`.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+
+- Zooming or panning the Spaghetti graph canvas no longer classifies the persisted canvas camera as a geometry edit.
+- Worker builds are no longer requested from graph-canvas zoom/pan-only persistence.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "graph viewport edits|node-position edits"`
+- `npm.cmd test -- src/app/store/useAppStore.test.ts -t "keeps UI-only node-position edits"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2126 -->
+
+### [2126] - 2026-05-25 14:27 - `Spaghetti-Editor 10 - Phase 4 - Crossing Background Drag Start`
+
+HUMAN SUMMARY: ``Green Crossing selection in the Spaghetti graph canvas now starts from the visible scroller background as well as the transformed stage, so right-to-left selection does not silently miss when the drag begins outside the stage box.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair scoped to graph-canvas empty-background pointer routing.
+- Preserved node, wire, menu, and interactive hit guards.
+- Preserved existing `Window` / `Crossing` matching semantics and visual styling.
+
+#### Summary of Implementation
+
+- Added a left-button empty-background selection-window owner to the canvas scroller.
+- Kept the stage-level owner for stage-origin drags.
+- Added focused coverage proving `Crossing` selection can begin from visible scroller background outside the transformed stage.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- Right-to-left green `Crossing` selection can start from visible graph-canvas background even when that point is outside the transformed stage element.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "canvas Crossing|canvas Window|visible scroller background|canvas-selected node set"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2125 -->
+
+### [2125] - 2026-05-25 14:22 - `Spaghetti-Editor 10 - Phase 3 - Canvas Multi-Selection Fit`
+
+HUMAN SUMMARY: ``Middle-mouse double-click in the Spaghetti graph canvas now fits the current canvas multi-selection instead of only fitting the primary selected node after a Window/Crossing drag.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair scoped to Spaghetti graph-canvas fit behavior.
+- Reused the existing multi-id `fitRenderedNodesToCanvas(...)` path.
+- Preserved the current single primary selected-node store and the local visual multi-selection bridge from Phase 2.
+
+#### Summary of Implementation
+
+- Changed the middle-mouse double-click fit route to pass the full canvas-selected node id set when present.
+- Added a focused render test proving a Window/Crossing multi-selection frames both selected graph nodes and excludes unselected nodes.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- After selecting multiple Spaghetti graph nodes with a selection box, double-clicking middle mouse fits the whole selected set.
+- Single selected-node fit behavior remains unchanged.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "canvas-selected node set|canvas Window|canvas Crossing|selected node on middle"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2124 -->
+
+### [2124] - 2026-05-25 14:08 - `Spaghetti-Editor 10 - Phase 2 - Spaghetti Canvas Window/Crossing Selection Restore`
+
+HUMAN SUMMARY: ``The Spaghetti graph canvas now has its own empty-space Window/Crossing selection drag, so node selection boxes work in the editor instead of only in the model viewport.``
+
+#### Scope / Constraints Honored
+
+- Kept the behavior scoped to the Spaghetti graph canvas.
+- Reused the shipped left-to-right `Window` and right-to-left `Crossing` direction rule.
+- Preserved the existing primary selected-node store instead of widening canonical graph selection state in this repair.
+
+#### Summary of Implementation
+
+- Added a left-button empty-canvas drag owner in `SpaghettiCanvas`.
+- Added visible solid `Window` and dashed `Crossing` selection rectangles.
+- Matched graph nodes by their rendered client rectangles and projected matches through existing selected-node styling.
+- Added focused render tests for Window containment and Crossing overlap selection.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+
+- Dragging right from empty graph-canvas space selects fully enclosed graph nodes.
+- Dragging left from empty graph-canvas space selects graph nodes overlapped by the selection rectangle.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "canvas Window|canvas Crossing"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2123 -->
+
+### [2123] - 2026-05-25 13:59 - `Spaghetti-Editor 10 - Phase 1 - Viewer Window/Crossing Direction Repair`
+
+HUMAN SUMMARY: ``Viewer drag selection now follows the shipped CAD direction rule again: left-to-right is Window/full-containment selection and right-to-left is Crossing/overlap selection.``
+
+#### Scope / Constraints Honored
+
+- Kept the runtime repair scoped to the shared viewer window/crossing helper.
+- Preserved the existing workspace selection handoff and object/reference batch-pick contract.
+- Preserved the shared helper path used by model object marquee selection and idle sketch selection.
+
+#### Summary of Implementation
+
+- Updated `getWorkspaceSelectionWindowMode(...)` so left-to-right drags resolve as `Window`.
+- Updated focused selection-window tests for drag-right full containment and drag-left overlap capture.
+
+#### Files Changed
+
+- `src/viewer/workspaceSelectionWindow.ts`
+- `src/viewer/workspaceSelectionWindow.test.ts`
+
+#### Behavior Changes
+
+- Dragging right in the viewer performs `Window` selection and only captures fully enclosed candidates.
+- Dragging left performs `Crossing` selection and captures overlapped candidates.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/viewer/workspaceSelectionWindow.test.ts`
+
+<!-- ENTRY 2122 -->
+
+### [2122] - 2026-05-25 13:55 - `Spaghetti Editor - Phase 1 Follow-Up - Sketch Profile Height`
+
+HUMAN SUMMARY: ``Sketch node profile outputs now let the node grow with every published SketchProfile row instead of capping the attached output body and showing an internal scrollbar.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to Sketch managed output collection presentation.
+- Preserved the shared details-box cap for other port detail bodies.
+- Preserved existing SketchProfile row rendering and endpoint ids.
+
+#### Summary of Implementation
+
+- Added a Sketch-node-specific CSS override for managed output collection details.
+- Removed the internal max-height and overflow scrolling for Sketch profile output bodies so profile rows contribute to node height.
+
+#### Files Changed
+
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+
+- Sketch nodes expand vertically as closed profile output rows are added.
+- The SketchProfiles output body no longer shows the internal scrollbar for many profile rows.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx -t "gives revealed sketch profile children"`
+
+<!-- ENTRY 2121 -->
+
+### [2121] - 2026-05-25 13:50 - `Build Path - Phase 11 Follow-Up - Root New Sketch Intake`
+
+HUMAN SUMMARY: ``The root `New Sketch` command now explicitly ensures the created Sketch node has a Build Path event without duplicating the sketch card when graph snapshot reconstruction already picked it up.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to root Sketch / New Sketch command intake.
+- Preserved the existing Spaghetti graph node creation and Sketch Plane pick flow.
+- Reused the existing Build Path sketch-source backfill helper to avoid duplicate sketch events.
+
+#### Summary of Implementation
+
+- Replaced the unconditional root sketch Build Path command projection with sketch-source ensure-if-missing behavior.
+- Added focused console coverage that root `New Sketch` creates a fresh Spaghetti sketch node and exactly one matching Build Path sketch event.
+
+#### Files Changed
+
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+
+- Running `New Sketch` from root creates the Sketch node in the active Spaghetti graph and guarantees Build Path can show it as a sketch card.
+- The command no longer appends a duplicate Build Path sketch event when the graph snapshot sync already reconstructed the created node.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "starts New Sketch from the root console command"`
+
+<!-- ENTRY 2120 -->
+
+### [2120] - 2026-05-25 13:03 - `Spaghetti Editor - Phase 1 Follow-Up - Fit Padding Ratio`
+
+HUMAN SUMMARY: ``Spaghetti canvas zoom-to-fit now leaves a small expanded-canvas padding margin instead of zooming in past the measured fit bounds, so Zoom All should include the full graph without requiring a manual zoom-out afterward.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to Spaghetti canvas fit zoom math.
+- Preserved meatball-view fit behavior.
+- Preserved the existing selected-node and all-node fit gesture paths.
+
+#### Summary of Implementation
+
+- Replaced the expanded-canvas `1.18` post-fit zoom multiplier with a named `0.94` padding ratio.
+- Updated focused fit expectations so all-node fit proves the graph is zoomed out enough to leave margin.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- Zoom All / graph canvas fit should no longer crop wide graph content by zooming in after calculating fit bounds.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "fits all rendered nodes|fits the selected node"`
+
+<!-- ENTRY 2119 -->
+
+### [2119] - 2026-05-25 12:57 - `Spaghetti Editor - Phase 1 Follow-Up - Fit Width Centering`
+
+HUMAN SUMMARY: ``Spaghetti canvas zoom-to-fit now centers over-wide graph bounds between both horizontal visibility limits instead of pinning the left side and clipping the right side.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to Spaghetti canvas fit pan math.
+- Preserved the existing width-and-height zoom calculation.
+- Reused the existing two-sided fit behavior that meatball view already used.
+
+#### Summary of Implementation
+
+- Replaced expanded-canvas left-only horizontal pan protection with two-sided horizontal centering/clamping.
+- Updated focused fit expectations to prove wide all-node fits center the graph instead of cutting off the right side.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- Zoom-to-fit all/object/selection in the Spaghetti canvas should no longer leave the right side cut off for wide bounds.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "fits all rendered nodes|fits the selected node"`
+
+<!-- ENTRY 2118 -->
+
+### [2118] - 2026-05-25 12:53 - `Spaghetti Editor - Phase 1 Follow-Up - Selection Fit Gesture`
+
+HUMAN SUMMARY: ``Middle mouse double-click in the Spaghetti canvas now fits the selected graph node when one is selected, and still fits all rendered nodes when no node is selected.``
+
+#### Scope / Constraints Honored
+
+- Kept the behavior scoped to the Spaghetti canvas middle-double-click gesture.
+- Preserved console canvas fit as all-node fit.
+- Prepared the fit helper for multiple selected node ids while using the current single selected-node runtime state.
+
+#### Summary of Implementation
+
+- Updated the rendered-node fit helper to optionally filter by node id.
+- Passed the active selected node id into the middle-double-click fit path.
+- Added focused render coverage for selected-node fit and retained all-node fallback coverage.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- Middle mouse double-click fits the selected node when one is selected.
+- Middle mouse double-click continues to fit all rendered nodes when no node is selected.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "fits the selected node"`
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "fits all rendered nodes"`
+
+<!-- ENTRY 2117 -->
+
+### [2117] - 2026-05-25 12:46 - `Spaghetti Editor - Phase 1 Follow-Up - Graph Zoom Menu And Middle Click Fit`
+
+HUMAN SUMMARY: ``Graph-scoped `Zoom` now leaves the user in the `Canvas / Model Viewport / Back` choice menu instead of being immediately bounced back to graph scope, and middle mouse double-click fit now works even when browser middle-button events report no click detail.``
+
+#### Scope / Constraints Honored
+
+- Kept root-level bare `zoom` behavior as Spaghetti canvas fit.
+- Preserved graph-scoped `Zoom` staged choices for Canvas and Model Viewport.
+- Reused the existing rendered-node fit helper for both console canvas fit requests and middle-button fit.
+
+#### Summary of Implementation
+
+- Narrowed the root-level Spaghetti `zoom` interception so it does not steal `Zoom` inside graph scope.
+- Prevented workspace target sync from immediately replacing active graph zoom submenus with the graph-selected session.
+- Added middle-button double-click recognition based on timing and pointer distance for browsers that do not increment `event.detail` on aux buttons.
+
+#### Files Changed
+
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- `Root > Graph > graph_[n] > Zoom` now shows `Canvas`, `Model Viewport`, and `Back`.
+- Double-clicking the middle mouse button in the Spaghetti canvas zooms to fit rendered nodes even when the browser reports middle clicks with `detail: 0`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "keeps graph-scoped Zoom"`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "routes flat zoom to graph canvas fit"`
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "fits all rendered nodes"`
+
+<!-- ENTRY 2116 -->
+
+### [2116] - 2026-05-25 12:25 - `Spaghetti Editor - Phase 1 Follow-Up - Console Zoom Fit`
+
+HUMAN SUMMARY: ``Typing the normal `zoom` console command while the Spaghetti Editor is active now zooms the graph canvas to fit its nodes instead of being swallowed by the generic root Zoom command path.``
+
+#### Scope / Constraints Honored
+
+- Kept the interception scoped to the full bare `zoom` token while Spaghetti is the active surface.
+- Preserved the existing `z` root Zoom staged-navigation flow for model viewport commands.
+- Reused the existing Spaghetti editor canvas-fit request path.
+
+#### Summary of Implementation
+
+- Routed bare `zoom` through the Spaghetti editor canvas fit request before staged root navigation consumes the token.
+- Kept the later flat zoom fallback aligned for any non-staged command path that reaches it.
+- Added focused console coverage for active-Spaghetti `zoom` and retained the root `z` regression.
+
+#### Files Changed
+
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+
+- With the Spaghetti Editor active, submitting `zoom` in the console requests graph canvas zoom-to-fit and logs `Graph canvas zoom extents`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "routes flat zoom to graph canvas fit"`
+- `npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "enters the root zoom family and prefills the first zoom action"`
+
+<!-- ENTRY 2115 -->
+
+### [2115] - 2026-05-25 12:18 - `Spaghetti Editor - Phase 1 Follow-Up - Middle Click Fit All`
+
+HUMAN SUMMARY: ``The Spaghetti Editor canvas now zooms to fit all rendered nodes when the user double-clicks the middle mouse button inside the graph canvas.``
+
+#### Scope / Constraints Honored
+
+- Kept the gesture scoped to the Spaghetti graph canvas.
+- Reused the existing fit-to-node-bounds math so middle-double-click fit stays aligned with normal fit-to-content behavior.
+- Preserved existing middle-button drag panning and Shift-middle viewport temporary pan/orbit gestures.
+
+#### Summary of Implementation
+
+- Extracted rendered-node bounds fitting into a reusable canvas helper.
+- Routed middle pointer-down events with double-click detail through the fit-all helper before the pan-drag path starts.
+- Added focused render coverage for fitting Sketch, Extrude, and OutputPreview nodes on middle-button double-click.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- Double-clicking the middle mouse button in the Spaghetti Editor canvas zooms/pans the graph to fit all rendered nodes.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "fits all rendered nodes"`
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "allows wheel zooming out to 1 percent"`
+
+<!-- ENTRY 2114 -->
+
+### [2114] - 2026-05-25 12:11 - `Spaghetti Editor - Phase 1 Follow-Up - Wider Zoom Out`
+
+HUMAN SUMMARY: ``The Spaghetti Editor canvas can now zoom out to `1%` instead of stopping at `40%`, giving larger graphs much more breathing room while keeping the existing zoom-in ceiling unchanged.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to Spaghetti canvas zoom limits.
+- Preserved pointer-centered wheel zoom behavior and existing zoom-in ceilings.
+- Kept fit-to-content and wheel zoom using the same minimum zoom value.
+
+#### Summary of Implementation
+
+- Added named canvas zoom limit constants.
+- Lowered the shared minimum graph-canvas zoom from `0.4` to `0.01`.
+- Added focused render coverage for wheel zoom reaching the new `1%` floor.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+
+#### Behavior Changes
+
+- Users can zoom farther out in the Spaghetti Editor graph canvas, down to `1%`.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "allows wheel zooming out to 1 percent"`
+
+<!-- ENTRY 2113 -->
+
+### [2113] - 2026-05-25 12:03 - `Build Path - Phase 11 Follow-Up - Canvas Graph Sync`
+
+HUMAN SUMMARY: ``Canvas-authored Spaghetti graph edits now refresh the Build Path snapshot immediately, so right-click-added Sketch nodes and newly connected Sketch -> Extrude -> OutputPreview chains appear as Build Path cards and dependencies without needing a reload or undo/redo restore.``
+
+#### Scope / Constraints Honored
+
+- Kept graph-authored truth as the source for Build Path reconstruction.
+- Limited the runtime behavior change to committed graph-structure edits.
+- Preserved existing undo/redo snapshot restoration behavior.
+
+#### Summary of Implementation
+
+- Updated normal graph-structure commits to sync the Build Path runtime snapshot after applying the active graph change.
+- Added regression coverage for direct canvas-style Sketch node creation, Extrude node creation, Sketch-to-Extrude wiring, and Extrude-to-OutputPreview publication wiring.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Behavior Changes
+
+- A Sketch node added from the Spaghetti canvas is now immediately represented as a Build Path Sketch card.
+- Connecting that Sketch through an Extrude into OutputPreview now updates Build Path dependencies and the Extrude output publication read immediately.
+
+#### Verification Steps
+
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "syncs Build Path cards and dependencies when canvas graph nodes and wires are committed"`
+- `npm.cmd test -- src/app/buildPath/reconstructBuildPathFromGraph.test.ts`
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts` was also run; the new regression passed, but the full file still has three unrelated pre-existing expectation mismatches around OutputPreview `publicationMode` normalization and enriched reconstructed dependency shapes.
+
+<!-- ENTRY 2112 -->
+
+### [2112] - 2026-05-25 11:56 - `Build Path - Phase 11 Follow-Up - Bottom Alignment Stack Order`
+
+HUMAN SUMMARY: ``Build Path Parallel bottom alignment now anchors the oldest/root card at the bottom of multi-card columns and stacks newer parallel cards upward, matching the intended bottom-aligned graph read.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to Build Path Parallel topology presentation.
+- Preserved graph truth, topology derivation, branch-local playhead behavior, and Edit History boundaries.
+- Did not add manual layout, persisted graph coordinates, or new alignment modes.
+
+#### Summary of Implementation
+
+- Updated bottom-aligned topology lane coordinate math so multi-card columns invert their rendered rows.
+- Updated connector endpoint path math to follow the same bottom-aligned row inversion.
+- Added focused proof that bottom alignment places the first parallel Extrude on the bottom row while newer Extrudes stack above it.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- In Parallel mode with `Align Bottom`, the first/root card in a multi-card column now appears at the bottom instead of the top.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `git diff --check`
+
+<!-- ENTRY 2111 -->
+
+### [2111] - 2026-05-25 11:51 - `Build Path - Phase 15 Follow-Up - Dock Chrome Removal`
+
+HUMAN SUMMARY: ``The viewport-docked Build Path strip now presents as just the icon timeline and scrub marker, without the surrounding rounded box chrome.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to viewport-docked Build Path styling.
+- Preserved workspace-hosted Build Path panel chrome.
+- Did not change scrub behavior, graph truth, Edit History, or timeline state.
+
+#### Summary of Implementation
+
+- Removed the viewport-docked timeline strip border, background, box shadow, radius, and backdrop blur.
+- Kept lightweight padding so icons and the scrub marker retain usable spacing.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Model Viewport Build Path dock now reads as loose timeline icons plus scrubber instead of a framed mini panel.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `git diff --check`
+
+<!-- ENTRY 2110 -->
+
+### [2110] - 2026-05-25 11:10 - `Build Path - Phase 15 Follow-Up - End Marker Clearance`
+
+HUMAN SUMMARY: ``Build Path viewport-docked timelines now reserve a small amount of right-side rail space so the final scrub marker remains visible inside the box instead of being clipped or causing a tiny scrollbar.``
+
+#### Scope / Constraints Honored
+
+- Kept the change to Build Path timeline presentation CSS.
+- Preserved long-timeline horizontal scrolling behavior.
+- Did not change scrub selection, graph truth, Edit History, or marker placement math.
+
+#### Summary of Implementation
+
+- Added a current-line clearance CSS variable to the Build Path timeline strip.
+- Added right-side rail padding and matching scroll padding so the final current-position marker has room inside the container.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The scrub marker at the latest timeline step has visible end clearance inside the Build Path box.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `git diff --check`
+
+<!-- ENTRY 2109 -->
+
+### [2109] - 2026-05-25 10:44 - `Build Path - Phase 15.1-15.2 - Scrub Future Icon State`
+
+HUMAN SUMMARY: ``Build Path now marks timeline and Parallel topology items after the current scrub position as future/inactive presentation state, giving the Fusion-style "off after marker" read while keeping future cards clickable scrub targets.``
+
+#### Scope / Constraints Honored
+
+- Kept the change presentation-only over existing selected timeline state.
+- Preserved graph truth, accepted event order, viewport geometry masking ownership, and restore/replay boundaries.
+- Kept future cards enabled and clickable; no native disabled state was added.
+- Preserved existing branch-local topology-card selection behavior.
+
+#### Summary of Implementation
+
+- Added `past`, `current`, and `future` temporal-state derivation for Build Path timeline cards.
+- Exposed stable temporal-state data attributes on viewport-docked and workspace-hosted timeline buttons.
+- Styled future timeline cards with reduced opacity, desaturation, softer borders, and flatter backgrounds.
+- Extended temporal-state data attributes to workspace Parallel topology cards and connector paths.
+- Dimmed future topology cards/connectors while preserving semantic connector color attributes.
+- Added focused tests for future timeline state, click-to-scrub behavior, viewport-dock parity, and canonical `1 > 6 > 1` topology future dimming.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- When Build Path is scrubbed to an earlier step, later timeline icons visibly read as future/inactive.
+- Future timeline cards remain active buttons and can still be clicked to scrub forward.
+- Parallel topology cards and connectors after the selected master scrub position now visually dim while retaining their semantic graph/color data.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/reconstructBuildPathFromGraph.test.ts`
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 2108 -->
+
+### [2108] - 2026-05-25 10:27 - `Build Path - Phase 11.3-11.6 - Parallel Graph Polish And Closeout`
+
+HUMAN SUMMARY: ``Build Path Parallel mode now lets the compact topology graph live directly in workspace space, adds UI-only top/center/bottom alignment controls, and moves branch lane readback behind a secondary disclosure while preserving semantic connector colors and Edit History safety.``
+
+#### Scope / Constraints Honored
+
+- Kept the work scoped to workspace-hosted Build Path Parallel presentation.
+- Preserved Master timeline order, graph truth, semantic connector colors, and Edit History boundaries.
+- Did not add graph editing, card dragging, restore/replay, compare, pin, branch execution, or persisted graph-layout coordinates.
+
+#### Summary of Implementation
+
+- Removed the visible nested `Parallel` panel/header chrome around the topology graph.
+- Added top, center, and bottom topology alignment controls as Build Path UI state.
+- Recomputed source/sink card rows and connector paths from the selected alignment mode.
+- Collapsed lane readback by default behind a secondary disclosure while keeping branch-local playhead selection available when expanded.
+- Tuned topology connector opacity/thickness, icon card size, and graph spacing for the unboxed workspace read.
+- Added focused rendering proof for alignment, semantic connector colors, collapsed lane readback, and Edit History safety.
+
+#### Files Changed
+
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-11 - Parallel Lane Icon Layout.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Workspace-hosted Parallel mode shows the icon-card topology graph directly in the Build Path workspace body.
+- Users can align one-card source/sink columns to the top, center, or bottom of a parallel sibling stack.
+- Lane readback no longer dominates the primary topology graph and is available only when expanded.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/reconstructBuildPathFromGraph.test.ts`
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd run build`
+- Browser smoke attempted against `http://localhost:5173/ParaHook_Configurator/`, but the in-app `iab` browser backend was unavailable in this session.
+
+<!-- ENTRY 2107 -->
+
+### [2107] - 2026-05-25 10:12 - `Spaghetti Editor - Phase 1 - Window Opacity Clamp Freedom`
+
+HUMAN SUMMARY: ``Spaghetti Editor Settings now lets the Window opacity control reach `0%` instead of keeping the old `65%` minimum clamp, including migration for saved defaults that still carried the legacy floor.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to the Spaghetti Editor window/body opacity clamp.
+- Left title bar opacity, graph content opacity, and padding clamp defaults unchanged.
+- Preserved the existing slider and Settings workspace ownership paths.
+
+#### Summary of Implementation
+
+- Added a window-opacity-specific default clamp with a `0` minimum.
+- Normalized legacy saved window opacity clamps from `0.65..1` to `0..1`.
+- Added focused unit and Settings workspace coverage for the zero-minimum behavior.
+
+#### Files Changed
+
+- `src/app/panels/spaghettiWindowAppearance.ts`
+- `src/app/panels/spaghettiWindowAppearance.test.ts`
+- `src/app/workspace/SettingsSurface.test.tsx`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `Settings > Spaghetti Editor Defaults > Window opacity` now exposes `0%` as the minimum value.
+- New and legacy-default Spaghetti Editor window opacity settings can be lowered to fully transparent.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/panels/spaghettiWindowAppearance.test.ts src/app/workspace/SettingsSurface.test.tsx`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 2106 -->
+
+### [2106] - 2026-05-25 10:06 - `Build Path - Phase 11.2 - Parallel Icon Lane Rendering`
+
+HUMAN SUMMARY: ``Build Path Parallel mode now visibly renders the Phase 1 topology read as compact icon cards and semantic-color connector lines, including a focused `1 > 6 > 1` proof for one Sketch feeding six Extrudes and one Output sink.``
+
+#### Scope / Constraints Honored
+
+- Kept the renderer derived from the Phase 1 topology read model instead of re-inferring graph topology in JSX.
+- Preserved Master timeline order, graph truth, and Edit History behavior.
+- Kept viewport-docked Build Path conservative; the visible topology preview is workspace-hosted Parallel mode.
+
+#### Summary of Implementation
+
+- Rendered fixed-size Build Path topology icon cards in deterministic topology columns and lane rows.
+- Added an SVG mini-connector layer behind the topology cards using connector record ids, endpoints, semantic kind, and color.
+- Added a compact Output sink glyph for shared downstream OutputPreview topology nodes.
+- Wired command topology card selection through the existing branch playhead selection path.
+- Kept the older branch lane list available underneath as fallback/readback while the topology renderer matures.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-11 - Parallel Lane Icon Layout.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Workspace-hosted Build Path Parallel mode now shows a compact topology preview above the branch lane fallback/readback.
+- The canonical parallel graph shape renders as one Sketch card, six sibling Extrude cards, one Output sink card, and twelve semantically colored connectors.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/buildPath/reconstructBuildPathFromGraph.test.ts`
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 2105 -->
+
+### [2105] - 2026-05-25 09:48 - `Build Path - Phase 11.1 - Parallel Lane Visual Model`
+
+HUMAN SUMMARY: ``Build Path Parallel mode now has a derived topology read model for compact icon-card graph layouts, including the `Sketch -> six Extrudes -> Output` `1 > 6 > 1` proof and connector metadata that reuses Spaghetti wire color semantics.``
+
+#### Scope / Constraints Honored
+
+- Kept Master timeline order, graph truth, Edit History, and branch-local playheads unchanged.
+- Deferred final painted connector SVG/path rendering to the next Build Path 11 phase.
+- Reused Spaghetti edge-source-kind and type-color semantics instead of adding Build Path-only connector colors.
+
+#### Summary of Implementation
+
+- Added `deriveBuildPathTopologyLayout(...)` with topology columns, icon-card nodes, output sink nodes, and connector records.
+- Widened Build Path graph dependency metadata to carry endpoint port ids, connector semantic kind, and resolved connector color.
+- Preserved loaded-graph OutputPreview sink edges so Extrude-to-Output fan-in can appear in the topology read.
+- Exposed hidden Parallel-surface topology readback attributes for focused proof without changing the visible lane UI.
+
+#### Files Changed
+
+- `src/app/buildPath/buildPathTimeline.ts`
+- `src/app/buildPath/reconstructBuildPathFromGraph.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.ts`
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/buildPath/reconstructBuildPathFromGraph.test.ts`
+- `src/app/spaghetti/canvas/edgeSourceKind.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-11 - Parallel Lane Icon Layout.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Loaded graph reconstruction now includes command-to-OutputPreview dependency records with endpoint metadata.
+- Build Path Parallel mode can derive a `1 > 6 > 1` topology read from graph dependencies while the visible rendering remains the existing branch-lane read.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/reconstructBuildPathFromGraph.test.ts src/app/buildPath/buildPathTimeline.test.ts src/app/buildPath/BuildPathSurface.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts`
+- `npm.cmd exec -- tsc --noEmit`
+- `npm.cmd run build`
+
 <!-- ENTRY 2104 -->
 
 ### [2104] - 2026-05-25 09:02 - `Build Path - Phase 14.1 - Manual Node Deletion Sync And Orphaned References`

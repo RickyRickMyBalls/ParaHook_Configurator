@@ -215,6 +215,12 @@ describe('SettingsSurface', () => {
     expect(container?.textContent).toContain('Title bar opacity')
     expect(container?.textContent).toContain('Body color')
     expect(container?.textContent).toContain('Text size')
+
+    const windowOpacitySlider = container?.querySelector(
+      '.ParaSliderTrack[aria-label="Window opacity"]',
+    ) as HTMLDivElement | null
+
+    expect(windowOpacitySlider?.getAttribute('aria-valuemin')).toBe('0')
   })
 
   it('renders viewport highlight controls and resets them through the Viewport section', async () => {

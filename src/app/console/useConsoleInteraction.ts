@@ -1884,9 +1884,9 @@ export function useConsoleInteraction(
       graphDocumentId,
       sketchNodeId,
     )
-    recordGraphCommandSummaryForBuildPath({
-      commandSummary: sketchCommandResult.commitSummary,
+    recordSketchSourceForBuildPathIfMissing({
       graphDocumentId,
+      sketchNodeId,
     })
     clearStagedNavigationSession()
     const sketchPlaneDescriptor = getActiveFeatureAssistDescriptor({
@@ -2605,6 +2605,40 @@ export function useConsoleInteraction(
             ? workspaceContextTargetForGraphShortcut.fallbackGraphDocumentId ?? null
             : null
         const directGraphShortcutGraphDocumentId = resolveConsoleActionContext().graphDocumentId
+        if (
+          normalizedRawToken === 'ZOOM' &&
+          (activeStagedSession === null || activeStagedSession.scopeId === 'root')
+        ) {
+          const consoleActionContext = resolveConsoleActionContext(null)
+          if (
+            appStateForGraphShortcut.workspaceSelection.activeSurface === 'spaghetti' &&
+            consoleActionContext.editorViewportId !== null
+          ) {
+            const commandIdentity = resolveConsoleRadioCommandIdentity({
+              kind: 'flatCommand',
+              commandName: 'zoom',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              commandLineKind: 'user',
+              text: `> ${rawToken}`,
+            })
+            pushCommandHistory(rawToken)
+            trackRadioCommandIdentity(commandIdentity)
+            useSpaghettiStore
+              .getState()
+              .requestEditorViewportCanvasFit(consoleActionContext.editorViewportId)
+            appendConsoleEntry({
+              layer: 'View',
+              text: 'Graph canvas zoom extents',
+              source: 'console',
+              severity: 'info',
+            })
+            enterGuidedRootSession({ appendPrompt: true })
+            requestRadioBurst(commandIdentity, 'enter')
+            return
+          }
+        }
         const isContextScopedGraphShortcut =
           activeStagedSession !== null &&
           (activeStagedSession.scopeId.startsWith('content') ||
@@ -5482,6 +5516,27 @@ export function useConsoleInteraction(
         case 'zoomobject':
         case 'zoom':
           {
+            if (parsed.name === 'zoom' && parsed.args.length === 0) {
+              const appState = useAppStore.getState()
+              const consoleActionContext = resolveConsoleActionContext(null)
+              if (
+                appState.workspaceSelection.activeSurface === 'spaghetti' &&
+                consoleActionContext.editorViewportId !== null
+              ) {
+                useSpaghettiStore
+                  .getState()
+                  .requestEditorViewportCanvasFit(consoleActionContext.editorViewportId)
+                appendConsoleEntry({
+                  layer: 'View',
+                  text: 'Graph canvas zoom extents',
+                  source: 'console',
+                  severity: 'info',
+                })
+                enterGuidedRootSession({ appendPrompt: true })
+                requestRadioBurst(flatCommandIdentity, 'enter')
+                return
+              }
+            }
             const parsedZoomAction =
               parsed.name === 'zoomobject' ? 'object' : parseZoomCommandAction(parsed.args)
             const zoomObjectTarget = resolveZoomObjectTarget(useAppStore.getState())

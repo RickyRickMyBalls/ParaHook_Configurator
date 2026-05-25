@@ -667,6 +667,87 @@ describe('useSpaghettiStore graph normalization', () => {
     ).toEqual(['Sketch'])
   })
 
+  it('syncs Build Path cards and dependencies when canvas graph nodes and wires are committed', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            componentLabel: 'Published Component',
+            objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 }],
+            slots: [{ slotId: 's001', publicationMode: 'split' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [],
+    })
+    useBuildPathRuntimeStore.getState().resetRuntimeState()
+
+    expect(useSpaghettiStore.getState().addGraphNodeWithHistory({
+      node: {
+        nodeId: 'node-sketch-canvas',
+        type: 'Geometry/Sketch',
+        params: getDefaultNodeParams('Geometry/Sketch'),
+      },
+      position: { x: 120, y: 80 },
+    })).toBe(true)
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+      (step) => step.display.label,
+    )).toEqual(['Sketch'])
+
+    expect(useSpaghettiStore.getState().addGraphNodeWithHistory({
+      node: {
+        nodeId: 'node-extrude-canvas',
+        type: 'Geometry/Extrude',
+        params: getDefaultNodeParams('Geometry/Extrude'),
+      },
+      position: { x: 360, y: 80 },
+    })).toBe(true)
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+      (step) => step.display.label,
+    )).toEqual(['Sketch', 'Extrude'])
+
+    expect(useSpaghettiStore.getState().connectGraphEdgeWithHistory({
+      edgeId: 'edge-canvas-sketch-to-extrude',
+      from: { nodeId: 'node-sketch-canvas', portId: 'SketchProfile:profile-a' },
+      to: { nodeId: 'node-extrude-canvas', portId: 'ExtrusionProfile' },
+    })).toBe(true)
+    expect(useSpaghettiStore.getState().connectGraphEdgeWithHistory({
+      edgeId: 'edge-canvas-extrude-to-output',
+      from: { nodeId: 'node-extrude-canvas', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    })).toBe(true)
+
+    expect(useBuildPathRuntimeStore.getState().readEvents()).toMatchObject([
+      {
+        commandFamily: 'Sketch',
+        affectedNodeIds: ['node-sketch-canvas'],
+      },
+      {
+        commandFamily: 'Extrude',
+        affectedNodeIds: ['node-extrude-canvas'],
+        affectedOutputIds: ['output-entry:s001:node-extrude-canvas'],
+      },
+    ])
+    expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toMatchObject([
+      {
+        edgeId: 'edge-canvas-sketch-to-extrude',
+        fromNodeId: 'node-sketch-canvas',
+        toNodeId: 'node-extrude-canvas',
+        connectorKind: 'sketchProfile',
+      },
+      {
+        edgeId: 'edge-canvas-extrude-to-output',
+        fromNodeId: 'node-extrude-canvas',
+        toNodeId: 'node-output-preview-1',
+        connectorKind: 'solidBody',
+      },
+    ])
+  })
+
   it('accepts an Extrude session without duplicating an existing OutputPreview wire', () => {
     useSpaghettiStore.getState().setGraph({
       schemaVersion: 1,
@@ -1607,6 +1688,42 @@ describe('useSpaghettiStore graph normalization', () => {
       x: 123,
       y: 457,
       width: DEFAULT_SPAGHETTI_NODE_WIDTH,
+    })
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(
+      2,
+    )
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
+  })
+
+  it('keeps document revision moving for graph viewport edits without advancing geometry revision', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-1',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    const runtimeAfterGeometryEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']
+    expect(runtimeAfterGeometryEdit?.compileBuild.currentDocumentRevision).toBe(1)
+    expect(runtimeAfterGeometryEdit?.compileBuild.currentGraphRevision).toBe(1)
+
+    useSpaghettiStore.getState().setGraphViewport('graph-document-1', {
+      x: 12.4,
+      y: -24.6,
+      zoom: 1.25,
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(state.graph.ui?.viewport).toEqual({
+      x: 12,
+      y: -25,
+      zoom: 1.25,
     })
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(
       2,

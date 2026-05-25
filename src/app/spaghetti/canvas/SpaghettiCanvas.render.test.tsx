@@ -10,6 +10,7 @@ import {
   MIN_SPAGHETTI_NODE_WIDTH,
   type SpaghettiGraph,
 } from '../schema/spaghettiTypes'
+import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -111,6 +112,23 @@ const findPortAnchor = (
   return anchor instanceof HTMLElement ? anchor : null
 }
 
+const stubElementRect = (
+  element: HTMLElement,
+  rect: { left: number; top: number; width: number; height: number },
+) => {
+  element.getBoundingClientRect = () => ({
+    x: rect.left,
+    y: rect.top,
+    left: rect.left,
+    top: rect.top,
+    right: rect.left + rect.width,
+    bottom: rect.top + rect.height,
+    width: rect.width,
+    height: rect.height,
+    toJSON: () => ({}),
+  } as DOMRect)
+}
+
 describe('SpaghettiCanvas live extrude row rendering', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -141,6 +159,327 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     container = null
     document.body.innerHTML = ''
     globalThis.Worker = originalWorker
+  })
+
+  it('selects graph nodes with a canvas Window drag from empty space', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    expect(scroller).not.toBeNull()
+    expect(stage).not.toBeNull()
+    expect(sketchNode).not.toBeNull()
+    expect(extrudeNode).not.toBeNull()
+    if (scroller === null || stage === null || sketchNode === null || extrudeNode === null) {
+      return
+    }
+
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+    stubElementRect(stage, { left: 0, top: 0, width: 1200, height: 800 })
+    stubElementRect(sketchNode, { left: 100, top: 100, width: 200, height: 100 })
+    stubElementRect(extrudeNode, { left: 500, top: 250, width: 200, height: 100 })
+
+    await act(async () => {
+      stage.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 80,
+          clientY: 80,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 350,
+          clientY: 240,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.SpaghettiCanvasSelectionWindow--window')).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: 350,
+          clientY: 240,
+        }),
+      )
+    })
+
+    expect(sketchNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(extrudeNode.classList.contains('SpaghettiNode--selected')).toBe(false)
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
+  })
+
+  it('selects overlapped graph nodes with a canvas Crossing drag from empty space', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    expect(scroller).not.toBeNull()
+    expect(stage).not.toBeNull()
+    expect(sketchNode).not.toBeNull()
+    expect(extrudeNode).not.toBeNull()
+    if (scroller === null || stage === null || sketchNode === null || extrudeNode === null) {
+      return
+    }
+
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+    stubElementRect(stage, { left: 0, top: 0, width: 1200, height: 800 })
+    stubElementRect(sketchNode, { left: 100, top: 100, width: 200, height: 100 })
+    stubElementRect(extrudeNode, { left: 500, top: 250, width: 200, height: 100 })
+
+    await act(async () => {
+      stage.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 650,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 250,
+          clientY: 150,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.SpaghettiCanvasSelectionWindow--crossing')).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: 250,
+          clientY: 150,
+        }),
+      )
+    })
+
+    expect(sketchNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(extrudeNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
+  })
+
+  it('starts canvas Crossing selection from visible scroller background outside the stage', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    expect(scroller).not.toBeNull()
+    expect(stage).not.toBeNull()
+    expect(sketchNode).not.toBeNull()
+    expect(extrudeNode).not.toBeNull()
+    if (scroller === null || stage === null || sketchNode === null || extrudeNode === null) {
+      return
+    }
+
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+    stubElementRect(stage, { left: 900, top: 0, width: 1200, height: 800 })
+    stubElementRect(sketchNode, { left: 100, top: 100, width: 200, height: 100 })
+    stubElementRect(extrudeNode, { left: 500, top: 250, width: 200, height: 100 })
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 650,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 250,
+          clientY: 150,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.SpaghettiCanvasSelectionWindow--crossing')).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: 250,
+          clientY: 150,
+        }),
+      )
+    })
+
+    expect(sketchNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(extrudeNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
   })
 
   it('commits menu-created Sketch and Extrude nodes through graph edit history', async () => {
@@ -337,6 +676,437 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     expect(stage).not.toBeNull()
     expect(stage?.style.transform).toContain('translate(120px, 80px)')
     expect(stage?.style.transform).toContain('scale(1.5)')
+  })
+
+  it('allows wheel zooming out to 1 percent in the graph canvas', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 16,
+          y: 16,
+          zoom: 0.0105,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    expect(scroller).not.toBeNull()
+    if (scroller === null) {
+      return
+    }
+    scroller.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => ({}),
+    } as DOMRect)
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 400,
+          clientY: 300,
+          deltaY: 100,
+        }),
+      )
+    })
+
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    expect(stage?.style.transform).toContain('scale(0.01)')
+  })
+
+  it('fits all rendered nodes on middle mouse double-click in the graph canvas', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    const outputNode = findNodeRoot(container, 'node-output-preview-1')
+    expect(scroller).not.toBeNull()
+    expect(stage).not.toBeNull()
+    expect(sketchNode).not.toBeNull()
+    expect(extrudeNode).not.toBeNull()
+    expect(outputNode).not.toBeNull()
+    if (
+      scroller === null ||
+      stage === null ||
+      sketchNode === null ||
+      extrudeNode === null ||
+      outputNode === null
+    ) {
+      return
+    }
+
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+    stubElementRect(stage, { left: 0, top: 0, width: 1200, height: 800 })
+    stubElementRect(sketchNode, { left: 100, top: 100, width: 200, height: 100 })
+    stubElementRect(extrudeNode, { left: 500, top: 400, width: 200, height: 100 })
+    stubElementRect(outputNode, { left: 900, top: 450, width: 200, height: 100 })
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          buttons: 4,
+          clientX: 400,
+          clientY: 300,
+          detail: 0,
+        }),
+      )
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          buttons: 4,
+          clientX: 402,
+          clientY: 301,
+          detail: 0,
+        }),
+      )
+    })
+
+    expect(stage.style.transform).toContain('translate(-20px, -48px)')
+    expect(stage.style.transform).toContain('scale(0.69936')
+  })
+
+  it('fits the selected node on middle mouse double-click when a graph node is selected', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+    if (editorViewportId !== null) {
+      useSpaghettiStore.getState().setEditorViewportSelectedNodeId(editorViewportId, 'node-extrude-1')
+    }
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    const outputNode = findNodeRoot(container, 'node-output-preview-1')
+    expect(scroller).not.toBeNull()
+    expect(stage).not.toBeNull()
+    expect(sketchNode).not.toBeNull()
+    expect(extrudeNode).not.toBeNull()
+    expect(outputNode).not.toBeNull()
+    if (
+      scroller === null ||
+      stage === null ||
+      sketchNode === null ||
+      extrudeNode === null ||
+      outputNode === null
+    ) {
+      return
+    }
+
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+    stubElementRect(stage, { left: 0, top: 0, width: 1200, height: 800 })
+    stubElementRect(sketchNode, { left: 100, top: 100, width: 200, height: 100 })
+    stubElementRect(extrudeNode, { left: 500, top: 400, width: 200, height: 100 })
+    stubElementRect(outputNode, { left: 900, top: 450, width: 200, height: 100 })
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          buttons: 4,
+          clientX: 400,
+          clientY: 300,
+          detail: 0,
+        }),
+      )
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          buttons: 4,
+          clientX: 402,
+          clientY: 301,
+          detail: 0,
+        }),
+      )
+    })
+
+    expect(stage.style.transform).toContain('translate(-1160px, -1018px)')
+    expect(stage.style.transform).toContain('scale(2.6)')
+  })
+
+  it('fits the canvas-selected node set on middle mouse double-click after window selection', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        viewport: {
+          x: 0,
+          y: 0,
+          zoom: 1,
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    const stage = container?.querySelector('.SpaghettiCanvasStage') as HTMLElement | null
+    const sketchNode = findNodeRoot(container, 'node-sketch-1')
+    const extrudeNode = findNodeRoot(container, 'node-extrude-1')
+    const outputNode = findNodeRoot(container, 'node-output-preview-1')
+    expect(scroller).not.toBeNull()
+    expect(stage).not.toBeNull()
+    expect(sketchNode).not.toBeNull()
+    expect(extrudeNode).not.toBeNull()
+    expect(outputNode).not.toBeNull()
+    if (
+      scroller === null ||
+      stage === null ||
+      sketchNode === null ||
+      extrudeNode === null ||
+      outputNode === null
+    ) {
+      return
+    }
+
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+    stubElementRect(stage, { left: 0, top: 0, width: 1200, height: 800 })
+    stubElementRect(sketchNode, { left: 100, top: 100, width: 200, height: 100 })
+    stubElementRect(extrudeNode, { left: 500, top: 250, width: 200, height: 100 })
+    stubElementRect(outputNode, { left: 900, top: 450, width: 200, height: 100 })
+
+    await act(async () => {
+      stage.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 650,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: 250,
+          clientY: 150,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEventCtor('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: 250,
+          clientY: 150,
+        }),
+      )
+    })
+
+    expect(sketchNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(extrudeNode.classList.contains('SpaghettiNode--selected')).toBe(true)
+    expect(outputNode.classList.contains('SpaghettiNode--selected')).toBe(false)
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          buttons: 4,
+          clientX: 400,
+          clientY: 300,
+          detail: 0,
+        }),
+      )
+      scroller.dispatchEvent(
+        new PointerEventCtor('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          buttons: 4,
+          clientX: 402,
+          clientY: 301,
+          detail: 0,
+        }),
+      )
+    })
+
+    expect(stage.style.transform).toContain('translate(-66px, -95px)')
+    expect(stage.style.transform).toContain('scale(1.1656')
   })
 
   it('commits selected Sketch and Extrude node deletion through graph edit history', async () => {

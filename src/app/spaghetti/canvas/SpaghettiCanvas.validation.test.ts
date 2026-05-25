@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { validateGraph } from '../compiler/validateGraph'
-import { resolveCanvasEdgeSourceKind, validateConnectionCheap } from './SpaghettiCanvas'
+import { validateConnectionCheap } from './SpaghettiCanvas'
+import { resolveCanvasEdgeSourceKind } from './edgeSourceKind'
 
 describe('canvas edge source kind normalization', () => {
   it('keeps stale aggregate SketchProfiles source-path metadata on the collection wire tone', () => {

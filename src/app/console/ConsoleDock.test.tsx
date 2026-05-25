@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SketchFeature } from '../spaghetti/features/featureTypes'
 import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import { useBuildPathRuntimeStore } from '../buildPath/useBuildPathRuntimeStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
 import { editHistoryStore } from '../store/editHistoryStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
@@ -5419,6 +5420,7 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('spaghetti')
       useConsoleStore.getState().setInputText('g')
     })
 
@@ -5867,6 +5869,7 @@ describe('ConsoleDock', () => {
   })
 
   it('starts New Sketch from the root console command by forcing a fresh sketch node', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState()
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -5896,9 +5899,20 @@ describe('ConsoleDock', () => {
       .getState()
       .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
     const newSketchNode = sketchNodes.find((node) => node.nodeId !== 'node-sketch-existing')
+    const sketchBuildPathEvents = useBuildPathRuntimeStore
+      .getState()
+      .readEvents()
+      .filter(
+        (event) =>
+          event.commandFamily === 'Sketch' &&
+          event.graphDocumentId === 'graph-document-1' &&
+          newSketchNode !== undefined &&
+          event.affectedNodeIds.includes(newSketchNode.nodeId),
+      )
 
     expect(sketchNodes).toHaveLength(2)
     expect(newSketchNode).toBeDefined()
+    expect(sketchBuildPathEvents).toHaveLength(1)
     expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
       nodeId: newSketchNode?.nodeId,
       stage: 'pick',
@@ -14297,6 +14311,79 @@ describe('ConsoleDock', () => {
       useConsoleStore.getState().entries.some(
         (entry) =>
           entry.text === 'Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('routes flat zoom to graph canvas fit when the spaghetti editor is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let editorViewportId: string | null = null
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+      if (editorViewportId === null) {
+        throw new Error('Expected graph viewport to open')
+      }
+      useAppStore.getState().setActiveSurface('spaghetti')
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'graph-document',
+        graphDocumentId: 'graph-document-1',
+      })
+      useConsoleStore.getState().setInputText('zoom')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().editorViewportCanvasFitRequest).toEqual({
+      editorViewportId,
+      key: 1,
+    })
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Graph canvas zoom extents'),
+    ).toBe(true)
+  })
+
+  it('keeps graph-scoped Zoom in the graph zoom choices while spaghetti is active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Zoom')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphZoomRoot')
+    expect(useConsoleStore.getState().inputText).toBe('Canvas')
+    expect(useSpaghettiStore.getState().editorViewportCanvasFitRequest).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text === 'Graph > Zoom > Choose next [Canvas, Model Viewport, Back]' ||
+          entry.text === 'Graph > graph_[1] > Zoom > Choose next [Canvas, Model Viewport, Back]',
       ),
     ).toBe(true)
   })

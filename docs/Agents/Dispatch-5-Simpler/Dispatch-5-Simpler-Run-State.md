@@ -29,13 +29,13 @@ Do not use it for:
 ### Active Objective
 
 - Status: complete
-- User objective: finish `Console 13` so root Console aliases become real shortcuts, with `C` preserved for Console and `CA` used for Camera.
-- Active family: `Console`
+- User objective: run the Dispatch 5 Simpler manager loop and finish `Build-Path-15 - Scrub Future Icon State`.
+- Active family: `Build Path`
 - Active vision/planning surface: `docs/Vision.md`
-- Active generation/index surface: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Index.md`
-- Active family phase plan doc: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-13 - Root Alias Shortcut Contract.md`
-- Active phase packet: `Console 13 / Phases 1-4 - Root Alias Shortcut Contract`
-- Manager resume point: `Console 13` phases 1-4 implemented and verified; ready for user review or the next requested phase.
+- Active generation/index surface: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- Active family phase plan doc: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
+- Active phase packet: `Build-Path-15 / Phases 1-2 - Scrub Future Icon State`
+- Manager resume point: `Build-Path-15` is complete through Phase 2; ready for user visual review or the next requested Build Path phase.
 
 ### Active Roles
 
@@ -45,18 +45,22 @@ Do not use it for:
 
 ### Current Phase Packet
 
-- Phase: `Console 13 / Phases 1-4 - Root Alias Shortcut Contract`
-- Scope: derive root alias shortcut truth from staged root choices, promote `S` as Sketch, move Camera to `CA`, route Shortcut First plain aliases and Console First shifted aliases through staged navigation, and preserve delayed `C` Console focus.
-- Exclusions: scoped submenu alias shortcuts, custom key binding UI, command filtering, runtime owner changes, camera preset redesign, and full input-routing redesign.
-- Likely files or seams: `src/app/console/stagedNavigation.ts`, `src/app/console/ConsoleBar.tsx`, `src/app/inputRouting.ts`, `src/app/console/useConsoleInteraction.ts`, focused staged-navigation/ConsoleBar/input-routing/ConsoleDock tests, `Console 13` phase doc, Console index, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
-- Verification: full staged-navigation, ConsoleBar, and input-routing test files passed; focused ConsoleDock root alias tests passed; production build passed.
+- Phase: `Build-Path-15 / Phases 1-2 - Scrub Future Icon State`
+- Scope: derive `past`, `current`, and `future` temporal state from the selected master scrub position, suppress future linear timeline icons without disabling them, and apply matching future-state dimming to workspace Parallel topology cards/connectors.
+- Exclusions: graph mutation, restore/replay, command disabling, worker checkpoint/cache implementation, viewport geometry masking changes, accepted event order changes, and branch-local playhead history changes.
+- Likely files or seams: `src/app/buildPath/BuildPathSurface.tsx`, `src/app/buildPath/BuildPathSurface.test.tsx`, `src/app/theme/foundation/base.css`, Build Path 15 phase doc, Build Path generation index, Workspace Modes index, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
+- Verification: focused Build Path surface/reconstruction tests passed; TypeScript passed; production build passed.
 - Build gate: passed.
-- Tracking docs: updated `Console 13` phase doc, `Console-Index.md`, `Dispatch-5-Simpler-Run-State.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
-- Stop condition: met; root alias display, typed aliases, and keyboard shortcuts share staged root alias truth; `C` remains Console focus, `CA` opens Camera, plain and shifted alias sequences work, focused tests and build pass, and tracking docs are updated.
+- Tracking docs: updated `Build-Path-15 - Scrub Future Icon State.md`, `Build-Path-Gen1-Index.md`, `Workspace-Modes-Index.md`, `Dispatch-5-Simpler-Run-State.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
+- Stop condition: met; Build Path timeline and Parallel topology now expose presentation-only future state for operations after the selected scrub position while keeping future cards clickable and graph truth unchanged.
 - Approval mode: low-risk Manager-owned Packet + Implement.
 
 ### Last Accepted Result
 
+- 2026-05-25 10:44:40: Accepted `Build-Path-15 / Phases 1-2 - Scrub Future Icon State` with presentation-only `past` / `current` / `future` state on linear timeline cards, Fusion-style subdued future icon styling, Parallel topology card/connector future dimming, focused tests, TypeScript, and production build.
+- 2026-05-25 10:27:42: Accepted `Build-Path-11 / Phases 3-6 - Parallel Graph Polish And Closeout` with the workspace Parallel topology graph unboxed from nested panel chrome, top/center/bottom UI-only alignment controls, secondary collapsed lane readback, connector/card polish, focused tests, TypeScript, production build, and attempted browser smoke blocked by unavailable `iab`.
+- 2026-05-25 10:06:57: Accepted `Build-Path-11 / Phase 2 - Parallel Icon Lane Rendering` with visible workspace topology icon cards, semantic-color SVG connector paths, branch-playhead selection, and focused `1 > 6 > 1` proof.
+- 2026-05-25 09:48:43: Accepted `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` with a derived topology layout read model, endpoint-aware dependency metadata, OutputPreview sink reconstruction, shared Spaghetti connector color semantics, and focused `1 > 6 > 1` proof.
 - 2026-05-24 15:28:07: Accepted `Console 13 - Root Alias Shortcut Contract` with staged root alias truth, `S` as Sketch, `CA` as Camera, delayed `C` Console focus, Shortcut First plain alias sequences, Console First shifted alias sequences, focused tests, and production build.
 - 2026-05-24 11:42:27: Accepted `Console 12 - Root New Graph Command` with root staged-navigation `New Graph`, `graph.new` execution, Spaghetti-owned graph document creation, shared workspace activation, focused staged-navigation/radio/Console runtime tests, and production build.
 - 2026-05-23 17:58:13: Accepted `Extrude-8 - Command Flow Console Focus Cleanup` with a Console-owned input focus request seam, command-first viewport profile-pick focus handoff, selected-first clean Depth entry, focused shortcut/camera numeric-input proof, TypeScript, and production build.
@@ -82,6 +86,7 @@ Do not use it for:
 
 ### Blockers
 
+- In-app Browser smoke for `Build-Path-11` could not run because the Browser plugin reported `iab` unavailable, even though a local server was listening on port 5173.
 - Full `src/app/console/ConsoleDock.test.tsx` still has unrelated failures in older workspace-mode, graph, reference/transform, and sketch-plane expectations; the focused Console 13 root alias shortcut tests pass.
 - Full `src/app/spaghetti/store/useSpaghettiStore.test.ts` still has unrelated OutputPreview expectation mismatches around normalized `publicationMode` fields; the focused graph-load tests for Build-Path-12 and Build-Path-12.1 pass.
 - Existing in-memory Build Path events are not retroactively reordered; the source-Sketch backfill applies to new accepted dependent Extrude commits after the hot update.
@@ -90,4 +95,4 @@ Do not use it for:
 
 ### Next Legal Task
 
-Next legal task is user-guided follow-up after `Console 13` review.
+Next legal task is user-guided Build Path visual review or the next requested Build Path phase.

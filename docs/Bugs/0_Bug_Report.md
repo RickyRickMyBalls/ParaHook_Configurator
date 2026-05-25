@@ -1,6 +1,8 @@
 # 0 - Bug Report
 
 ## Doc History
+20. 2026-05-25 14:39:45: Updated `Bug 25` from `[planned]` to `[fixed]` after `Spaghetti-Editor 11 / Phase 1` routed Spaghetti canvas viewport persistence through document-only revision scope and proved zoom/pan metadata edits do not request worker builds.
+19. 2026-05-25 14:34:33: Added `Bug 25` for Spaghetti Editor canvas zoom/pan persistence being classified as geometry revision work, linking the new detailed report and routing the fix into `Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation`.
 18. 2026-05-20 16:42:12: Added `Bug 24` for the repeat-Extrude scoped A/D/F composition regression where committing a second Extrude can hide the first accepted Extrude even though both graph objects exist, linking the new detailed report and recording the current strongest read as scoped worker results being treated as whole-scene viewport truth.
 17. 2026-05-02 09:30:37: Added `Bug 23` for the meatball editor disappearing after the model viewport is split right, linking the new detailed report under `docs/Bugs/bug/` and recording the current strongest read as a split between docked meatball ownership, `AppShell` occupancy checks, and the `SpaghettiWindowHost` / `useSpaghettiStore` split reclassification path.
 16. 2026-04-21 11:36:42: Updated `Bug 22` from `[planned]` to `[fixed]` after `Catalog-Gen2-14` closed the imported-reference remount ownership gap at the store-to-current-viewer seam with focused ViewerHost proof for PubParts ZIP-attributed and normal `.obj` accepted-reference paths.
@@ -99,6 +101,7 @@ Current practical order:
 ## Bug List
 
 - `Bug 23` - `[investigating]` - Meatball editor can disappear after splitting the model viewport right
+- `Bug 25` - `[fixed]` - Spaghetti Editor canvas zoom/pan persistence no longer advances geometry revision or requests worker builds
 - `Bug 24` - `[investigating]` - Repeat Extrude scoped A/D/F composition can hide the first accepted Extrude when the second scoped build completes
 - `Bug 1` - `[open]` - Spaghetti editor toolbar drag bar cannot move high enough
 - `Bug 2` - `[open]` - Spaghetti editor toolbar drag bar is not aligned to the real canvas boundary
@@ -119,6 +122,36 @@ Current practical order:
 
 
 ## Current Known Bugs
+
+### Bug 25 - Spaghetti Editor canvas zoom/pan triggers worker build churn
+
+Status:
+- `[fixed]`
+
+Fixed read:
+- `SpaghettiCanvas` now persists `graph.ui.viewport` through `setGraphViewport(...)`.
+- `setGraphViewport(...)` writes canvas camera metadata through document-only revision scope.
+- Focused store coverage proves document revision can move while geometry revision stays stable.
+- App/build-subscription coverage proves viewport metadata edits do not call `buildDispatcher.requestGraphBuild`.
+
+Problem:
+- zooming or panning the Spaghetti Editor canvas should only move the graph-canvas camera
+- the current debounced persistence path writes `graph.ui.viewport` through generic `applyGraphPatch(...)`
+- that path advances `currentGraphRevision`, so build subscriptions can treat canvas navigation as geometry mutation
+
+Current strong read:
+- the wheel zoom math is not the problem
+- the bug is revision classification: graph UI viewport metadata is being persisted through a geometry-scoped patch
+- `setNodePos(...)` / `setManyNodePos(...)` already prove the intended pattern for UI metadata: document revision can move while geometry revision stays stable
+
+Likely ownership:
+- `SpaghettiCanvas`
+- `useSpaghettiStore`
+- build subscription regression coverage
+
+Related docs:
+- `25_2026-05-25_spaghetti-canvas-zoom-triggers-worker-build.md`
+- `../Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation.md`
 
 ### Bug 24 - Repeat Extrude scoped A/D/F composition hides first accepted Extrude
 

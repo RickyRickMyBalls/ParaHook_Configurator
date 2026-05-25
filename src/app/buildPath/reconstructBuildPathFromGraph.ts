@@ -9,6 +9,8 @@ import type {
   SpaghettiNode,
 } from '../spaghetti/schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../spaghetti/families/OutputPreview/system/outputPreviewNode'
+import { getTypeColor } from '../spaghetti/canvas/typeColors'
+import { resolveCanvasEdgeSourceKind } from '../spaghetti/canvas/edgeSourceKind'
 
 export type LoadedGraphBuildPathReconstruction = {
   sourceKind: 'reconstructed'
@@ -159,17 +161,45 @@ export const reconstructBuildPathFromLoadedGraph = (
   const supportedNodeIds = new Set(supportedNodes.map((node) => node.nodeId))
   const orderedNodes = deriveSupportedNodeOrder(document.graph, supportedNodes)
   const outputIdsBySourceNodeId = readOutputIdsBySourceNodeId(document.graph)
-  const dependencies: BuildPathGraphDependency[] = document.graph.edges.flatMap((edge) =>
-    supportedNodeIds.has(edge.from.nodeId) && supportedNodeIds.has(edge.to.nodeId)
-      ? [{
-          edgeId: edge.edgeId,
-          fromNodeId: edge.from.nodeId,
-          toNodeId: edge.to.nodeId,
-          graphDocumentId: document.graphDocumentId,
-          sourceKind: 'reconstructed' as const,
-        }]
-      : [],
+  const outputPreviewNodeIds = new Set(
+    document.graph.nodes
+      .filter((node) => node.type === OUTPUT_PREVIEW_NODE_TYPE)
+      .map((node) => node.nodeId),
   )
+  const dependencies: BuildPathGraphDependency[] = document.graph.edges.flatMap((edge) => {
+    const isSupportedCommandDependency =
+      supportedNodeIds.has(edge.from.nodeId) && supportedNodeIds.has(edge.to.nodeId)
+    const isOutputPreviewDependency =
+      supportedNodeIds.has(edge.from.nodeId) &&
+      outputPreviewNodeIds.has(edge.to.nodeId) &&
+      edge.to.portId.startsWith('in:solid:')
+
+    if (!isSupportedCommandDependency && !isOutputPreviewDependency) {
+      return []
+    }
+
+    const resolvedConnectorKind = resolveCanvasEdgeSourceKind(document.graph, edge)
+    const connectorKind =
+      isOutputPreviewDependency && edge.from.portId === 'SolidBody'
+        ? 'solidBody'
+        : resolvedConnectorKind
+
+    return [{
+      edgeId: edge.edgeId,
+      fromNodeId: edge.from.nodeId,
+      toNodeId: edge.to.nodeId,
+      fromPortId: edge.from.portId,
+      toPortId: edge.to.portId,
+      ...(connectorKind === null
+        ? {}
+        : {
+            connectorKind,
+            connectorColor: getTypeColor(connectorKind),
+          }),
+      graphDocumentId: document.graphDocumentId,
+      sourceKind: 'reconstructed' as const,
+    }]
+  })
 
   return {
     sourceKind: 'reconstructed',

@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+94. 2026-05-25 14:39:45: Marked `Spaghetti-Editor 11 / Phase 1 - Canvas Viewport Persistence Build Isolation` shipped after graph-canvas viewport persistence moved to document-only revision scope with focused worker-build isolation proof.
+93. 2026-05-25 14:34:33: Added `Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation` as the planned fix lane for `Bug 25`, separating graph-canvas pan/zoom persistence from geometry revision and worker build invalidation.
+92. 2026-05-25 14:27:43: Added and closed `Spaghetti-Editor 10 / Phase 4 - Crossing Background Drag Start` after user testing showed blue Window selection worked but green Crossing selection could fail when the right-to-left drag began on visible background outside the transformed stage.
+91. 2026-05-25 14:22:43: Added and closed `Spaghetti-Editor 10 / Phase 3 - Canvas Multi-Selection Fit` after research showed middle-mouse double-click was still framing only the primary selected graph node instead of the full Window/Crossing-selected canvas set.
+90. 2026-05-25 14:08:22: Added and closed `Spaghetti-Editor 10 / Phase 2 - Spaghetti Canvas Window/Crossing Selection Restore` after user testing clarified that model-viewport window selection worked but the Spaghetti graph canvas still lacked an empty-space window-selection drag owner.
+89. 2026-05-25 13:59:07: Added and closed `Spaghetti-Editor 10 / Phase 1 - Viewer Window/Crossing Direction Repair` after the shared viewer window-selection helper was found reversed from the shipped left-to-right `Window`, right-to-left `Crossing` contract.
 88. 2026-05-20 14:04:09: Added the `Spaghetti-Editor 9 / Phase 1` stable Extrude part-identity follow-up after console logs showed the first Extrude could be built as `extrude` and later addressed as `extrude#1`; compiled Extrude parts now start numbered at `extrude#1` so repeat Extrude does not rename Object 1 out from under retained display or build-entry matching.
 87. 2026-05-20 13:14:39: Added the `Spaghetti-Editor 9 / Phase 1` new-branch active preview layering follow-up after repeat-Extrude testing showed accepted sibling Extrudes disappeared when typing depth for a third Extrude; new branch overlays now keep accepted siblings as retained base when there is no matching baseline key.
 86. 2026-05-20 10:28:46: Added the `Spaghetti-Editor 9 / Phase 1` auto final build loop guard after console proof showed the worker completed the second Extrude final build and auto mode immediately re-requested it; current accepted authoritative-target bundles now stop same-revision auto follow-through loops even when export-grade authoritative geometry is unavailable.
@@ -704,3 +710,48 @@ Short read:
 Initial phase breakdown:
 - `[x] Spaghetti-Editor 9 - Phase 1 - Retain Existing Output Entries During Repeat Extrude` - shipped selector-owned retained output-overlap repair, committed `OutputPreview` artifact fallback, accepted Extrude edit-history snapshots, an auto final build loop guard, and new-branch active preview layering that keeps accepted sibling outputs visible
 - `[ ] Spaghetti-Editor 9 - Phase 2 - Second Build Pending Diagnostics`
+
+### [x] Spaghetti-Editor 10 - Viewer Window Selection Direction Repair
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 10 - Viewer Window Selection Direction Repair.md`
+
+#### Purpose
+
+Restore the shipped viewer `Window` / `Crossing` selection direction rule for the viewport-first Spaghetti workflow.
+
+Short read:
+- left-to-right drag should be `Window` selection and require full containment
+- right-to-left drag should be `Crossing` selection and capture overlapped candidates
+- the repair belongs in the shared viewer helper so object marquee selection and idle sketch selection stay aligned
+- the Spaghetti graph canvas itself should also support empty-space Window/Crossing selection for graph nodes
+- middle-mouse double-click should fit all graph-canvas selected nodes after a Window/Crossing multi-selection
+- visible scroller background should not be a dead start zone for right-to-left Crossing selection
+
+Initial phase breakdown:
+- `[x] Spaghetti-Editor 10 - Phase 1 - Viewer Window/Crossing Direction Repair` - shipped shared helper and focused test repair for the left-to-right `Window`, right-to-left `Crossing` contract
+- `[x] Spaghetti-Editor 10 - Phase 2 - Spaghetti Canvas Window/Crossing Selection Restore` - shipped empty-canvas graph-node Window/Crossing selection, visible selection rectangle styling, selected-node visual projection, focused canvas tests, and production build proof
+- `[x] Spaghetti-Editor 10 - Phase 3 - Canvas Multi-Selection Fit` - shipped middle-mouse double-click fitting for the current graph-canvas selected-node set after Window/Crossing selection
+- `[x] Spaghetti-Editor 10 - Phase 4 - Crossing Background Drag Start` - shipped scroller-background drag ownership so green Crossing selection can begin from visible canvas background outside the transformed stage
+
+### [x] Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation.md`
+
+Related bug:
+- `docs/Bugs/25_2026-05-25_spaghetti-canvas-zoom-triggers-worker-build.md`
+
+#### Purpose
+
+Make Spaghetti graph-canvas pan/zoom persistence document-only so editor navigation does not advance geometry revision or trigger worker builds.
+
+Short read:
+- wheel zoom and canvas pan should stay local and immediate
+- persisted `graph.ui.viewport` should survive reopen/remount
+- graph-canvas viewport persistence should update document/UI metadata only
+- `currentGraphRevision` should not move for zoom/pan-only changes
+- build subscriptions should not request worker builds from canvas navigation
+
+Initial phase breakdown:
+- `[x] Spaghetti-Editor 11 - Phase 1 - Canvas Viewport Persistence Build Isolation` - shipped a dedicated document-only graph viewport persistence action, routed `SpaghettiCanvas` through it, and proved no worker build request occurs

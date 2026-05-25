@@ -412,6 +412,80 @@ describe('BuildPathSurface', () => {
     )
   })
 
+  it('marks timeline steps after the scrub position as future while keeping them clickable', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-temporal-sketch',
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 2,
+        projectionId: 'projection-temporal-extrude-1',
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 3,
+        projectionId: 'projection-temporal-extrude-2',
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-temporal-test" hostMode="workspace" />,
+      )
+    })
+
+    const readTemporalStates = () =>
+      Array.from(container?.querySelectorAll('.BuildPathTimelineStep') ?? [])
+        .map((step) => step.getAttribute('data-build-path-step-temporal-state'))
+    const timelineSteps = Array.from(
+      container?.querySelectorAll('.BuildPathTimelineStep') ?? [],
+    ) as HTMLButtonElement[]
+
+    expect(readTemporalStates()).toEqual(['current', 'future', 'future'])
+    expect(timelineSteps[2]?.disabled).toBe(false)
+
+    await act(async () => {
+      timelineSteps[2]?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(readTemporalStates()).toEqual(['past', 'past', 'current'])
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.display.label).toBe(
+      'Extrude',
+    )
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Build Path timeline selection',
+      source: { surface: 'build-path' },
+      targetLabel: 'Step 3',
+    })
+  })
+
+  it('exposes future temporal state on the viewport-docked timeline strip', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-dock-temporal-sketch',
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 2,
+        projectionId: 'projection-dock-temporal-extrude',
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(<BuildPathViewportDock />)
+    })
+
+    const steps = Array.from(container?.querySelectorAll('.BuildPathTimelineStep') ?? [])
+
+    expect(steps.map((step) => step.getAttribute('data-build-path-step-temporal-state')))
+      .toEqual(['current', 'future'])
+  })
+
   it('reads the Build Path runtime store for workspace-hosted surfaces', async () => {
     useBuildPathRuntimeStore.getState().resetRuntimeState([
       createBuildPathEvent({
@@ -686,7 +760,8 @@ describe('BuildPathSurface', () => {
     expect(parallelRead?.getAttribute('data-build-path-parallel-state')).toBe(
       'dependency-hints-unavailable',
     )
-    expect(parallelRead?.textContent).toContain('2 steps')
+    expect(parallelRead?.querySelector('.BuildPathParallelModeHeader')).toBeNull()
+    expect(parallelRead?.textContent).toContain('Dependency hints unavailable')
     expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.flatMap(
       (step) => step.stepKind === 'build-event' ? [step.event.commandFamily] : [],
     )).toEqual(['Sketch', 'Extrude'])
@@ -740,6 +815,14 @@ describe('BuildPathSurface', () => {
       parallelButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    const laneReadbackToggle = container?.querySelector(
+      '.BuildPathParallelLaneReadbackToggle',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      laneReadbackToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
     const parallelRead = container?.querySelector('[data-build-path-parallel-state]')
     const lane = container?.querySelector('[data-build-path-branch-lane-id]')
     const branchSteps = Array.from(container?.querySelectorAll('.BuildPathBranchStep') ?? [])
@@ -754,6 +837,7 @@ describe('BuildPathSurface', () => {
     const laneId = lane?.getAttribute('data-build-path-branch-lane-id') ?? ''
 
     expect(parallelRead?.getAttribute('data-build-path-parallel-state')).toBe('ready')
+    expect(parallelRead?.getAttribute('data-build-path-lane-readback-expanded')).toBe('true')
     expect(branchSteps).toHaveLength(2)
     expect(extrudeBranchStep?.getAttribute('aria-pressed')).toBe('true')
     expect(useBuildPathRuntimeStore.getState().selectedBranchTimelineStepIdByLaneId[laneId])
@@ -786,6 +870,9 @@ describe('BuildPathSurface', () => {
       sourceNodeIds: ['node-live-sketch'],
       targetNodeIds: ['node-live-extrude'],
       edgeIds: ['edge-live-profile'],
+      sourcePortIds: ['SketchProfile:prof_live'],
+      targetPortIds: ['ExtrusionProfile'],
+      connectorKinds: ['sketchProfile'],
     })
 
     const extrudeResult = recordGraphCommandSummaryForBuildPath({
@@ -818,13 +905,34 @@ describe('BuildPathSurface', () => {
       parallelButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
+    const laneReadbackToggle = container?.querySelector(
+      '.BuildPathParallelLaneReadbackToggle',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      laneReadbackToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
     const parallelRead = container?.querySelector('[data-build-path-parallel-state]')
+    const topologyRead = container?.querySelector('[data-build-path-topology-state]')
+    const topologyConnector = container?.querySelector(
+      '[data-build-path-topology-edge-id="edge-live-profile"]',
+    )
     const branchSteps = Array.from(container?.querySelectorAll('.BuildPathBranchStep') ?? [])
     const branchRoles = branchSteps.map((step) => step.getAttribute('data-build-path-branch-role'))
 
     expect(sketchResult?.status).toBe('accepted')
     expect(extrudeResult.status).toBe('accepted')
     expect(parallelRead?.getAttribute('data-build-path-parallel-state')).toBe('ready')
+    expect(parallelRead?.getAttribute('data-build-path-lane-readback-expanded')).toBe('true')
+    expect(topologyRead?.getAttribute('data-build-path-topology-column-count')).toBe('2')
+    expect(topologyRead?.getAttribute('data-build-path-topology-connector-count')).toBe('1')
+    expect(topologyConnector?.getAttribute('data-build-path-topology-connector-kind')).toBe(
+      'sketchProfile',
+    )
+    expect(topologyConnector?.getAttribute('data-build-path-topology-connector-color')).toBe(
+      '#6ee7b7',
+    )
     expect(branchSteps.map((step) => step.textContent)).toEqual(
       expect.arrayContaining([
         expect.stringContaining('Sketch'),
@@ -836,7 +944,12 @@ describe('BuildPathSurface', () => {
       {
         edgeId: 'edge-live-profile',
         fromNodeId: 'node-live-sketch',
+        fromPortId: 'SketchProfile:prof_live',
         toNodeId: 'node-live-extrude',
+        toPortId: 'ExtrusionProfile',
+        connectorKind: 'sketchProfile',
+        graphDocumentId: 'graph-document-live-proof',
+        sourceKind: 'recorded',
       },
     ])
     expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.flatMap(
@@ -844,5 +957,261 @@ describe('BuildPathSurface', () => {
     )).toEqual(['Sketch', 'Extrude'])
     expect(editHistoryStore.getUndoEntries()).toEqual([])
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
+  })
+
+  it('renders the canonical Sketch to six Extrudes to Output topology as visible icon cards', async () => {
+    const sketchNodeId = 'node-parallel-sketch'
+    const outputNodeId = 'node-parallel-output'
+    const extrudeNodeIds = Array.from(
+      { length: 6 },
+      (_, index) => `node-parallel-extrude-${index + 1}`,
+    )
+
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-parallel-sketch',
+        affectedNodeIds: [sketchNodeId],
+      }),
+      ...extrudeNodeIds.map((nodeId, index) =>
+        createBuildPathEvent({
+          commandFamily: 'Extrude',
+          eventSequence: index + 2,
+          projectionId: `projection-parallel-extrude-${index + 1}`,
+          affectedNodeIds: [nodeId],
+        }),
+      ),
+    ])
+    useBuildPathRuntimeStore.getState().addGraphDependencies(
+      extrudeNodeIds.flatMap((nodeId, index) => [
+        {
+          edgeId: `edge-parallel-profile-${index + 1}`,
+          fromNodeId: sketchNodeId,
+          fromPortId: `SketchProfile:prof_${index + 1}`,
+          toNodeId: nodeId,
+          toPortId: 'ExtrusionProfile',
+          connectorKind: 'sketchProfile' as const,
+        },
+        {
+          edgeId: `edge-parallel-solid-${index + 1}`,
+          fromNodeId: nodeId,
+          fromPortId: 'SolidBody',
+          toNodeId: outputNodeId,
+          toPortId: `in:solid:s00${index + 1}`,
+          connectorKind: 'solidBody' as const,
+        },
+      ]),
+    )
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-topology-proof" hostMode="workspace" />,
+      )
+    })
+
+    const parallelButton = Array.from(container?.querySelectorAll('.BuildPathWorkspaceModeButton') ?? [])
+      .find((button) => button.textContent === 'Parallel') as HTMLButtonElement | undefined
+
+    await act(async () => {
+      parallelButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const topologyRead = container?.querySelector('[data-build-path-topology-state]')
+    const topologyCards = Array.from(container?.querySelectorAll('.BuildPathTopologyCard') ?? [])
+    const sketchCards = topologyCards.filter(
+      (card) => card.getAttribute('data-build-path-topology-icon') === 'sketch',
+    )
+    const extrudeCards = topologyCards.filter(
+      (card) => card.getAttribute('data-build-path-topology-icon') === 'extrude',
+    )
+    const outputCards = topologyCards.filter(
+      (card) => card.getAttribute('data-build-path-topology-icon') === 'output-preview',
+    )
+    const connectors = Array.from(
+      container?.querySelectorAll('.BuildPathTopologyConnector') ?? [],
+    )
+    const sketchProfileConnectors = connectors.filter(
+      (connector) =>
+        connector.getAttribute('data-build-path-topology-connector-kind') === 'sketchProfile',
+    )
+    const solidBodyConnectors = connectors.filter(
+      (connector) =>
+        connector.getAttribute('data-build-path-topology-connector-kind') === 'solidBody',
+    )
+    const firstExtrudeCard = extrudeCards[0] as HTMLButtonElement | undefined
+
+    await act(async () => {
+      firstExtrudeCard?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(topologyRead?.getAttribute('data-build-path-topology-state')).toBe('ready')
+    expect(topologyRead?.getAttribute('data-build-path-topology-column-count')).toBe('3')
+    expect(topologyRead?.getAttribute('data-build-path-topology-node-count')).toBe('8')
+    expect(topologyRead?.getAttribute('data-build-path-topology-connector-count')).toBe('12')
+    expect(sketchCards).toHaveLength(1)
+    expect(extrudeCards).toHaveLength(6)
+    expect(outputCards).toHaveLength(1)
+    expect(sketchCards[0]?.getAttribute('data-build-path-topology-column-index')).toBe('0')
+    expect(outputCards[0]?.getAttribute('data-build-path-topology-column-index')).toBe('2')
+    expect(extrudeCards.map((card) => card.getAttribute('data-build-path-topology-column-index')))
+      .toEqual(Array.from({ length: 6 }, () => '1'))
+    expect(extrudeCards.map((card) => card.getAttribute('data-build-path-topology-lane-index')))
+      .toEqual(['0', '1', '2', '3', '4', '5'])
+    expect(topologyRead?.getAttribute('data-build-path-topology-alignment')).toBe('center')
+    expect(sketchCards[0]?.getAttribute('data-build-path-topology-temporal-state')).toBe(
+      'current',
+    )
+    expect(extrudeCards.map((card) =>
+      card.getAttribute('data-build-path-topology-temporal-state'),
+    )).toEqual(Array.from({ length: 6 }, () => 'future'))
+    expect(outputCards[0]?.getAttribute('data-build-path-topology-temporal-state')).toBe(
+      'future',
+    )
+    expect((sketchCards[0] as HTMLElement | undefined)?.style.getPropertyValue(
+      '--build-path-topology-row',
+    )).toBe('1 / span 6')
+    expect((outputCards[0] as HTMLElement | undefined)?.style.getPropertyValue(
+      '--build-path-topology-row',
+    )).toBe('1 / span 6')
+    expect(connectors).toHaveLength(12)
+    expect(sketchProfileConnectors).toHaveLength(6)
+    expect(solidBodyConnectors).toHaveLength(6)
+    expect(sketchProfileConnectors.map(
+      (connector) => connector.getAttribute('data-build-path-topology-connector-color'),
+    )).toEqual(Array.from({ length: 6 }, () => '#6ee7b7'))
+    expect(solidBodyConnectors.map(
+      (connector) => connector.getAttribute('data-build-path-topology-connector-color'),
+    )).toEqual(Array.from({ length: 6 }, () => '#b19dff'))
+    expect(connectors.map(
+      (connector) => connector.getAttribute('data-build-path-topology-temporal-state'),
+    )).toEqual(Array.from({ length: 12 }, () => 'future'))
+    expect(firstExtrudeCard?.getAttribute('aria-pressed')).toBe('true')
+    expect(editHistoryStore.getUndoEntries()).toEqual([])
+  })
+
+  it('aligns source and sink topology cards without creating Edit History entries', async () => {
+    const sketchNodeId = 'node-align-sketch'
+    const outputNodeId = 'node-align-output'
+    const extrudeNodeIds = Array.from(
+      { length: 6 },
+      (_, index) => `node-align-extrude-${index + 1}`,
+    )
+
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-align-sketch',
+        affectedNodeIds: [sketchNodeId],
+      }),
+      ...extrudeNodeIds.map((nodeId, index) =>
+        createBuildPathEvent({
+          commandFamily: 'Extrude',
+          eventSequence: index + 2,
+          projectionId: `projection-align-extrude-${index + 1}`,
+          affectedNodeIds: [nodeId],
+        }),
+      ),
+    ])
+    useBuildPathRuntimeStore.getState().addGraphDependencies(
+      extrudeNodeIds.flatMap((nodeId, index) => [
+        {
+          edgeId: `edge-align-profile-${index + 1}`,
+          fromNodeId: sketchNodeId,
+          fromPortId: `SketchProfile:align_${index + 1}`,
+          toNodeId: nodeId,
+          toPortId: 'ExtrusionProfile',
+          connectorKind: 'sketchProfile' as const,
+        },
+        {
+          edgeId: `edge-align-solid-${index + 1}`,
+          fromNodeId: nodeId,
+          fromPortId: 'SolidBody',
+          toNodeId: outputNodeId,
+          toPortId: `in:solid:a00${index + 1}`,
+          connectorKind: 'solidBody' as const,
+        },
+      ]),
+    )
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-topology-align-proof" hostMode="workspace" />,
+      )
+    })
+
+    const parallelButton = Array.from(container?.querySelectorAll('.BuildPathWorkspaceModeButton') ?? [])
+      .find((button) => button.textContent === 'Parallel') as HTMLButtonElement | undefined
+
+    await act(async () => {
+      parallelButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const readTopology = () => container?.querySelector('[data-build-path-topology-state]')
+    const readSourceRow = () =>
+      (container?.querySelector(
+        '[data-build-path-topology-icon="sketch"]',
+      ) as HTMLElement | null)?.style.getPropertyValue('--build-path-topology-row')
+    const readOutputRow = () =>
+      (container?.querySelector(
+        '[data-build-path-topology-icon="output-preview"]',
+      ) as HTMLElement | null)?.style.getPropertyValue('--build-path-topology-row')
+    const readExtrudeRows = () =>
+      Array.from(container?.querySelectorAll('[data-build-path-topology-icon="extrude"]') ?? [])
+        .map((card) =>
+          (card as HTMLElement).style.getPropertyValue('--build-path-topology-row'),
+        )
+    const topButton = container?.querySelector(
+      '[data-build-path-topology-align-control="top"]',
+    ) as HTMLButtonElement | null
+    const centerButton = container?.querySelector(
+      '[data-build-path-topology-align-control="center"]',
+    ) as HTMLButtonElement | null
+    const bottomButton = container?.querySelector(
+      '[data-build-path-topology-align-control="bottom"]',
+    ) as HTMLButtonElement | null
+
+    expect(readTopology()?.getAttribute('data-build-path-topology-alignment')).toBe('center')
+    expect(readSourceRow()).toBe('1 / span 6')
+    expect(readOutputRow()).toBe('1 / span 6')
+    expect(readExtrudeRows()).toEqual(['1', '2', '3', '4', '5', '6'])
+
+    await act(async () => {
+      bottomButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(readTopology()?.getAttribute('data-build-path-topology-alignment')).toBe('bottom')
+    expect(readSourceRow()).toBe('6')
+    expect(readOutputRow()).toBe('6')
+    expect(readExtrudeRows()).toEqual(['6', '5', '4', '3', '2', '1'])
+    expect(bottomButton?.getAttribute('aria-pressed')).toBe('true')
+
+    await act(async () => {
+      topButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(readTopology()?.getAttribute('data-build-path-topology-alignment')).toBe('top')
+    expect(readSourceRow()).toBe('1')
+    expect(readOutputRow()).toBe('1')
+    expect(readExtrudeRows()).toEqual(['1', '2', '3', '4', '5', '6'])
+
+    await act(async () => {
+      centerButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const sketchProfileConnectors = Array.from(
+      container?.querySelectorAll(
+        '[data-build-path-topology-connector-kind="sketchProfile"]',
+      ) ?? [],
+    )
+
+    expect(readTopology()?.getAttribute('data-build-path-topology-alignment')).toBe('center')
+    expect(readSourceRow()).toBe('1 / span 6')
+    expect(readOutputRow()).toBe('1 / span 6')
+    expect(sketchProfileConnectors.map(
+      (connector) => connector.getAttribute('data-build-path-topology-connector-color'),
+    )).toEqual(Array.from({ length: 6 }, () => '#6ee7b7'))
+    expect(editHistoryStore.getUndoEntries()).toEqual([])
   })
 })

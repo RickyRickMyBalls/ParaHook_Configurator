@@ -4,6 +4,13 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+315. 2026-05-25 14:47:06: Rerouted the shared command-toolbar shell prep docs out of `Templates/Floating Window Shell` and into the new `Templates/Viewport Command Toolbar Shell` family, updated the docs map, and refreshed `Extrude-9` so in-viewport Sketch/Transform/Extrude toolbar planning stays separate from detached/floating Model Viewport shell planning.
+314. 2026-05-25 14:45:19: Added `docs/Human-Plans/Architecture/Templates/Floating Window Shell/Future/Floating_Window_Shell_Phase FWS - 2 - Viewport Command Toolbar Shell.md` to the docs map, refreshed the Floating Window Shell family index, and linked `Extrude-9` to the shared command-toolbar shell prep lane before Extrude toolbar implementation starts.
+313. 2026-05-25 14:34:33: Added `docs/Bugs/25_2026-05-25_spaghetti-canvas-zoom-triggers-worker-build.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation.md` to the docs map, refreshed the master bug report, and refreshed the Spaghetti editor family index so the canvas zoom worker-build bug has a planned fix lane.
+312. 2026-05-25 14:12:59: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-9 - Command Toolbar Node Control Unification.md` to the docs map and refreshed the Extrude family index so the active command toolbar/node-control unification plan is discoverable.
+311. 2026-05-25 13:59:07: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 10 - Viewer Window Selection Direction Repair.md` to the docs map and refreshed the Spaghetti editor family index so the restored viewer window/crossing direction repair is discoverable.
+310. 2026-05-25 12:24:33: Added `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen5-Index.md` and `docs/Human-Plans/Architecture/Cleanup/Future/Gen5 - Cleanup 1 - Lint Gate Baseline Recovery.md` to the docs map so lint-gate baseline recovery is discoverable under the Cleanup architecture family.
+309. 2026-05-25 10:38:21: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md` to the docs map and refreshed the Build Path workspace-family routing so future/ahead-of-scrub timeline icon visuals have a planned owner.
 308. 2026-05-25 08:50:18: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md` to the docs map and refreshed the Build Path workspace-family routing so direct Spaghetti node deletion and future reference orphan behavior have a planned owner.
 307. 2026-05-24 12:08:57: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-13 - Root Alias Shortcut Contract.md` to the docs map so the planned root Console alias shortcut contract is discoverable under the Console workspace family.
 306. 2026-05-24 11:10:17: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-12 - Root New Graph Command.md` to the docs map so the planned root-level `New Graph` Console command is discoverable under the Console workspace family.
@@ -878,6 +885,7 @@ Rule notes:
 ####### --------------Future
             - `Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
             - `Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
+            - `Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
 ###### -------------Home-Page
             - `Workspaces/Home-Page/Home-Page-Vision.md`
             - `Workspaces/Home-Page/Home-Page-Gen1-Index.md`
@@ -959,6 +967,8 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 6 - Draft Mesh And Authoritative B-Rep Auto Pipeline.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 8 - Viewport Command Authoring And Build Path Bridge.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 10 - Viewer Window Selection Direction Repair.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation.md`
 ####### --------------Shipped
             - `Workspaces/Spaghetti-Editor-Arch/Shipped/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
 ####### --------------Nodes
@@ -971,6 +981,13 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md`
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-3 - Browser Sketch Profile Row Projection.md`
+######## ---------------Extrude
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+######### ----------------Future
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-8 - Command Flow Console Focus Cleanup.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-9 - Command Toolbar Node Control Unification.md`
 ######## ---------------Loft
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md`
 ##### ------------Future
@@ -1037,6 +1054,17 @@ Rule notes:
             - `Shipped/Camera_Controls_Phase Camera-2 - Fusion-Style Model Viewport Camera Baseline.md`
             - `Shipped/Camera_Controls_Phase Camera-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
             - `Shipped/Camera_Controls_Phase Camera-4 - Camera Console Commands.md`
+#### -------Cleanup
+            - `Cleanup/Cleanup-Vision.md`
+            - `Cleanup/Cleanup-Index.md`
+            - `Cleanup/Cleanup-Gen2-Index.md`
+            - `Cleanup/Cleanup-Gen3-Index.md`
+            - `Cleanup/Cleanup-Gen4-Index.md`
+            - `Cleanup/Cleanup-Gen5-Index.md`
+            - `Cleanup/Canonical-Ownership-Targets.md`
+            - `Cleanup/Canonical-Owner-Decisions.md`
+        ##### ------------Future
+            - `Cleanup/Future/Gen5 - Cleanup 1 - Lint Gate Baseline Recovery.md`
 #### -------Edit-History
             - `Edit-History-Vision.md`
             - `Edit-History-Index.md`
@@ -1108,6 +1136,20 @@ Rule notes:
             - `Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`
             - `Future/View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`
             - `Future/View_Toolbar_Phase View-Toolbar 9 - Camera Snap Shortcut Input Priority.md`
+#### -------Templates
+        ##### ------------Floating Window Shell
+            - `Templates/Floating Window Shell/Floating-Window-Shell-Index.md`
+        ###### -------------Future
+            - `Templates/Floating Window Shell/Future/Floating_Window_Shell_Phase FWS - 1 - Existing Shell Cleanup.md`
+        ##### ------------Viewport Command Toolbar Shell
+            - `Templates/Viewport Command Toolbar Shell/Viewport-Command-Toolbar-Shell-Index.md`
+        ###### -------------Future
+            - `Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 1 - Shared Command Panel Prep.md`
+        ##### ------------Buttons
+        ###### -------------ParaVec3Slider
+            - `Templates/Buttons/ParaVec3Slider/ParaVec3Slider-Index.md`
+        ####### --------------Future
+            - `Templates/Buttons/ParaVec3Slider/Future/ParaVec3Slider_Phase PV3S - 1 - Existing Component Enrichment.md`
 #### -------Viewport-HUD
             - `Viewport-HUD/Viewport-HUD-Index.md`
         ##### ------------Future
@@ -1152,6 +1194,7 @@ Rule notes:
         - `10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md`
         - `11_Workspace-7.5-5-Multi-Floating-Spaghetti-Blank-Screen.md`
         - `24_2026-05-20_repeat-extrude-scoped-adf-composition.md`
+        - `25_2026-05-25_spaghetti-canvas-zoom-triggers-worker-build.md`
 ### ----roadmap
         - `roadmap.md`
         - `Architecture-roadmap.md`

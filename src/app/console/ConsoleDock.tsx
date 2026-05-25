@@ -1718,6 +1718,20 @@ export function ConsoleDock({
       return
     }
     if (
+      !isExplicitWorkspaceHandoff &&
+      resolvedHandoff.session?.scopeId === 'graphSelected' &&
+      currentSession !== null &&
+      (
+        currentSession.scopeId === 'graphZoomRoot' ||
+        currentSession.scopeId === 'graphZoomCanvas' ||
+        currentSession.scopeId === 'graphZoomModelViewport'
+      ) &&
+      currentSession.selections.graphDocumentId ===
+        resolvedHandoff.session.selections.graphDocumentId
+    ) {
+      return
+    }
+    if (
       spaghettiState.geometrySketchSession?.mode === 'draw' &&
       isSketchDrawLocalStagedScope(currentSession) &&
       resolvedHandoff.session !== null &&

@@ -32,10 +32,14 @@ import {
   type BuildPathTimelineStep,
 } from './buildPathTimeline'
 
+export type BuildPathTopologyAlignment = 'top' | 'center' | 'bottom'
+
 export type BuildPathRuntimeStoreState = {
   runtimeState: BuildPathRuntimeState
   selectedTimelineStepId: string | null
   isParallelModeEnabled: boolean
+  topologyAlignment: BuildPathTopologyAlignment
+  isParallelLaneReadbackExpanded: boolean
   selectedBranchTimelineStepIdByLaneId: Record<string, string>
   appendEvent: (event: BuildPathEvent) => BuildPathRuntimeIntakeResult
   appendLifecycleCard: (request: {
@@ -76,6 +80,8 @@ export type BuildPathRuntimeStoreState = {
   readSelectedTimelineStep: () => BuildPathTimelineStep | null
   selectTimelineStep: (timelineStepId: string | null) => BuildPathMasterScrubState
   setParallelModeEnabled: (isEnabled: boolean) => void
+  setTopologyAlignment: (alignment: BuildPathTopologyAlignment) => void
+  setParallelLaneReadbackExpanded: (isExpanded: boolean) => void
   selectBranchTimelineStep: (branchLaneId: string, timelineStepId: string) => void
   resetRuntimeState: (events?: readonly BuildPathEvent[]) => void
 }
@@ -119,6 +125,8 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
   runtimeState: createBuildPathRuntimeState(),
   selectedTimelineStepId: null,
   isParallelModeEnabled: false,
+  topologyAlignment: 'center',
+  isParallelLaneReadbackExpanded: false,
   selectedBranchTimelineStepIdByLaneId: {},
   appendEvent: (event) => {
     const result = appendBuildPathRuntimeEvent({
@@ -281,6 +289,12 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
   setParallelModeEnabled: (isParallelModeEnabled) => {
     set({ isParallelModeEnabled })
   },
+  setTopologyAlignment: (topologyAlignment) => {
+    set({ topologyAlignment })
+  },
+  setParallelLaneReadbackExpanded: (isParallelLaneReadbackExpanded) => {
+    set({ isParallelLaneReadbackExpanded })
+  },
   selectBranchTimelineStep: (branchLaneId, timelineStepId) => {
     set((state) => ({
       selectedBranchTimelineStepIdByLaneId: {
@@ -291,10 +305,12 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
   },
   resetRuntimeState: (events = []) => {
     set({
+      isParallelLaneReadbackExpanded: false,
       isParallelModeEnabled: false,
       selectedBranchTimelineStepIdByLaneId: {},
       runtimeState: createBuildPathRuntimeState(events),
       selectedTimelineStepId: null,
+      topologyAlignment: 'center',
     })
   },
 }))

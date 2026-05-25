@@ -808,6 +808,10 @@ export type SpaghettiStoreState = {
   setGraph: (next: SpaghettiGraph) => void
   applyGraphCommand: (cmd: GraphCommand) => void
   applyGraphPatch: (patchFn: (prev: SpaghettiGraph) => SpaghettiGraph) => void
+  setGraphViewport: (
+    graphDocumentId: string,
+    viewport: NonNullable<NonNullable<SpaghettiGraph['ui']>['viewport']>,
+  ) => void
   setNodePos: (nodeId: string, x: number, y: number) => void
   setManyNodePos: (updates: NodePosUpdate[]) => void
   commitGraphNodeMoveWithHistory: (options: CommitGraphNodeMoveHistoryOptions) => boolean
@@ -2134,7 +2138,10 @@ const commitGraphStructureHistoryCommand = (options: {
     return false
   }
 
-  const applyGraph = options.applyGraph ?? applyGraphHistorySnapshotToActiveDocument
+  const applyGraph = options.applyGraph ?? ((graph) => {
+    applyGraphHistorySnapshotToActiveDocument(graph)
+    syncBuildPathRuntimeToGraphHistorySnapshot(graphDocumentId, graph)
+  })
   applyGraph(afterGraph)
 
   return editHistoryStore.commitEntry({
@@ -4510,6 +4517,26 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         ),
         edgeWaypoints: pruneEdgeWaypoints(nextGraph, state.edgeWaypoints),
       }
+    })
+  },
+  setGraphViewport: (graphDocumentId, viewport) => {
+    set((state) => {
+      const document = state.graphDocumentsById[graphDocumentId]
+      if (document === undefined) {
+        return state
+      }
+      const nextGraph = normalizeGraphForStoreCommit({
+        ...document.graph,
+        ui: {
+          ...(document.graph.ui ?? {}),
+          viewport: {
+            x: Math.round(viewport.x),
+            y: Math.round(viewport.y),
+            zoom: viewport.zoom,
+          },
+        },
+      })
+      return withUpdatedGraphDocumentState(state, graphDocumentId, nextGraph, 'document-only')
     })
   },
   setNodePos: (nodeId, x, y) => {

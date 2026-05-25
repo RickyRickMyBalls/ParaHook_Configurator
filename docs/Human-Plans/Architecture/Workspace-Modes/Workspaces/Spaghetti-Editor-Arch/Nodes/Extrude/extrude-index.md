@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+94. 2026-05-25 14:47:06: Linked `Extrude-9 - Command Toolbar Node Control Unification` to the new `Templates/Viewport Command Toolbar Shell` family so the in-viewport Sketch/Transform/Extrude toolbar shell prep is separated from detached/floating app-window shell planning.
+93. 2026-05-25 14:12:59: Added `Extrude-9 - Command Toolbar Node Control Unification` as the next future lane for turning the active Extrude command toolbar from a readout-only `ViewerHost` strip into a ParaSlider and ParaSelect-backed control surface over the same live `Geometry/Extrude` node params used by the Spaghetti editor.
 92. 2026-05-23 17:58:13: Marked `Extrude-8 - Command Flow Console Focus Cleanup` shipped after the Console-owned focus request seam, command-first profile-pick focus handoff, selected-first clean Depth entry, shortcut/camera numeric input proof, focused tests, TypeScript, and production build landed.
 91. 2026-05-23 17:35:37: Added `Extrude-8 - Command Flow Console Focus Cleanup` as the next future lane for active Extrude profile-pick to Console focus handoff, selected-first Depth entry, and shortcut/camera input-ownership proof after read-only code research showed the state transition and input clearing are already present but the viewport profile click does not explicitly focus Console.
 90. 2026-04-09 00:31: Marked `Extrude 7 Phase 4 - Hardening And Family Handoff` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after graph-native preview invalidation began clearing stale extrude geometry the moment `Extrude.SketchProfiles` stops publishing a valid body, then closed the family read so `Extrude-7` now stands as the shipped first honest multi-wire extrude input subset
@@ -166,6 +168,8 @@ The next real extrude work should center on:
 - bringing the `SolidBody` output row onto the shared standardized output-row template so `Extrude` stops carrying a one-off output block
 - richer extent/body behavior
 - cleaner browser/console ownership
+- active command toolbar controls that edit the same graph-authored `Geometry/Extrude` node params as the Spaghetti editor surface
+- shared in-viewport command-toolbar shell prep through `Templates/Viewport Command Toolbar Shell`, not the detached/floating app-window shell family
 
 The current dedicated follow-on docs for that stack are:
 - `Extrude-3 - Type Modes And Functional Completion`
@@ -174,6 +178,7 @@ The current dedicated follow-on docs for that stack are:
 - `Extrude-3.3 - Direction Modes And Depth Row Contract`
 - `Extrude-4 - Closed Profile Selection And Consumption Contract`
 - `Extrude-5 - Output Row Standardization And UI Cleanup`
+- `Extrude-9 - Command Toolbar Node Control Unification`
 
 The current `Extrude-3.1` status is:
 - `Phase 3.1-1 - Shared Enum Row Foundation And First Extrude Adoption`
@@ -460,6 +465,7 @@ Active future phase docs:
 - `Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
 - `Future/Extrude_Phase Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty.md`
 - `Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `Future/Extrude_Phase Extrude-9 - Command Toolbar Node Control Unification.md`
 
 Historical planning doc still worth keeping:
 - `Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
@@ -472,6 +478,8 @@ The highest-value next extrude planning cuts are probably:
 - keeping the now-shipped `Extrude-4` closed-profile consumption contract under regression coverage while later open-path, wall, or sketch-surface follow-ons stay in their own docs
 - adding `Extrude-5 - Output Row Standardization And UI Cleanup` so the current `SolidBody` output row adopts the calmer standardized row template before that output language widens across all nodes
 - shipping `Extrude-2` node enrichment and the first dedicated extrude toolbar now that viewport placement is trustworthy
+- shipping `Extrude-9` so the active Extrude command toolbar becomes a ParaSlider and ParaSelect-backed editor over live `Geometry/Extrude` node params instead of a separate readout strip
+- consuming `Templates/Viewport Command Toolbar Shell / VCTS - 1` for the command-panel shell so Extrude does not grow another feature-local toolbar chrome path
 - removing the visible `Extrude Geometry` title and using that header area as the one-button extrude-toolbar launcher
 - locking the first real feature-completion task stack in `Extrude-3`, starting with:
   - `Type` as a `ParaSelector`

@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+251. 2026-05-25 10:44:40: Recorded `Build-Path-15 / Phases 1-2` as implemented with presentation-only temporal state on linear timeline icons and workspace Parallel topology cards/connectors so future steps after the current scrub position read as visually inactive without disabling scrub targets or changing graph truth.
+250. 2026-05-25 10:38:21: Added `Build-Path-15 - Scrub Future Icon State` to the Build Path workspace handoff so timeline icons after the current scrub position can be planned as visually inactive/future while staying clickable and preserving graph/Edit History truth.
+249. 2026-05-25 10:27:42: Recorded `Build-Path-11 / Phases 3-6` as implemented with an unboxed workspace Parallel topology graph, UI-only top/center/bottom alignment controls, secondary collapsed lane readback, connector/card polish, focused proof, TypeScript proof, production build proof, and an attempted browser smoke blocked by unavailable `iab`.
+248. 2026-05-25 10:14:53: Added Build Path 11 follow-up handoff phases for the user's new topology visual goals: unbox the Parallel graph from nested panel chrome, add top/center/bottom alignment controls for source/sink cards, make lane readback secondary, and then complete final proof routing.
+247. 2026-05-25 10:06:57: Recorded `Build-Path-11 / Phase 2 - Parallel Icon Lane Rendering` as implemented with the visible workspace-hosted topology renderer, fixed icon-card columns, semantic-color connector SVG paths, branch-playhead selection, and focused `1 > 6 > 1` proof.
+246. 2026-05-25 10:01:11: Prepped `Build-Path-11 / Phase 2 - Parallel Icon Lane Rendering` for implementation as the visible workspace-hosted topology renderer over the Phase 1 read model, with fixed icon-card columns, reference-colored connector lines, and the canonical `1 > 6 > 1` visual proof gate.
+245. 2026-05-25 09:48:43: Recorded `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` as implemented with the derived topology layout read model, endpoint-aware dependency metadata, OutputPreview sink reconstruction, shared Spaghetti connector color semantics, and the `1 > 6 > 1` proof before final connector painting.
 244. 2026-05-25 09:27:31: Prepped `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` for implementation as a derived topology layout read-model slice, with endpoint-aware dependency metadata, Spaghetti wire-color semantic reuse, and the `Graph-1.parahook-graph-PARALLEL.json` `1 > 6 > 1` proof as the first gate.
 243. 2026-05-25 09:22:10: Refined the Build Path 11 handoff so Parallel mode is now planned as a compact icon-card projection of Spaghetti fan-out/fan-in topology, with `Sketch -> six Extrudes -> Output` as the canonical `1 > 6 > 1` proof and connector colors derived from reference-wire semantics.
 242. 2026-05-25 09:02:43: Recorded `Build-Path-14 / Phase 1 - Manual Node Deletion Sync And Orphaned References` as implemented so direct Spaghetti node deletion removes current Build Path cards while receive references preserve unresolved source intent until undo restores the original source identity.
@@ -1194,18 +1201,26 @@ The right mental model is:
   - presentation boundary:
     - default modeling presentation is a clean Model Viewport-docked CAD/build icon strip with no visible content label
     - Parallel mode should become a compact icon-card projection of Spaghetti graph topology, not a full graph editor
+    - workspace-hosted Parallel graph now lives directly in workspace space instead of feeling trapped in a nested `Parallel` panel box
     - a shared source command should fan out into parallel sibling icon cards, and a shared output/sink should fan those lanes back into one output card
-    - mini connector lines should use the same semantic color family as the underlying Spaghetti reference wires
+    - source/sink placement now supports `Align Top`, `Align Center`, and `Align Bottom` controls against wider sibling stacks
+    - mini connector lines use the same semantic color family as the underlying Spaghetti reference wires
+    - lane readback is secondary and collapsed once the topology graph is the primary visual read
+    - timeline icons after the current scrub position now read as inactive/future, not disabled, so users can see which later operations are off at the selected build time while still clicking them to scrub forward
     - the strip can dock top or bottom, and bottom dock sits above `Console`
     - split, tiled, and windowed Build Path surfaces still use normal workspace titlebar chrome like `Console`
   - current implementation-planning owner:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-11 - Parallel Lane Icon Layout.md`
   - recently implemented deletion/reference owner:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
+  - current visual scrub-state owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
   - current next implementation phase:
-    - `Build-Path-11 / Phase 1 - Parallel Lane Visual Model`
-    - first slice: derived topology layout read model and proof before final connector painting
-    - canonical proof shape: `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json` should read as `Sketch -> six parallel Extrudes -> Output`
+    - `Build-Path-15` is complete through Phase 2.
+    - linear timeline cards are marked as `past`, `current`, or `future` from the selected master scrub position
+    - Parallel topology cards and connectors carry the same future-state language without changing graph truth
+    - landed rendering rule: topology columns are the visual x-axis, lane indexes are the y-axis, and connector strokes use the semantic connector color from the read model
+    - landed proof shape: `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json` reads as `Sketch -> six parallel Extrudes -> Output`
 - `Pubwheel Builder`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md`

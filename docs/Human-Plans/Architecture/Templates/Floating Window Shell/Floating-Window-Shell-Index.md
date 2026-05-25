@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-05-25 14:47:06: Rerouted the viewport command-toolbar shell prep out of this family and into `Templates/Viewport Command Toolbar Shell`, preserving this family for detached/floating app-window shell behavior such as floated Model Viewport windows.
+2. 2026-05-25 14:45:19: Added `FWS - 2 - Viewport Command Toolbar Shell` as the shared shell prep lane for Sketch, Transform, and Extrude active command toolbars before `Extrude-9` moves the active Extrude command onto ParaSlider and ParaSelect-backed node controls.
 1. 2026-04-17 15:11:06: Created this umbrella planning index for the new `Floating Window Shell` family under `Architecture/Templates/`, set up the folderized `Future/` and `Shipped/` structure as a real planning home, and added the first `FWS - 1` cleanup phase so the existing shared shell behavior no longer stays trapped inside `View-Toolbar` follow-ons
 
 ### Purpose

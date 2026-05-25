@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+48. 2026-05-25 10:44:40: Implemented and closed `Build-Path-15 / Phases 1-2` with presentation-only `past` / `current` / `future` temporal-state attributes on linear timeline cards, Fusion-style subdued future icon styling that keeps cards clickable, and matching workspace Parallel topology card/connector future dimming from the selected master scrub position.
+47. 2026-05-25 10:38:21: Added `Build-Path-15 - Scrub Future Icon State` as the next visual scrub clarity phase so timeline icons after the selected scrub position can read as inactive/future without becoming disabled, while preserving click-to-scrub behavior, graph truth, and Edit History boundaries.
+46. 2026-05-25 10:27:42: Recorded `Build-Path-11 / Phases 3-6` as implemented with the workspace Parallel topology graph unboxed from nested `Parallel` panel chrome, UI-only top/center/bottom alignment controls, collapsed secondary lane readback, connector/card polish, focused alignment proof, TypeScript proof, production build proof, and an attempted browser smoke blocked by unavailable `iab`.
+45. 2026-05-25 10:14:53: Added Build-Path-11 follow-up phases for the user's new visual goals: unbox the Parallel topology graph from nested panel chrome, add top/center/bottom topology alignment controls, move lane readback into a secondary role, and reserve final proof routing after those polish slices land.
+44. 2026-05-25 10:06:57: Recorded `Build-Path-11 / Phase 2 - Parallel Icon Lane Rendering` as implemented with a visible workspace Parallel topology renderer, fixed-size icon-card columns, SVG mini connectors colored from semantic connector records, branch-playhead card selection, and focused `1 > 6 > 1` DOM proof.
+43. 2026-05-25 10:01:11: Prepped `Build-Path-11 / Phase 2 - Parallel Icon Lane Rendering` for implementation as the visible renderer over the Phase 1 topology read model, including fixed-size icon-card columns, semantically colored connector lines, workspace-first proof, and the canonical `1 > 6 > 1` visual gate.
+42. 2026-05-25 09:48:43: Recorded `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` as implemented with a derived topology layout read model, endpoint-aware dependency metadata, OutputPreview sink reconstruction, shared Spaghetti wire color semantics, and the `Sketch -> six Extrudes -> Output` `1 > 6 > 1` proof.
 41. 2026-05-25 09:27:31: Prepped `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` for implementation around a new derived topology layout read model, endpoint-aware dependency metadata, Spaghetti wire-color semantic reuse, and a focused `Graph-1.parahook-graph-PARALLEL.json` `1 > 6 > 1` proof before final connector painting.
 40. 2026-05-25 09:22:10: Refined `Build-Path-11 - Parallel Lane Icon Layout` around the clarified icon-card graph topology target, where a Sketch fan-out to six Extrudes and fan-in to Output should render as `1 > 6 > 1` with mini connector colors derived from Spaghetti reference-wire semantics.
 39. 2026-05-25 09:02:43: Implemented and closed `Build-Path-14 / Phase 1 - Manual Node Deletion Sync And Orphaned References` so direct Spaghetti node deletion now removes current Build Path command cards from graph truth while receive references remain unresolved until undo restores the original source identity.
@@ -120,6 +127,7 @@ Current legal family-phase ladder:
 - `Build-Path-12.2` - timeline selection Edit History
 - `Build-Path-13` - draggable current-position line
 - `Build-Path-14` - node deletion and reference orphan contract
+- `Build-Path-15` - scrub future icon state
 
 Important planning rule:
 - use this index to choose and bound the next `Build-Path-N` family phase
@@ -133,7 +141,8 @@ Dispatch next:
 - `Build-Path-12.2` is complete; user-driven master timeline selection changes now enter global Edit History so Ctrl+Z/Ctrl+Y can walk Build Path timeline moves.
 - `Build-Path-13 / Phase 1` is complete; Build Path now has a draggable current-position line over the existing strip, using the current `selectTimelineStep` selection/history path.
 - `Build-Path-14 / Phase 1` is complete: direct Spaghetti node deletion removes current Build Path command cards from graph truth, while downstream receive-reference reads preserve explicit unresolved intent instead of silently remapping.
-- next legal collaborative task is `Build-Path-11 - Parallel Lane Icon Layout / Phase 1 - Parallel Lane Visual Model`, prepped as a derived topology read-model implementation with endpoint-aware connectors and reference-colored mini wire metadata.
+- `Build-Path-11` is complete through Phase 6: workspace Parallel mode now renders the topology graph unboxed in workspace space, supports top/center/bottom source/sink alignment as UI state, keeps lane readback secondary/collapsed, and preserves semantic connector colors.
+- `Build-Path-15` is complete: linear timeline cards and workspace Parallel topology cards/connectors now expose presentation-only temporal state so future steps after the current scrub position read as inactive/future while staying clickable scrub targets.
 - `Build-Path-12` is complete for reconstructed loaded-graph structure; exact persisted Build Path event history remains a later schema/file-format phase.
 - `Build-Path-11` visual direction is captured: the canonical proof graph is `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json`, which should read as `Sketch -> six parallel Extrudes -> Output`.
 - later action runtime still needs a new explicit phase for compare UI, pin persistence, restore/branch execution, worker checkpoint/cache ownership, or deeper seeded browser replay proof.
@@ -195,13 +204,14 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Build-Path-Gen1-CLG-7. Keep restore, branch-from-here, compare, and pin actions explicit later commands rather than implicit scrub side effects.
 - [x] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
 - [x] Build-Path-Gen1-CLG-9. Add a derived viewport preview mask for Build Path scrub selection without changing graph truth, viewer build truth, or Edit History.
-- [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
-- [ ] Build-Path-Gen1-CLG-10.1. Derive a compact topology icon layout from graph dependencies so fan-out/fan-in structures such as `Sketch -> six Extrudes -> Output` render as icon cards connected by semantically colored mini wires.
+- [x] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
+- [x] Build-Path-Gen1-CLG-10.1. Derive a compact topology icon layout from graph dependencies so fan-out/fan-in structures such as `Sketch -> six Extrudes -> Output` render as icon cards connected by semantically colored mini wires.
 - [x] Build-Path-Gen1-CLG-11. Reconstruct a derived Build Path timeline and dependency read when graph files are loaded, while marking the source as reconstructed and preserving graph/Edit History truth.
 - [x] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
 - [x] Build-Path-Gen1-CLG-13. Add global Edit History entries for user-driven Build Path master timeline selection changes without mutating graph truth.
 - [x] Build-Path-Gen1-CLG-14. Add a visible draggable current-position line to the Build Path timeline that scrubs existing selection state without changing graph truth, accepted event order, or restore/replay boundaries.
 - [ ] Build-Path-Gen1-CLG-15. Treat direct Spaghetti node deletion as graph truth for Build Path card removal while preserving downstream reference intent as explicit unresolved or orphaned dependencies.
+- [x] Build-Path-Gen1-CLG-16. Add presentation-only temporal state to Build Path timeline icons so future steps after the scrub position read as inactive without becoming disabled or mutating graph truth.
 
 ### `Build-Path-1`
 
@@ -368,15 +378,15 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 
 ### `Build-Path-11`
 
-- [ ] Define the Parallel-mode visual lane model for side-by-side branch-local icons.
-- [ ] Render branch-local icons in derived parallel lanes where existing branch data supports it.
-- [ ] Keep Master mode and master timeline order unchanged.
-- [ ] Preserve branch-local playhead/readback safety and Edit History separation.
-- [ ] Record any follow-up visual decisions after user direction.
-- [ ] `Build-Path-Gen1-HLG-5`
-- [ ] `Build-Path-Gen1-HLG-6`
-- [ ] `Build-Path-Gen1-HLG-7`
-- [ ] Build-Path-Gen1-CLG-10.
+- [x] Define the Parallel-mode visual lane model for side-by-side branch-local icons.
+- [x] Render branch-local icons in derived parallel lanes where existing branch data supports it.
+- [x] Keep Master mode and master timeline order unchanged.
+- [x] Preserve branch-local playhead/readback safety and Edit History separation.
+- [x] Record any follow-up visual decisions after user direction.
+- [x] `Build-Path-Gen1-HLG-5`
+- [x] `Build-Path-Gen1-HLG-6`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] Build-Path-Gen1-CLG-10.
 
 ### `Build-Path-12`
 
@@ -442,6 +452,19 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [ ] `Build-Path-Gen1-HLG-7`
 - [ ] `Build-Path-Gen1-HLG-8`
 - [ ] Build-Path-Gen1-CLG-15.
+
+### `Build-Path-15`
+
+- [x] Create the standalone `Future/Build-Path-15 - Scrub Future Icon State.md` Family Phase Doc.
+- [x] Derive `past`, `current`, and `future` temporal state from the selected master timeline position.
+- [x] Show future icons after the scrub marker as visually inactive without disabling them.
+- [x] Preserve click-to-scrub behavior for future cards.
+- [x] Carry the same temporal-state language into Parallel topology cards and connectors after the linear strip is proven.
+- [x] Preserve graph truth, accepted event order, Edit History boundaries, and viewport geometry masking ownership.
+- [x] `Build-Path-Gen1-HLG-3`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-9`
+- [x] Build-Path-Gen1-CLG-16.
 
 ## [x] `Build-Path-1` - `Accepted Graph Event Timeline Foundation`
 
@@ -883,7 +906,7 @@ Current handoff:
 
 - [x] `Future/Build-Path-10 - Viewport Scrub Preview Masking.md`
 
-## [ ] `Build-Path-11` - `Parallel Lane Icon Layout`
+## [x] `Build-Path-11` - `Parallel Lane Icon Layout`
 
 ### Family Phase Summary
 
@@ -891,21 +914,24 @@ Clean up Build Path Parallel mode so independent branch-local build icons become
 
 Current handoff:
 - `Future/Build-Path-11 - Parallel Lane Icon Layout.md`
-- Phase 1 prep is implementation-ready.
-- the first code slice should add a derived topology layout read model and focused proof before final connector painting.
+- Phase 1 is implemented as the derived topology layout read model and focused proof.
+- Phase 2 is implemented as the visible workspace-hosted renderer over the Phase 1 topology read model.
+- Phases 3-6 are implemented: the workspace Parallel graph is unboxed from nested panel chrome, top/center/bottom alignment controls are UI-only state, lane readback is collapsed behind a secondary disclosure, and final proof routing is recorded.
 - the target is Build Path icon cards connected by mini dependency lines, not full Spaghetti node cards.
 - connector colors should derive from the same semantic reference-wire color family used by the underlying Spaghetti edge or port type.
 - the canonical proof graph is `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json`.
 - the canonical rendered shape is `Sketch -> six parallel Extrudes -> Output`, visually reading as `1 > 6 > 1`.
-- likely Phase 1 code seams are `buildPathTimeline.ts`, `reconstructBuildPathFromGraph.ts`, `recordBuildPathGraphCommand.ts`, `BuildPathSurface.tsx`, and Spaghetti's existing `resolveCanvasEdgeSourceKind(...)` / `getTypeColor(...)` color semantics.
+- Phase 1 source seams are `buildPathTimeline.ts`, `reconstructBuildPathFromGraph.ts`, `recordBuildPathGraphCommand.ts`, `BuildPathSurface.tsx`, shared `edgeSourceKind.ts`, and `getTypeColor(...)` color semantics.
+- Phase 2-6 source seams are `BuildPathSurface.tsx`, `BuildPathSurface.test.tsx`, `useBuildPathRuntimeStore.ts`, and `base.css`.
+- browser smoke was attempted against the local 5173 app, but the in-app `iab` browser backend was unavailable in this session.
 
 ### HLG / CLG Coverage
 
-- [ ] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
-- [ ] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
-- [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
-- [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
-- [ ] Build-Path-Gen1-CLG-10.1. Derive a compact topology icon layout from graph dependencies so fan-out/fan-in structures such as `Sketch -> six Extrudes -> Output` render as icon cards connected by semantically colored mini wires.
+- [x] `Build-Path-Gen1-HLG-5. Build Path should understand which build events are linear, parallel, branch-local, or merge/checkpoint events.`
+- [x] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
+- [x] Build-Path-Gen1-CLG-10.1. Derive a compact topology icon layout from graph dependencies so fan-out/fan-in structures such as `Sketch -> six Extrudes -> Output` render as icon cards connected by semantically colored mini wires.
 
 ### Owns
 
@@ -914,6 +940,9 @@ Current handoff:
 - fan-out/fan-in icon-card topology projection
 - mini connector lines colored from Spaghetti reference-wire semantics
 - output/sink icon-card read for shared downstream OutputPreview/output destinations
+- topology graph panel/chrome removal so the graph can breathe in workspace space
+- top/center/bottom source/sink alignment controls
+- secondary placement for lane readback after topology graph is primary
 - selected branch-local playhead/readback styling inside the parallel lane view
 - proof that master order, graph truth, and Edit History stay unchanged
 
@@ -1133,3 +1162,44 @@ Current handoff:
 ### Family Phase Doc
 
 - [x] `Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
+
+## [x] `Build-Path-15` - `Scrub Future Icon State`
+
+### Family Phase Summary
+
+Plan Fusion-style visual suppression for Build Path timeline icons that sit after the selected scrub position.
+
+Current handoff:
+- `Future/Build-Path-15 - Scrub Future Icon State.md`
+- Phase 1 is implemented with `past`, `current`, and `future` temporal-state attributes on the linear timeline strip.
+- future cards read as inactive/ahead-of-scrub through opacity, desaturation, and softer chrome.
+- future cards remain clickable scrub targets, not native disabled controls.
+- Phase 2 is implemented with the same temporal-state language on Parallel topology cards and connector strength.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] Build-Path-Gen1-CLG-16. Add presentation-only temporal state to Build Path timeline icons so future steps after the scrub position read as inactive without becoming disabled or mutating graph truth.
+
+### Owns
+
+- visual temporal-state planning for Build Path timeline icons
+- future/ahead-of-scrub icon styling
+- preserving click-to-scrub behavior for future cards
+- Parallel topology future-card and future-connector follow-up planning
+- tests proving state is presentation-only and graph-safe
+
+### Does Not Own
+
+- graph mutation
+- restore or replay
+- worker checkpoint/cache implementation
+- command disabling
+- viewport geometry masking logic
+- accepted event ordering changes
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-15 - Scrub Future Icon State.md`

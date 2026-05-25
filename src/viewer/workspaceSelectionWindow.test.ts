@@ -46,11 +46,11 @@ describe('workspaceSelectionWindow', () => {
   })
 
   it('matches the sketch direction rule for window vs crossing mode', () => {
-    expect(getWorkspaceSelectionWindowMode({ x: 100, y: 0 }, { x: 80, y: 0 })).toBe('window')
-    expect(getWorkspaceSelectionWindowMode({ x: 100, y: 0 }, { x: 120, y: 0 })).toBe('crossing')
+    expect(getWorkspaceSelectionWindowMode({ x: 100, y: 0 }, { x: 120, y: 0 })).toBe('window')
+    expect(getWorkspaceSelectionWindowMode({ x: 100, y: 0 }, { x: 80, y: 0 })).toBe('crossing')
   })
 
-  it('treats drag-left windows as fully enclosed only', () => {
+  it('treats drag-right windows as fully enclosed only', () => {
     const camera = createCamera()
     const scene = new Scene()
     const leftMesh = createCandidateMesh(-4)
@@ -67,14 +67,14 @@ describe('workspaceSelectionWindow', () => {
       ],
       camera,
       { width: 200, height: 200 },
-      { x: 145, y: 120 },
-      { x: 55, y: 80 },
+      { x: 55, y: 120 },
+      { x: 145, y: 80 },
     )
 
     expect(picks).toEqual([{ kind: 'part', partKey: 'center' }])
   })
 
-  it('treats drag-right crossings as overlap selection and ignores invisible candidates', () => {
+  it('treats drag-left crossings as overlap selection and ignores invisible candidates', () => {
     const camera = createCamera()
     const scene = new Scene()
     const leftMesh = createCandidateMesh(-4)
@@ -91,8 +91,8 @@ describe('workspaceSelectionWindow', () => {
       ],
       camera,
       { width: 200, height: 200 },
-      { x: 55, y: 120 },
-      { x: 145, y: 80 },
+      { x: 145, y: 120 },
+      { x: 55, y: 80 },
     )
 
     expect(picks).toEqual([

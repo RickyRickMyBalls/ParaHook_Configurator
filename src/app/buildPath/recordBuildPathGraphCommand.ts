@@ -7,6 +7,7 @@ import {
 import type { BuildPathProjectionBuildResultState } from '../console/buildPathProjection'
 import { useBuildPathRuntimeStore } from './useBuildPathRuntimeStore'
 import type { BuildPathGraphDependency } from './buildPathTimeline'
+import type { PortKind } from '../spaghetti/schema/spaghettiTypes'
 
 export type RecordGraphCommandSummaryForBuildPathRequest = {
   graphDocumentId: string
@@ -27,6 +28,9 @@ export type RecordGraphDependenciesForBuildPathRequest = {
   sourceNodeIds: readonly string[]
   targetNodeIds: readonly string[]
   edgeIds?: readonly string[]
+  sourcePortIds?: readonly string[]
+  targetPortIds?: readonly string[]
+  connectorKinds?: readonly PortKind[]
 }
 
 const createLiveBuildPathProjectionId = ({
@@ -114,25 +118,39 @@ export const recordSketchSourceForBuildPathIfMissing = ({
 }
 
 export const recordGraphDependenciesForBuildPath = ({
+  connectorKinds = [],
   edgeIds = [],
   graphDocumentId,
+  sourcePortIds = [],
   sourceNodeIds,
+  targetPortIds = [],
   targetNodeIds,
 }: RecordGraphDependenciesForBuildPathRequest): BuildPathGraphDependency[] => {
   const dependencies = sourceNodeIds.flatMap((sourceNodeId, sourceIndex) =>
-    targetNodeIds.map((targetNodeId, targetIndex): BuildPathGraphDependency => ({
-      edgeId:
-        edgeIds[targetIndex] ??
-        edgeIds[sourceIndex] ??
-        [
-          'build-path-dependency',
-          graphDocumentId,
-          sourceNodeId,
-          targetNodeId,
-        ].join(':'),
-      fromNodeId: sourceNodeId,
-      toNodeId: targetNodeId,
-    })),
+    targetNodeIds.map((targetNodeId, targetIndex): BuildPathGraphDependency => {
+      const fromPortId = sourcePortIds[sourceIndex]
+      const toPortId = targetPortIds[targetIndex]
+      const connectorKind = connectorKinds[targetIndex] ?? connectorKinds[sourceIndex]
+
+      return {
+        edgeId:
+          edgeIds[targetIndex] ??
+          edgeIds[sourceIndex] ??
+          [
+            'build-path-dependency',
+            graphDocumentId,
+            sourceNodeId,
+            targetNodeId,
+          ].join(':'),
+        fromNodeId: sourceNodeId,
+        toNodeId: targetNodeId,
+        ...(fromPortId === undefined ? {} : { fromPortId }),
+        ...(toPortId === undefined ? {} : { toPortId }),
+        ...(connectorKind === undefined ? {} : { connectorKind }),
+        graphDocumentId,
+        sourceKind: 'recorded',
+      }
+    }),
   )
 
   useBuildPathRuntimeStore.getState().addGraphDependencies(dependencies)

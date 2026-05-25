@@ -19,6 +19,13 @@ export const defaultSpaghettiWindowSliderClamp: SpaghettiWindowSliderClamp = {
   max: 1,
 }
 
+const legacyDefaultSpaghettiWindowOpacityClampMin = 0.65
+
+export const defaultSpaghettiWindowOpacitySliderClamp: SpaghettiWindowSliderClamp = {
+  min: 0,
+  max: 1,
+}
+
 export type SpaghettiWindowAppearance = {
   titlebarOpacity: number
   windowOpacity: number
@@ -44,7 +51,7 @@ export const defaultSpaghettiWindowAppearance: SpaghettiWindowAppearance = {
   bodyInsetX: 0,
   bodyInsetY: 0,
   titlebarClamp: defaultSpaghettiWindowSliderClamp,
-  windowClamp: defaultSpaghettiWindowSliderClamp,
+  windowClamp: defaultSpaghettiWindowOpacitySliderClamp,
   graphContentClamp: defaultSpaghettiWindowSliderClamp,
   bodyInsetXClamp: {
     min: 0,
@@ -85,7 +92,12 @@ export const normalizeSpaghettiWindowAppearance = (
   appearance: SpaghettiWindowAppearance,
 ): SpaghettiWindowAppearance => {
   const titlebarClamp = normalizeSliderClamp(appearance.titlebarClamp)
-  const windowClamp = normalizeSliderClamp(appearance.windowClamp)
+  const normalizedWindowClamp = normalizeSliderClamp(appearance.windowClamp)
+  const windowClamp =
+    normalizedWindowClamp.min === legacyDefaultSpaghettiWindowOpacityClampMin &&
+    normalizedWindowClamp.max === defaultSpaghettiWindowOpacitySliderClamp.max
+      ? defaultSpaghettiWindowOpacitySliderClamp
+      : normalizedWindowClamp
   const graphContentClamp = normalizeSliderClamp(appearance.graphContentClamp)
   const bodyInsetXClamp = normalizeSliderClamp(appearance.bodyInsetXClamp)
   const bodyInsetYClamp = normalizeSliderClamp(appearance.bodyInsetYClamp)

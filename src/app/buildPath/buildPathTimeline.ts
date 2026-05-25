@@ -1,5 +1,7 @@
 import type { BuildPathEvent } from './buildPathEvents'
 import type { BuildPathLifecycleCard } from './buildPathLifecycle'
+import { getTypeColor } from '../spaghetti/canvas/typeColors'
+import type { PortKind } from '../spaghetti/schema/spaghettiTypes'
 
 export const BUILD_PATH_MASTER_TIMELINE_ID = 'build-path-master-linear-timeline'
 
@@ -67,6 +69,10 @@ export type BuildPathGraphDependency = {
   edgeId: string
   fromNodeId: string
   toNodeId: string
+  fromPortId?: string
+  toPortId?: string
+  connectorKind?: PortKind
+  connectorColor?: string
   graphDocumentId?: string
   sourceKind?: 'recorded' | 'reconstructed'
 }
@@ -94,6 +100,52 @@ export type BuildPathBranchProjection = {
   masterTimelineStepIds: string[]
   lanes: BuildPathBranchLane[]
   eventClassifications: BuildPathBranchEventClassification[]
+}
+
+export type BuildPathTopologyNodeKind = 'timeline-step' | 'output-sink'
+
+export type BuildPathTopologyNodeIcon = BuildPathTimelineStepIcon | 'output-preview'
+
+export type BuildPathTopologyNode = {
+  topologyNodeId: string
+  nodeKind: BuildPathTopologyNodeKind
+  graphNodeId: string
+  timelineStepId: string | null
+  orderIndex: number
+  columnIndex: number
+  laneIndex: number
+  display: {
+    label: string
+    icon: BuildPathTopologyNodeIcon
+    iconLabel: string
+  }
+}
+
+export type BuildPathTopologyConnector = {
+  connectorId: string
+  edgeId: string
+  fromTopologyNodeId: string
+  toTopologyNodeId: string
+  fromGraphNodeId: string
+  toGraphNodeId: string
+  fromPortId: string | null
+  toPortId: string | null
+  connectorKind: PortKind | null
+  connectorColor: string
+}
+
+export type BuildPathTopologyColumn = {
+  columnIndex: number
+  topologyNodeIds: string[]
+}
+
+export type BuildPathTopologyLayout = {
+  status: 'empty' | 'ready'
+  masterTimelineId: typeof BUILD_PATH_MASTER_TIMELINE_ID
+  masterTimelineStepIds: string[]
+  columns: BuildPathTopologyColumn[]
+  nodes: BuildPathTopologyNode[]
+  connectors: BuildPathTopologyConnector[]
 }
 
 export type BuildPathBranchPlayhead = {
@@ -408,6 +460,170 @@ export const deriveBuildPathBranchProjection = ({
     masterTimelineStepIds: timeline.steps.map((step) => step.timelineStepId),
     lanes,
     eventClassifications: normalizedClassifications,
+  }
+}
+
+const createBuildPathTopologyTimelineNodeId = (timelineStepId: string): string =>
+  `build-path-topology-node:${timelineStepId}`
+
+const createBuildPathTopologyOutputSinkNodeId = (graphNodeId: string): string =>
+  `build-path-topology-output-sink:${graphNodeId}`
+
+const isOutputSinkDependency = (dependency: BuildPathGraphDependency): boolean =>
+  dependency.toPortId?.startsWith('in:solid:') === true
+
+const compareTopologyNodesByOrder = (
+  left: Pick<BuildPathTopologyNode, 'orderIndex' | 'topologyNodeId'>,
+  right: Pick<BuildPathTopologyNode, 'orderIndex' | 'topologyNodeId'>,
+): number => {
+  const orderIndex = left.orderIndex - right.orderIndex
+  return orderIndex === 0 ? left.topologyNodeId.localeCompare(right.topologyNodeId) : orderIndex
+}
+
+export const deriveBuildPathTopologyLayout = ({
+  dependencies,
+  timeline,
+}: {
+  dependencies: readonly BuildPathGraphDependency[]
+  timeline: BuildPathMasterTimeline
+}): BuildPathTopologyLayout => {
+  const buildSteps = timeline.steps.filter(isBuildPathBuildEventTimelineStep)
+  const topologyNodeById = new Map<string, BuildPathTopologyNode>()
+  const topologyNodeIdByGraphNodeId = new Map<string, string>()
+
+  buildSteps.forEach((step) => {
+    const graphNodeId = step.event.affectedNodeIds[0]
+    if (graphNodeId === undefined) {
+      return
+    }
+    const topologyNodeId = createBuildPathTopologyTimelineNodeId(step.timelineStepId)
+    topologyNodeById.set(topologyNodeId, {
+      topologyNodeId,
+      nodeKind: 'timeline-step',
+      graphNodeId,
+      timelineStepId: step.timelineStepId,
+      orderIndex: step.orderIndex,
+      columnIndex: 0,
+      laneIndex: 0,
+      display: {
+        ...step.display,
+      },
+    })
+    step.event.affectedNodeIds.forEach((nodeId) => {
+      topologyNodeIdByGraphNodeId.set(nodeId, topologyNodeId)
+    })
+  })
+
+  dependencies.forEach((dependency) => {
+    if (
+      !topologyNodeIdByGraphNodeId.has(dependency.toNodeId) &&
+      topologyNodeIdByGraphNodeId.has(dependency.fromNodeId) &&
+      isOutputSinkDependency(dependency)
+    ) {
+      const topologyNodeId = createBuildPathTopologyOutputSinkNodeId(dependency.toNodeId)
+      if (!topologyNodeById.has(topologyNodeId)) {
+        topologyNodeById.set(topologyNodeId, {
+          topologyNodeId,
+          nodeKind: 'output-sink',
+          graphNodeId: dependency.toNodeId,
+          timelineStepId: null,
+          orderIndex: timeline.steps.length + topologyNodeById.size,
+          columnIndex: 0,
+          laneIndex: 0,
+          display: {
+            label: 'Output',
+            icon: 'output-preview',
+            iconLabel: 'Output Preview sink',
+          },
+        })
+        topologyNodeIdByGraphNodeId.set(dependency.toNodeId, topologyNodeId)
+      }
+    }
+  })
+
+  const connectors = dependencies.flatMap((dependency): BuildPathTopologyConnector[] => {
+    const fromTopologyNodeId = topologyNodeIdByGraphNodeId.get(dependency.fromNodeId)
+    const toTopologyNodeId = topologyNodeIdByGraphNodeId.get(dependency.toNodeId)
+    if (fromTopologyNodeId === undefined || toTopologyNodeId === undefined) {
+      return []
+    }
+    const connectorKind = dependency.connectorKind ?? null
+    return [{
+      connectorId: `build-path-topology-connector:${dependency.edgeId}`,
+      edgeId: dependency.edgeId,
+      fromTopologyNodeId,
+      toTopologyNodeId,
+      fromGraphNodeId: dependency.fromNodeId,
+      toGraphNodeId: dependency.toNodeId,
+      fromPortId: dependency.fromPortId ?? null,
+      toPortId: dependency.toPortId ?? null,
+      connectorKind,
+      connectorColor:
+        dependency.connectorColor ??
+        (connectorKind === null ? getTypeColor('number') : getTypeColor(connectorKind)),
+    }]
+  })
+
+  const predecessorIdsByNodeId = new Map<string, Set<string>>()
+  const successorIdsByNodeId = new Map<string, Set<string>>()
+  topologyNodeById.forEach((_node, topologyNodeId) => {
+    predecessorIdsByNodeId.set(topologyNodeId, new Set())
+    successorIdsByNodeId.set(topologyNodeId, new Set())
+  })
+  connectors.forEach((connector) => {
+    predecessorIdsByNodeId.get(connector.toTopologyNodeId)?.add(connector.fromTopologyNodeId)
+    successorIdsByNodeId.get(connector.fromTopologyNodeId)?.add(connector.toTopologyNodeId)
+  })
+
+  const columnIndexByNodeId = new Map<string, number>()
+  const orderedNodeIds = [...topologyNodeById.values()]
+    .sort(compareTopologyNodesByOrder)
+    .map((node) => node.topologyNodeId)
+
+  orderedNodeIds.forEach((topologyNodeId) => {
+    const predecessorColumnIndexes = [...(predecessorIdsByNodeId.get(topologyNodeId) ?? [])]
+      .map((predecessorId) => columnIndexByNodeId.get(predecessorId) ?? 0)
+    const columnIndex =
+      predecessorColumnIndexes.length === 0
+        ? 0
+        : Math.max(...predecessorColumnIndexes) + 1
+    columnIndexByNodeId.set(topologyNodeId, columnIndex)
+  })
+
+  const nodes = [...topologyNodeById.values()]
+    .map((node) => ({
+      ...node,
+      columnIndex: columnIndexByNodeId.get(node.topologyNodeId) ?? 0,
+    }))
+    .sort((left, right) => left.columnIndex - right.columnIndex || compareTopologyNodesByOrder(left, right))
+
+  const columnLaneCount = new Map<number, number>()
+  nodes.forEach((node) => {
+    const nextLaneIndex = columnLaneCount.get(node.columnIndex) ?? 0
+    columnLaneCount.set(node.columnIndex, nextLaneIndex + 1)
+    node.laneIndex = nextLaneIndex
+  })
+
+  const nodesWithLanes = nodes.map((node) => ({
+    ...node,
+  }))
+  const columns = [...new Set(nodesWithLanes.map((node) => node.columnIndex))]
+    .sort((left, right) => left - right)
+    .map((columnIndex) => ({
+      columnIndex,
+      topologyNodeIds: nodesWithLanes
+        .filter((node) => node.columnIndex === columnIndex)
+        .sort(compareTopologyNodesByOrder)
+        .map((node) => node.topologyNodeId),
+    }))
+
+  return {
+    status: nodesWithLanes.length === 0 ? 'empty' : 'ready',
+    masterTimelineId: timeline.timelineId,
+    masterTimelineStepIds: timeline.steps.map((step) => step.timelineStepId),
+    columns,
+    nodes: nodesWithLanes,
+    connectors,
   }
 }
 

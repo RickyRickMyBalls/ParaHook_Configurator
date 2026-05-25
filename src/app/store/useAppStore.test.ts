@@ -4865,7 +4865,34 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       (runtimeBeforeUiEdit?.currentDocumentRevision ?? 0) + 1,
     )
     expect(runtimeAfterUiEdit?.currentGraphRevision).toBe(runtimeBeforeUiEdit?.currentGraphRevision)
-    expect(useSpaghettiStore.getState().graph.ui?.nodes?.[nodeId ?? '']).toEqual({ x: 48, y: 96 })
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.[nodeId ?? '']).toEqual({
+      x: 48,
+      y: 96,
+      width: 260,
+    })
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds['graph-document-1']).toBe(
+      undefined,
+    )
+
+    requestBuildSpy.mockClear()
+    const runtimeBeforeViewportEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+    useSpaghettiStore.getState().setGraphViewport('graph-document-1', {
+      x: 128,
+      y: -64,
+      zoom: 1.5,
+    })
+    const runtimeAfterViewportEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(runtimeAfterViewportEdit?.currentDocumentRevision).toBe(
+      (runtimeBeforeViewportEdit?.currentDocumentRevision ?? 0) + 1,
+    )
+    expect(runtimeAfterViewportEdit?.currentGraphRevision).toBe(
+      runtimeBeforeViewportEdit?.currentGraphRevision,
+    )
+    expect(useSpaghettiStore.getState().graph.ui?.viewport).toEqual({ x: 128, y: -64, zoom: 1.5 })
     expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds['graph-document-1']).toBe(
       undefined,
     )

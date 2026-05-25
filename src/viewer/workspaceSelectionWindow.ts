@@ -69,7 +69,7 @@ export const hasWorkspaceSelectionDragExceededThreshold = (
 export const getWorkspaceSelectionWindowMode = (
   anchor: WorkspaceSelectionClientPoint,
   current: WorkspaceSelectionClientPoint,
-): WorkspaceSelectionWindowMode => (current.x < anchor.x ? 'window' : 'crossing')
+): WorkspaceSelectionWindowMode => (current.x >= anchor.x ? 'window' : 'crossing')
 
 export const buildWorkspaceSelectionClientRect = (
   anchor: WorkspaceSelectionClientPoint,

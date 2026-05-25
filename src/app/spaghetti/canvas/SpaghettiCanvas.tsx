@@ -15,7 +15,6 @@ import {
   type NodeTypeId,
 } from '../registry/nodeRegistry'
 import type {
-  PortSpec,
   SpaghettiGraph,
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
@@ -48,12 +47,7 @@ import {
   movePartRowOrderSection,
   normalizePartRowOrder,
 } from '../parts/partRowOrder'
-import { getFieldNodeAtPath, getFieldTree } from '../types/fieldTree'
 import { SpaghettiContextMenu } from '../ui/SpaghettiContextMenu'
-import {
-  resolveEffectiveInputPort,
-  resolveEffectiveOutputPort,
-} from '../features/effectivePorts'
 import {
   planConnectEdgeWithAutoReplace,
   setNodeParams as setNodeParamsCommand,
@@ -79,6 +73,13 @@ import {
 } from './compositeExpansion'
 import { isElementTarget, isInteractiveTarget, isNodeTarget } from '../spInteractive'
 import {
+  buildWorkspaceSelectionClientRect,
+  doesWorkspaceSelectionRectMatch,
+  getWorkspaceSelectionWindowMode,
+  hasWorkspaceSelectionDragExceededThreshold,
+  type WorkspaceSelectionClientRect,
+} from '../../../viewer/workspaceSelectionWindow'
+import {
   beginViewerTemporaryPanDrag,
   beginViewerTemporaryOrbitDrag,
   endViewerTemporaryPanDrag,
@@ -99,10 +100,13 @@ import {
 } from '../contracts/endpoints'
 import { parseExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
 import {
-  classifyExtrudeProfileContributorEdge,
   isWholeExtrusionProfileTargetEndpoint,
 } from '../features/extrudeProfileConnections'
 import { parseSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
+import {
+  resolveCanvasEdgeSourceKind,
+  resolveCanvasEndpointKind,
+} from './edgeSourceKind'
 
 type EndpointPayload = {
   nodeId: string
@@ -129,6 +133,13 @@ const defaultCanvasViewState: CanvasViewState = {
   panY: 16,
   zoom: 1,
 }
+
+const MIN_CANVAS_ZOOM = 0.01
+const MAX_CANVAS_ZOOM = 2.6
+const MAX_MEATBALL_CANVAS_ZOOM = 2.9
+const EXPANDED_CANVAS_FIT_PADDING_RATIO = 0.94
+const MIDDLE_MOUSE_FIT_DOUBLE_CLICK_MS = 420
+const MIDDLE_MOUSE_FIT_DOUBLE_CLICK_DISTANCE_PX = 8
 
 const serializeCanvasViewState = (view: CanvasViewState): CanvasViewState => ({
   panX: Number(view.panX.toFixed(3)),
@@ -167,47 +178,6 @@ const readVec2Axis = (
   return typeof axisValue === 'number' && Number.isFinite(axisValue) ? axisValue : fallback
 }
 
-
-const resolveEndpointKind = (
-  graph: SpaghettiGraph,
-  endpoint: EndpointPayload,
-  direction: PortDirection,
-): PortSpec['type']['kind'] | null => {
-  const node = graph.nodes.find((candidate) => candidate.nodeId === endpoint.nodeId)
-  if (node === undefined) {
-    return null
-  }
-  const nodeDef = getNodeDef(node.type)
-  if (nodeDef === undefined) {
-    return null
-  }
-  const port =
-    direction === 'out'
-      ? resolveEffectiveOutputPort(node, endpoint.portId, nodeDef)
-      : resolveEffectiveInputPort(node, endpoint.portId, nodeDef)
-  if (port === undefined) {
-    return null
-  }
-  const fieldNode = getFieldNodeAtPath(getFieldTree(port.type), endpoint.path)
-  if (fieldNode?.kind === 'leaf') {
-    return fieldNode.type.kind
-  }
-  return port.type.kind
-}
-
-export const resolveCanvasEdgeSourceKind = (
-  graph: SpaghettiGraph,
-  edge: SpaghettiGraph['edges'][number],
-): PortSpec['type']['kind'] | null => {
-  const extrudeContributor = classifyExtrudeProfileContributorEdge(edge)
-  if (extrudeContributor?.kind === 'aggregate') {
-    return 'sketchProfiles'
-  }
-  if (extrudeContributor?.kind === 'single') {
-    return 'sketchProfile'
-  }
-  return resolveEndpointKind(graph, edge.from, 'out')
-}
 
 const normalizePath = (path: string[] | undefined): string[] | undefined =>
   path === undefined || path.length === 0 ? undefined : path
@@ -475,6 +445,12 @@ type NodeResizeHandleDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 's
 const isWestResizeDirection = (direction: NodeResizeHandleDirection): boolean =>
   direction === 'w' || direction === 'nw' || direction === 'sw'
 
+type CanvasSelectionWindowDraft = {
+  anchor: { x: number; y: number }
+  current: { x: number; y: number }
+  mode: 'window' | 'crossing'
+}
+
 export function SpaghettiCanvas({
   editorViewportId,
   graphDocumentId,
@@ -512,6 +488,7 @@ export function SpaghettiCanvas({
   const connectGraphEdgeWithHistory = useSpaghettiStore((state) => state.connectGraphEdgeWithHistory)
   const removeGraphEdgeWithHistory = useSpaghettiStore((state) => state.removeGraphEdgeWithHistory)
   const applyGraphPatch = useSpaghettiStore((state) => state.applyGraphPatch)
+  const setGraphViewport = useSpaghettiStore((state) => state.setGraphViewport)
   const setManyNodePos = useSpaghettiStore((state) => state.setManyNodePos)
   const commitGraphNodeMoveWithHistory = useSpaghettiStore(
     (state) => state.commitGraphNodeMoveWithHistory,
@@ -588,6 +565,9 @@ export function SpaghettiCanvas({
     waypointId: string
   } | null>(null)
   const [view, setView] = useState<CanvasViewState>(defaultCanvasViewState)
+  const [canvasSelectedNodeIds, setCanvasSelectedNodeIds] = useState<string[]>([])
+  const [canvasSelectionWindowDraft, setCanvasSelectionWindowDraft] =
+    useState<CanvasSelectionWindowDraft | null>(null)
 
   const dragStateRef = useRef<{
     nodeId: string
@@ -625,6 +605,15 @@ export function SpaghettiCanvas({
   const suppressInitialFitRequestRef = useRef(false)
   const viewportPersistenceTimerRef = useRef<number | null>(null)
   const viewportHasBeenInitializedRef = useRef(false)
+  const lastMiddlePointerDownRef = useRef<{
+    timeStamp: number
+    clientX: number
+    clientY: number
+  } | null>(null)
+  const selectedCanvasNodeIdSet = useMemo(
+    () => new Set([...(selectedNodeId === null ? [] : [selectedNodeId]), ...canvasSelectedNodeIds]),
+    [canvasSelectedNodeIds, selectedNodeId],
+  )
   const nodeRowMode = useSpaghettiStore((state) => {
     if (nodeRowModeMenu === null) {
       return null
@@ -728,18 +717,10 @@ export function SpaghettiCanvas({
         return
       }
 
-      applyGraphPatch((prevGraph) => {
-        return {
-          ...prevGraph,
-          ui: {
-            ...(prevGraph.ui ?? {}),
-            viewport: {
-              x: nextViewport.panX,
-              y: nextViewport.panY,
-              zoom: nextViewport.zoom,
-            },
-          },
-        }
+      setGraphViewport(graphDocumentId, {
+        x: nextViewport.panX,
+        y: nextViewport.panY,
+        zoom: nextViewport.zoom,
       })
     }, 200)
 
@@ -749,7 +730,7 @@ export function SpaghettiCanvas({
         viewportPersistenceTimerRef.current = null
       }
     }
-  }, [applyGraphPatch, graph?.ui?.viewport, view])
+  }, [graph?.ui?.viewport, graphDocumentId, setGraphViewport, view])
 
   const fitStageBounds = useCallback(
     (bounds: { x: number; y: number; width: number; height: number }) => {
@@ -769,20 +750,18 @@ export function SpaghettiCanvas({
         ? Math.min(widthFittedZoom * 0.985, heightFittedZoom)
         : Math.min(widthFittedZoom, heightFittedZoom)
       const nextZoom = clampNumber(
-        fittedZoom * (isMeatballView ? 1 : 1.18),
-        0.4,
-        isMeatballView ? 2.9 : 2.6,
+        fittedZoom * (isMeatballView ? 1 : EXPANDED_CANVAS_FIT_PADDING_RATIO),
+        MIN_CANVAS_ZOOM,
+        isMeatballView ? MAX_MEATBALL_CANVAS_ZOOM : MAX_CANVAS_ZOOM,
       )
       const centeredPanX = viewportRect.width * 0.5 - (bounds.x + bounds.width * 0.5) * nextZoom
       const minVisibleLeftPanX = sidePadding - bounds.x * nextZoom
       const maxVisibleRightPanX =
         viewportRect.width - sidePadding - (bounds.x + bounds.width) * nextZoom
       const nextPanX = Math.round(
-        isMeatballView
-          ? minVisibleLeftPanX <= maxVisibleRightPanX
-            ? clampNumber(centeredPanX, minVisibleLeftPanX, maxVisibleRightPanX)
-            : (minVisibleLeftPanX + maxVisibleRightPanX) * 0.5
-          : Math.max(centeredPanX, minVisibleLeftPanX),
+        minVisibleLeftPanX <= maxVisibleRightPanX
+          ? clampNumber(centeredPanX, minVisibleLeftPanX, maxVisibleRightPanX)
+          : (minVisibleLeftPanX + maxVisibleRightPanX) * 0.5,
       )
       const nextPanY = Math.round(topPadding - bounds.y * nextZoom)
 
@@ -796,29 +775,24 @@ export function SpaghettiCanvas({
     [isMeatballView],
   )
 
-  useLayoutEffect(() => {
-    if (!supportsOverlayCanvasMode) {
-      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
-      return
-    }
-    if (suppressInitialFitRequestRef.current) {
-      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
-      return
-    }
-    if (lastFitCanvasRequestKeyRef.current === fitCanvasRequestKey) {
-      return
-    }
+  const fitRenderedNodesToCanvas = useCallback((nodeIds?: readonly string[]): boolean => {
     const stageElement = stageRef.current
     if (stageElement === null) {
-      return
+      return false
     }
     const stageRect = stageElement.getBoundingClientRect()
-    const nodeElements = Array.from(
-      stageElement.querySelectorAll<HTMLElement>('[data-sp-node-id]'),
-    )
+    const requestedNodeIds =
+      nodeIds === undefined ? null : new Set(nodeIds.filter((nodeId) => nodeId.length > 0))
+    const nodeElements = Array.from(stageElement.querySelectorAll<HTMLElement>('[data-sp-node-id]'))
+      .filter((nodeElement) => {
+        if (requestedNodeIds === null) {
+          return true
+        }
+        const nodeId = nodeElement.getAttribute('data-sp-node-id')
+        return nodeId !== null && requestedNodeIds.has(nodeId)
+      })
     if (nodeElements.length === 0) {
-      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
-      return
+      return false
     }
 
     let minStageX = Number.POSITIVE_INFINITY
@@ -838,8 +812,27 @@ export function SpaghettiCanvas({
       width: Math.max(maxStageX - minStageX, 1),
       height: Math.max(maxStageY - minStageY, 1),
     })
+    return true
+  }, [fitStageBounds])
+
+  useLayoutEffect(() => {
+    if (!supportsOverlayCanvasMode) {
+      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+      return
+    }
+    if (suppressInitialFitRequestRef.current) {
+      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+      return
+    }
+    if (lastFitCanvasRequestKeyRef.current === fitCanvasRequestKey) {
+      return
+    }
+    if (!fitRenderedNodesToCanvas()) {
+      lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
+      return
+    }
     lastFitCanvasRequestKeyRef.current = fitCanvasRequestKey
-  }, [fitCanvasRequestKey, fitStageBounds, supportsOverlayCanvasMode])
+  }, [fitCanvasRequestKey, fitRenderedNodesToCanvas, supportsOverlayCanvasMode])
 
   useLayoutEffect(() => {
     if (fitNodeId === null || !supportsOverlayCanvasMode) {
@@ -1255,6 +1248,16 @@ export function SpaghettiCanvas({
   useLayoutEffect(() => {
     measureAllPortAnchors()
   }, [measureAllPortAnchors, nodePos, sortedNodes, view])
+
+  useEffect(() => {
+    if (canvasSelectedNodeIds.length === 0) {
+      return
+    }
+    if (selectedNodeId !== null && canvasSelectedNodeIds.includes(selectedNodeId)) {
+      return
+    }
+    setCanvasSelectedNodeIds([])
+  }, [canvasSelectedNodeIds, selectedNodeId])
 
   useLayoutEffect(() => {
     if (portElementVersionByNodeId.size === 0) {
@@ -1717,7 +1720,7 @@ export function SpaghettiCanvas({
       return null
     }
     if (connectionDragAnchor.direction === 'out') {
-      const sourceKind = resolveEndpointKind(
+      const sourceKind = resolveCanvasEndpointKind(
         graph,
         {
           nodeId: connectionDragAnchor.nodeId,
@@ -1731,7 +1734,7 @@ export function SpaghettiCanvas({
     if (hoverOutputTarget === null) {
       return null
     }
-    const sourceKind = resolveEndpointKind(graph, hoverOutputTarget, 'out')
+    const sourceKind = resolveCanvasEndpointKind(graph, hoverOutputTarget, 'out')
     return sourceKind === null ? null : getTypeColor(sourceKind)
   }, [connectionDragAnchor, graph, hoverOutputTarget])
 
@@ -2677,6 +2680,121 @@ export function SpaghettiCanvas({
     [getCanvasWindow],
   )
 
+  const getViewportLocalPoint = useCallback((clientX: number, clientY: number) => {
+    const viewportElement = viewportRef.current
+    if (viewportElement === null) {
+      return null
+    }
+    const rect = viewportElement.getBoundingClientRect()
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    }
+  }, [])
+
+  const collectCanvasSelectionWindowNodeIds = useCallback(
+    (selectionRect: WorkspaceSelectionClientRect, mode: 'window' | 'crossing'): string[] => {
+      const viewportElement = viewportRef.current
+      const stageElement = stageRef.current
+      if (viewportElement === null || stageElement === null) {
+        return []
+      }
+      const viewportRect = viewportElement.getBoundingClientRect()
+      const nodeElementById = new Map<string, HTMLElement>()
+      for (const element of Array.from(stageElement.querySelectorAll('[data-sp-node-id]'))) {
+        if (!(element instanceof HTMLElement)) {
+          continue
+        }
+        const nodeId = element.getAttribute('data-sp-node-id')
+        if (nodeId !== null && nodeId.length > 0) {
+          nodeElementById.set(nodeId, element)
+        }
+      }
+      return sortedNodes
+        .filter((node) => {
+          const element = nodeElementById.get(node.nodeId)
+          if (element === undefined) {
+            return false
+          }
+          const rect = element.getBoundingClientRect()
+          return doesWorkspaceSelectionRectMatch(
+            selectionRect,
+            {
+              left: rect.left - viewportRect.left,
+              top: rect.top - viewportRect.top,
+              right: rect.right - viewportRect.left,
+              bottom: rect.bottom - viewportRect.top,
+            },
+            mode,
+          )
+        })
+        .map((node) => node.nodeId)
+    },
+    [sortedNodes],
+  )
+
+  const beginCanvasSelectionWindow = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      const anchor = getViewportLocalPoint(event.clientX, event.clientY)
+      if (anchor === null) {
+        return
+      }
+      let current = anchor
+      let moved = false
+      setCanvasSelectedNodeIds([])
+      setSelectedNodeId(null)
+      setSelectedEdgeId(null)
+      setSelectedWaypoint(null)
+      clearUiMessage()
+
+      startWindowPointerDrag(
+        (moveEvent) => {
+          const nextPoint = getViewportLocalPoint(moveEvent.clientX, moveEvent.clientY)
+          if (nextPoint === null) {
+            return
+          }
+          current = nextPoint
+          moved =
+            moved ||
+            hasWorkspaceSelectionDragExceededThreshold(anchor.x, anchor.y, current.x, current.y)
+          if (!moved) {
+            return
+          }
+          setCanvasSelectionWindowDraft({
+            anchor,
+            current,
+            mode: getWorkspaceSelectionWindowMode(anchor, current),
+          })
+        },
+        () => {
+          setCanvasSelectionWindowDraft(null)
+          if (!moved) {
+            setCanvasSelectedNodeIds([])
+            return
+          }
+          const mode = getWorkspaceSelectionWindowMode(anchor, current)
+          const matchedNodeIds = collectCanvasSelectionWindowNodeIds(
+            buildWorkspaceSelectionClientRect(anchor, current),
+            mode,
+          )
+          setCanvasSelectedNodeIds(matchedNodeIds)
+          setSelectedNodeId(matchedNodeIds.at(-1) ?? null)
+        },
+      )
+      event.preventDefault()
+      event.stopPropagation()
+    },
+    [
+      clearUiMessage,
+      collectCanvasSelectionWindowNodeIds,
+      getViewportLocalPoint,
+      setSelectedEdgeId,
+      setSelectedNodeId,
+      setSelectedWaypoint,
+      startWindowPointerDrag,
+    ],
+  )
+
   return (
     <div
       className={`SpaghettiCanvasRoot spView_root ${viewMode === 'essentials' ? 'isEssentials' : ''}`}
@@ -2851,7 +2969,7 @@ export function SpaghettiCanvas({
           const zoomFactor = event.deltaY < 0 ? 1.08 : 0.92
           setView((current) => {
             viewportHasBeenInitializedRef.current = true
-            const nextZoom = clampNumber(current.zoom * zoomFactor, 0.4, 2.6)
+            const nextZoom = clampNumber(current.zoom * zoomFactor, MIN_CANVAS_ZOOM, MAX_CANVAS_ZOOM)
             const rect = viewportElement.getBoundingClientRect()
             const pointerX = event.clientX - rect.left
             const pointerY = event.clientY - rect.top
@@ -2864,8 +2982,49 @@ export function SpaghettiCanvas({
             }
           })
         }}
+        onPointerDown={(event) => {
+          if (event.button !== 0) {
+            return
+          }
+          if (!shouldClearCanvasSelection(readCanvasPointerTargetState(event.target))) {
+            return
+          }
+          beginCanvasSelectionWindow(event)
+        }}
         onPointerDownCapture={(event) => {
           if (event.button !== 1) {
+            return
+          }
+
+          const now = event.timeStamp
+          const previousMiddlePointerDown = lastMiddlePointerDownRef.current
+          const middlePointerDistance =
+            previousMiddlePointerDown === null
+              ? Number.POSITIVE_INFINITY
+              : Math.hypot(
+                  event.clientX - previousMiddlePointerDown.clientX,
+                  event.clientY - previousMiddlePointerDown.clientY,
+                )
+          const isMiddleDoubleClick =
+            event.detail >= 2 ||
+            (previousMiddlePointerDown !== null &&
+              now - previousMiddlePointerDown.timeStamp <= MIDDLE_MOUSE_FIT_DOUBLE_CLICK_MS &&
+              middlePointerDistance <= MIDDLE_MOUSE_FIT_DOUBLE_CLICK_DISTANCE_PX)
+          lastMiddlePointerDownRef.current = {
+            timeStamp: now,
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
+
+          if (isMiddleDoubleClick) {
+            const selectedNodeIds =
+              selectedCanvasNodeIdSet.size === 0 ? undefined : [...selectedCanvasNodeIdSet]
+            if (fitRenderedNodesToCanvas(selectedNodeIds)) {
+              viewportHasBeenInitializedRef.current = true
+            }
+            lastMiddlePointerDownRef.current = null
+            event.preventDefault()
+            event.stopPropagation()
             return
           }
 
@@ -2917,6 +3076,21 @@ export function SpaghettiCanvas({
           event.stopPropagation()
         }}
       >
+        {canvasSelectionWindowDraft !== null ? (
+          <div
+            className={`SpaghettiCanvasSelectionWindow ${
+              canvasSelectionWindowDraft.mode === 'window'
+                ? 'SpaghettiCanvasSelectionWindow--window'
+                : 'SpaghettiCanvasSelectionWindow--crossing'
+            }`}
+            style={{
+              left: `${Math.min(canvasSelectionWindowDraft.anchor.x, canvasSelectionWindowDraft.current.x)}px`,
+              top: `${Math.min(canvasSelectionWindowDraft.anchor.y, canvasSelectionWindowDraft.current.y)}px`,
+              width: `${Math.abs(canvasSelectionWindowDraft.current.x - canvasSelectionWindowDraft.anchor.x)}px`,
+              height: `${Math.abs(canvasSelectionWindowDraft.current.y - canvasSelectionWindowDraft.anchor.y)}px`,
+            }}
+          />
+        ) : null}
         {nodeAddMenu !== null ? (
           <div
             ref={nodeAddMenuRef}
@@ -3034,9 +3208,10 @@ export function SpaghettiCanvas({
             if (!shouldClearCanvasSelection(readCanvasPointerTargetState(event.target))) {
               return
             }
-            setSelectedNodeId(null)
-            setSelectedEdgeId(null)
-            setSelectedWaypoint(null)
+            if (event.button !== 0) {
+              return
+            }
+            beginCanvasSelectionWindow(event)
           }}
         >
           {sortedNodes.map((node, index) => {
@@ -3094,7 +3269,7 @@ export function SpaghettiCanvas({
                 }
                 getCompositeExpanded={getCompositeExpanded}
                 setCompositeExpanded={setCompositeExpanded}
-                selected={selectedNodeId === node.nodeId}
+                selected={selectedCanvasNodeIdSet.has(node.nodeId)}
                 previewed={
                   consolePreviewNodeId === node.nodeId && selectedNodeId !== node.nodeId
                 }
