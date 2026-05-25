@@ -62,6 +62,13 @@ export type ReplaceBuildPathRuntimeGraphReconstructionRequest = {
   dependencies: readonly BuildPathGraphDependency[]
 }
 
+export type ReplaceBuildPathRuntimeGraphSnapshotRequest = {
+  state: BuildPathRuntimeState
+  graphDocumentId: string
+  events: readonly BuildPathEvent[]
+  dependencies: readonly BuildPathGraphDependency[]
+}
+
 export type AppendBuildPathRuntimeLifecycleCardRequest = {
   state: BuildPathRuntimeState
   lifecycleKind: BuildPathLifecycleKind
@@ -234,6 +241,33 @@ export const replaceBuildPathRuntimeGraphReconstruction = ({
       maxEventSequence + 1,
       maxLifecycleSequence + 1,
     ),
+  }
+}
+
+export const replaceBuildPathRuntimeGraphSnapshot = ({
+  dependencies,
+  events,
+  graphDocumentId,
+  state,
+}: ReplaceBuildPathRuntimeGraphSnapshotRequest): BuildPathRuntimeState => {
+  const retainedEvents = state.events.filter((event) => event.graphDocumentId !== graphDocumentId)
+  const retainedDependencies = state.graphDependencies.filter(
+    (dependency) => dependency.graphDocumentId !== graphDocumentId,
+  )
+  const nextEvents = [...retainedEvents, ...events].map(cloneBuildPathEvent)
+  const maxEventSequence = nextEvents.reduce(
+    (max, event) => Math.max(max, event.eventSequence),
+    0,
+  )
+
+  return {
+    events: nextEvents,
+    lifecycleCards: state.lifecycleCards.map(cloneBuildPathLifecycleCard),
+    graphDependencies: [
+      ...retainedDependencies.map(cloneBuildPathGraphDependency),
+      ...dependencies.map(cloneBuildPathGraphDependency),
+    ],
+    nextEventSequence: Math.max(state.nextEventSequence, maxEventSequence + 1),
   }
 }
 

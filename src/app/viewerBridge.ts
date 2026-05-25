@@ -234,7 +234,11 @@ export interface ViewerApi {
   frameSelectedGeometrySketch: () => boolean
   framePrevious: () => void
   frameSelected: (partId: string | null, options?: FrameTargetOptions) => void
-  frameSelectionSet: (partIds: string[], referenceIds: string[]) => boolean
+  frameSelectionSet: (
+    partIds: string[],
+    referenceIds: string[],
+    options?: FrameTargetOptions,
+  ) => boolean
   frameReference: (referenceId: string, options?: FrameTargetOptions) => void
   frameEnvironmentLight: (lightId: string, options?: FrameTargetOptions) => boolean
   snapCameraToDirection: (dir: SnapDirection) => void

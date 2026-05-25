@@ -3,6 +3,20 @@
 ## Doc Header
 
 ### Doc History
+41. 2026-05-25 09:27:31: Prepped `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` for implementation around a new derived topology layout read model, endpoint-aware dependency metadata, Spaghetti wire-color semantic reuse, and a focused `Graph-1.parahook-graph-PARALLEL.json` `1 > 6 > 1` proof before final connector painting.
+40. 2026-05-25 09:22:10: Refined `Build-Path-11 - Parallel Lane Icon Layout` around the clarified icon-card graph topology target, where a Sketch fan-out to six Extrudes and fan-in to Output should render as `1 > 6 > 1` with mini connector colors derived from Spaghetti reference-wire semantics.
+39. 2026-05-25 09:02:43: Implemented and closed `Build-Path-14 / Phase 1 - Manual Node Deletion Sync And Orphaned References` so direct Spaghetti node deletion now removes current Build Path command cards from graph truth while receive references remain unresolved until undo restores the original source identity.
+38. 2026-05-25 08:50:18: Added `Build-Path-14 - Node Deletion And Reference Orphan Contract` so direct Spaghetti node deletion can remove current Build Path command cards while preserving downstream reference intent as explicit unresolved or orphaned dependency state.
+37. 2026-05-24 09:43:51: Layered the Model Viewport split-corner handle above the bottom-left Build Path dock so the corner split affordance remains reachable while the dock stays flush to the viewport edge.
+36. 2026-05-24 09:31:22: Refined the viewport-docked Build Path rail so the horizontal scrollbar stays hidden while the strip is still growing and appears only after the timeline actually overflows its available Model Viewport width.
+35. 2026-05-24 09:19:11: Updated the viewport-docked Build Path timeline so it grows with its cards up to full Model Viewport width, then exposes horizontal scrolling for longer timelines.
+34. 2026-05-24 09:14:00: Moved the default viewport-docked Build Path placement to the bottom-left Model Viewport edge with zero offset as the first placement-frame cleanup before later drag/resize work.
+33. 2026-05-24 09:07:39: Removed the dock-only current-command readback and previous/next panel from `Build-Path-13 / Phase 1` now that the draggable scrub marker owns viewport-docked Build Path scrub navigation.
+32. 2026-05-24 08:47:02: Corrected the `Build-Path-13 / Phase 1` current-position marker so it sits after the loaded/current command card, between the current card and the next card, instead of behind the current position.
+31. 2026-05-24 08:43:47: Adjusted the `Build-Path-13 / Phase 1` current-position marker so it sits in front of the loaded command card, between timeline cards, instead of centered over the selected card.
+30. 2026-05-24 08:36:23: Implemented and closed `Build-Path-13 / Phase 1 - Draggable Current Position Line` with a Build Path marker overlay, drag-to-scrub selection through the existing history path, focused tests, TypeScript, production build, and local HTTP smoke coverage.
+29. 2026-05-24 08:29:49: Prepped `Build-Path-13 / Phase 1 - Draggable Current Position Line` for implementation against the live Build Path strip, selection store, CSS, and focused surface tests.
+28. 2026-05-24 08:25:38: Added and prepped `Build-Path-13 - Draggable Current Position Line` as an open-ended Build Path cleanup doc whose first phase adds a Fusion-style draggable current-position line for timeline scrub.
 27. 2026-05-23 16:22:05: Added, implemented, and closed `Build-Path-12.2 - Timeline Selection Edit History` so user-driven Build Path master timeline selection changes now enter global Edit History and undo/redo selection without mutating CAD graph truth.
 26. 2026-05-23 15:35:05: Recorded the Build Path accepted CAD command selection-follow repair so committed CAD/build events now advance the Build Path scrub selection to the newly accepted timeline step while cancelled commands leave selection alone.
 25. 2026-05-23 15:09:00: Recorded `Build-Path-12.1 - Graph Lifecycle Timeline Cards` as implemented with structural `Graph Created` and `Graph Loaded` timeline cards, graph create/load intake, distinct lifecycle card display, viewport-mask safety proof, focused tests, typecheck, build, and browser smoke coverage.
@@ -104,6 +118,8 @@ Current legal family-phase ladder:
 - `Build-Path-12` - loaded graph build path reconstruction
 - `Build-Path-12.1` - graph lifecycle timeline cards
 - `Build-Path-12.2` - timeline selection Edit History
+- `Build-Path-13` - draggable current-position line
+- `Build-Path-14` - node deletion and reference orphan contract
 
 Important planning rule:
 - use this index to choose and bound the next `Build-Path-N` family phase
@@ -115,9 +131,11 @@ Dispatch next:
 - `Build-Path-12.1` is complete; structural `Graph Created` and `Graph Loaded` cards are now available as graph/lane anchors.
 - accepted CAD/build command intake now auto-selects the newly accepted Build Path timeline step so the dock follows the user's latest commit.
 - `Build-Path-12.2` is complete; user-driven master timeline selection changes now enter global Edit History so Ctrl+Z/Ctrl+Y can walk Build Path timeline moves.
-- next legal collaborative task is `Build-Path-11 - Parallel Lane Icon Layout / Phase 1 - Parallel Lane Visual Model` with loaded-graph reconstruction and lifecycle markers available.
+- `Build-Path-13 / Phase 1` is complete; Build Path now has a draggable current-position line over the existing strip, using the current `selectTimelineStep` selection/history path.
+- `Build-Path-14 / Phase 1` is complete: direct Spaghetti node deletion removes current Build Path command cards from graph truth, while downstream receive-reference reads preserve explicit unresolved intent instead of silently remapping.
+- next legal collaborative task is `Build-Path-11 - Parallel Lane Icon Layout / Phase 1 - Parallel Lane Visual Model`, prepped as a derived topology read-model implementation with endpoint-aware connectors and reference-colored mini wire metadata.
 - `Build-Path-12` is complete for reconstructed loaded-graph structure; exact persisted Build Path event history remains a later schema/file-format phase.
-- `Build-Path-11` remains packet-only; wait for user visual direction before implementation.
+- `Build-Path-11` visual direction is captured: the canonical proof graph is `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json`, which should read as `Sketch -> six parallel Extrudes -> Output`.
 - later action runtime still needs a new explicit phase for compare UI, pin persistence, restore/branch execution, worker checkpoint/cache ownership, or deeper seeded browser replay proof.
 - the accepted live Sketch/Extrude command population seam is now wired and covered by a fresh dependency proof in `Build-Path-5.1`; new accepted Extrudes also backfill missing source Sketch nodes before the Extrude event and emit Build Path dependency hints for branch lane projection.
 - `Build-Path-6` now confirms `Build-Path-7`, `Build-Path-8`, and `Build-Path-9` as follow-on owners for restore, branch-from-here, compare/pin, and checkpoint/cache readiness.
@@ -178,9 +196,12 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Build-Path-Gen1-CLG-8. Preserve the compact viewport-docked icon-strip presentation while allowing split/tiled/windowed workspace chrome to show a titlebar.
 - [x] Build-Path-Gen1-CLG-9. Add a derived viewport preview mask for Build Path scrub selection without changing graph truth, viewer build truth, or Edit History.
 - [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
+- [ ] Build-Path-Gen1-CLG-10.1. Derive a compact topology icon layout from graph dependencies so fan-out/fan-in structures such as `Sketch -> six Extrudes -> Output` render as icon cards connected by semantically colored mini wires.
 - [x] Build-Path-Gen1-CLG-11. Reconstruct a derived Build Path timeline and dependency read when graph files are loaded, while marking the source as reconstructed and preserving graph/Edit History truth.
 - [x] Build-Path-Gen1-CLG-12. Add explicit graph lifecycle timeline cards for graph creation and graph load without treating them as geometry operations or Edit History.
 - [x] Build-Path-Gen1-CLG-13. Add global Edit History entries for user-driven Build Path master timeline selection changes without mutating graph truth.
+- [x] Build-Path-Gen1-CLG-14. Add a visible draggable current-position line to the Build Path timeline that scrubs existing selection state without changing graph truth, accepted event order, or restore/replay boundaries.
+- [ ] Build-Path-Gen1-CLG-15. Treat direct Spaghetti node deletion as graph truth for Build Path card removal while preserving downstream reference intent as explicit unresolved or orphaned dependencies.
 
 ### `Build-Path-1`
 
@@ -395,6 +416,32 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] `Build-Path-Gen1-HLG-4`
 - [x] `Build-Path-Gen1-HLG-7`
 - [x] Build-Path-Gen1-CLG-13.
+
+### `Build-Path-13`
+
+- [x] Create the standalone `Future/Build-Path-13 - Draggable Current Position Line.md` Family Phase Doc.
+- [x] Add a visible current-position line to the Build Path strip.
+- [x] Let the user drag the line left and right to scrub existing Build Path timeline steps.
+- [x] Keep icon selection/readback, viewport preview masking, and Edit History semantics downstream from the selected timeline step.
+- [x] Preserve graph truth, accepted event order, restore/replay boundaries, and compact viewport-docked presentation.
+- [ ] Leave later cleanup phases open for the user's next direction.
+- [x] `Build-Path-Gen1-HLG-3`
+- [x] `Build-Path-Gen1-HLG-7`
+- [x] `Build-Path-Gen1-HLG-9`
+- [x] Build-Path-Gen1-CLG-14.
+
+### `Build-Path-14`
+
+- [x] Create the standalone `Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md` Family Phase Doc.
+- [ ] Route explicit Spaghetti node deletion through Build Path graph-snapshot sync.
+- [ ] Remove current Build Path cards whose backing command nodes no longer exist.
+- [ ] Preserve downstream reference intent as unresolved or orphaned instead of deleting or remapping it silently.
+- [ ] Prove undo restores the deleted node, Build Path card, and reference resolution.
+- [ ] Prove replacement nodes do not steal old reference identities without explicit user rebind.
+- [ ] `Build-Path-Gen1-HLG-2`
+- [ ] `Build-Path-Gen1-HLG-7`
+- [ ] `Build-Path-Gen1-HLG-8`
+- [ ] Build-Path-Gen1-CLG-15.
 
 ## [x] `Build-Path-1` - `Accepted Graph Event Timeline Foundation`
 
@@ -840,12 +887,17 @@ Current handoff:
 
 ### Family Phase Summary
 
-Clean up Build Path Parallel mode so independent branch-local build icons can be drawn in parallel lanes instead of reading as one cramped linear strip.
+Clean up Build Path Parallel mode so independent branch-local build icons become a compact icon-card graph projection of Spaghetti topology instead of reading as one cramped linear strip.
 
 Current handoff:
 - `Future/Build-Path-11 - Parallel Lane Icon Layout.md`
-- packet-only setup is complete.
-- next step is collaborative visual direction from the user before implementation starts.
+- Phase 1 prep is implementation-ready.
+- the first code slice should add a derived topology layout read model and focused proof before final connector painting.
+- the target is Build Path icon cards connected by mini dependency lines, not full Spaghetti node cards.
+- connector colors should derive from the same semantic reference-wire color family used by the underlying Spaghetti edge or port type.
+- the canonical proof graph is `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json`.
+- the canonical rendered shape is `Sketch -> six parallel Extrudes -> Output`, visually reading as `1 > 6 > 1`.
+- likely Phase 1 code seams are `buildPathTimeline.ts`, `reconstructBuildPathFromGraph.ts`, `recordBuildPathGraphCommand.ts`, `BuildPathSurface.tsx`, and Spaghetti's existing `resolveCanvasEdgeSourceKind(...)` / `getTypeColor(...)` color semantics.
 
 ### HLG / CLG Coverage
 
@@ -853,11 +905,15 @@ Current handoff:
 - [ ] `Build-Path-Gen1-HLG-6. Build Path should support a parallel mode where branch-local timelines can be scrubbed independently while still belonging to the same master build story.`
 - [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
 - [ ] Build-Path-Gen1-CLG-10. Draw Parallel mode branch-local build icons in derived parallel lanes without changing master timeline order, graph truth, or Edit History.
+- [ ] Build-Path-Gen1-CLG-10.1. Derive a compact topology icon layout from graph dependencies so fan-out/fan-in structures such as `Sketch -> six Extrudes -> Output` render as icon cards connected by semantically colored mini wires.
 
 ### Owns
 
 - Parallel-mode icon lane visual model
 - side-by-side branch-local icon placement where existing lane data supports it
+- fan-out/fan-in icon-card topology projection
+- mini connector lines colored from Spaghetti reference-wire semantics
+- output/sink icon-card read for shared downstream OutputPreview/output destinations
 - selected branch-local playhead/readback styling inside the parallel lane view
 - proof that master order, graph truth, and Edit History stay unchanged
 
@@ -991,3 +1047,89 @@ Current handoff:
 ### Family Phase Doc
 
 - [x] `Future/Build-Path-12.2 - Timeline Selection Edit History.md`
+
+## [x] `Build-Path-13` - `Draggable Current Position Line`
+
+### Family Phase Summary
+
+Clean up the Build Path strip with a visible current-position line that the user can drag left and right to scrub through existing timeline steps.
+
+Current handoff:
+- `Future/Build-Path-13 - Draggable Current Position Line.md`
+- Phase 1 is implemented and closed.
+- the marker now sits after the loaded/current command card, in the gap between the current card and the next card.
+- the old dock-only current-command readback and previous/next panel has been removed; viewport-docked Build Path now relies on the icon strip and draggable marker.
+- the default viewport-docked placement is bottom-left with zero offset from the Model Viewport edge.
+- the viewport-docked strip grows with the visible card run until it reaches full Model Viewport width, then scrolls horizontally.
+- the horizontal scrollbar stays hidden while the strip is still growing and appears only when the rail actually overflows.
+- the Model Viewport split-corner handle now layers above the dock so the corner split affordance remains reachable at the bottom-left edge.
+- later phases remain intentionally open for user-specified Build Path cleanup targets.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-3. Build Path should let the user scrub backward and forward through build time without acting like Ctrl+Z.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [x] Build-Path-Gen1-CLG-14. Add a visible draggable current-position line to the Build Path timeline that scrubs existing selection state without changing graph truth, accepted event order, or restore/replay boundaries.
+
+### Owns
+
+- current-position line visual affordance
+- drag-to-scrub interaction over existing master timeline steps
+- selected-step synchronization between icon selection, marker position, readback, and viewport preview masking
+- proof that marker dragging preserves graph truth, accepted event order, restore/replay boundaries, and existing Edit History semantics
+- open-ended follow-up lane for later user-specified Build Path cleanup phases
+
+### Does Not Own
+
+- restore, replay, Branch From Here, Compare, Pin, or checkpoint execution
+- accepted event ordering changes
+- graph truth mutation
+- Spaghetti graph layout
+- worker checkpoint/cache implementation
+- full Parallel lane icon layout beyond avoiding marker overlap
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-13 - Draggable Current Position Line.md`
+
+## [x] `Build-Path-14` - `Node Deletion And Reference Orphan Contract`
+
+### Family Phase Summary
+
+Define how Build Path follows direct Spaghetti graph deletion while future reference consumers preserve broken dependency intent honestly.
+
+Current handoff:
+- `Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
+- Phase 1 is implemented and closed.
+- explicit Spaghetti node deletion routes through the same graph-snapshot Build Path sync path used by graph-history restore.
+- deleting a command node removes that command's current Build Path card.
+- downstream receive references to the deleted source publication remain as unresolved intent until the user restores, rebinds, or deletes the consumer.
+- undo restores the original node identity, Build Path card, and receive-reference resolution.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-2. Build Path should record accepted CAD/build events made by nodes across all graphs.`
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
+- [x] Build-Path-Gen1-CLG-15. Treat direct Spaghetti node deletion as graph truth for Build Path card removal while preserving downstream reference intent as explicit unresolved or orphaned dependencies.
+
+### Owns
+
+- explicit Spaghetti node-delete Build Path sync planning
+- deleted command-node card removal behavior
+- reference orphan/unresolved-state contract
+- undo/redo restoration proof for deleted source nodes
+- no-silent-rebind rule for replacement nodes
+
+### Does Not Own
+
+- broad reference repair UI
+- reference-provider graph-file schema migration
+- automatic replacement-node matching
+- restore, branch, compare, or pin execution
+- worker checkpoint/cache implementation
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`

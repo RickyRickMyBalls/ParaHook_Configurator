@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { CONSOLE_MAX_EXPANDED_HEIGHT, useConsoleStore } from './useConsoleStore'
 import {
+  getConsoleRootAliasShortcutChoices,
   resolveEffectiveChoiceAliases,
   type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
@@ -94,26 +95,10 @@ export function ConsoleBar({
     label: string,
   ): string | null => {
     if (breadcrumb.length === 1 && breadcrumb[0] === 'Root') {
-      switch (normalizeCompactChoiceToken(label)) {
-        case 'GRAPH':
-          return 'G'
-        case 'REFERENCES':
-          return 'REF'
-        case 'CAMERA':
-          return 'C'
-        case 'WORKSPACEMODES':
-          return 'WM'
-        case 'RADIO':
-          return 'R'
-        case 'ZOOM':
-          return 'Z'
-        case 'PAN':
-          return 'P'
-        case 'ORBIT':
-          return 'O'
-        default:
-          return null
-      }
+      const normalizedLabel = normalizeCompactChoiceToken(label)
+      return getConsoleRootAliasShortcutChoices().find(
+        (choice) => normalizeCompactChoiceToken(choice.label) === normalizedLabel,
+      )?.preferredAlias ?? null
     }
 
     return null

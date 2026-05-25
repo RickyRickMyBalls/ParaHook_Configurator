@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+47. 2026-05-24 15:28:07: Marked `Console 13 - Root Alias Shortcut Contract` complete after root staged aliases became the display and shortcut source, `S` became the Sketch alias, Camera moved to `CA`, plain and shifted alias routing landed, `C` remained delayed Console focus, focused tests passed, and the production build passed.
+46. 2026-05-24 15:12:38: Prepped `Console 13 / Phase 1 - Root Alias Read Model And Display Contract` for implementation by narrowing it to staged root alias metadata, `Sketch` alias promotion, ConsoleBar root hint parity, and focused tests while leaving global shortcut routing for later phases.
+45. 2026-05-24 12:08:57: Added `Console 13 - Root Alias Shortcut Contract` as the next Console shortcut-alias planning phase, routing Shortcut First plain aliases and Console First shifted aliases through staged navigation while preserving existing command owners.
+44. 2026-05-24 11:42:27: Marked `Console 12 - Root New Graph Command` complete after root staged-navigation `New Graph`, `graph.new` runtime graph creation, shared workspace activation, focused tests, and production build verification landed.
+43. 2026-05-24 11:10:17: Added `Console 12 - Root New Graph Command` as the next focused Console future phase, routing root-level `New Graph` through staged navigation while keeping graph creation owned by Spaghetti graph documents and workspace activation owned by shared intents.
 42. 2026-04-19 21:29:35: Added the newer Console vision/generation planning route, pointing broad Console Workspace Modes surface-parity work at `Console-Vision.md`, `Console-Gen1-Index.md`, and the first `Console-1` catalog-driven workspace action phase instead of treating it as a single direct implementation patch.
 41. 2026-04-03 17:24: Completed `Console 11 / Phase 5.1` by moving the submit coordinator and remaining interaction callback band into `src/app/console/useConsoleInteraction.ts`, rewiring `src/app/console/ConsoleDock.tsx` down to helper seams plus shell composition ownership, and verifying the slice with the targeted console Vitest pass plus a full production build while keeping `Phase 5` open for any final shell-thinning follow-on
 40. 2026-04-03 17:04: Prepared `Console 11 / Phase 5.1` for implementation by tightening the still-open shell-thinning remainder around the live post-first-cut controller seam, locking the next code pass to moving `handleSubmitCommand(...)`, `handleEscCancelCommand(...)`, transform tab-cycle helpers, staged back or cancel helpers, `routeConsoleGlobalKey(...)`, and the rest of the still-inline interaction callback band into `src/app/console/useConsoleInteraction.ts`
@@ -1514,6 +1519,50 @@ Status:
 - `useConsoleInteraction.ts` now owns both the first-cut keyboard or sync band and the `Phase 5.1` submit or cancel or tab-cycle controller remainder
 - `ConsoleDock.tsx` is materially thinner and now reads primarily as subscriptions, helper seams, windowing consumption, refs, and JSX composition
 - `Phase 5` remains open only for any final shell-thinning follow-on that still proves worthwhile after the `Phase 5.1` controller move
+
+## [x] `Console 12` - `Root New Graph Command`
+
+Summary:
+- adds `New Graph` as a canonical root Console command that creates a graph document through existing Spaghetti ownership and opens or focuses it through shared workspace intents
+
+Goals:
+- keep root display and root command callability aligned
+- route the command through staged navigation instead of the flat fallback parser
+- reuse existing graph document creation and graph activation seams
+- prove the command does not fork Browser or Spaghetti graph-create behavior
+
+Docs:
+- [Console 12](./Future/Console_Phase%20Console-12%20-%20Root%20New%20Graph%20Command.md)
+
+Checklist:
+- [x] `Phase 1` root choice and staged action contract
+- [x] `Phase 2` graph creation runtime and activation
+
+Status:
+- complete; root Console now creates and activates a new graph through staged navigation and existing graph/workspace owners
+
+## [x] `Console 13` - `Root Alias Shortcut Contract`
+
+Summary:
+- makes root Console aliases the shared keyboard shortcut contract so Shortcut First can use plain aliases and Console First can use shifted aliases without bypassing staged navigation
+
+Goals:
+- make highlighted root alias letters executable and trustworthy
+- route single-letter and multi-letter aliases through the same staged command path as typed Console input
+- preserve Console First text capture by requiring shifted alias keys in that mode
+- resolve the `C` conflict between Camera and Console entry without losing reliable Console focus
+
+Docs:
+- [Console 13](./Future/Console_Phase%20Console-13%20-%20Root%20Alias%20Shortcut%20Contract.md)
+
+Checklist:
+- [x] `Phase 1` root alias read model and display contract
+- [x] `Phase 2` Shortcut First plain alias routing
+- [x] `Phase 3` Console First shifted alias routing
+- [x] `Phase 4` conflict cleanup and regression proof
+
+Status:
+- complete; root alias highlights, typed root aliases, and global root alias shortcuts now share staged root alias truth, with `C` preserved for Console and `CA` assigned to Camera
 
 ## [ ] `Console-Gen1 / Console-1` - `Workspace Modes Catalog-Driven Surface Actions`
 

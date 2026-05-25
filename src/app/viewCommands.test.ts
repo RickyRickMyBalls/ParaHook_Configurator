@@ -9,6 +9,7 @@ import {
   frameReferenceCommand,
   frameSelectedCommand,
   frameSelectedGeometrySketchCommand,
+  frameSelectionSetCommand,
   setCameraPresetCommand,
   setConsoleCameraModeCommand,
   setProjectionModeCommand,
@@ -33,6 +34,7 @@ describe('viewCommands', () => {
     const framePrevious = vi.fn()
     const frameSelected = vi.fn()
     const frameSelectedGeometrySketch = vi.fn(() => true)
+    const frameSelectionSet = vi.fn(() => true)
     const frameReference = vi.fn()
     const frameEnvironmentLight = vi.fn(() => true)
     const setConsoleCameraMode = vi.fn()
@@ -44,6 +46,7 @@ describe('viewCommands', () => {
       framePrevious,
       frameSelected,
       frameSelectedGeometrySketch,
+      frameSelectionSet,
       frameReference,
       frameEnvironmentLight,
       setConsoleCameraMode,
@@ -62,6 +65,12 @@ describe('viewCommands', () => {
       durationMs: 320,
     })
     expect(frameSelectedGeometrySketchCommand()).toBe(true)
+    expect(
+      frameSelectionSetCommand(['part:object-1'], ['shoe:shoe-1'], 'model-viewer-primary', {
+        animate: true,
+        durationMs: 320,
+      }),
+    ).toBe(true)
     frameReferenceCommand('shoe:shoe-1', 'model-viewer-primary', {
       animate: true,
       durationMs: 320,
@@ -87,6 +96,14 @@ describe('viewCommands', () => {
       durationMs: 320,
     })
     expect(frameSelectedGeometrySketch).toHaveBeenCalledTimes(1)
+    expect(frameSelectionSet).toHaveBeenCalledWith(
+      ['part:object-1'],
+      ['shoe:shoe-1'],
+      {
+        animate: true,
+        durationMs: 320,
+      },
+    )
     expect(frameReference).toHaveBeenCalledWith('shoe:shoe-1', {
       animate: true,
       durationMs: 320,

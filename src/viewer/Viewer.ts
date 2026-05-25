@@ -2657,7 +2657,11 @@ export class Viewer {
     return true
   }
 
-  public frameSelectionSet(partIds: string[], referenceIds: string[]): boolean {
+  public frameSelectionSet(
+    partIds: string[],
+    referenceIds: string[],
+    options?: FrameTargetOptions,
+  ): boolean {
     const bounds = new Box3()
     let hasTarget = false
 
@@ -2690,7 +2694,7 @@ export class Viewer {
     }
 
     this.rememberCameraPose()
-    this.cameraController.frameBox(bounds)
+    this.cameraController.frameBox(bounds, options)
     appendConsoleEntry({
       layer: 'View',
       text: 'Zoom selected set',
@@ -7806,7 +7810,7 @@ export class Viewer {
         return
       }
       if (zoomTarget.kind === 'selection-set') {
-        this.frameSelectionSet(zoomTarget.partKeys, zoomTarget.referenceIds)
+        this.frameSelectionSet(zoomTarget.partKeys, zoomTarget.referenceIds, animationOptions)
         return
       }
       this.frameReference(zoomTarget.referenceId, animationOptions)

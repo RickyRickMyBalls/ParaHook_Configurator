@@ -538,6 +538,95 @@ describe('useViewerCameraShortcuts', () => {
     expect(setCameraPresetCommandMock).not.toHaveBeenCalled()
   })
 
+  it('routes Shift+Z through the animated selected-set framing seam for multi-selection', () => {
+    setViewer(viewportId, {
+      isFlyModeActive: () => false,
+    } as unknown as ViewerApi)
+    useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(365)
+    useAppStore.setState((state) => ({
+      ...state,
+      selectedPartKey: null,
+      projectContent: {
+        ...state.projectContent,
+        objectsById: {
+          ...state.projectContent.objectsById,
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-output-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      workspaceSelection: {
+        ...state.workspaceSelection,
+        activeSurface: 'viewer',
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+          {
+            kind: 'object',
+            objectId: 'object-2',
+          },
+        ],
+      },
+    }))
+    useWorkspaceStore.setState((state) => ({
+      ...state,
+      activeViewerViewportId: viewportId,
+    }))
+
+    renderHarness()
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Z',
+          code: 'KeyZ',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(frameSelectionSetCommandMock).toHaveBeenCalledWith(
+      ['graph-document-1:output-entry-1', 'graph-document-1:output-entry-2'],
+      [],
+      viewportId,
+      {
+        animate: true,
+        durationMs: 365,
+      },
+    )
+    expect(frameSelectedCommandMock).not.toHaveBeenCalled()
+    expect(frameReferenceCommandMock).not.toHaveBeenCalled()
+  })
+
   it('keeps Shift+Z quiet when no zoom target exists', () => {
     setViewer(viewportId, {
       isFlyModeActive: () => false,

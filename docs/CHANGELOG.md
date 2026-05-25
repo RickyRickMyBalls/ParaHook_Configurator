@@ -72,6 +72,558 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2104 -->
+
+### [2104] - 2026-05-25 09:02 - `Build Path - Phase 14.1 - Manual Node Deletion Sync And Orphaned References`
+
+HUMAN SUMMARY: ``Direct Spaghetti node deletion now keeps Build Path aligned with graph truth: deleting a command node removes its current Build Path card, undo restores it, and receive references keep their authored source id as unresolved instead of silently remapping.``
+
+#### Scope / Constraints Honored
+- Kept Build Path derived from the graph snapshot instead of giving it a separate delete truth.
+- Preserved receive-reference authored ids and avoided automatic replacement-node binding.
+- Limited the reference proof to the existing receive-reference read model; broad reference repair UI remains out of scope.
+
+#### Summary of Implementation
+- Routed explicit `removeGraphNodeWithHistory` commits through the graph-snapshot Build Path resync used by graph-history restoration.
+- Added focused coverage proving a deleted Extrude node removes its Build Path card, undo restores it with dependency hints, and redo removes it again.
+- Added focused receive-reference coverage proving a deleted source publication becomes unresolved and resolves again when undo restores the original source identity.
+- Closed the Build Path 14 Phase 1 planning record.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+
+#### Behavior Changes
+- Deleting a command node directly in Spaghetti removes the matching current Build Path command card.
+- Undo/redo for that delete restores or removes the Build Path card from graph truth.
+- Receive references to deleted source publications remain present but unresolved until the original source identity returns or the user explicitly repairs the reference later.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "removes Build Path command cards when a graph node is deleted directly|keeps receive references orphaned" --reporter=verbose`
+- `npm.cmd exec -- tsc --noEmit`
+
+<!-- ENTRY 2103 -->
+
+### [2103] - 2026-05-25 08:39 - `Build Path - Phase 12.3 - Graph History Undo Sync`
+
+HUMAN SUMMARY: ``Build Path now resyncs command cards from the restored graph snapshot when graph command edit history is undone or redone, so Ctrl+Z removes an undone Extrude card instead of leaving a stale Build Path node behind.``
+
+#### Scope / Constraints Honored
+- Kept the repair on the graph-history restore path where the mismatch happens.
+- Preserved Build Path runtime intake for normal command commits and existing reconstructed graph-load behavior.
+- Left unrelated OutputPreview normalization expectations untouched.
+
+#### Summary of Implementation
+- Added a Build Path runtime graph-snapshot replacement path that removes all Build Path events and dependency hints for the restored graph document before installing events reconstructed from the graph snapshot.
+- Wired graph edit-history snapshot restore to resync Build Path after undo and redo for active and inactive graph documents.
+- Added focused Extrude regression coverage proving an accepted Extrude card is removed on undo and restored on redo.
+
+#### Files Changed
+- `src/app/buildPath/buildPathRuntime.ts`
+- `src/app/buildPath/useBuildPathRuntimeStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Behavior Changes
+- Ctrl+Z on a graph-authored command now keeps the Build Path timeline/cards aligned with the Spaghetti graph.
+- Redo reconstructs the Build Path cards from the restored graph so the timeline comes back with the command.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "removes and restores Build Path command cards" --reporter=verbose`
+- `npm.cmd exec -- vitest run src/app/buildPath/buildPathRuntime.test.ts src/app/buildPath/recordBuildPathGraphCommand.test.ts --reporter=verbose`
+- `npm.cmd exec -- tsc --noEmit`
+- Full `src/app/spaghetti/store/useSpaghettiStore.test.ts` was also invoked accidentally; the new regression passed, while two pre-existing OutputPreview publicationMode expectation failures remain unrelated to this Build Path undo repair.
+
+<!-- ENTRY 2102 -->
+
+### [2102] - 2026-05-25 08:26 - `SP - Repeat Extrude Scoped Final Composition Repair`
+
+HUMAN SUMMARY: ``Repeat Extrude final rendering now prefers the merged accepted output-entry view before falling back to a scoped authoritative mesh, so retained Extrude siblings stay visible after a scoped final build commits.``
+
+#### Scope / Constraints Honored
+- Kept scoped worker builds intact.
+- Limited the runtime change to viewport result composition.
+- Preserved existing retained-base and committed-authoritative fallbacks.
+
+#### Summary of Implementation
+- Routed the current accepted final render path through the merged accepted output preview VM when published bundle rendering is not available.
+- Added selector coverage for a scoped repeat-Extrude final result whose merged accepted outputs still contain both prior and newly rebuilt Extrude entries.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+#### Behavior Changes
+- Final mode no longer treats a scoped accepted authoritative mesh as the whole visible scene when the merged accepted output-entry render VM is available.
+
+#### Verification Steps
+- `npm.cmd test -- selectViewportResultState.test.ts`
+
+<!-- ENTRY 2101 -->
+
+### [2101] - 2026-05-25 00:48 - `View-Toolbar-9 - Multi-Selection Zoom Animation Repair`
+
+HUMAN SUMMARY: ``Multi-object Zoom Object now uses the same animated camera transition path as single-object and reference zoom, so selected-set framing no longer snaps instantly to the destination view.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing selected-set bounds calculation and camera framing math unchanged.
+- Preserved the shared viewer command seam used by keyboard, Console, and Browser-triggered selected-set zoom flows.
+- Left unrelated pending workspace changes untouched.
+
+#### Summary of Implementation
+
+- Threaded frame animation options through the selected-set viewer bridge and command APIs.
+- Forwarded selected-set animation options into `Viewer.frameSelectionSet(...)` and `CameraController.frameBox(...)`.
+- Updated viewer-local, app-level shortcut, and Console multi-select zoom callers to request the configured camera shortcut transition duration.
+- Added focused tests for selected-set animation option forwarding.
+
+#### Files Changed
+
+- `src/app/viewerBridge.ts`
+- `src/app/viewCommands.ts`
+- `src/app/useViewerCameraShortcuts.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/viewer/Viewer.ts`
+- `src/app/viewCommands.test.ts`
+- `src/app/useViewerCameraShortcuts.test.tsx`
+- `src/viewer/Viewer.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Verification
+
+- `npm.cmd test -- src/app/viewCommands.test.ts src/app/useViewerCameraShortcuts.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2100 -->
+
+### [2100] - 2026-05-24 15:28 - `Console-13 - Root Alias Shortcut Contract`
+
+HUMAN SUMMARY: ``Root Console aliases now drive real shortcut entry: Shortcut First uses plain alias sequences, Console First uses shifted alias sequences, `C` still focuses Console, and Camera moves to `CA` while all resolved aliases execute through staged navigation.``
+
+#### Scope / Constraints Honored
+
+- Kept Console as the command grammar and feedback adapter.
+- Kept Sketch, Graph, Camera, Workspace Modes, and ConsoleInput runtime behavior under their existing owners.
+- Avoided a separate global command registry.
+- Preserved `/` and `C` as Console focus paths while making `CA` the Camera alias.
+
+#### Summary of Implementation
+
+- Added a staged root alias shortcut read model derived from root choices.
+- Promoted `S` to the canonical root Sketch alias.
+- Changed Camera's root alias from `C` to `CA`.
+- Updated ConsoleBar root alias highlighting to use staged alias truth.
+- Routed root alias shortcut keys through the input router as root-alias viewport commands.
+- Added a Console-owned alias draft buffer for multi-letter aliases and delayed `C` Console focus.
+- Submitted resolved aliases through existing staged navigation while suppressing fake typed transcript entries.
+
+#### Files Changed
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/inputRouting.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/ConsoleBar.test.tsx`
+- `src/app/inputRouting.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-13 - Root Alias Shortcut Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- `S` is now a real root staged alias for Sketch.
+- `CA` opens the Camera root command family.
+- `C` waits briefly for `CA` or `CI`, then focuses Console if no alias completes.
+- Shortcut First accepts plain root alias sequences such as `NG`.
+- Console First accepts shifted root alias sequences such as `Shift+N`, `Shift+S`.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/console/stagedNavigation.test.ts`
+- `npm.cmd test -- --run src/app/console/ConsoleBar.test.tsx`
+- `npm.cmd test -- --run src/app/inputRouting.test.ts`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "NG root alias|shifted NS root alias|CA opens|C without seeding|viewport plain E shortcut|viewport Shift\+E shortcut|creates and activates a new graph|New Sketch"`
+- `npm.cmd run build`
+- Full `src/app/console/ConsoleDock.test.tsx` was also attempted and still has unrelated older failures outside the Console 13 root alias shortcut coverage.
+
+<!-- ENTRY 2099 -->
+
+### [2099] - 2026-05-24 11:42 - `Console-12 - Root New Graph Command`
+
+HUMAN SUMMARY: ``Root Console now accepts `new graph` / `ng` and creates a fresh graph document through the existing Spaghetti owner, then activates that graph through shared workspace intents and shows the graph-selected prompt.``
+
+#### Scope / Constraints Honored
+
+- Kept graph document creation owned by `useSpaghettiStore.createGraphDocument()`.
+- Kept graph opening, focus, selection, and activation on the existing graph/workspace intent path.
+- Added the command to staged root navigation instead of the flat fallback parser.
+- Did not change graph schema, graph naming policy, graph file loading, Browser button behavior, Spaghetti button behavior, or global command registry shape.
+
+#### Summary of Implementation
+
+- Added canonical root `New Graph` staged choice with `NG` alias.
+- Added staged execute action `graph.new` and semantic radio identity `Console.Root.NewGraph`.
+- Routed `graph.new` through Console runtime to create a graph, activate it, and publish deterministic transcript feedback.
+- Added focused tests for root callability/display, alias execution, command identity, and runtime graph creation/activation.
+
+#### Files Changed
+
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/stagedNavigation.test.ts`
+- `src/app/console/radioCommandIdentity.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-12 - Root New Graph Command.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Root Console now shows `New Graph` in the canonical root choices.
+- Typing `new graph` or `ng` creates a new graph document, activates it, and advances Console context to that graph.
+- Console transcript records the accepted `New Graph` command and the created graph name.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/console/stagedNavigation.test.ts -t "New Graph|root staged session"`
+- `npm.cmd test -- --run src/app/console/radioCommandIdentity.test.ts -t "graph commands"`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "creates and activates a new graph"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2098 -->
+
+### [2098] - 2026-05-24 09:43 - `Build-Path-13 - Split Corner Layer Over Dock`
+
+HUMAN SUMMARY: ``The Model Viewport split-corner handle now layers above the bottom-left Build Path dock so the corner split affordance remains reachable while the Build Path stays flush to the viewport edge.``
+
+#### Scope / Constraints Honored
+
+- Kept the Build Path dock anchored bottom-left at zero offset.
+- Kept this to visual/input layering only.
+- Did not change Build Path timeline sizing, scrolling, marker dragging, graph truth, accepted event order, restore/replay behavior, or Edit History behavior.
+
+#### Summary of Implementation
+
+- Raised `.ViewportSplitCornerHandle` above `.BuildPathViewportDock` in the shared viewport CSS layer.
+- Preserved the existing split-corner handle placement, hit area, cursor, and pointer path.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The bottom-left split handle remains visually and interactively above the Build Path dock when both occupy the same viewport corner.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx src/app/workspace/WorkspaceViewportTree.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2097 -->
+
+### [2097] - 2026-05-24 09:31 - `Build-Path-13 - Overflow-Only Timeline Scrollbar`
+
+HUMAN SUMMARY: ``The viewport-docked Build Path rail now keeps its scrollbar hidden while the timeline box is still growing, and only shows the scrollbar once the card run actually overflows the available Model Viewport width.``
+
+#### Scope / Constraints Honored
+
+- Kept this to scrollbar visibility over the existing viewport-docked scroll rail.
+- Did not change graph truth, accepted event ordering, timeline selection semantics, marker dragging, restore/replay behavior, or Edit History behavior.
+
+#### Summary of Implementation
+
+- Added a measured overflow readback on the Build Path timeline rail.
+- Hid the rail scrollbar by default while preserving horizontal overflow capability.
+- Turned scrollbar styling on only when `scrollWidth` exceeds `clientWidth`.
+- Added focused test coverage that simulates a full-width overflow rail and proves the scrollbar visibility flag flips on only when overflow exists.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Short and still-growing viewport-docked Build Path timelines no longer show a horizontal scrollbar.
+- The scrollbar appears only when the timeline content is wider than the visible rail.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2096 -->
+
+### [2096] - 2026-05-24 09:19 - `Build-Path-13 - Viewport Dock Full-Width Scroll Rail`
+
+HUMAN SUMMARY: ``The viewport-docked Build Path timeline now stays compact for short histories, grows with the card run up to full Model Viewport width, and then scrolls horizontally for longer histories.``
+
+#### Scope / Constraints Honored
+
+- Kept this to viewport-docked Build Path sizing and overflow behavior.
+- Did not add drag, resize, placement persistence, graph mutation, timeline event changes, restore/replay behavior, or Edit History behavior.
+
+#### Summary of Implementation
+
+- Removed the old fixed viewport-dock width cap so the dock can use the full Model Viewport width.
+- Made the docked timeline strip use `fit-content` up to `max-width: 100%`.
+- Made the timeline rail horizontally scrollable while the card list keeps its natural max-content width.
+- Added a stable overflow-mode readback and focused test coverage for long docked timelines.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Short viewport-docked Build Path timelines stay attached to their card length.
+- Long viewport-docked Build Path timelines can grow to the full Model Viewport width and then scroll horizontally.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2095 -->
+
+### [2095] - 2026-05-24 09:14 - `Build-Path-13 - Bottom-Left Viewport Dock Placement`
+
+HUMAN SUMMARY: ``The viewport-docked Build Path now defaults to the bottom-left Model Viewport edge with zero offset, setting up the later drag/resize placement direction without changing timeline or graph behavior.``
+
+#### Scope / Constraints Honored
+
+- Kept this to default viewport-dock placement only.
+- Did not add drag, resize, persistence, graph mutation, timeline selection changes, restore/replay behavior, or Edit History behavior.
+
+#### Summary of Implementation
+
+- Changed `BuildPathViewportDock` from centered bottom placement to left-edge anchoring.
+- Set the bottom and top dock offsets to `0` so the default dock is flush with the Model Viewport edge.
+- Added a `data-build-path-viewport-anchor` readback for focused regression coverage.
+- Updated the viewport-dock test to assert the default `bottom-left` anchor.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Default viewport-docked Build Path placement is now bottom-left with zero offset from the Model Viewport edge.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2094 -->
+
+### [2094] - 2026-05-24 09:07 - `Build-Path-13 - Viewport Dock Readback Panel Removal`
+
+HUMAN SUMMARY: ``The Build Path viewport dock now shows only the icon timeline and draggable scrub marker; the separate left/right arrow current-command panel was removed because the marker now owns docked scrub navigation.``
+
+#### Scope / Constraints Honored
+
+- Kept the full workspace Build Path selected-event readback intact.
+- Kept icon click selection, marker dragging, Edit History semantics, graph truth, and accepted event ordering unchanged.
+- Removed only the dock-only current-command readback and previous/next panel.
+
+#### Summary of Implementation
+
+- Removed `BuildPathViewportScrubReadback` and its adjacent-step helper from `BuildPathSurface.tsx`.
+- Stopped rendering the dock-only readback panel for `viewport-dock` host mode.
+- Removed the unused viewport scrub readback/button/label CSS.
+- Updated focused Build Path surface tests to assert the dock has no current-command panel and still scrubs through icon selection plus marker state.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The viewport-docked Build Path no longer shows the separate current-command panel with left/right buttons.
+- Docked Build Path scrub now lives in the icon strip and draggable current-position marker.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2093 -->
+
+### [2093] - 2026-05-24 08:47 - `Build-Path-13 - Current Position Line After-Card Placement`
+
+HUMAN SUMMARY: ``The Build Path current-position line now sits after the loaded/current command card, in the gap before the next card, so the playhead no longer appears behind the current position.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing draggable marker and timeline selection behavior.
+- Did not change graph truth, accepted event order, Edit History semantics, restore/replay behavior, or the compact icon-card sizes.
+
+#### Summary of Implementation
+
+- Moved the marker from the before-selected-step boundary to the after-selected-step boundary.
+- Updated the focused regression attribute from `before-step` to `after-step`.
+- Preserved the pointer-down guard so grabbing the marker does not immediately reselect a neighboring card before drag movement.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected/current Build Path step is now indicated by a line after the command card, between the current card and the next card.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2092 -->
+
+### [2092] - 2026-05-24 08:43 - `Build-Path-13 - Current Position Line Front Alignment`
+
+HUMAN SUMMARY: ``The Build Path current-position line now sits in front of the loaded command card, in the gap between cards, instead of cutting through the middle of the selected card.``
+
+#### Scope / Constraints Honored
+
+- Kept the existing draggable marker and timeline selection behavior.
+- Did not change graph truth, accepted event order, Edit History semantics, restore/replay behavior, or the compact icon-card sizes.
+
+#### Summary of Implementation
+
+- Moved the current-position line from selected-card center alignment to the before-selected-step boundary.
+- Marked the placement as `before-step` in the DOM for focused regression coverage.
+- Stopped pointer-down from immediately reselecting the nearest card so grabbing a between-card marker does not snap it backward before the drag begins.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The selected/current Build Path step is now indicated by a line before the command card, matching the requested Fusion-style between-card read.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+
+<!-- ENTRY 2091 -->
+
+### [2091] - 2026-05-24 08:36 - `Build-Path-13 - Draggable Current Position Line`
+
+HUMAN SUMMARY: ``Build Path now has a visible current-position line over the icon strip, and dragging that line scrubs existing timeline selection through the same Edit History-safe selection path as icon clicks and previous/next controls.``
+
+#### Scope / Constraints Honored
+
+- Kept the marker inside the existing Build Path strip instead of redesigning the whole timeline.
+- Reused `selectTimelineStep` so drag-to-scrub preserves current Edit History semantics and no-op skip behavior.
+- Did not change graph truth, accepted event ordering, restore/replay, Branch From Here, Compare, Pin, worker checkpoints, or Parallel lane layout.
+
+#### Summary of Implementation
+
+- Added a current-position marker overlay to `BuildPathTimelineStrip`.
+- Added pointer-drag handling with pointer capture and nearest-step selection from rendered step button centers.
+- Kept the marker synchronized with icon clicks and viewport-dock previous/next scrub controls.
+- Added compact marker styling without changing the existing 24px Build Path icon button dimensions.
+- Added focused tests for marker rendering, drag-to-select behavior, selection synchronization, Edit History entry creation, and graph-truth preservation.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-13 - Draggable Current Position Line.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Build Path displays a draggable current-position line whenever a selectable master timeline step exists.
+- Dragging the marker selects the nearest master timeline step and updates readback, selected icon state, viewport preview masking, and Edit History through existing selection behavior.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npx.cmd tsc -b`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:5173/ParaHook_Configurator/` returned `HTTP 200`
+- In-app Browser smoke was attempted, but the Browser backend reported `iab` unavailable in this session.
+
 <!-- ENTRY 2090 -->
 
 ### [2090] - 2026-05-23 18:44 - `Extrude-8 - Command-First Depth Prompt Cleanup`

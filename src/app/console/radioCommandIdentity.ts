@@ -802,6 +802,8 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Settings', 'KeyBindings', 'ConsoleInput', 'Off')
     case 'graph.list':
       return buildIdentity('Console', 'Graph', 'List')
+    case 'graph.new':
+      return buildIdentity('Console', 'Root', 'NewGraph')
     case 'camera.pan':
       return buildIdentity('Console', 'Camera', 'Pan')
     case 'camera.orbit':

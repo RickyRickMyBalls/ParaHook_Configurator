@@ -64,6 +64,37 @@ const createBuildPathEvent = ({
   timelineRole: 'unclassified',
 })
 
+const createPointerLikeEvent = (type: string, clientX: number): MouseEvent =>
+  new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX,
+  })
+
+const stubBuildPathStepButtonRects = (
+  stepButtons: readonly Element[],
+  startX = 100,
+  stepPitch = 30,
+) => {
+  stepButtons.forEach((stepButton, index) => {
+    const left = startX + index * stepPitch
+    Object.defineProperty(stepButton, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 24,
+        height: 24,
+        left,
+        right: left + 24,
+        top: 0,
+        width: 24,
+        x: left,
+        y: 0,
+        toJSON: () => undefined,
+      }),
+    })
+  })
+}
+
 describe('BuildPathSurface', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -97,11 +128,14 @@ describe('BuildPathSurface', () => {
 
     const dock = container?.querySelector('[data-build-path-viewport-dock="bottom"]')
     const strip = container?.querySelector('.BuildPathTimelineStrip--viewport-dock')
+    const rail = container?.querySelector('.BuildPathTimelineStepRail')
 
     expect(dock).not.toBeNull()
+    expect(dock?.getAttribute('data-build-path-viewport-anchor')).toBe('bottom-left')
     expect(strip?.getAttribute('data-build-path-timeline-status')).toBe('empty')
     expect(strip?.textContent).not.toContain('Build Path')
     expect(strip?.querySelector('.BuildPathTimelineEmptyGlyph')).not.toBeNull()
+    expect(rail).toBeNull()
   })
 
   it('renders Sketch then Extrude as compact timeline icons from display metadata', async () => {
@@ -134,7 +168,7 @@ describe('BuildPathSurface', () => {
     expect(container?.textContent).not.toContain('Build Path')
   })
 
-  it('shows docked scrub readback and records timeline moves in Edit History', async () => {
+  it('keeps the viewport dock to the icon timeline and marker scrub controls', async () => {
     editHistoryStore.commitEntry({
       entryId: 'viewport-dock-redo-proof',
       label: 'Authored edit',
@@ -162,26 +196,33 @@ describe('BuildPathSurface', () => {
       root?.render(<BuildPathViewportDock />)
     })
 
-    const readback = container?.querySelector('[data-build-path-dock-readback-state="selected"]')
-    const nextButton = container?.querySelector(
-      '.BuildPathViewportScrubButton[aria-label="Select next Build Path step"]',
+    const extrudeStep = container?.querySelector(
+      '.BuildPathTimelineStep--extrude',
     ) as HTMLButtonElement | null
+    const marker = container?.querySelector('[data-build-path-current-position-line="true"]')
 
-    expect(readback?.textContent).toContain('1')
-    expect(readback?.textContent).toContain('Sketch')
+    expect(container?.querySelector('[data-build-path-dock-readback-state="selected"]')).toBeNull()
+    expect(container?.querySelector('.BuildPathViewportScrubButton')).toBeNull()
+    expect(marker?.getAttribute('data-build-path-current-step-index')).toBe('0')
+    expect(marker?.getAttribute('data-build-path-current-step-id')).toContain(
+      'projection-dock-sketch',
+    )
 
     await act(async () => {
-      nextButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      extrudeStep?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     const selectedStep = useBuildPathRuntimeStore.getState().readSelectedTimelineStep()
+    const updatedMarker = container?.querySelector('[data-build-path-current-position-line="true"]')
 
     if (selectedStep?.stepKind !== 'build-event') {
       throw new Error('Expected selected Build Path step to be a build event.')
     }
     expect(selectedStep.event.commandFamily).toBe('Extrude')
-    expect(readback?.textContent).toContain('2')
-    expect(readback?.textContent).toContain('Extrude')
+    expect(updatedMarker?.getAttribute('data-build-path-current-step-index')).toBe('1')
+    expect(updatedMarker?.getAttribute('data-build-path-current-step-id')).toContain(
+      'projection-dock-extrude',
+    )
     expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
       label: 'Build Path timeline selection',
       source: { surface: 'build-path' },
@@ -197,6 +238,178 @@ describe('BuildPathSurface', () => {
       'Sketch',
     )
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).not.toEqual(redoBefore)
+  })
+
+  it('allows a long viewport-docked timeline rail to scroll horizontally', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState(
+      Array.from({ length: 18 }, (_, index) =>
+        createBuildPathEvent({
+          commandFamily: index % 3 === 0 ? 'Sketch' : 'Extrude',
+          eventSequence: index + 1,
+          projectionId: `projection-scroll-${index + 1}`,
+        }),
+      ),
+    )
+
+    await act(async () => {
+      root?.render(<BuildPathViewportDock />)
+    })
+
+    const dock = container?.querySelector('[data-build-path-viewport-dock="bottom"]')
+    const strip = container?.querySelector('.BuildPathTimelineStrip--viewport-dock')
+    const rail = container?.querySelector('.BuildPathTimelineStepRail')
+    const steps = Array.from(container?.querySelectorAll('.BuildPathTimelineStep') ?? [])
+
+    expect(dock?.getAttribute('data-build-path-viewport-anchor')).toBe('bottom-left')
+    expect(strip).not.toBeNull()
+    expect(rail).not.toBeNull()
+    expect(rail?.getAttribute('data-build-path-timeline-overflow')).toBe('horizontal-scroll')
+    expect(rail?.getAttribute('data-build-path-timeline-scrollbar-visible')).toBe('false')
+    expect(steps).toHaveLength(18)
+
+    Object.defineProperty(rail, 'clientWidth', {
+      configurable: true,
+      value: 320,
+    })
+    Object.defineProperty(rail, 'scrollWidth', {
+      configurable: true,
+      value: 720,
+    })
+
+    await act(async () => {
+      window.dispatchEvent(new Event('resize'))
+    })
+
+    expect(rail?.getAttribute('data-build-path-timeline-scrollbar-visible')).toBe('true')
+  })
+
+  it('renders a draggable current-position line that scrubs master timeline selection', async () => {
+    const graphSnapshot = {
+      nodes: ['node-sketch', 'node-extrude', 'node-sketch-2'],
+    }
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-marker-sketch',
+        affectedNodeIds: ['node-sketch'],
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 2,
+        projectionId: 'projection-marker-extrude',
+        affectedNodeIds: ['node-extrude'],
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 3,
+        projectionId: 'projection-marker-sketch-2',
+        affectedNodeIds: ['node-sketch-2'],
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-marker-test" hostMode="workspace" />,
+      )
+    })
+
+    stubBuildPathStepButtonRects(
+      Array.from(container?.querySelectorAll('.BuildPathTimelineStep') ?? []),
+    )
+
+    const initialMarker = container?.querySelector(
+      '[data-build-path-current-position-line="true"]',
+    ) as HTMLButtonElement | null
+
+    expect(initialMarker).not.toBeNull()
+    expect(initialMarker?.getAttribute('data-build-path-current-position-placement')).toBe(
+      'after-step',
+    )
+    expect(initialMarker?.getAttribute('data-build-path-current-step-index')).toBe('0')
+    expect(initialMarker?.getAttribute('data-build-path-current-step-id')).toContain(
+      'projection-marker-sketch',
+    )
+
+    await act(async () => {
+      initialMarker?.dispatchEvent(createPointerLikeEvent('pointerdown', 112))
+      initialMarker?.dispatchEvent(createPointerLikeEvent('pointermove', 172))
+      initialMarker?.dispatchEvent(createPointerLikeEvent('pointerup', 172))
+    })
+
+    const selectedStep = useBuildPathRuntimeStore.getState().readSelectedTimelineStep()
+    const updatedMarker = container?.querySelector(
+      '[data-build-path-current-position-line="true"]',
+    )
+
+    expect(selectedStep?.display.label).toBe('Sketch')
+    expect(selectedStep?.orderIndex).toBe(2)
+    expect(updatedMarker?.getAttribute('data-build-path-current-step-index')).toBe('2')
+    expect(updatedMarker?.getAttribute('data-build-path-current-step-id')).toContain(
+      'projection-marker-sketch-2',
+    )
+    expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
+      label: 'Build Path timeline selection',
+      source: { surface: 'build-path' },
+      targetLabel: 'Step 3',
+    })
+    expect(graphSnapshot).toEqual({
+      nodes: ['node-sketch', 'node-extrude', 'node-sketch-2'],
+    })
+  })
+
+  it('keeps the current-position line synchronized with docked icon selection', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-sync-sketch',
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 2,
+        projectionId: 'projection-sync-extrude',
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(<BuildPathViewportDock />)
+    })
+
+    const extrudeStep = container?.querySelector(
+      '.BuildPathTimelineStep--extrude',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      extrudeStep?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    let marker = container?.querySelector('[data-build-path-current-position-line="true"]')
+
+    expect(marker?.getAttribute('data-build-path-current-step-index')).toBe('1')
+    expect(marker?.getAttribute('data-build-path-current-position-placement')).toBe(
+      'after-step',
+    )
+    expect(marker?.getAttribute('data-build-path-current-step-id')).toContain(
+      'projection-sync-extrude',
+    )
+
+    await act(async () => {
+      const sketchStep = container?.querySelector(
+        '.BuildPathTimelineStep--sketch',
+      ) as HTMLButtonElement | null
+      sketchStep?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    marker = container?.querySelector('[data-build-path-current-position-line="true"]')
+
+    expect(marker?.getAttribute('data-build-path-current-step-index')).toBe('0')
+    expect(marker?.getAttribute('data-build-path-current-step-id')).toContain(
+      'projection-sync-sketch',
+    )
+    expect(useBuildPathRuntimeStore.getState().readSelectedTimelineStep()?.display.label).toBe(
+      'Sketch',
+    )
   })
 
   it('reads the Build Path runtime store for workspace-hosted surfaces', async () => {

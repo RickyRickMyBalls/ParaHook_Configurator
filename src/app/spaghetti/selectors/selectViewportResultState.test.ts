@@ -1771,6 +1771,97 @@ describe('selectViewportResultState', () => {
     ])
   })
 
+  it('renders merged accepted output parts instead of a scoped final mesh after repeat Extrude commits', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude#1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude#2',
+      },
+    ])
+    const acceptedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-repeat-extrude-scoped-final',
+        partKeys: ['extrude#2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          4, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-repeat-extrude-scoped-final',
+      },
+    })
+    const firstExtrudeArtifact = createArtifact('extrude#1')
+    const secondExtrudeArtifact = createArtifact('extrude#2')
+
+    const state = selectViewportResultState({
+      requestedMode: 'final',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('final'),
+      acceptedAuthoritativeGeometryResult,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      interactionAcceptedOutputPreviewRenderVm: {
+        items: [],
+        viewerParts: [
+          toViewerRenderablePart(
+            firstExtrudeArtifact,
+            'output-entry:slot-extrude-1:node-extrude-1',
+          ),
+          toViewerRenderablePart(
+            secondExtrudeArtifact,
+            'output-entry:slot-extrude-2:node-extrude-2',
+          ),
+        ],
+      },
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'final',
+        visibleSourceKind: 'retained-final',
+        geometryResult: acceptedAuthoritativeGeometryResult,
+      }),
+    )
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-1:node-extrude-1',
+      }),
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+    expect(state.renderVm.viewerParts).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:authoritative-preview',
+        }),
+      ]),
+    )
+  })
+
   it('keeps retained committed draft geometry while the current output is temporarily unresolved', () => {
     const previewPreparation = createPreviewPreparation([
       {

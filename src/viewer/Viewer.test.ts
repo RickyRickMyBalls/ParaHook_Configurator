@@ -2190,6 +2190,7 @@ describe('Viewer baseline replacement', () => {
 
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    useUiPrefsStore.getState().setCameraShortcutTransitionDurationMs(440)
     useAppStore.setState((state) => ({
       ...useAppStore.getInitialState(),
       projectContent: {
@@ -2251,6 +2252,10 @@ describe('Viewer baseline replacement', () => {
     )
 
     expect(controller.frameBox).toHaveBeenCalledTimes(1)
+    expect(controller.frameBox).toHaveBeenCalledWith(expect.any(Box3), {
+      animate: true,
+      durationMs: 440,
+    })
     expect(controller.frameObject).not.toHaveBeenCalled()
   })
 

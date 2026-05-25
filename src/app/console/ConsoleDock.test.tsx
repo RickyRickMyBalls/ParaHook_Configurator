@@ -89,6 +89,7 @@ describe('ConsoleDock', () => {
   })
 
   afterEach(async () => {
+    vi.useRealTimers()
     if (root !== null) {
       const currentRoot = root
       await act(async () => {
@@ -3051,6 +3052,7 @@ describe('ConsoleDock', () => {
   })
 
   it('focuses the popout console with C without seeding text when input priority is Shortcuts first', async () => {
+    vi.useFakeTimers()
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -3089,6 +3091,7 @@ describe('ConsoleDock', () => {
     const keyEvent = new KeyboardEvent('keydown', { key: 'c', bubbles: true, cancelable: true })
     await act(async () => {
       popoutKeydownHandler?.(keyEvent)
+      vi.advanceTimersByTime(750)
     })
 
     const popoutInput = popoutDocument.querySelector(
@@ -3097,6 +3100,7 @@ describe('ConsoleDock', () => {
     expect(popoutInput).not.toBeNull()
     expect(keyEvent.defaultPrevented).toBe(true)
     expect(useConsoleStore.getState().inputText).toBe('Graph')
+    vi.useRealTimers()
   })
 
   it('focuses the console from slash and recalls command history with arrow keys', async () => {
@@ -3176,6 +3180,7 @@ describe('ConsoleDock', () => {
   })
 
   it('focuses the console with C without seeding text when input priority is Shortcuts first', async () => {
+    vi.useFakeTimers()
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -3191,6 +3196,7 @@ describe('ConsoleDock', () => {
       window.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'c', bubbles: true, cancelable: true }),
       )
+      vi.advanceTimersByTime(750)
     })
 
     const input = container.querySelector(
@@ -3198,6 +3204,7 @@ describe('ConsoleDock', () => {
     ) as HTMLInputElement | null
     expect(document.activeElement).toBe(input)
     expect(useConsoleStore.getState().inputText).toBe('Graph')
+    vi.useRealTimers()
   })
 
   it('does not auto-capture ordinary printable typing when input priority is Shortcuts first', async () => {
@@ -5904,6 +5911,200 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
+  it('creates and activates a new graph from the root console command', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('new graph')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const spaghettiState = useSpaghettiStore.getState()
+    const createdGraphId = spaghettiState.graphDocumentOrder.at(-1) ?? null
+
+    expect(spaghettiState.graphDocumentOrder).toHaveLength(2)
+    expect(createdGraphId).not.toBeNull()
+    expect(spaghettiState.activeGraphDocumentId).toBe(createdGraphId)
+    expect(spaghettiState.activeEditorViewportId.length).toBeGreaterThan(0)
+    expect(
+      createdGraphId === null
+        ? null
+        : spaghettiState.editorViewportsById[spaghettiState.activeEditorViewportId]?.graphDocumentId,
+    ).toBe(createdGraphId)
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
+      kind: 'graph-document',
+      graphDocumentId: createdGraphId,
+    })
+    expect(useConsoleStore.getState().stagedNavigationSession).toMatchObject({
+      scopeId: 'graphSelected',
+      selections: {
+        graphDocumentId: createdGraphId,
+      },
+    })
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'New Graph'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Created Graph 2'),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Graph Documents > Graph 2 > Choose next',
+    )
+  })
+
+  it('creates and activates a new graph from the Shortcuts-first NG root alias', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'n', code: 'KeyN', bubbles: true, cancelable: true }),
+      )
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'g', code: 'KeyG', bubbles: true, cancelable: true }),
+      )
+    })
+
+    const spaghettiState = useSpaghettiStore.getState()
+    const createdGraphId = spaghettiState.graphDocumentOrder.at(-1) ?? null
+
+    expect(spaghettiState.graphDocumentOrder).toHaveLength(2)
+    expect(spaghettiState.activeGraphDocumentId).toBe(createdGraphId)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> NG')).toBe(false)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Created Graph 2')).toBe(true)
+  })
+
+  it('starts New Sketch from the Console-first shifted NS root alias', async () => {
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('console-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-existing',
+            type: 'Geometry/Sketch',
+            params: getDefaultNodeParams('Geometry/Sketch'),
+          },
+        ],
+        edges: [],
+      })
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'N',
+          code: 'KeyN',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'S',
+          code: 'KeyS',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const sketchNodes = useSpaghettiStore
+      .getState()
+      .graph.nodes.filter((node) => node.type === 'Geometry/Sketch')
+    const newSketchNode = sketchNodes.find((node) => node.nodeId !== 'node-sketch-existing')
+
+    expect(sketchNodes).toHaveLength(2)
+    expect(useSpaghettiStore.getState().sketchPlanePickSession).toMatchObject({
+      nodeId: newSketchNode?.nodeId,
+      stage: 'pick',
+    })
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> NS')).toBe(false)
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'New Sketch')).toBe(true)
+  })
+
+  it('keeps C as delayed Console focus while CA opens the Camera root alias', async () => {
+    vi.useFakeTimers()
+    useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('viewer')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'c', code: 'KeyC', bubbles: true, cancelable: true }),
+      )
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('cameraRoot')
+    expect(document.activeElement).not.toBe(
+      container.querySelector('input[aria-label="Console input"]'),
+    )
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'c', code: 'KeyC', bubbles: true, cancelable: true }),
+      )
+      vi.advanceTimersByTime(750)
+    })
+
+    expect(document.activeElement).toBe(
+      container.querySelector('input[aria-label="Console input"]'),
+    )
+    vi.useRealTimers()
+  })
+
   it('starts Sketch from the viewport S shortcut by creating a sketch node and opening plane pick', async () => {
     useUiPrefsStore.getState().setConsoleInputPriorityMode('shortcuts-first')
     setViewer({
@@ -5950,7 +6151,7 @@ describe('ConsoleDock', () => {
     })
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === '> s'),
-    ).toBe(true)
+    ).toBe(false)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Sketch Plane > [XY, XZ, YZ]'),
     ).toBe(true)

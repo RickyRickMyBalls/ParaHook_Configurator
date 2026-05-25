@@ -1,4 +1,11 @@
 import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
+import {
   deriveBuildPathBranchProjection,
   type BuildPathBranchEventClassification,
   type BuildPathBranchProjection,
@@ -32,6 +39,44 @@ type BuildPathSurfaceProps = {
 type BuildPathViewportDockProps = {
   placement?: BuildPathViewportDockPlacement
   timeline?: BuildPathMasterTimeline
+}
+
+const readNearestBuildPathTimelineStepIdFromPointer = ({
+  clientX,
+  railElement,
+  timeline,
+}: {
+  clientX: number
+  railElement: HTMLElement | null
+  timeline: BuildPathMasterTimeline
+}): string | null => {
+  if (railElement === null || timeline.steps.length === 0) {
+    return null
+  }
+
+  const stepButtons = Array.from(
+    railElement.querySelectorAll<HTMLElement>('[data-build-path-step-id]'),
+  )
+
+  if (stepButtons.length === 0) {
+    return null
+  }
+
+  let nearestStepId: string | null = stepButtons[0]?.dataset.buildPathStepId ?? null
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (const stepButton of stepButtons) {
+    const rect = stepButton.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const distance = Math.abs(clientX - centerX)
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestStepId = stepButton.dataset.buildPathStepId ?? null
+    }
+  }
+
+  return nearestStepId
 }
 
 function BuildPathStepIcon({ step }: { step: BuildPathTimelineStep }) {
@@ -231,85 +276,6 @@ function BuildPathActionBoundaryPanel({
   )
 }
 
-const getAdjacentBuildPathStep = (
-  timeline: BuildPathMasterTimeline,
-  selectedStep: BuildPathTimelineStep | null,
-  direction: -1 | 1,
-): BuildPathTimelineStep | null => {
-  if (timeline.steps.length === 0) {
-    return null
-  }
-
-  const selectedIndex =
-    selectedStep === null
-      ? 0
-      : timeline.steps.findIndex((step) => step.timelineStepId === selectedStep.timelineStepId)
-  const nextIndex = Math.min(
-    timeline.steps.length - 1,
-    Math.max(0, (selectedIndex < 0 ? 0 : selectedIndex) + direction),
-  )
-
-  return timeline.steps[nextIndex] ?? null
-}
-
-function BuildPathViewportScrubReadback({
-  onSelectTimelineStep,
-  selectedStep,
-  timeline,
-}: {
-  onSelectTimelineStep?: (timelineStepId: string) => void
-  selectedStep: BuildPathTimelineStep | null
-  timeline: BuildPathMasterTimeline
-}) {
-  if (timeline.steps.length === 0 || selectedStep === null) {
-    return null
-  }
-
-  const previousStep = getAdjacentBuildPathStep(timeline, selectedStep, -1)
-  const nextStep = getAdjacentBuildPathStep(timeline, selectedStep, 1)
-  const isFirstStep = selectedStep.orderIndex === 0
-  const isLastStep = selectedStep.orderIndex === timeline.steps.length - 1
-
-  return (
-    <div
-      className="BuildPathViewportScrubReadback"
-      data-build-path-dock-readback-state="selected"
-      data-build-path-dock-selected-step-id={selectedStep.timelineStepId}
-    >
-      <button
-        type="button"
-        className="BuildPathViewportScrubButton"
-        aria-label="Select previous Build Path step"
-        disabled={isFirstStep || previousStep === null}
-        onClick={() => {
-          if (previousStep !== null) {
-            onSelectTimelineStep?.(previousStep.timelineStepId)
-          }
-        }}
-      >
-        &lt;
-      </button>
-      <span className="BuildPathViewportScrubLabel">
-        <span className="BuildPathViewportScrubIndex">{selectedStep.orderIndex + 1}</span>
-        <span className="BuildPathViewportScrubName">{selectedStep.display.label}</span>
-      </span>
-      <button
-        type="button"
-        className="BuildPathViewportScrubButton"
-        aria-label="Select next Build Path step"
-        disabled={isLastStep || nextStep === null}
-        onClick={() => {
-          if (nextStep !== null) {
-            onSelectTimelineStep?.(nextStep.timelineStepId)
-          }
-        }}
-      >
-        &gt;
-      </button>
-    </div>
-  )
-}
-
 function BuildPathWorkspaceModeSwitch({
   isParallelModeEnabled,
   onSetParallelModeEnabled,
@@ -473,12 +439,95 @@ export function BuildPathTimelineStrip({
   selectedTimelineStepId = null,
   timeline,
 }: BuildPathTimelineStripProps) {
+  const railRef = useRef<HTMLDivElement | null>(null)
+  const activePointerIdRef = useRef<number | null>(null)
+  const isDraggingCurrentPositionRef = useRef(false)
+  const lastDraggedStepIdRef = useRef<string | null>(null)
+  const [isDraggingCurrentPosition, setIsDraggingCurrentPosition] = useState(false)
+  const [isTimelineOverflowing, setIsTimelineOverflowing] = useState(false)
   const isEmpty = timeline.steps.length === 0
+  const selectedStepIndex = timeline.steps.findIndex(
+    (step) => step.timelineStepId === selectedTimelineStepId,
+  )
+  const shouldRenderCurrentPositionLine = !isEmpty && selectedStepIndex >= 0
+  const selectNearestStepFromPointer = (clientX: number) => {
+    const nearestStepId = readNearestBuildPathTimelineStepIdFromPointer({
+      clientX,
+      railElement: railRef.current,
+      timeline,
+    })
+
+    if (nearestStepId !== null && nearestStepId !== lastDraggedStepIdRef.current) {
+      lastDraggedStepIdRef.current = nearestStepId
+      onSelectTimelineStep?.(nearestStepId)
+    }
+  }
+  const startCurrentPositionDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    activePointerIdRef.current = event.pointerId
+    isDraggingCurrentPositionRef.current = true
+    lastDraggedStepIdRef.current = selectedTimelineStepId
+    setIsDraggingCurrentPosition(true)
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+  const moveCurrentPositionDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (
+      !isDraggingCurrentPositionRef.current ||
+      event.pointerId !== activePointerIdRef.current
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    selectNearestStepFromPointer(event.clientX)
+  }
+  const stopCurrentPositionDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerId !== activePointerIdRef.current) {
+      return
+    }
+
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+    activePointerIdRef.current = null
+    isDraggingCurrentPositionRef.current = false
+    lastDraggedStepIdRef.current = null
+    setIsDraggingCurrentPosition(false)
+  }
+
+  useLayoutEffect(() => {
+    const railElement = railRef.current
+
+    if (railElement === null) {
+      setIsTimelineOverflowing(false)
+      return
+    }
+
+    const updateTimelineOverflow = () => {
+      setIsTimelineOverflowing(railElement.scrollWidth > railElement.clientWidth + 1)
+    }
+
+    updateTimelineOverflow()
+
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updateTimelineOverflow)
+
+    resizeObserver?.observe(railElement)
+    window.addEventListener('resize', updateTimelineOverflow)
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', updateTimelineOverflow)
+    }
+  }, [timeline.steps.length])
 
   return (
     <div
       className={`BuildPathTimelineStrip BuildPathTimelineStrip--${hostMode}`}
       data-build-path-timeline-status={timeline.status}
+      data-build-path-current-position-dragging={
+        isDraggingCurrentPosition ? 'true' : 'false'
+      }
       aria-label="Build Path timeline"
     >
       {isEmpty ? (
@@ -486,29 +535,60 @@ export function BuildPathTimelineStrip({
           <span className="BuildPathTimelineEmptyGlyph" aria-hidden="true" />
         </div>
       ) : (
-        <ol className="BuildPathTimelineStepList" aria-label="Accepted build events">
-          {timeline.steps.map((step) => (
-            <li key={step.timelineStepId} className="BuildPathTimelineStepItem">
-              <button
-                type="button"
-                className={`BuildPathTimelineStep BuildPathTimelineStep--${step.display.icon} ${
-                  selectedTimelineStepId === step.timelineStepId ? 'isSelected' : ''
-                }`}
-                title={`${step.orderIndex + 1}. ${step.display.label}`}
-                aria-label={`${step.orderIndex + 1}. ${step.display.iconLabel}`}
-                aria-pressed={selectedTimelineStepId === step.timelineStepId}
-                data-build-path-step-id={step.timelineStepId}
-                data-build-path-event-id={step.eventReference.buildPathEventId}
-                data-build-path-step-selected={
-                  selectedTimelineStepId === step.timelineStepId ? 'true' : 'false'
-                }
-                onClick={() => onSelectTimelineStep?.(step.timelineStepId)}
-              >
-                <BuildPathStepIcon step={step} />
-              </button>
-            </li>
-          ))}
-        </ol>
+        <div
+          className="BuildPathTimelineStepRail"
+          data-build-path-timeline-overflow="horizontal-scroll"
+          data-build-path-timeline-scrollbar-visible={
+            isTimelineOverflowing ? 'true' : 'false'
+          }
+          ref={railRef}
+        >
+          <ol className="BuildPathTimelineStepList" aria-label="Accepted build events">
+            {timeline.steps.map((step) => (
+              <li key={step.timelineStepId} className="BuildPathTimelineStepItem">
+                <button
+                  type="button"
+                  className={`BuildPathTimelineStep BuildPathTimelineStep--${step.display.icon} ${
+                    selectedTimelineStepId === step.timelineStepId ? 'isSelected' : ''
+                  }`}
+                  title={`${step.orderIndex + 1}. ${step.display.label}`}
+                  aria-label={`${step.orderIndex + 1}. ${step.display.iconLabel}`}
+                  aria-pressed={selectedTimelineStepId === step.timelineStepId}
+                  data-build-path-step-id={step.timelineStepId}
+                  data-build-path-event-id={step.eventReference.buildPathEventId}
+                  data-build-path-step-selected={
+                    selectedTimelineStepId === step.timelineStepId ? 'true' : 'false'
+                  }
+                  onClick={() => onSelectTimelineStep?.(step.timelineStepId)}
+                >
+                  <BuildPathStepIcon step={step} />
+                </button>
+              </li>
+            ))}
+          </ol>
+          {shouldRenderCurrentPositionLine ? (
+            <button
+              type="button"
+              className="BuildPathCurrentPositionLine"
+              aria-label="Drag Build Path current position"
+              data-build-path-current-position-line="true"
+              data-build-path-current-position-placement="after-step"
+              data-build-path-current-step-id={selectedTimelineStepId ?? undefined}
+              data-build-path-current-step-index={selectedStepIndex}
+              style={
+                {
+                  '--build-path-current-step-index': selectedStepIndex,
+                } as CSSProperties
+              }
+              onPointerDown={startCurrentPositionDrag}
+              onPointerMove={moveCurrentPositionDrag}
+              onPointerUp={stopCurrentPositionDrag}
+              onPointerCancel={stopCurrentPositionDrag}
+            >
+              <span className="BuildPathCurrentPositionLineStem" aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   )
@@ -572,13 +652,6 @@ export function BuildPathSurface({
         selectedTimelineStepId={resolvedSelectedStepId}
         onSelectTimelineStep={selectTimelineStep}
       />
-      {hostMode === 'viewport-dock' ? (
-        <BuildPathViewportScrubReadback
-          timeline={resolvedTimeline}
-          selectedStep={selectedStep}
-          onSelectTimelineStep={selectTimelineStep}
-        />
-      ) : null}
       {hostMode === 'workspace' ? (
         <>
           <BuildPathWorkspaceModeSwitch
@@ -614,6 +687,7 @@ export function BuildPathViewportDock({
     <div
       className={`BuildPathViewportDock BuildPathViewportDock--${placement}`}
       data-build-path-viewport-dock={placement}
+      data-build-path-viewport-anchor={placement === 'bottom' ? 'bottom-left' : 'top-left'}
     >
       <BuildPathSurface hostMode="viewport-dock" timeline={timeline} />
     </div>

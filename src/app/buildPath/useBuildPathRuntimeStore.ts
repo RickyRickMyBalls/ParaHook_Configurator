@@ -12,6 +12,7 @@ import {
   readBuildPathRuntimeLifecycleCards,
   readBuildPathRuntimeMasterTimeline,
   replaceBuildPathRuntimeGraphReconstruction,
+  replaceBuildPathRuntimeGraphSnapshot,
   type BuildPathRuntimeIntakeResult,
   type BuildPathRuntimeState,
 } from './buildPathRuntime'
@@ -47,6 +48,11 @@ export type BuildPathRuntimeStoreState = {
   replaceGraphReconstruction: (request: {
     graphDocumentId: string
     lifecycleCards?: readonly BuildPathLifecycleCard[]
+    events: readonly BuildPathEvent[]
+    dependencies: readonly BuildPathGraphDependency[]
+  }) => void
+  replaceGraphSnapshot: (request: {
+    graphDocumentId: string
     events: readonly BuildPathEvent[]
     dependencies: readonly BuildPathGraphDependency[]
   }) => void
@@ -154,6 +160,17 @@ export const useBuildPathRuntimeStore = create<BuildPathRuntimeStoreState>((set,
       events,
       graphDocumentId,
       lifecycleCards,
+      state: get().runtimeState,
+    })
+    if (nextState !== get().runtimeState) {
+      set({ runtimeState: nextState })
+    }
+  },
+  replaceGraphSnapshot: ({ dependencies, events, graphDocumentId }) => {
+    const nextState = replaceBuildPathRuntimeGraphSnapshot({
+      dependencies,
+      events,
+      graphDocumentId,
       state: get().runtimeState,
     })
     if (nextState !== get().runtimeState) {

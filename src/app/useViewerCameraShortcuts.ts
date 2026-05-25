@@ -89,7 +89,12 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
             return
           }
           if (zoomTarget.kind === 'selection-set') {
-            frameSelectionSetCommand(zoomTarget.partKeys, zoomTarget.referenceIds)
+            frameSelectionSetCommand(
+              zoomTarget.partKeys,
+              zoomTarget.referenceIds,
+              viewportId,
+              animationOptions,
+            )
             return
           }
           frameReferenceCommand(zoomTarget.referenceId, viewportId, animationOptions)

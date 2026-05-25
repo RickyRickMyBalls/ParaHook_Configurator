@@ -1055,6 +1055,58 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes root alias shortcut keys through the viewport command owner when provided', () => {
+    expect(routeKeyboardInput({
+      event: { key: 'n', code: 'KeyN', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+      rootAliasShortcutStartKeys: ['N', 'S', 'E'],
+    })).toEqual({
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'root-alias',
+      viewportCommandToken: 'N',
+    })
+
+    expect(routeKeyboardInput({
+      event: { key: 'S', code: 'KeyS', shiftKey: true, target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+      rootAliasShortcutStartKeys: ['N', 'S', 'E'],
+    })).toEqual({
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'root-alias',
+      viewportCommandToken: 'S',
+    })
+  })
+
+  it('keeps alias shortcut modifiers matched to the Console input priority mode', () => {
+    expect(routeKeyboardInput({
+      event: { key: 'N', code: 'KeyN', shiftKey: true, target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'shortcuts-first',
+      rootAliasShortcutStartKeys: ['N'],
+    })).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(routeKeyboardInput({
+      event: { key: 'n', code: 'KeyN', target: null },
+      viewportCommandShortcutsEnabled: true,
+      allowFlatConsoleCapture: true,
+      consoleInputPriorityMode: 'console-first',
+      rootAliasShortcutStartKeys: ['N'],
+    })).toEqual({
+      owner: 'flat-console',
+      decision: 'handle',
+    })
+  })
+
   it('routes Console-first viewport Shift+E to the root Extrude command shortcut', () => {
     const result = routeKeyboardInput({
       event: { key: 'E', code: 'KeyE', shiftKey: true, target: null },

@@ -549,11 +549,31 @@ describe('ConsoleBar', () => {
     const choices = Array.from(
       container.querySelectorAll('.ConsoleBarSummaryChoice'),
     ) as HTMLElement[]
+    const sketchChoice = choices.find((choice) => choice.textContent?.includes('Sketch,'))
+    const newSketchChoice = choices.find((choice) => choice.textContent?.includes('New Sketch'))
+    const newGraphChoice = choices.find((choice) => choice.textContent?.includes('New Graph'))
     const referencesChoice = choices.find((choice) => choice.textContent?.includes('References'))
     const workspaceModesChoice = choices.find((choice) =>
       choice.textContent?.includes('Workspace Modes'),
     )
+    const consoleInputChoice = choices.find((choice) => choice.textContent?.includes('ConsoleInput'))
+    const cameraChoice = choices.find((choice) => choice.textContent?.includes('Camera'))
 
+    expect(
+      Array.from(sketchChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['S'])
+    expect(
+      Array.from(newSketchChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['N', 'S'])
+    expect(
+      Array.from(newGraphChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['N', 'G'])
     expect(
       Array.from(referencesChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
         (node) => node.textContent,
@@ -564,5 +584,15 @@ describe('ConsoleBar', () => {
         workspaceModesChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? [],
       ).map((node) => node.textContent),
     ).toEqual(['W', 'M'])
+    expect(
+      Array.from(consoleInputChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['C', 'I'])
+    expect(
+      Array.from(cameraChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['C', 'a'])
   })
 })

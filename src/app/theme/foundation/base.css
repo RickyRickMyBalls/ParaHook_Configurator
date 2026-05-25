@@ -1984,7 +1984,7 @@ button.ParaSelectMenuAction:hover {
 
 .ViewportSplitCornerHandle {
   position: absolute;
-  z-index: 45;
+  z-index: 70;
   width: var(--workspace-split-corner-hit-area, 18px);
   height: var(--workspace-split-corner-hit-area, 18px);
   padding: 0;
@@ -4931,21 +4931,20 @@ button.FloatingWindowHeaderAction:disabled {
 
 .BuildPathViewportDock {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   z-index: 55;
   display: flex;
-  justify-content: center;
-  max-width: min(420px, calc(100% - 96px));
+  justify-content: flex-start;
   pointer-events: none;
-  transform: translateX(-50%);
 }
 
 .BuildPathViewportDock--top {
-  top: 12px;
+  top: 0;
 }
 
 .BuildPathViewportDock--bottom {
-  bottom: 46px;
+  bottom: 0;
 }
 
 .BuildPathSurface {
@@ -4976,13 +4975,19 @@ button.FloatingWindowHeaderAction:disabled {
 }
 
 .BuildPathTimelineStrip {
+  --build-path-step-size: 24px;
+  --build-path-step-gap: 6px;
+  --build-path-step-pitch: calc(var(--build-path-step-size) + var(--build-path-step-gap));
+  --build-path-current-line-color: rgba(191, 219, 254, 0.98);
   display: flex;
   align-items: center;
+  position: relative;
   min-width: 0;
 }
 
 .BuildPathTimelineStrip--viewport-dock {
   min-height: 34px;
+  width: fit-content;
   max-width: 100%;
   padding: 5px 8px;
   border: 1px solid rgba(226, 232, 240, 0.18);
@@ -5019,13 +5024,47 @@ button.FloatingWindowHeaderAction:disabled {
 .BuildPathTimelineStepList {
   display: flex;
   align-items: center;
-  gap: 6px;
-  max-width: 100%;
+  gap: var(--build-path-step-gap);
+  width: max-content;
   min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow: hidden;
+}
+
+.BuildPathTimelineStepRail {
+  position: relative;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 7px;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.BuildPathTimelineStepRail::-webkit-scrollbar {
+  display: none;
+  height: 6px;
+}
+
+.BuildPathTimelineStepRail[data-build-path-timeline-scrollbar-visible='true'] {
+  scrollbar-color: rgba(96, 165, 250, 0.58) rgba(15, 23, 42, 0.72);
+  scrollbar-width: thin;
+}
+
+.BuildPathTimelineStepRail[data-build-path-timeline-scrollbar-visible='true']::-webkit-scrollbar {
+  display: block;
+}
+
+.BuildPathTimelineStepRail::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.BuildPathTimelineStepRail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.58);
 }
 
 .BuildPathTimelineStepItem {
@@ -5035,8 +5074,8 @@ button.FloatingWindowHeaderAction:disabled {
 .BuildPathTimelineStep {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: var(--build-path-step-size);
+  height: var(--build-path-step-size);
   padding: 0;
   border: 1px solid rgba(226, 232, 240, 0.22);
   border-radius: 6px;
@@ -5065,6 +5104,55 @@ button.FloatingWindowHeaderAction:disabled {
   box-shadow:
     0 0 0 1px rgba(147, 197, 253, 0.42),
     0 0 18px rgba(96, 165, 250, 0.26);
+}
+
+.BuildPathCurrentPositionLine {
+  position: absolute;
+  top: 0;
+  left: calc(
+    (var(--build-path-current-step-index) * var(--build-path-step-pitch)) +
+    var(--build-path-step-size) +
+    (var(--build-path-step-gap) / 2)
+  );
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  color: var(--build-path-current-line-color);
+  background: transparent;
+  cursor: ew-resize;
+  touch-action: none;
+  transform: translateX(-50%);
+}
+
+.BuildPathCurrentPositionLine::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  border-top: 7px solid var(--build-path-current-line-color);
+  filter: drop-shadow(0 1px 4px rgba(59, 130, 246, 0.44));
+}
+
+.BuildPathCurrentPositionLineStem {
+  width: 2px;
+  height: 34px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.9),
+    0 0 12px rgba(96, 165, 250, 0.52);
+}
+
+.BuildPathTimelineStrip[data-build-path-current-position-dragging='true']
+  .BuildPathCurrentPositionLine {
+  --build-path-current-line-color: rgba(253, 230, 138, 0.98);
 }
 
 .BuildPathStepGlyph {
@@ -5186,68 +5274,6 @@ button.FloatingWindowHeaderAction:disabled {
 .BuildPathActionButton:disabled {
   cursor: not-allowed;
   opacity: 0.72;
-}
-
-.BuildPathViewportScrubReadback {
-  display: grid;
-  grid-template-columns: 22px minmax(56px, auto) 22px;
-  align-items: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 4px;
-  border: 1px solid rgba(226, 232, 240, 0.16);
-  border-radius: 8px;
-  background: rgba(8, 12, 18, 0.72);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(10px);
-}
-
-.BuildPathViewportScrubButton {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid rgba(226, 232, 240, 0.18);
-  border-radius: 6px;
-  color: rgba(226, 232, 240, 0.92);
-  background: rgba(15, 23, 42, 0.88);
-  font-size: 12px;
-  line-height: 1;
-}
-
-.BuildPathViewportScrubButton:disabled {
-  color: rgba(148, 163, 184, 0.42);
-  background: rgba(15, 23, 42, 0.42);
-}
-
-.BuildPathViewportScrubLabel {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-  color: rgba(241, 245, 249, 0.92);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.BuildPathViewportScrubIndex {
-  display: grid;
-  place-items: center;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 5px;
-  color: rgba(15, 23, 42, 0.95);
-  background: rgba(191, 219, 254, 0.92);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.BuildPathViewportScrubName {
-  overflow: hidden;
-  max-width: 74px;
-  text-overflow: ellipsis;
 }
 
 .BuildPathWorkspaceModeSwitch {

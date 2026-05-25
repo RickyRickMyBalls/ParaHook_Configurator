@@ -277,6 +277,14 @@ describe('radioCommandIdentity', () => {
       resolveConsoleRadioCommandIdentity({
         kind: 'stagedExecute',
         activeScopeId: null,
+        actionId: 'graph.new',
+      }),
+    ).toBe('Console.Root.NewGraph')
+
+    expect(
+      resolveConsoleRadioCommandIdentity({
+        kind: 'stagedExecute',
+        activeScopeId: null,
         actionId: 'extrude.root',
       }),
     ).toBe('Console.Root.Extrude')

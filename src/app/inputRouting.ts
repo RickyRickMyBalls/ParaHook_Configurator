@@ -19,7 +19,7 @@ export type InputRoutingOwner =
 export type InputRoutingDecision = 'handle' | 'defer-native' | 'ignore'
 
 export type EditHistoryShortcutAction = 'undo' | 'redo'
-export type ViewportCommandShortcutAction = 'sketch' | 'extrude'
+export type ViewportCommandShortcutAction = 'sketch' | 'extrude' | 'root-alias'
 
 export type ConsoleInputPriorityMode = 'console-first' | 'shortcuts-first'
 
@@ -54,6 +54,7 @@ export type InputRoutingRequest = {
   stagedConsoleActive?: boolean
   allowFlatConsoleCapture?: boolean
   consoleInputPriorityMode?: ConsoleInputPriorityMode
+  rootAliasShortcutStartKeys?: readonly string[]
 }
 
 export type InputRoutingResult = {
@@ -61,6 +62,7 @@ export type InputRoutingResult = {
   decision: InputRoutingDecision
   editHistoryAction?: EditHistoryShortcutAction
   viewportCommandAction?: ViewportCommandShortcutAction
+  viewportCommandToken?: string
   sketchDrawAction?: EditHistoryShortcutAction
 }
 
@@ -153,6 +155,37 @@ const isViewportExtrudeCommandShortcut = (
   !event.altKey &&
   !event.metaKey
 
+const normalizeRootAliasShortcutKey = (event: KeyboardLikeEvent): string | null => {
+  if (
+    event.key.length !== 1 ||
+    !/^[a-z0-9]$/i.test(event.key) ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.metaKey
+  ) {
+    return null
+  }
+  return event.key.toUpperCase()
+}
+
+const isRootAliasShortcutKey = (
+  event: KeyboardLikeEvent,
+  consoleInputPriorityMode: ConsoleInputPriorityMode,
+  rootAliasShortcutStartKeys: readonly string[],
+): string | null => {
+  const token = normalizeRootAliasShortcutKey(event)
+  if (token === null || !rootAliasShortcutStartKeys.includes(token)) {
+    return null
+  }
+  if (consoleInputPriorityMode === 'shortcuts-first' && event.shiftKey === true) {
+    return null
+  }
+  if (consoleInputPriorityMode === 'console-first' && event.shiftKey !== true) {
+    return null
+  }
+  return token
+}
+
 const isUndoShortcut = (event: KeyboardLikeEvent): boolean => {
   const key = event.key.toLowerCase()
   const modifierPressed = event.ctrlKey === true || event.metaKey === true
@@ -215,6 +248,7 @@ export const routeKeyboardInput = ({
   stagedConsoleActive = false,
   allowFlatConsoleCapture = false,
   consoleInputPriorityMode = 'console-first',
+  rootAliasShortcutStartKeys = [],
 }: InputRoutingRequest): InputRoutingResult => {
   if (
     consoleInputAllowsCommandSessionUndo &&
@@ -372,6 +406,24 @@ export const routeKeyboardInput = ({
     sketchPlanePickStage !== null ||
     geometrySketchMode !== null ||
     referenceTransformActive
+  const rootAliasShortcutToken = isRootAliasShortcutKey(
+    event,
+    consoleInputPriorityMode,
+    rootAliasShortcutStartKeys,
+  )
+
+  if (
+    viewportCommandShortcutsEnabled &&
+    !viewportCommandShortcutsBlocked &&
+    rootAliasShortcutToken !== null
+  ) {
+    return {
+      owner: 'viewport-command',
+      decision: 'handle',
+      viewportCommandAction: 'root-alias',
+      viewportCommandToken: rootAliasShortcutToken,
+    }
+  }
 
   if (
     viewportCommandShortcutsEnabled &&

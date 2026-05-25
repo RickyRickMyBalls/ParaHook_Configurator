@@ -282,6 +282,7 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'radio.randomizeSampleTimes'
     | 'radio.openToolbar'
     | 'radio.closeToolbar'
+    | 'graph.new'
     | 'graph.list'
     | 'graph.editor.collapsed'
     | 'graph.editor.essentials'
@@ -422,7 +423,7 @@ const ROOT_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
 
 const ROOT_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'SKETCH',
-  aliases: [],
+  aliases: ['S'],
   label: 'Sketch',
   kind: 'action',
 }
@@ -431,6 +432,13 @@ const ROOT_NEW_SKETCH_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'NEW_SKETCH',
   aliases: ['NS'],
   label: 'New Sketch',
+  kind: 'action',
+}
+
+const ROOT_NEW_GRAPH_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'NEW_GRAPH',
+  aliases: ['NG'],
+  label: 'New Graph',
   kind: 'action',
 }
 
@@ -478,7 +486,7 @@ const ROOT_WORKSPACE_MODES_CHOICE: ConsoleStagedNavigationChoice = {
 
 const ROOT_CAMERA_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'CAMERA',
-  aliases: ['C'],
+  aliases: ['CA'],
   label: 'Camera',
   kind: 'scope',
 }
@@ -1283,6 +1291,7 @@ const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
   ROOT_SKETCH_CHOICE,
   ROOT_NEW_SKETCH_CHOICE,
+  ROOT_NEW_GRAPH_CHOICE,
   ROOT_EXTRUDE_CHOICE,
   ROOT_CONTENT_CHOICE,
   ROOT_REFERENCES_CHOICE,
@@ -1301,6 +1310,35 @@ const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
 // Current no-filter Root contract: displayed root labels mirror staged root choices.
 export const getConsoleRootChoiceLabels = (): string[] =>
   buildRootChoices().map((choice) => choice.label)
+
+export type ConsoleRootAliasShortcutChoice = {
+  canonicalToken: string
+  label: string
+  kind: ConsoleStagedNavigationChoice['kind']
+  aliases: string[]
+  preferredAlias: string | null
+}
+
+const normalizeRootAliasShortcutToken = (value: string): string =>
+  normalizeCompactChoiceToken(value)
+
+const selectPreferredRootAlias = (aliases: readonly string[]): string | null => {
+  const candidates = [...new Set(aliases.map(normalizeRootAliasShortcutToken).filter(Boolean))]
+    .sort((left, right) => left.length - right.length || left.localeCompare(right))
+  return candidates[0] ?? null
+}
+
+export const getConsoleRootAliasShortcutChoices = (): ConsoleRootAliasShortcutChoice[] =>
+  buildRootChoices().map((choice) => {
+    const aliases = [...new Set(choice.aliases.map(normalizeRootAliasShortcutToken).filter(Boolean))]
+    return {
+      canonicalToken: choice.canonicalToken,
+      label: choice.label,
+      kind: choice.kind,
+      aliases,
+      preferredAlias: selectPreferredRootAlias(aliases),
+    }
+  })
 
 const createWorkspaceViewportChoice = (
   viewportId: string,
@@ -3703,6 +3741,17 @@ export const submitConsoleStagedNavigationToken = (
         selections: createConsoleRootSession().selections,
       }
     }
+    if (matchedRootChoice.canonicalToken === ROOT_NEW_GRAPH_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: createConsoleRootSession(),
+        submittedToken,
+        matchedChoice: matchedRootChoice,
+        actionId: 'graph.new',
+        breadcrumb: [matchedRootChoice.label],
+        selections: createConsoleRootSession().selections,
+      }
+    }
     if (matchedRootChoice.canonicalToken === ROOT_EXTRUDE_CHOICE.canonicalToken) {
       return {
         kind: 'execute',
@@ -3875,6 +3924,20 @@ export const submitConsoleStagedNavigationToken = (
         submittedToken,
         matchedChoice,
         actionId: 'sketch.new',
+        breadcrumb: [matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === ROOT_NEW_GRAPH_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: rootChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'graph.new',
         breadcrumb: [matchedChoice.label],
         selections: session.selections,
       }

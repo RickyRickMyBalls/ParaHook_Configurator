@@ -1875,6 +1875,32 @@ const readGeometrySketchNodeParams = (
   return node !== undefined && isGeometrySketchNode(node) ? cloneNodeParams(node.params) : null
 }
 
+const syncBuildPathRuntimeToGraphHistorySnapshot = (
+  graphDocumentId: string,
+  graph: SpaghettiGraph,
+): void => {
+  const document = useSpaghettiStore.getState().graphDocumentsById[graphDocumentId]
+  if (document === undefined) {
+    return
+  }
+
+  const buildPathStore = useBuildPathRuntimeStore.getState()
+  const lifecycleEventSequenceFloor = buildPathStore.readLifecycleCards()
+    .filter((card) => card.graphDocumentId === graphDocumentId)
+    .reduce((max, card) => Math.max(max, card.eventSequence), 0)
+  const reconstruction = reconstructBuildPathFromLoadedGraph({
+    ...document,
+    graph,
+  }, {
+    startEventSequence: lifecycleEventSequenceFloor + 1,
+  })
+  buildPathStore.replaceGraphSnapshot({
+    graphDocumentId,
+    events: reconstruction.events,
+    dependencies: reconstruction.dependencies,
+  })
+}
+
 const restoreGraphHistorySnapshot = (
   graphDocumentId: string,
   graph: SpaghettiGraph,
@@ -1883,6 +1909,7 @@ const restoreGraphHistorySnapshot = (
   const state = useSpaghettiStore.getState()
   if (state.activeGraphDocumentId === graphDocumentId) {
     applyGraphHistorySnapshotToActiveDocument(nextGraph)
+    syncBuildPathRuntimeToGraphHistorySnapshot(graphDocumentId, nextGraph)
     return
   }
 
@@ -1903,6 +1930,7 @@ const restoreGraphHistorySnapshot = (
       },
     }
   })
+  syncBuildPathRuntimeToGraphHistorySnapshot(graphDocumentId, nextGraph)
 }
 
 const applyGraphHistorySnapshotToActiveDocument = (nextGraph: SpaghettiGraph): void => {
@@ -4560,6 +4588,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
       label: 'Remove graph node',
       targetId: nodeId,
       targetLabel: nodeId,
+      applyGraph: (afterGraph) => {
+        const graphDocumentId = useSpaghettiStore.getState().activeGraphDocumentId
+        const nextGraph = normalizeGraphForStoreCommit(afterGraph)
+        applyGraphHistorySnapshotToActiveDocument(nextGraph)
+        syncBuildPathRuntimeToGraphHistorySnapshot(graphDocumentId, nextGraph)
+      },
     }),
   connectGraphEdgeWithHistory: (options) =>
     commitGraphStructureHistoryCommand({

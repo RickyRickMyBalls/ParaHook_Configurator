@@ -3,6 +3,12 @@ import { buildDispatcher } from '../../buildDispatcher'
 import { useConsoleStore } from '../../console/useConsoleStore'
 import { useWorkspaceStore } from '../../workspace/useWorkspaceStore'
 import { useBuildPathRuntimeStore } from '../../buildPath/useBuildPathRuntimeStore'
+import { recordGraphCommandSummaryForBuildPath } from '../../buildPath/recordBuildPathGraphCommand'
+import { editHistoryStore } from '../../store/editHistoryStore'
+import {
+  commitReadyGraphCommandPlan,
+  createReadyGraphCommandCommitPlan,
+} from '../../console/commandCommitContract'
 import {
   loadGraphDocumentFromFile,
   saveGraphDocumentToFile,
@@ -192,6 +198,7 @@ const graphWithPublishedPart = (
 describe('useSpaghettiStore graph normalization', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    editHistoryStore.clear()
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useBuildPathRuntimeStore.getState().resetRuntimeState()
@@ -510,6 +517,154 @@ describe('useSpaghettiStore graph normalization', () => {
       addedEdgeIds: [...profileEdgeIds, outputPreviewEdge?.edgeId],
       removedEdgeIds: [],
     })
+  })
+
+  it('removes and restores Build Path command cards when graph command history is undone and redone', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 25,
+    })
+    const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+    const extrudeNodeId = summary.lifecycleState === 'committed'
+      ? summary.createdNodeIds[0]
+      : null
+
+    expect(extrudeNodeId).toBeTruthy()
+    recordGraphCommandSummaryForBuildPath({
+      commandSummary: summary,
+      graphDocumentId: 'graph-document-1',
+    })
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Extrude'])
+
+    expect(editHistoryStore.undo()).not.toBeNull()
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === extrudeNodeId),
+    ).toBe(false)
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Sketch'])
+
+    expect(editHistoryStore.redo()).not.toBeNull()
+    expect(
+      useSpaghettiStore.getState().graph.nodes.some((node) => node.nodeId === extrudeNodeId),
+    ).toBe(true)
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Sketch', 'Extrude'])
+  })
+
+  it('removes Build Path command cards when a graph node is deleted directly and restores them with undo', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-to-extrude',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfile:profile-a' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+      ],
+    })
+    recordGraphCommandSummaryForBuildPath({
+      graphDocumentId: 'graph-document-1',
+      commandSummary: commitReadyGraphCommandPlan(
+        createReadyGraphCommandCommitPlan({
+          commandFamily: 'Sketch',
+          entryPoint: 'viewport-toolbar',
+          intendedMutations: ['create-node'],
+        }),
+        {
+          createdNodeIds: ['node-sketch-1'],
+        },
+      ),
+    })
+    recordGraphCommandSummaryForBuildPath({
+      graphDocumentId: 'graph-document-1',
+      commandSummary: commitReadyGraphCommandPlan(
+        createReadyGraphCommandCommitPlan({
+          commandFamily: 'Extrude',
+          entryPoint: 'viewport-toolbar',
+          intendedMutations: ['create-node', 'add-wire'],
+        }),
+        {
+          createdNodeIds: ['node-extrude-1'],
+          addedEdgeIds: ['edge-sketch-to-extrude'],
+        },
+      ),
+    })
+
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Sketch', 'Extrude'])
+
+    expect(useSpaghettiStore.getState().removeGraphNodeWithHistory('node-extrude-1')).toBe(true)
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Sketch'])
+    expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toEqual([])
+
+    expect(editHistoryStore.undo()).not.toBeNull()
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Sketch', 'Extrude'])
+    expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toMatchObject([
+      {
+        edgeId: 'edge-sketch-to-extrude',
+        fromNodeId: 'node-sketch-1',
+        toNodeId: 'node-extrude-1',
+      },
+    ])
+
+    expect(editHistoryStore.redo()).not.toBeNull()
+    expect(
+      useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+        (step) => step.display.label,
+      ),
+    ).toEqual(['Sketch'])
   })
 
   it('accepts an Extrude session without duplicating an existing OutputPreview wire', () => {
@@ -3278,6 +3433,133 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(selectGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1')).toEqual(
       [],
     )
+  })
+
+  it('keeps receive references orphaned when their source node is deleted and resolves them again on undo', () => {
+    const sourceGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: OUTPUT_PREVIEW_NODE_TYPE,
+            params: {
+              componentLabel: 'Published Component',
+              objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1' }],
+              slots: [{ slotId: 's001' }],
+              nextSlotIndex: 2,
+            },
+          },
+          {
+            nodeId: 'node-cube-source',
+            type: 'Part/Cube',
+            params: {},
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-cube-source-output',
+            from: {
+              nodeId: 'node-cube-source',
+              portId: 'solid',
+            },
+            to: {
+              nodeId: 'node-output-preview-1',
+              portId: 'in:solid:s001',
+            },
+          },
+        ],
+      },
+      'Source Graph',
+    )
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(sourceGraphId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['source-cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_source_cube'],
+      pendingStatsPartKeys: ['source-cube'],
+      buildRequestId: 'build-request-source-reference',
+      buildSeq: 41,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: sourceGraphId,
+      buildRequestId: 'build-request-source-reference',
+      buildSeq: 41,
+      bundle: createAcceptedBundle({
+        seq: 41,
+        graphDocumentId: sourceGraphId,
+        buildRequestId: 'build-request-source-reference',
+        entries: [
+          {
+            artifact: {
+              ...cubeArtifact,
+              id: 'source-cube',
+              partKeyStr: 'source-cube',
+              partKey: { id: 'source-cube', instance: null },
+            },
+            outputEntryId: 'output-entry:s001:node-cube-source',
+            sourceNodeId: 'node-cube-source',
+          },
+        ],
+      }),
+    })
+    useSpaghettiStore.getState().addGraphReceiveReference('graph-document-1', {
+      receiveId: 'receive-source-cube',
+      sourceGraphDocumentId: sourceGraphId,
+      sourceOutputEntryId: 'output-entry:s001:node-cube-source',
+    })
+
+    expect(
+      selectResolvedGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
+    ).toEqual([
+      expect.objectContaining({
+        receiveId: 'receive-source-cube',
+        resolutionState: 'resolved',
+      }),
+    ])
+
+    useSpaghettiStore.getState().openGraphDocumentInViewport(sourceGraphId)
+    expect(useSpaghettiStore.getState().removeGraphNodeWithHistory('node-cube-source')).toBe(true)
+
+    expect(selectGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1')).toEqual([
+      {
+        receiveId: 'receive-source-cube',
+        sourceGraphDocumentId: sourceGraphId,
+        sourceOutputEntryId: 'output-entry:s001:node-cube-source',
+        mode: 'link',
+      },
+    ])
+    expect(
+      selectResolvedGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
+    ).toEqual([
+      expect.objectContaining({
+        receiveId: 'receive-source-cube',
+        sourceGraphDocumentId: sourceGraphId,
+        sourceOutputEntryId: 'output-entry:s001:node-cube-source',
+        resolutionState: 'unresolved',
+        sourceEntry: null,
+      }),
+    ])
+
+    expect(editHistoryStore.undo()).not.toBeNull()
+    expect(
+      selectResolvedGraphReceiveReferencesByDocumentId(useSpaghettiStore.getState(), 'graph-document-1'),
+    ).toEqual([
+      expect.objectContaining({
+        receiveId: 'receive-source-cube',
+        sourceGraphDocumentId: sourceGraphId,
+        sourceOutputEntryId: 'output-entry:s001:node-cube-source',
+        resolutionState: 'resolved',
+      }),
+    ])
   })
 
   it('acceptGraphBuildResult rejects stale writes directly at the graph runtime boundary', () => {

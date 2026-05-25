@@ -1293,6 +1293,10 @@ export const selectViewportResultState = (
     geometryResult: finalGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
+  const currentAcceptedOutputPreviewRenderVm = qualifyPreviewRenderVm(
+    options.interactionAcceptedOutputPreviewRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
+    options.viewerTargetGraphDocumentId,
+  )
   const authoritativeGeometryRenderVm = buildAuthoritativeRenderVm({
     geometryResult: finalGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
@@ -1300,6 +1304,8 @@ export const selectViewportResultState = (
   const authoritativeRenderVm =
     finalGeometryResult !== null && publishedAuthoritativeRenderVm.viewerParts.length > 0
       ? publishedAuthoritativeRenderVm
+      : finalGeometryResult !== null && currentAcceptedOutputPreviewRenderVm.viewerParts.length > 0
+        ? currentAcceptedOutputPreviewRenderVm
       : authoritativeGeometryRenderVm
   const previewReadyAuthoritativeRenderVm = buildAuthoritativeRenderVm({
     geometryResult: previewReadyAuthoritativeGeometryResult,
@@ -1309,16 +1315,12 @@ export const selectViewportResultState = (
     geometryResult: options.committedAuthoritativeGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
-  const committedAcceptedOutputPreviewRenderVm = qualifyPreviewRenderVm(
-    options.interactionAcceptedOutputPreviewRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
-    options.viewerTargetGraphDocumentId,
-  )
   const committedAuthoritativeRenderVm =
     committedAuthoritativeGeometryRenderVm.viewerParts.length > 0
       ? committedAuthoritativeGeometryRenderVm
       : options.committedAuthoritativeGeometryResult !== null &&
-          committedAcceptedOutputPreviewRenderVm.viewerParts.length > 0
-        ? committedAcceptedOutputPreviewRenderVm
+          currentAcceptedOutputPreviewRenderVm.viewerParts.length > 0
+        ? currentAcceptedOutputPreviewRenderVm
         : options.committedAuthoritativeGeometryResult !== null &&
             publishedAuthoritativeRenderVm.viewerParts.length > 0
           ? publishedAuthoritativeRenderVm

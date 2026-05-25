@@ -4,6 +4,9 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+308. 2026-05-25 08:50:18: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md` to the docs map and refreshed the Build Path workspace-family routing so direct Spaghetti node deletion and future reference orphan behavior have a planned owner.
+307. 2026-05-24 12:08:57: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-13 - Root Alias Shortcut Contract.md` to the docs map so the planned root Console alias shortcut contract is discoverable under the Console workspace family.
+306. 2026-05-24 11:10:17: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Future/Console_Phase Console-12 - Root New Graph Command.md` to the docs map so the planned root-level `New Graph` Console command is discoverable under the Console workspace family.
 305. 2026-05-22 17:51:51: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Vision.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`, and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md` to the docs map and refreshed the Workspace Modes umbrella so Build Path has a dedicated workspace-family setup for graph-authored build events, master scrub, branch timelines, and later explicit restore/branch actions.
 304. 2026-05-22 00:12:51: Added `Summary 4` to the `### Doc Stats` section using a fresh read-only Markdown scan under `/20/parahook/docs`, updating the non-`/archive/` versus `/archive/` file and raw-line totals to today's counts while preserving the older summaries for comparison.
 303. 2026-05-21 21:05:45: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Visual-Style-Menu/Future/Visual-Style-Menu-1 - Settings Workspace Radial Menu Recipes.md` to the docs map and refreshed the Visual Style Menu generation index so Settings-backed radial-menu recipe presets have a dedicated future planning surface.
@@ -874,6 +877,7 @@ Rule notes:
             - `Workspaces/Build-Path/Build-Path-Gen1-Index.md`
 ####### --------------Future
             - `Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
+            - `Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
 ###### -------------Home-Page
             - `Workspaces/Home-Page/Home-Page-Vision.md`
             - `Workspaces/Home-Page/Home-Page-Gen1-Index.md`
@@ -894,6 +898,9 @@ Rule notes:
             - `Workspaces/Pubwheel-Builder/Future/Pubwheel-Builder-1 - Workspace Foundation And Assembly Carousel.md`
 ###### -------------Console
             - `Workspaces/Console/Console-Index.md`
+####### --------------Future
+            - `Workspaces/Console/Future/Console_Phase Console-12 - Root New Graph Command.md`
+            - `Workspaces/Console/Future/Console_Phase Console-13 - Root Alias Shortcut Contract.md`
 ###### -------------Edit-History
             - `Workspaces/Edit-History/Edit-History-Vision.md`
             - `Workspaces/Edit-History/Edit-History-Gen1-Index.md`

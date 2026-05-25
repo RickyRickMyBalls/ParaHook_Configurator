@@ -57,7 +57,9 @@ export const frameSelectedCommand = (
 export const frameSelectionSetCommand = (
   partKeys: string[],
   referenceIds: string[],
-): boolean => getViewer()?.frameSelectionSet(partKeys, referenceIds) ?? false
+  viewportId?: WorkspaceViewportId,
+  options?: FrameTargetOptions,
+): boolean => getViewer(viewportId)?.frameSelectionSet(partKeys, referenceIds, options) ?? false
 
 export const frameSelectedGeometrySketchCommand = (): boolean =>
   getViewer()?.frameSelectedGeometrySketch() ?? false

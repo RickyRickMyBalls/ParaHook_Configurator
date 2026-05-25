@@ -4,6 +4,7 @@ import {
   createConsoleRootSession,
   createConsoleStagedNavigationContext,
   createSketchDrawRootSession,
+  getConsoleRootAliasShortcutChoices,
   getConsoleRootChoiceLabels,
   submitConsoleStagedNavigationToken,
   type ConsoleStagedNavigationSession,
@@ -19,6 +20,7 @@ describe('stagedNavigation', () => {
       'GRAPH',
       'SKETCH',
       'NEW_SKETCH',
+      'NEW_GRAPH',
       'EXTRUDE',
       'CONTENT',
       'REFERENCES',
@@ -41,6 +43,30 @@ describe('stagedNavigation', () => {
     expect(getConsoleRootChoiceLabels()).toEqual(
       rootSession.validChoices.map((choice) => choice.label),
     )
+  })
+
+  it('exposes root alias shortcut choices from the staged root choices', () => {
+    const choices = getConsoleRootAliasShortcutChoices()
+
+    expect(choices.map((choice) => [choice.label, choice.preferredAlias])).toEqual([
+      ['Graph', 'G'],
+      ['Sketch', 'S'],
+      ['New Sketch', 'NS'],
+      ['New Graph', 'NG'],
+      ['Extrude', 'E'],
+      ['Content', 'CO'],
+      ['References', 'REF'],
+      ['Hide', 'H'],
+      ['Unhide All', 'UA'],
+      ['Workspace Modes', 'WM'],
+      ['Settings', null],
+      ['ConsoleInput', 'CI'],
+      ['Camera', 'CA'],
+      ['Radio', 'R'],
+      ['Zoom', 'Z'],
+      ['Pan', 'P'],
+      ['Orbit', 'O'],
+    ])
   })
 
   it('advances from the explicit root session into graph, camera, radio, and hide scopes', () => {
@@ -108,6 +134,20 @@ describe('stagedNavigation', () => {
     })
   })
 
+  it('executes S as the root Sketch command shortcut', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 's', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'sketch.root',
+      breadcrumb: ['Sketch'],
+    })
+  })
+
   it('executes New Sketch as a root command that forces a fresh sketch', () => {
     const context = createConsoleStagedNavigationContext([
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
@@ -119,6 +159,34 @@ describe('stagedNavigation', () => {
       kind: 'execute',
       actionId: 'sketch.new',
       breadcrumb: ['New Sketch'],
+    })
+  })
+
+  it('executes New Graph as a root command that creates a graph document', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'new graph', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'graph.new',
+      breadcrumb: ['New Graph'],
+    })
+  })
+
+  it('executes NG as the root New Graph shortcut', () => {
+    const context = createConsoleStagedNavigationContext([
+      { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
+    ])
+
+    const result = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'ng', context)
+
+    expect(result).toMatchObject({
+      kind: 'execute',
+      actionId: 'graph.new',
+      breadcrumb: ['New Graph'],
     })
   })
 
@@ -325,7 +393,7 @@ describe('stagedNavigation', () => {
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
     ])
 
-    const cameraRoot = submitConsoleStagedNavigationToken(null, 'c', context)
+    const cameraRoot = submitConsoleStagedNavigationToken(null, 'ca', context)
     expect(cameraRoot.kind).toBe('advance')
     if (cameraRoot.kind !== 'advance') {
       throw new Error('Expected camera root token to advance')
@@ -2182,6 +2250,7 @@ describe('stagedNavigation', () => {
       'GRAPH',
       'SKETCH',
       'NEW_SKETCH',
+      'NEW_GRAPH',
       'EXTRUDE',
       'CONTENT',
       'REFERENCES',

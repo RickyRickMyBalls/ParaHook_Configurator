@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { requestRadioRuntimeWarmup } from '../../runtime/audio/radioRuntimeWarmup'
 import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
 import {
@@ -127,6 +127,7 @@ import {
   createSketchDrawZoomRootSession,
   createWorkspaceModesRootSession,
   createWorkspaceModeViewportSelectedSession,
+  getConsoleRootAliasShortcutChoices,
   isConsoleStagedNavigationRootToken,
   resolveConsoleWorkspaceContextSync,
   submitConsoleStagedNavigationToken,
@@ -442,6 +443,14 @@ const buildConsoleWorkspaceSurfaceTargetOptionFromDetachedSurface = (
   surfaceKind: surface.surfaceKind,
 })
 
+const ROOT_ALIAS_SHORTCUT_TIMEOUT_MS = 700
+const CONSOLE_ENTRY_ALIAS_TOKEN = 'C'
+
+type RootAliasShortcutDraft = {
+  token: string
+  timeoutId: number | null
+}
+
 type UseConsoleInteractionResult = {
   enterGuidedRootSession: (options?: { appendPrompt?: boolean }) => void
   rehydrateGuidedRootSession: () => void
@@ -520,6 +529,17 @@ export function useConsoleInteraction(
     switchToDocked,
     transitionReferenceTransformAxisPrompt,
   } = options
+  const rootAliasShortcutDraftRef = useRef<RootAliasShortcutDraft | null>(null)
+  const rootAliasShortcutConsoleFocusRef = useRef<() => void>(() => undefined)
+  const suppressNextSubmitUserEntryRef = useRef(false)
+
+  const clearRootAliasShortcutDraft = useCallback(() => {
+    const draft = rootAliasShortcutDraftRef.current
+    if (draft?.timeoutId !== null && draft?.timeoutId !== undefined) {
+      window.clearTimeout(draft.timeoutId)
+    }
+    rootAliasShortcutDraftRef.current = null
+  }, [])
 
   const enterGuidedRootSession = useCallback((enterOptions?: { appendPrompt?: boolean }) => {
     rootGuidedOptOutRef.current = false
@@ -1006,6 +1026,14 @@ export function useConsoleInteraction(
         consoleState.featureAssistDescriptor !== null,
       allowFlatConsoleCapture: true,
       consoleInputPriorityMode: uiPrefsState.consoleInputPriorityMode,
+      rootAliasShortcutStartKeys: [
+        ...new Set([
+          CONSOLE_ENTRY_ALIAS_TOKEN,
+          ...getConsoleRootAliasShortcutChoices().flatMap((choice) =>
+            choice.aliases.flatMap((alias) => Array.from(alias)).filter(Boolean),
+          ),
+        ]),
+      ],
     })
   }, [])
 
@@ -1983,6 +2011,19 @@ export function useConsoleInteraction(
     setFeatureAssistDescriptor,
   ])
 
+  const recordSubmittedCommand = useCallback((rawToken: string) => {
+    if (suppressNextSubmitUserEntryRef.current) {
+      suppressNextSubmitUserEntryRef.current = false
+      return
+    }
+    appendConsoleEntry({
+      layer: 'Commands',
+      commandLineKind: 'user',
+      text: `> ${rawToken}`,
+    })
+    pushCommandHistory(rawToken)
+  }, [pushCommandHistory])
+
   const handleSubmitCommand = useCallback(
     (inputText: string) => {
       const trimmedInput = inputText.trim().toLowerCase()
@@ -2644,12 +2685,7 @@ export function useConsoleInteraction(
             })
           }
         }
-        appendConsoleEntry({
-          layer: 'Commands',
-          commandLineKind: 'user',
-          text: `> ${rawToken}`,
-        })
-        pushCommandHistory(rawToken)
+        recordSubmittedCommand(rawToken)
         const stagedResult = submitConsoleStagedNavigationToken(
           activeStagedSession,
           inputText,
@@ -3004,6 +3040,53 @@ export function useConsoleInteraction(
           }
           if (stagedResult.actionId === 'sketch.new') {
             startRootSketchCommand({ commandIdentity, forceNew: true })
+            return
+          }
+          if (stagedResult.actionId === 'graph.new') {
+            const graphDocumentId = useSpaghettiStore.getState().createGraphDocument()
+            const graphDocument =
+              selectGraphDocumentById(useSpaghettiStore.getState(), graphDocumentId)
+            activateConsoleGraphTarget(graphDocumentId, null, {
+              strategy: 'open-or-focus',
+            })
+            const nextSession = resolveConsoleWorkspaceContextSync(
+              buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+              {
+                graphDocumentId,
+                nodeId: null,
+              },
+            ).session
+            if (nextSession !== null) {
+              setStagedNavigationSession(nextSession)
+            } else {
+              enterGuidedRootSession()
+            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'App',
+              text: `Created ${graphDocument?.name ?? 'Graph'}`,
+              source: 'console',
+              severity: 'info',
+            })
+            const activePromptSession = useConsoleStore.getState().stagedNavigationSession
+            appendConsoleEntry({
+              layer: 'Commands',
+              text:
+                activePromptSession === null
+                  ? ROOT_PROMPT_TEXT
+                  : buildStagedPromptText(
+                      activePromptSession,
+                      activePromptSession.validChoices,
+                    ),
+              source: 'console',
+              severity: 'info',
+            })
+            requestRadioBurst(commandIdentity, 'enter')
             return
           }
           if (stagedResult.actionId === 'extrude.root') {
@@ -3955,13 +4038,24 @@ export function useConsoleInteraction(
                 stagedResult.session.scopeId === 'referencesZoomRoot' ||
                 stagedResult.session.scopeId === 'referenceCategoryZoomRoot'
               ) {
+                const zoomAnimationOptions = {
+                  animate: true,
+                  durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+                } as const
                 if (stagedResult.session.scopeId === 'contentAssemblyZoomRoot') {
                   const selectionSet = resolveSelectionSetForZoom()
-                  return frameSelectionSetCommand(selectionSet.partKeys, selectionSet.referenceIds)
+                  return frameSelectionSetCommand(
+                    selectionSet.partKeys,
+                    selectionSet.referenceIds,
+                    undefined,
+                    zoomAnimationOptions,
+                  )
                 }
                 return frameSelectionSetCommand(
                   [],
                   stagedResult.session.selections.referenceZoomIds ?? [],
+                  undefined,
+                  zoomAnimationOptions,
                 )
               }
               if (
@@ -3969,7 +4063,15 @@ export function useConsoleInteraction(
                 stagedResult.session.scopeId === 'multiSelectSelected'
               ) {
                 const selectionSet = resolveSelectionSetForZoom()
-                return frameSelectionSetCommand(selectionSet.partKeys, selectionSet.referenceIds)
+                return frameSelectionSetCommand(
+                  selectionSet.partKeys,
+                  selectionSet.referenceIds,
+                  undefined,
+                  {
+                    animate: true,
+                    durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+                  },
+                )
               }
               const selectedObjectPartKey = resolveSelectedObjectPartKeyForZoom()
               const zoomAnimationOptions = {
@@ -5442,7 +5544,15 @@ export function useConsoleInteraction(
                 return
               }
             } else if (zoomObjectTarget?.kind === 'selection-set') {
-              frameSelectionSetCommand(zoomObjectTarget.partKeys, zoomObjectTarget.referenceIds)
+              frameSelectionSetCommand(
+                zoomObjectTarget.partKeys,
+                zoomObjectTarget.referenceIds,
+                undefined,
+                {
+                  animate: true,
+                  durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+                },
+              )
             } else if (selectedObjectPartKey !== null) {
               frameSelectedCommand(selectedObjectPartKey, undefined, {
                 animate: true,
@@ -5636,6 +5746,7 @@ export function useConsoleInteraction(
       openReferenceTransformAxisPrompt,
       openReferenceTransformPlanePrompt,
       pushCommandHistory,
+      recordSubmittedCommand,
       requestRadioBurst,
       resolveConsoleActionContext,
       resolveWorkspaceModeRuntimeGuard,
@@ -5650,6 +5761,79 @@ export function useConsoleInteraction(
       transitionReferenceTransformAxisPrompt,
     ],
   )
+
+  const focusConsoleFromAliasShortcut = useCallback(() => {
+    clearRootAliasShortcutDraft()
+    rootAliasShortcutConsoleFocusRef.current()
+  }, [clearRootAliasShortcutDraft])
+
+  const scheduleRootAliasShortcutDraft = useCallback((
+    token: string,
+    options?: { fallbackToConsoleEntry?: boolean },
+  ) => {
+    clearRootAliasShortcutDraft()
+    const timeoutId = window.setTimeout(() => {
+      if (options?.fallbackToConsoleEntry === true) {
+        focusConsoleFromAliasShortcut()
+        return
+      }
+      rootAliasShortcutDraftRef.current = null
+    }, ROOT_ALIAS_SHORTCUT_TIMEOUT_MS)
+    rootAliasShortcutDraftRef.current = {
+      token,
+      timeoutId,
+    }
+  }, [clearRootAliasShortcutDraft, focusConsoleFromAliasShortcut])
+
+  const submitRootAliasShortcut = useCallback((alias: string) => {
+    clearRootAliasShortcutDraft()
+    suppressNextSubmitUserEntryRef.current = true
+    useConsoleStore.getState().setInputText('')
+    handleSubmitCommand(alias)
+  }, [clearRootAliasShortcutDraft, handleSubmitCommand])
+
+  const handleRootAliasShortcutKey = useCallback((token: string): boolean => {
+    const normalizedToken = token.trim().toUpperCase()
+    if (normalizedToken.length === 0) {
+      return false
+    }
+
+    const activeDraft = rootAliasShortcutDraftRef.current
+    const draftToken =
+      activeDraft === null ? normalizedToken : `${activeDraft.token}${normalizedToken}`
+    const aliases = getConsoleRootAliasShortcutChoices().flatMap((choice) => choice.aliases)
+    const exactAlias = aliases.includes(draftToken)
+    const hasLongerAlias = aliases.some(
+      (alias) => alias.startsWith(draftToken) && alias.length > draftToken.length,
+    )
+
+    if (exactAlias) {
+      submitRootAliasShortcut(draftToken)
+      return true
+    }
+
+    if (hasLongerAlias || draftToken === CONSOLE_ENTRY_ALIAS_TOKEN) {
+      scheduleRootAliasShortcutDraft(draftToken, {
+        fallbackToConsoleEntry: draftToken === CONSOLE_ENTRY_ALIAS_TOKEN,
+      })
+      return true
+    }
+
+    clearRootAliasShortcutDraft()
+    const singleKeyHasLongerAlias = aliases.some(
+      (alias) => alias.startsWith(normalizedToken) && alias.length > normalizedToken.length,
+    )
+    if (singleKeyHasLongerAlias || normalizedToken === CONSOLE_ENTRY_ALIAS_TOKEN) {
+      scheduleRootAliasShortcutDraft(normalizedToken, {
+        fallbackToConsoleEntry: normalizedToken === CONSOLE_ENTRY_ALIAS_TOKEN,
+      })
+      return true
+    }
+
+    return false
+  }, [clearRootAliasShortcutDraft, scheduleRootAliasShortcutDraft, submitRootAliasShortcut])
+
+  useEffect(() => clearRootAliasShortcutDraft, [clearRootAliasShortcutDraft])
 
 
   useEffect(() => {
@@ -5717,6 +5901,19 @@ export function useConsoleInteraction(
         event.preventDefault()
         event.stopImmediatePropagation()
         focusMainConsoleInput()
+        return
+      }
+      if (
+        routing.owner === 'viewport-command' &&
+        routing.viewportCommandAction === 'root-alias' &&
+        typeof routing.viewportCommandToken === 'string' &&
+        (() => {
+          rootAliasShortcutConsoleFocusRef.current = focusMainConsoleInput
+          return handleRootAliasShortcutKey(routing.viewportCommandToken)
+        })()
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
         return
       }
       if (routing.owner === 'viewport-command' && routing.viewportCommandAction === 'sketch') {
@@ -5859,6 +6056,7 @@ export function useConsoleInteraction(
     featureAssistDescriptor,
     focusMainConsoleInput,
     handleEscCancelCommand,
+    handleRootAliasShortcutKey,
     handleSubmitCommand,
     primeSketchDrawStagedRootForTyping,
     routeConsoleGlobalKey,
@@ -5923,6 +6121,19 @@ export function useConsoleInteraction(
         event.preventDefault()
         event.stopImmediatePropagation()
         focusPopoutConsoleInput()
+        return
+      }
+      if (
+        routing.owner === 'viewport-command' &&
+        routing.viewportCommandAction === 'root-alias' &&
+        typeof routing.viewportCommandToken === 'string' &&
+        (() => {
+          rootAliasShortcutConsoleFocusRef.current = focusPopoutConsoleInput
+          return handleRootAliasShortcutKey(routing.viewportCommandToken)
+        })()
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
         return
       }
       if (routing.owner === 'viewport-command' && routing.viewportCommandAction === 'sketch') {
@@ -6065,6 +6276,7 @@ export function useConsoleInteraction(
     featureAssistDescriptor,
     focusPopoutConsoleInput,
     handleEscCancelCommand,
+    handleRootAliasShortcutKey,
     handleSubmitCommand,
     popoutWindow,
     primeSketchDrawStagedRootForTyping,

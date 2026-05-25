@@ -3,6 +3,20 @@
 ## Doc Header
 
 ### Doc History
+244. 2026-05-25 09:27:31: Prepped `Build-Path-11 / Phase 1 - Parallel Lane Visual Model` for implementation as a derived topology layout read-model slice, with endpoint-aware dependency metadata, Spaghetti wire-color semantic reuse, and the `Graph-1.parahook-graph-PARALLEL.json` `1 > 6 > 1` proof as the first gate.
+243. 2026-05-25 09:22:10: Refined the Build Path 11 handoff so Parallel mode is now planned as a compact icon-card projection of Spaghetti fan-out/fan-in topology, with `Sketch -> six Extrudes -> Output` as the canonical `1 > 6 > 1` proof and connector colors derived from reference-wire semantics.
+242. 2026-05-25 09:02:43: Recorded `Build-Path-14 / Phase 1 - Manual Node Deletion Sync And Orphaned References` as implemented so direct Spaghetti node deletion removes current Build Path cards while receive references preserve unresolved source intent until undo restores the original source identity.
+241. 2026-05-25 08:50:18: Added `Build-Path-14 - Node Deletion And Reference Orphan Contract` to the Build Path workspace family so direct Spaghetti node deletion can remove current Build Path command cards while downstream references become explicit unresolved or orphaned dependencies.
+240. 2026-05-24 09:43:51: Recorded the Build Path viewport-corner layering cleanup so the Model Viewport split-corner handle remains above the bottom-left Build Path dock while the dock stays flush to the viewport edge.
+239. 2026-05-24 09:31:22: Recorded the Build Path viewport-dock scrollbar refinement so the horizontal scrollbar stays hidden while the strip is still growing and appears only after the timeline actually overflows its available Model Viewport width.
+238. 2026-05-24 09:19:11: Recorded the Build Path viewport-dock sizing cleanup so the timeline grows with its cards up to full Model Viewport width, then scrolls horizontally for longer histories.
+237. 2026-05-24 09:14:00: Recorded the Build Path viewport placement cleanup that anchors the default viewport-docked Build Path to the bottom-left Model Viewport edge with zero offset before later drag/resize work.
+236. 2026-05-24 09:07:39: Recorded the `Build-Path-13 / Phase 1` viewport-dock cleanup that removed the separate current-command readback and previous/next panel now that the draggable scrub marker owns docked Build Path navigation.
+235. 2026-05-24 08:47:02: Recorded the `Build-Path-13 / Phase 1` marker placement correction so the draggable current-position line now sits after the loaded/current command card, between the current card and the next card, instead of behind the current position.
+234. 2026-05-24 08:43:47: Recorded the `Build-Path-13 / Phase 1` marker alignment repair so the draggable current-position line now sits in front of the loaded command card, between timeline cards, instead of centered over the selected card.
+233. 2026-05-24 08:36:23: Recorded `Build-Path-13 / Phase 1 - Draggable Current Position Line` as implemented with a Build Path marker overlay, drag-to-scrub selection through the existing history path, focused tests, TypeScript, production build, and local HTTP smoke coverage.
+232. 2026-05-24 08:29:49: Prepped `Build-Path-13 / Phase 1 - Draggable Current Position Line` for implementation against the live Build Path strip, selection store, CSS, and focused surface tests.
+231. 2026-05-24 08:25:38: Added and prepped `Build-Path-13 - Draggable Current Position Line` as an open-ended Build Path visual cleanup doc whose first phase adds a Fusion-style draggable current-position line for timeline scrub.
 230. 2026-05-23 16:22:05: Added, implemented, and closed `Build-Path-12.2 - Timeline Selection Edit History` so user-driven Build Path master timeline selection changes now enter global Edit History and undo/redo selection without mutating CAD graph truth.
 229. 2026-05-23 15:35:05: Recorded the Build Path accepted CAD command selection-follow repair so committed Sketch/Extrude events now advance the Build Path selection to the newly accepted timeline step while cancelled commands preserve the previous selection.
 228. 2026-05-23 15:09:00: Recorded `Build-Path-12.1 - Graph Lifecycle Timeline Cards` as implemented with structural `Graph Created` and `Graph Loaded` Build Path cards, graph create/load intake, distinct lifecycle display, viewport-mask safety proof, focused tests, typecheck, build, and browser smoke coverage.
@@ -1173,14 +1187,25 @@ The right mental model is:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Vision.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
   - dedicated home for the graph-authored build timeline workspace, including accepted build events across graphs, one master linear timeline, view-only master scrub, branch-local timelines for parallel construction work, and explicit boundaries against Edit History Ctrl+Z and Spaghetti graph authoring ownership
+  - deletion/reference boundary:
+    - direct Spaghetti node deletion should remove current Build Path cards for deleted command nodes
+    - downstream references to deleted source nodes should become explicit unresolved or orphaned dependency intent instead of silently remapping to replacement nodes
+    - undo/redo should restore cards and reference resolution from graph truth where the original node identity returns
   - presentation boundary:
     - default modeling presentation is a clean Model Viewport-docked CAD/build icon strip with no visible content label
+    - Parallel mode should become a compact icon-card projection of Spaghetti graph topology, not a full graph editor
+    - a shared source command should fan out into parallel sibling icon cards, and a shared output/sink should fan those lanes back into one output card
+    - mini connector lines should use the same semantic color family as the underlying Spaghetti reference wires
     - the strip can dock top or bottom, and bottom dock sits above `Console`
     - split, tiled, and windowed Build Path surfaces still use normal workspace titlebar chrome like `Console`
   - current implementation-planning owner:
-    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-11 - Parallel Lane Icon Layout.md`
+  - recently implemented deletion/reference owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
   - current next implementation phase:
-    - `Build-Path-1 / Phase 2 - Master Linear Timeline`
+    - `Build-Path-11 / Phase 1 - Parallel Lane Visual Model`
+    - first slice: derived topology layout read model and proof before final connector painting
+    - canonical proof shape: `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json` should read as `Sketch -> six parallel Extrudes -> Output`
 - `Pubwheel Builder`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Gen1-Index.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Pubwheel-Builder/Pubwheel-Builder-Vision.md`
