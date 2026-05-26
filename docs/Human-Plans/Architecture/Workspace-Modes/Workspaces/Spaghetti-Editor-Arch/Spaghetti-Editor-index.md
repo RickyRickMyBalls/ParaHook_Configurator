@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+97. 2026-05-26 08:11:24: Refined the shipped `Spaghetti-Editor 12` organization menu so the dependency-column layout is named `Parallel` and the default command-created-node style is available as a second `Linear` organization option.
+96. 2026-05-26 08:02:40: Marked `Spaghetti-Editor 12 - Canvas Context Menu And Node Organization` shipped after the Spaghetti canvas gained `Shift+S` add-node search, empty-space context-menu actions, dependency-column full-node organization, one undoable document-only apply action, focused tests, production build proof, and in-app browser mount smoke.
+95. 2026-05-26 07:49:23: Added `Spaghetti-Editor 12 - Canvas Context Menu And Node Organization` as the planned Spaghetti canvas organization lane, covering empty-space right-click canvas actions, `Shift+S` add-node search, full-node dependency organization, document-only apply behavior, and proof against Parallel-style fan-out/fan-in graphs.
 94. 2026-05-25 14:39:45: Marked `Spaghetti-Editor 11 / Phase 1 - Canvas Viewport Persistence Build Isolation` shipped after graph-canvas viewport persistence moved to document-only revision scope with focused worker-build isolation proof.
 93. 2026-05-25 14:34:33: Added `Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation` as the planned fix lane for `Bug 25`, separating graph-canvas pan/zoom persistence from geometry revision and worker build invalidation.
 92. 2026-05-25 14:27:43: Added and closed `Spaghetti-Editor 10 / Phase 4 - Crossing Background Drag Start` after user testing showed blue Window selection worked but green Crossing selection could fail when the right-to-left drag began on visible background outside the transformed stage.
@@ -755,3 +758,35 @@ Short read:
 
 Initial phase breakdown:
 - `[x] Spaghetti-Editor 11 - Phase 1 - Canvas Viewport Persistence Build Isolation` - shipped a dedicated document-only graph viewport persistence action, routed `SpaghettiCanvas` through it, and proved no worker build request occurs
+
+### [x] Spaghetti-Editor 12 - Canvas Context Menu And Node Organization
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 12 - Canvas Context Menu And Node Organization.md`
+
+#### Purpose
+
+Give the Spaghetti canvas a real empty-space right-click menu and an explicit organization action that can tidy tangled node graphs from inside the editor.
+
+This phase should separate:
+- empty-space canvas context-menu actions
+- the existing add-node search surface, moved to `Shift+S`
+- real Spaghetti node organization over `graph.ui.nodes`
+- Build Path Parallel as inspiration rather than ownership
+
+Short read:
+- empty-space right-click should open canvas actions instead of the add-node search menu
+- `Shift+S` should open the existing add-node search when the Spaghetti canvas has focus
+- `Organization` should arrange full Spaghetti nodes and actual wires into dependency columns and sibling lanes
+- the first organization layout should make `Sketch -> many Extrudes -> OutputPreview` read like a full-node version of the Build Path Parallel `1 > 6 > 1` topology
+- organization should update document/UI node positions only, without changing graph semantics or triggering worker builds
+
+Initial phase breakdown:
+- `[x] Spaghetti-Editor 12 - Phase 1 - Shift+S Add Node Search Launcher` - shipped the add-node search launcher on focused canvas `Shift+S`, using the last canvas pointer location or visible canvas center.
+- `[x] Spaghetti-Editor 12 - Phase 2 - Canvas Context Menu Shell` - shipped empty-space right-click canvas actions with `Organization` while preserving node right-click row-mode behavior.
+- `[x] Spaghetti-Editor 12 - Phase 3 - Dependency Organization Planner` - shipped a pure Spaghetti layout planner for dependency columns, fan-out/fan-in lanes, disconnected nodes, stable ordering, and width preservation.
+- `[x] Spaghetti-Editor 12 - Phase 4 - Apply Organization With History` - shipped document-only organization application through one undoable `Organize graph nodes` edit-history entry.
+- `[x] Spaghetti-Editor 12 - Phase 5 - Organization Proof And Follow-Up Routing` - closed with focused layout/canvas/store/app-store tests, production build proof, and in-app browser mount smoke, leaving selected-only organization, alignment controls, compact chains, and saved alternate layouts as future scope.
+
+Post-closeout refinement:
+- `[x] Organization mode naming` - the dependency-column layout is now the `Parallel` menu action, and the default command-created-node flow is available as a second `Linear` menu action.

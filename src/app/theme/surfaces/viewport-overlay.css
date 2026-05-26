@@ -3184,6 +3184,49 @@
   min-width: 0;
 }
 
+.ViewportExtrudeCommandToolbarProfileStage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.ViewportExtrudeCommandToolbarProfileStageList {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ViewportExtrudeCommandToolbarProfileStageLabel {
+  overflow: hidden;
+  color: rgba(202, 209, 224, calc(var(--overlay-tool-text-alpha, 1) * 0.74));
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ViewportExtrudeCommandToolbarProfileStageEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  padding: 8px;
+  border: 1px dashed
+    color-mix(
+      in srgb,
+      var(--overlay-tool-accent, var(--sketch-plane-accent)) 24%,
+      rgba(255, 255, 255, 0.1)
+    );
+  border-radius: 8px;
+  color: rgba(216, 227, 247, calc(var(--overlay-tool-text-alpha, 1) * 0.62));
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .ViewportExtrudeCommandToolbarProfileList {
   height: auto;
   max-height: 132px;
@@ -3194,8 +3237,10 @@
   grid-template-columns: 24px minmax(0, 1fr) 24px;
 }
 
-.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemButton {
-  pointer-events: none;
+@media (max-width: 520px) {
+  .ViewportExtrudeCommandToolbarProfileStage {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .ViewportDisplayModeMenuBackdrop {

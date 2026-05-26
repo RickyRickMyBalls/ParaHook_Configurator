@@ -107,6 +107,10 @@ import {
   resolveCanvasEdgeSourceKind,
   resolveCanvasEndpointKind,
 } from './edgeSourceKind'
+import {
+  planGraphNodeOrganization,
+  type GraphNodeOrganizationMode,
+} from '../layout/graphNodeOrganization'
 
 type EndpointPayload = {
   nodeId: string
@@ -490,6 +494,9 @@ export function SpaghettiCanvas({
   const applyGraphPatch = useSpaghettiStore((state) => state.applyGraphPatch)
   const setGraphViewport = useSpaghettiStore((state) => state.setGraphViewport)
   const setManyNodePos = useSpaghettiStore((state) => state.setManyNodePos)
+  const organizeGraphNodePositionsWithHistory = useSpaghettiStore(
+    (state) => state.organizeGraphNodePositionsWithHistory,
+  )
   const commitGraphNodeMoveWithHistory = useSpaghettiStore(
     (state) => state.commitGraphNodeMoveWithHistory,
   )
@@ -552,6 +559,10 @@ export function SpaghettiCanvas({
     y: number
     nodeId: string
   } | null>(null)
+  const [canvasContextMenu, setCanvasContextMenu] = useState<{
+    x: number
+    y: number
+  } | null>(null)
   const [wireCurviness, setWireCurviness] = useState(25)
   const [outputRowMinHeight, setOutputRowMinHeight] = useState(40)
   const [pinDotSize, setPinDotSize] = useState(8)
@@ -607,6 +618,10 @@ export function SpaghettiCanvas({
   const viewportHasBeenInitializedRef = useRef(false)
   const lastMiddlePointerDownRef = useRef<{
     timeStamp: number
+    clientX: number
+    clientY: number
+  } | null>(null)
+  const lastCanvasPointerRef = useRef<{
     clientX: number
     clientY: number
   } | null>(null)
@@ -2146,6 +2161,74 @@ export function SpaghettiCanvas({
     setUiMessage,
   ])
 
+  const openNodeAddMenuAtClientPoint = useCallback(
+    (clientX: number, clientY: number) => {
+      const viewportElement = viewportRef.current
+      if (viewportElement === null) {
+        return
+      }
+      const rect = viewportElement.getBoundingClientRect()
+      const localX = clientX - rect.left
+      const localY = clientY - rect.top
+      const stagePoint = toStagePointFromClient(
+        clientX,
+        clientY,
+        viewportElement,
+        viewRef.current,
+      )
+      setCanvasContextMenu(null)
+      setNodeRowModeMenu(null)
+      setNodeAddMenu({
+        x: clampNumber(localX, 8, Math.max(8, rect.width - 280)),
+        y: clampNumber(localY, 8, Math.max(8, rect.height - 260)),
+        stageX: stagePoint.x,
+        stageY: stagePoint.y,
+        query: '',
+      })
+    },
+    [],
+  )
+
+  const openNodeAddMenuFromShortcut = useCallback(() => {
+    const viewportElement = viewportRef.current
+    if (viewportElement === null) {
+      return
+    }
+    const rect = viewportElement.getBoundingClientRect()
+    const lastPointer = lastCanvasPointerRef.current
+    openNodeAddMenuAtClientPoint(
+      lastPointer?.clientX ?? rect.left + rect.width * 0.5,
+      lastPointer?.clientY ?? rect.top + rect.height * 0.5,
+    )
+  }, [openNodeAddMenuAtClientPoint])
+
+  const handleOrganizeGraphNodes = useCallback((mode: GraphNodeOrganizationMode) => {
+    const plan = planGraphNodeOrganization({
+      nodes: graph.nodes,
+      edges: graph.edges,
+      nodePositions: graph.ui?.nodes,
+      mode,
+    })
+    const committed = organizeGraphNodePositionsWithHistory(
+      Object.entries(plan.positionsByNodeId).map(([nodeId, position]) => ({
+        nodeId,
+        x: position.x,
+        y: position.y,
+        ...(typeof position.width === 'number' ? { width: position.width } : {}),
+      })),
+    )
+    setCanvasContextMenu(null)
+    setNodeAddMenu(null)
+    setNodeRowModeMenu(null)
+    const organizationLabel = mode === 'parallel' ? 'Parallel' : 'Linear'
+    setUiMessage({
+      level: 'info',
+      text: committed
+        ? `Graph nodes organized: ${organizationLabel}.`
+        : `Graph nodes are already organized: ${organizationLabel}.`,
+    })
+  }, [graph.edges, graph.nodes, graph.ui?.nodes, organizeGraphNodePositionsWithHistory, setUiMessage])
+
   const resolveWaypointInsertIndex = useCallback(
     (
       edgeId: string,
@@ -2806,6 +2889,18 @@ export function SpaghettiCanvas({
       }
       tabIndex={0}
       onKeyDown={(event) => {
+        if (
+          event.shiftKey &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          !event.metaKey &&
+          event.key.toLowerCase() === 's' &&
+          !isInteractiveTarget(event.target)
+        ) {
+          event.preventDefault()
+          openNodeAddMenuFromShortcut()
+          return
+        }
         if (event.key === 'Escape' && nodeAddMenu !== null) {
           event.preventDefault()
           setNodeAddMenu(null)
@@ -2814,6 +2909,11 @@ export function SpaghettiCanvas({
         if (event.key === 'Escape' && nodeRowModeMenu !== null) {
           event.preventDefault()
           setNodeRowModeMenu(null)
+          return
+        }
+        if (event.key === 'Escape' && canvasContextMenu !== null) {
+          event.preventDefault()
+          setCanvasContextMenu(null)
           return
         }
         if ((event.key === 'Delete' || event.key === 'Backspace') && selectedEdgeId !== null) {
@@ -2915,6 +3015,10 @@ export function SpaghettiCanvas({
         onContextMenu={(event) => {
           event.preventDefault()
           event.stopPropagation()
+          lastCanvasPointerRef.current = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
           const target = event.target
           if (!isElementTarget(target)) {
             return
@@ -2933,6 +3037,7 @@ export function SpaghettiCanvas({
               return
             }
             setNodeAddMenu(null)
+            setCanvasContextMenu(null)
             setNodeRowModeMenu({
               x: clampNumber(localX, 8, Math.max(8, rect.width - 210)),
               y: clampNumber(localY, 8, Math.max(8, rect.height - 160)),
@@ -2940,19 +3045,11 @@ export function SpaghettiCanvas({
             })
             return
           }
+          setNodeAddMenu(null)
           setNodeRowModeMenu(null)
-          const stagePoint = toStagePointFromClient(
-            event.clientX,
-            event.clientY,
-            viewportElement,
-            viewRef.current,
-          )
-          setNodeAddMenu({
+          setCanvasContextMenu({
             x: clampNumber(localX, 8, Math.max(8, rect.width - 280)),
-            y: clampNumber(localY, 8, Math.max(8, rect.height - 260)),
-            stageX: stagePoint.x,
-            stageY: stagePoint.y,
-            query: '',
+            y: clampNumber(localY, 8, Math.max(8, rect.height - 120)),
           })
         }}
         onWheel={(event) => {
@@ -2982,7 +3079,17 @@ export function SpaghettiCanvas({
             }
           })
         }}
+        onPointerMove={(event) => {
+          lastCanvasPointerRef.current = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
+        }}
         onPointerDown={(event) => {
+          lastCanvasPointerRef.current = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
           if (event.button !== 0) {
             return
           }
@@ -2992,6 +3099,10 @@ export function SpaghettiCanvas({
           beginCanvasSelectionWindow(event)
         }}
         onPointerDownCapture={(event) => {
+          lastCanvasPointerRef.current = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
           if (event.button !== 1) {
             return
           }
@@ -3156,6 +3267,26 @@ export function SpaghettiCanvas({
             </div>
           </div>
         ) : null}
+        <SpaghettiContextMenu
+          open={canvasContextMenu !== null}
+          x={canvasContextMenu?.x ?? 0}
+          y={canvasContextMenu?.y ?? 0}
+          onClose={() => setCanvasContextMenu(null)}
+          items={[
+            {
+              id: 'canvas-organization-parallel',
+              label: 'Parallel',
+              disabled: graph.nodes.length === 0,
+              onSelect: () => handleOrganizeGraphNodes('parallel'),
+            },
+            {
+              id: 'canvas-organization-linear',
+              label: 'Linear',
+              disabled: graph.nodes.length === 0,
+              onSelect: () => handleOrganizeGraphNodes('linear'),
+            },
+          ]}
+        />
         <SpaghettiContextMenu
           open={nodeRowModeMenu !== null}
           x={nodeRowModeMenu?.x ?? 0}

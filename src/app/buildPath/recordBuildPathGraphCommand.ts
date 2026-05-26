@@ -8,6 +8,7 @@ import type { BuildPathProjectionBuildResultState } from '../console/buildPathPr
 import { useBuildPathRuntimeStore } from './useBuildPathRuntimeStore'
 import type { BuildPathGraphDependency } from './buildPathTimeline'
 import type { PortKind } from '../spaghetti/schema/spaghettiTypes'
+import type { ExtrudeGraphCommandProfileSource } from '../console/graphCommandAuthoring'
 
 export type RecordGraphCommandSummaryForBuildPathRequest = {
   graphDocumentId: string
@@ -31,6 +32,13 @@ export type RecordGraphDependenciesForBuildPathRequest = {
   sourcePortIds?: readonly string[]
   targetPortIds?: readonly string[]
   connectorKinds?: readonly PortKind[]
+}
+
+export type RecordAcceptedExtrudeCommandForBuildPathRequest = {
+  graphDocumentId: string
+  commandSummary: GraphCommandCommitSummary
+  profileSources: readonly ExtrudeGraphCommandProfileSource[]
+  acceptedAt?: string
 }
 
 const createLiveBuildPathProjectionId = ({
@@ -156,4 +164,64 @@ export const recordGraphDependenciesForBuildPath = ({
   useBuildPathRuntimeStore.getState().addGraphDependencies(dependencies)
 
   return dependencies
+}
+
+const uniqueInOrder = (values: readonly string[]): string[] => {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  values.forEach((value) => {
+    if (seen.has(value)) {
+      return
+    }
+    seen.add(value)
+    result.push(value)
+  })
+
+  return result
+}
+
+export const recordAcceptedExtrudeCommandForBuildPath = ({
+  acceptedAt,
+  commandSummary,
+  graphDocumentId,
+  profileSources,
+}: RecordAcceptedExtrudeCommandForBuildPathRequest) => {
+  if (!isCommittedGraphCommandSummary(commandSummary)) {
+    return recordGraphCommandSummaryForBuildPath({
+      acceptedAt,
+      commandSummary,
+      graphDocumentId,
+    })
+  }
+
+  const sourceNodeIds = uniqueInOrder(profileSources.map((source) => source.nodeId))
+  const targetNodeIds = uniqueInOrder([
+    ...commandSummary.createdNodeIds,
+    ...commandSummary.reusedNodeIds,
+    ...commandSummary.updatedNodeIds,
+  ])
+
+  sourceNodeIds.forEach((sketchNodeId) => {
+    recordSketchSourceForBuildPathIfMissing({
+      acceptedAt,
+      graphDocumentId,
+      sketchNodeId,
+    })
+  })
+
+  if (sourceNodeIds.length > 0 && targetNodeIds.length > 0) {
+    recordGraphDependenciesForBuildPath({
+      graphDocumentId,
+      sourceNodeIds,
+      targetNodeIds,
+      edgeIds: commandSummary.addedEdgeIds,
+    })
+  }
+
+  return recordGraphCommandSummaryForBuildPath({
+    acceptedAt,
+    commandSummary,
+    graphDocumentId,
+  })
 }

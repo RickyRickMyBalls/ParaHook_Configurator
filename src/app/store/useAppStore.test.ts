@@ -4897,6 +4897,31 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       undefined,
     )
 
+    requestBuildSpy.mockClear()
+    const runtimeBeforeOrganizationEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+    useSpaghettiStore.getState().organizeGraphNodePositionsWithHistory([
+      { nodeId: nodeId ?? '', x: 88, y: 144 },
+    ])
+    const runtimeAfterOrganizationEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(runtimeAfterOrganizationEdit?.currentDocumentRevision).toBe(
+      (runtimeBeforeOrganizationEdit?.currentDocumentRevision ?? 0) + 1,
+    )
+    expect(runtimeAfterOrganizationEdit?.currentGraphRevision).toBe(
+      runtimeBeforeOrganizationEdit?.currentGraphRevision,
+    )
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.[nodeId ?? '']).toEqual({
+      x: 88,
+      y: 144,
+      width: 260,
+    })
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds['graph-document-1']).toBe(
+      undefined,
+    )
+
     useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
 
     expect(requestBuildSpy).not.toHaveBeenCalled()

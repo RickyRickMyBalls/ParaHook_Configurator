@@ -4,6 +4,8 @@ import {
   createExtrudeCommandSession,
   listExtrudeProfileConsoleChoices,
   resolveExtrudeProfileConsoleToken,
+  selectExtrudeCommandCommitProfileSources,
+  setExtrudeCommandSessionCommitProfileSources,
   setExtrudeCommandSessionProfileSources,
 } from './extrudeCommandSession'
 import type { SketchFeature } from '../features/featureTypes'
@@ -66,11 +68,58 @@ describe('extrudeCommandSession', () => {
       activeStep: 'depth',
       validation: 'readyForDepth',
       selectedProfileSources: [{ nodeId: 'node-sketch-1', portId: 'Profiles' }],
+      commitProfileSources: [{ nodeId: 'node-sketch-1', portId: 'Profiles' }],
     })
     expect(session).toMatchObject({
       activeStep: 'selectProfiles',
       validation: 'needsProfiles',
       selectedProfileSources: [],
+      commitProfileSources: [],
+    })
+  })
+
+  it('keeps candidate profiles visible when commit profiles are toggled off', () => {
+    const session = createExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'console-root',
+      selectedProfileSources: [
+        { nodeId: 'node-sketch-1', portId: 'ProfileA' },
+        { nodeId: 'node-sketch-1', portId: 'ProfileB' },
+      ],
+    })
+
+    const nextSession = setExtrudeCommandSessionCommitProfileSources(session, [
+      { nodeId: 'node-sketch-1', portId: 'ProfileA' },
+    ])
+
+    expect(nextSession).toMatchObject({
+      activeStep: 'depth',
+      validation: 'readyForDepth',
+      selectedProfileSources: [
+        { nodeId: 'node-sketch-1', portId: 'ProfileA' },
+        { nodeId: 'node-sketch-1', portId: 'ProfileB' },
+      ],
+      commitProfileSources: [{ nodeId: 'node-sketch-1', portId: 'ProfileA' }],
+    })
+    expect(selectExtrudeCommandCommitProfileSources(nextSession)).toEqual([
+      { nodeId: 'node-sketch-1', portId: 'ProfileA' },
+    ])
+  })
+
+  it('requires at least one commit profile even when candidates remain visible', () => {
+    const session = createExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'console-root',
+      selectedProfileSources: [{ nodeId: 'node-sketch-1', portId: 'ProfileA' }],
+    })
+
+    const nextSession = setExtrudeCommandSessionCommitProfileSources(session, [])
+
+    expect(nextSession).toMatchObject({
+      activeStep: 'selectProfiles',
+      validation: 'needsProfiles',
+      selectedProfileSources: [{ nodeId: 'node-sketch-1', portId: 'ProfileA' }],
+      commitProfileSources: [],
     })
   })
 

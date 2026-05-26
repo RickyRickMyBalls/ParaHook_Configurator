@@ -4,6 +4,9 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+322. 2026-05-26 07:49:23: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 12 - Canvas Context Menu And Node Organization.md` to the docs map and refreshed the Spaghetti editor family index so canvas right-click actions, `Shift+S` add-node search, and full-node organization have a planned owner.
+321. 2026-05-26 07:18:47: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-11 - Toolbar Build Path Intake Repair.md` to the docs map and refreshed the Extrude family index so toolbar-committed Extrude Build Path intake has a planned repair owner.
+320. 2026-05-26 06:50:26: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-10 - Command Profile Staging Lists.md` to the docs map and refreshed the Extrude family index so active command profile staging has a planned two-list candidate-versus-commit owner.
 319. 2026-05-26 06:13:29: Added `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 4 - Viewport-Local Toolbar Placement And Persistence.md` to the docs map and refreshed the Viewport Command Toolbar Shell family index so viewport-local right anchoring, Transform split-view repair, Extrude placement adoption, and remembered manual toolbar placement have a planned shared-shell owner.
 318. 2026-05-25 22:09:52: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-16 - Feature Edit Context Menu.md` to the docs map and refreshed the Build Path workspace-family routing so right-click `edit sketch` and `edit extrude` icon-menu handoffs have a planned owner.
 317. 2026-05-25 19:51:44: Added `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 3 - Command Panel Visual Structure Extraction.md` to the docs map and refreshed the Viewport Command Toolbar Shell family index so command-panel body rhythm, section framing, title actions, status/readback rows, and control grouping have a planned shared-shell owner.
@@ -974,6 +977,7 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 9 - Repeat Extrude Retained Output While Building.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 10 - Viewer Window Selection Direction Repair.md`
             - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 12 - Canvas Context Menu And Node Organization.md`
 ####### --------------Shipped
             - `Workspaces/Spaghetti-Editor-Arch/Shipped/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
 ####### --------------Nodes
@@ -993,6 +997,8 @@ Rule notes:
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md`
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-8 - Command Flow Console Focus Cleanup.md`
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-9 - Command Toolbar Node Control Unification.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-10 - Command Profile Staging Lists.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-11 - Toolbar Build Path Intake Repair.md`
 ######## ---------------Loft
             - `Workspaces/Spaghetti-Editor-Arch/Nodes/Loft/Loft-Index.md`
 ##### ------------Future

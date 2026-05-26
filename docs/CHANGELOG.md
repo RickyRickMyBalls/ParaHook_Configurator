@@ -72,6 +72,361 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2148 -->
+
+### [2148] - 2026-05-26 08:16 - `Spaghetti-Editor 12 - Parallel Node Height Spacing`
+
+HUMAN SUMMARY: ``Parallel organization now spaces sibling nodes far enough apart for expanded full-node cards. Fan-out stacks no longer overlap the next node title and bottom rows when organizing visible Spaghetti nodes.``
+
+NOTE: 2026-05-26 08:23:58: Increased the Parallel lane step again after screenshot proof showed expanded Extrude cards could still overlap at the first widened spacing.
+
+#### Scope / Constraints Honored
+
+- Kept the fix inside the Spaghetti organization planner defaults.
+- Left Linear organization and graph semantics unchanged.
+
+#### Summary of Implementation
+
+- Increased the default Parallel lane spacing from compact-card spacing to expanded-node-safe spacing, then widened it again after screenshot proof showed the first pass still overlapped expanded Extrude cards.
+- Updated layout tests for sibling branch stacks and disconnected-node placement.
+
+#### Files Changed
+
+- `src/app/spaghetti/layout/graphNodeOrganization.ts`
+- `src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Parallel organization now places sibling branch nodes with a taller vertical step so full expanded nodes remain readable.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "organizes graph nodes in parallel|organizes graph nodes in linear|organization actions"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2147 -->
+
+### [2147] - 2026-05-26 08:11 - `Spaghetti-Editor 12 - Organization Mode Naming`
+
+HUMAN SUMMARY: ``The Spaghetti canvas organization menu now exposes explicit Parallel and Linear layout choices. Parallel keeps the newly shipped dependency-column tidy layout, while Linear gives users a single dependency-ordered row matching the default command-created-node flow.``
+
+#### Scope / Constraints Honored
+
+- Kept both organization modes as `graph.ui.nodes` position metadata only.
+- Preserved the existing undoable organization history path and Spaghetti canvas right-click ownership.
+
+#### Summary of Implementation
+
+- Added a `linear` mode to the Spaghetti graph-node organization planner.
+- Renamed the existing context-menu organization action to `Parallel`.
+- Added a second `Linear` context-menu action and mode-specific status copy.
+- Added focused planner and canvas render tests for the new mode names and linear layout.
+
+#### Files Changed
+
+- `src/app/spaghetti/layout/graphNodeOrganization.ts`
+- `src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 12 - Canvas Context Menu And Node Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+
+#### Behavior Changes
+
+- Empty-space Spaghetti canvas right-click now shows `Parallel` and `Linear`.
+- `Parallel` organizes sibling branches into dependency columns and lanes.
+- `Linear` organizes the graph into one dependency-ordered horizontal flow.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "organization|organizes graph nodes"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2146 -->
+
+### [2146] - 2026-05-26 08:02 - `Spaghetti-Editor 12 - Phase 5 - Organization Proof And Follow-Up Routing`
+
+HUMAN SUMMARY: ``Spaghetti Editor 12 closed with focused proof for the new canvas organization flow, including the full-node fan-out/fan-in layout, canvas menu routing, undoable apply behavior, worker-build isolation, production build verification, and in-app browser mount smoke.``
+
+#### Scope / Constraints Honored
+
+- Kept follow-on organization ideas out of the first shipped pass.
+- Preserved graph semantics, worker build truth, and Build Path Parallel ownership boundaries.
+
+#### Summary of Implementation
+
+- Added focused coverage for layout determinism, empty-space context-menu routing, organization application, undo restoration, and document-only build isolation.
+- Recorded future organization directions as follow-ons: selected-only organization, alignment controls, compact-chain variants, and saved alternate layout presets.
+
+#### Files Changed
+
+- `src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 12 - Canvas Context Menu And Node Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- None beyond the accepted Spaghetti Editor 12 behavior from Phases 1 through 4.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "node-position edits|organizes graph node positions|graph viewport edits"`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "menu-created|canvas organization|organizes graph nodes"`
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "keeps UI-only node-position edits"`
+- `npm.cmd run build`
+- In-app browser mount smoke at `http://127.0.0.1:5173/ParaHook_Configurator/`
+
+<!-- ENTRY 2145 -->
+
+### [2145] - 2026-05-26 08:02 - `Spaghetti-Editor 12 - Phase 4 - Apply Organization With History`
+
+HUMAN SUMMARY: ``The Spaghetti canvas Organization action now applies planned node positions as one document-only edit-history command. Undo and redo restore the whole position snapshot without advancing graph geometry revision or requesting worker builds.``
+
+#### Scope / Constraints Honored
+
+- Applied only `graph.ui.nodes` position metadata.
+- Kept graph nodes, params, edges, output state, receive references, and runtime build truth unchanged.
+
+#### Summary of Implementation
+
+- Added `organizeGraphNodePositionsWithHistory(...)` to commit batch node-position organization.
+- Added position-snapshot restore support for undo and redo.
+- Wired the canvas `Organization` menu action to the planner and store action with user-facing status messages.
+
+#### Files Changed
+
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Choosing `Organization` moves all graph nodes to organized positions and adds one `Organize graph nodes` undo entry.
+- Organization preserves the current viewport instead of fitting automatically.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "node-position edits|organizes graph node positions|graph viewport edits"`
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "menu-created|canvas organization|organizes graph nodes"`
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "keeps UI-only node-position edits"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2144 -->
+
+### [2144] - 2026-05-26 08:02 - `Spaghetti-Editor 12 - Phase 3 - Dependency Organization Planner`
+
+HUMAN SUMMARY: ``Spaghetti now has its own pure full-node organization planner. It derives dependency columns and sibling lanes from graph nodes and edges, preserving widths and keeping Build Path Parallel as visual precedent rather than runtime ownership.``
+
+#### Scope / Constraints Honored
+
+- Did not import Build Path timeline state or accepted build event order.
+- Returned planned positions only; graph mutation stays in the store integration phase.
+
+#### Summary of Implementation
+
+- Added `planGraphNodeOrganization(...)` under `src/app/spaghetti/layout/`.
+- Derived stable columns from incoming dependencies, stacked siblings deterministically, preserved existing node widths, and placed disconnected nodes in a trailing group.
+- Added pure tests for linear chains, fan-out/fan-in, disconnected nodes, width preservation, and shuffled input stability.
+
+#### Files Changed
+
+- `src/app/spaghetti/layout/graphNodeOrganization.ts`
+- `src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- No direct UI behavior changed in this phase; it provided the pure planning model used by the organization action.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/layout/graphNodeOrganization.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2143 -->
+
+### [2143] - 2026-05-26 08:02 - `Spaghetti-Editor 12 - Phase 2 - Canvas Context Menu Shell`
+
+HUMAN SUMMARY: ``Empty-space right-click in the Spaghetti canvas now opens a canvas action menu instead of the add-node search menu. Node right-click still owns row-mode controls, and the first canvas action is Organization.``
+
+#### Scope / Constraints Honored
+
+- Reused the existing Spaghetti context-menu component.
+- Kept node right-click behavior separate from empty-space canvas actions.
+
+#### Summary of Implementation
+
+- Added canvas context-menu state to `SpaghettiCanvas`.
+- Routed empty-space `contextmenu` to the canvas menu and node `contextmenu` to the existing row-mode menu.
+- Closed competing node-add and row-mode menus when opening canvas actions.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Right-clicking empty Spaghetti canvas space now shows the canvas action menu with `Organization`.
+- Empty-space right-click no longer opens node search.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "menu-created|canvas organization|organizes graph nodes"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2142 -->
+
+### [2142] - 2026-05-26 08:02 - `Spaghetti-Editor 12 - Phase 1 - Shift+S Add Node Search Launcher`
+
+HUMAN SUMMARY: ``The Spaghetti add-node search launcher moved from empty-space right-click to focused-canvas Shift+S. The menu keeps its existing search/add behavior and opens at the last canvas pointer location, falling back to the visible canvas center.``
+
+#### Scope / Constraints Honored
+
+- Preserved the existing add-node menu search, filter, add, Escape, and Enter behavior.
+- Kept shortcut handling scoped to the focused Spaghetti canvas and out of interactive text controls.
+
+#### Summary of Implementation
+
+- Added last-pointer tracking for Spaghetti canvas interactions.
+- Added `Shift+S` keyboard routing to open the existing add-node menu from the canvas.
+- Updated the menu-created node render test to use pointer movement plus `Shift+S`.
+
+#### Files Changed
+
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Pressing `Shift+S` while the Spaghetti canvas has focus opens add-node search.
+- Empty-space right-click is reserved for canvas actions.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/canvas/SpaghettiCanvas.render.test.tsx -t "menu-created|canvas organization|organizes graph nodes"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2141 -->
+
+### [2141] - 2026-05-26 07:27 - `Extrude-11 - Toolbar Build Path Intake Repair`
+
+HUMAN SUMMARY: ``Toolbar-committed Extrudes now record into Build Path the same way Console-committed Extrudes do. The accepted command summary is preserved after OK, source Sketch cards are backfilled when needed, and dependency hints follow only the profiles actually committed to Extrude.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair scoped to accepted Extrude command intake for Build Path.
+- Preserved Spaghetti graph acceptance as the source of geometry truth.
+- Kept Extrude runtime geometry, toolbar styling, two-list staging UX, and Build Path card layout out of scope.
+- Did not attempt retrospective repair for already-missing in-memory Build Path cards.
+
+#### Summary of Implementation
+
+- Added a shared `recordAcceptedExtrudeCommandForBuildPath` helper for post-accept Extrude Build Path intake.
+- Routed the Console Extrude depth-commit path through the shared helper.
+- Replaced the viewport toolbar's direct `acceptExtrudeCommandSession` binding with a handler that captures the active session, accepts the graph command, and records the returned summary into Build Path.
+- Captured commit-profile sources before the command session clears so inactive candidate-only profiles do not become Build Path dependencies.
+- Added focused regression coverage for accepted Extrude intake and toolbar OK recording.
+
+#### Files Changed
+
+- `src/app/buildPath/recordBuildPathGraphCommand.ts`
+- `src/app/buildPath/recordBuildPathGraphCommand.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-11 - Toolbar Build Path Intake Repair.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Pressing OK in the active Extrude toolbar now records a Build Path Extrude event after the graph command commits.
+- Build Path backfills a missing source Sketch event before the dependent Extrude event when needed.
+- Build Path dependency hints for accepted toolbar Extrudes are derived from commit-profile sources, not inactive viewport candidate profiles.
+- Console and toolbar Extrude acceptance now share the same post-accept Build Path intake helper.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/recordBuildPathGraphCommand.test.ts src/app/components/ViewerHost.test.tsx -t "recordGraphCommandSummaryForBuildPath|accepted Extrude|confirms the Extrude command toolbar"`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx -t "updates active Extrude depth from Console typing and commits on Enter"`
+- `npm.cmd run build`
+- In-app browser reload smoke at `http://localhost:5173/ParaHook_Configurator/` confirmed the app mounted without captured console errors.
+
+<!-- ENTRY 2140 -->
+
+### [2140] - 2026-05-26 07:02 - `Extrude-10 - Command Profile Staging Lists`
+
+HUMAN SUMMARY: ``The active Extrude command now separates viewport-selected candidate profiles from profiles that will actually extrude. The toolbar shows `Viewport Profiles` and `Extrude Profiles` lists, preview and OK commit use only the commit list, and the optional lock mode is explicitly deferred until live use proves it is needed.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to active Extrude command profile staging.
+- Preserved graph-authored Extrude node params and existing live command accept/cancel ownership.
+- Kept runtime geometry meaning, long-term multi-wire graph contract behavior, Sketch selection redesign, and ParaSlider/ParaSelect behavior out of scope.
+- Deferred lock-button mode instead of adding a second mode before the two-list behavior is tested in use.
+
+#### Summary of Implementation
+
+- Added `commitProfileSources` to the active Extrude command session while keeping `selectedProfileSources` as the candidate list.
+- Added command-session helpers for commit-active profile reads and source keys.
+- Updated live command profile-edge sync, validation, preview projection, and accept guards to use commit-active sources.
+- Rendered the Extrude toolbar Profiles readout as two focused-item lists: `Viewport Profiles` and `Extrude Profiles`.
+- Added candidate row toggles for temporarily removing or restoring profiles from the commit list while keeping `X` as hard removal from the staged command profile set.
+- Closed `Extrude-10 / Phases 1-3` and accepted `Phase 4` as lock-mode deferral in the owning phase doc and family index.
+
+#### Files Changed
+
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/commands/extrudeCommandSession.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-10 - Command Profile Staging Lists.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- New active Extrude profile picks enter both the candidate and commit lists by default.
+- Clicking a `Viewport Profiles` row toggles that profile into or out of `Extrude Profiles`.
+- Preview and accepted graph profile wires are created only from `Extrude Profiles`.
+- If the commit list becomes empty while candidates remain visible, OK is disabled and preview disappears through the existing validation path.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/spaghetti/commands/extrudeCommandSession.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/components/ViewerHost.test.tsx -t "extrudeCommandSession|Extrude session|Extrude command|commit-active|inactive Extrude|Extrude command toolbar|Extrude command preview|confirms the Extrude command"`
+- `npm.cmd run build`
+- In-app browser reload smoke at `http://localhost:5173/ParaHook_Configurator/` confirmed the app mounted without captured console errors.
+
 <!-- ENTRY 2139 -->
 
 ### [2139] - 2026-05-26 06:32 - `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence`

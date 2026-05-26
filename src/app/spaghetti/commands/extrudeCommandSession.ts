@@ -32,6 +32,7 @@ export type ExtrudeCommandSession = {
   entryPoint: GraphCommandEntryPoint
   activeStep: ExtrudeCommandStep
   selectedProfileSources: readonly ExtrudeGraphCommandProfileSource[]
+  commitProfileSources: readonly ExtrudeGraphCommandProfileSource[]
   depth: number
   operationMode: ExtrudeCommandOperationMode
   validation: ExtrudeCommandValidationState
@@ -43,6 +44,7 @@ export type CreateExtrudeCommandSessionOptions = {
   graphDocumentId: string
   entryPoint: GraphCommandEntryPoint
   selectedProfileSources?: readonly ExtrudeGraphCommandProfileSource[]
+  commitProfileSources?: readonly ExtrudeGraphCommandProfileSource[]
   depth?: number
   liveGraph?: ExtrudeCommandLiveGraphState | null
   reuseSelectedExtrudeNode?: boolean
@@ -64,9 +66,9 @@ export type ResolveExtrudeProfileTokenResult =
 export const DEFAULT_EXTRUDE_COMMAND_DEPTH = 10
 
 const resolveExtrudeCommandSelectionState = (
-  selectedProfileSources: readonly ExtrudeGraphCommandProfileSource[],
+  commitProfileSources: readonly ExtrudeGraphCommandProfileSource[],
 ): Pick<ExtrudeCommandSession, 'activeStep' | 'validation'> => {
-  if (selectedProfileSources.length > 0) {
+  if (commitProfileSources.length > 0) {
     return {
       activeStep: 'depth',
       validation: 'readyForDepth',
@@ -80,13 +82,15 @@ const resolveExtrudeCommandSelectionState = (
 }
 
 export const createExtrudeCommandSession = ({
+  commitProfileSources,
   depth = DEFAULT_EXTRUDE_COMMAND_DEPTH,
   entryPoint,
   graphDocumentId,
   liveGraph = null,
   selectedProfileSources = [],
 }: CreateExtrudeCommandSessionOptions): ExtrudeCommandSession => {
-  const selectionState = resolveExtrudeCommandSelectionState(selectedProfileSources)
+  const resolvedCommitProfileSources = commitProfileSources ?? selectedProfileSources
+  const selectionState = resolveExtrudeCommandSelectionState(resolvedCommitProfileSources)
 
   return {
     commandFamily: 'Extrude',
@@ -95,6 +99,7 @@ export const createExtrudeCommandSession = ({
     entryPoint,
     activeStep: selectionState.activeStep,
     selectedProfileSources: [...selectedProfileSources],
+    commitProfileSources: [...resolvedCommitProfileSources],
     depth,
     operationMode: 'newBody',
     validation: selectionState.validation,
@@ -107,15 +112,51 @@ export const setExtrudeCommandSessionProfileSources = (
   session: ExtrudeCommandSession,
   selectedProfileSources: readonly ExtrudeGraphCommandProfileSource[],
 ): ExtrudeCommandSession => {
-  const selectionState = resolveExtrudeCommandSelectionState(selectedProfileSources)
+  const selectedKeys = new Set(selectedProfileSources.map(getExtrudeProfileSourceKey))
+  const currentCommitSources = session.commitProfileSources.filter((source) =>
+    selectedKeys.has(getExtrudeProfileSourceKey(source)),
+  )
+  const currentCommitKeys = new Set(currentCommitSources.map(getExtrudeProfileSourceKey))
+  const commitProfileSources = [
+    ...currentCommitSources,
+    ...selectedProfileSources.filter((source) => !currentCommitKeys.has(getExtrudeProfileSourceKey(source))),
+  ]
+  const selectionState = resolveExtrudeCommandSelectionState(commitProfileSources)
 
   return {
     ...session,
     activeStep: selectionState.activeStep,
     selectedProfileSources: [...selectedProfileSources],
+    commitProfileSources,
     validation: selectionState.validation,
   }
 }
+
+export const setExtrudeCommandSessionCommitProfileSources = (
+  session: ExtrudeCommandSession,
+  commitProfileSources: readonly ExtrudeGraphCommandProfileSource[],
+): ExtrudeCommandSession => {
+  const selectedKeys = new Set(session.selectedProfileSources.map(getExtrudeProfileSourceKey))
+  const nextCommitProfileSources = commitProfileSources.filter((source) =>
+    selectedKeys.has(getExtrudeProfileSourceKey(source)),
+  )
+  const selectionState = resolveExtrudeCommandSelectionState(nextCommitProfileSources)
+
+  return {
+    ...session,
+    activeStep: selectionState.activeStep,
+    commitProfileSources: [...nextCommitProfileSources],
+    validation: selectionState.validation,
+  }
+}
+
+export const getExtrudeProfileSourceKey = (
+  source: Pick<ExtrudeGraphCommandProfileSource, 'nodeId' | 'portId'>,
+): string => `${source.nodeId}:${source.portId}`
+
+export const selectExtrudeCommandCommitProfileSources = (
+  session: ExtrudeCommandSession,
+): readonly ExtrudeGraphCommandProfileSource[] => session.commitProfileSources
 
 export const setExtrudeCommandSessionDepth = (
   session: ExtrudeCommandSession,

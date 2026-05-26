@@ -823,6 +823,9 @@ describe('ViewerHost reference loading', () => {
     expect(toolbar?.getAttribute('data-extrude-command-step')).toBe('depth')
     expect(toolbar?.textContent).toContain('Depth')
     expect(toolbar?.textContent).toContain('2 selected')
+    expect(toolbar?.textContent).toContain('2 to extrude')
+    expect(toolbar?.textContent).toContain('Viewport Profiles')
+    expect(toolbar?.textContent).toContain('Extrude Profiles')
     expect(toolbar?.textContent).toContain('25')
     expect(container.querySelectorAll('.ViewportExtrudeCommandToolbar .ViewportCommandPanelSection')).toHaveLength(3)
     expect(container.querySelector('.ViewportExtrudeCommandToolbar .ViewportCommandPanelStatusRow')).not.toBeNull()
@@ -831,12 +834,35 @@ describe('ViewerHost reference loading', () => {
       container.querySelectorAll(
         '.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemRow',
       ),
-    ).toHaveLength(2)
+    ).toHaveLength(4)
     expect(container.querySelectorAll('.ViewportExtrudeCommandToolbar .ViewportOverlayToolPanelResizeHandle')).toHaveLength(8)
     expect(okButton?.disabled).toBe(false)
 
+    const viewportProfileRows = container.querySelectorAll(
+      '[aria-label="Viewport Extrude profiles"] .PropertiesFocusedItemRow',
+    )
+    const toggleFirstProfile = viewportProfileRows[0]?.querySelector(
+      '.PropertiesFocusedItemButton',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleFirstProfile?.click()
+    })
+
+    expect(container.querySelector('[data-testid="extrude-command-selected-count"]')?.textContent).toBe(
+      '2 selected / 1 to extrude',
+    )
+    expect(
+      container.querySelectorAll('[aria-label="Viewport Extrude profiles"] .PropertiesFocusedItemRow'),
+    ).toHaveLength(2)
+    expect(
+      container.querySelectorAll('[aria-label="Profiles to Extrude"] .PropertiesFocusedItemRow'),
+    ).toHaveLength(1)
+    expect(useSpaghettiStore.getState().extrudeCommandSession?.selectedProfileSources).toHaveLength(2)
+    expect(useSpaghettiStore.getState().extrudeCommandSession?.commitProfileSources).toHaveLength(1)
+
     const removeFirstProfile = container.querySelector(
-      '.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemRemoveButton',
+      '[aria-label="Viewport Extrude profiles"] .PropertiesFocusedItemRemoveButton',
     ) as HTMLButtonElement | null
 
     await act(async () => {
@@ -844,14 +870,16 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(container.querySelector('[data-testid="extrude-command-selected-count"]')?.textContent).toBe(
-      '1 selected',
+      '1 selected / 1 to extrude',
     )
     expect(
-      container.querySelectorAll(
-        '.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemRow',
-      ),
+      container.querySelectorAll('[aria-label="Viewport Extrude profiles"] .PropertiesFocusedItemRow'),
+    ).toHaveLength(1)
+    expect(
+      container.querySelectorAll('[aria-label="Profiles to Extrude"] .PropertiesFocusedItemRow'),
     ).toHaveLength(1)
     expect(useSpaghettiStore.getState().extrudeCommandSession?.selectedProfileSources).toHaveLength(1)
+    expect(useSpaghettiStore.getState().extrudeCommandSession?.commitProfileSources).toHaveLength(1)
   })
 
   it('projects the active Extrude command preview from selected profile sources', async () => {
@@ -922,6 +950,9 @@ describe('ViewerHost reference loading', () => {
         ],
         depth: 25,
       })
+      useSpaghettiStore.getState().setExtrudeCommandCommitProfileSources([
+        { nodeId: 'node-sketch-1', portId: 'SketchProfile:profile-a' },
+      ])
     })
     const graphAfterCommandStart = useSpaghettiStore.getState().graph
 
@@ -948,11 +979,6 @@ describe('ViewerHost reference loading', () => {
             { x: 0, y: 10 },
           ],
         }),
-        expect.objectContaining({
-          sketchNodeId: 'node-sketch-1',
-          profileId: 'profile-b',
-          plane: 'XZ',
-        }),
       ],
     })
     expect(useSpaghettiStore.getState().graph).toEqual(graphAfterCommandStart)
@@ -962,8 +988,10 @@ describe('ViewerHost reference loading', () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { editHistoryStore } = await import('../store/editHistoryStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useBuildPathRuntimeStore } = await import('../buildPath/useBuildPathRuntimeStore')
 
     act(() => {
+      useBuildPathRuntimeStore.getState().resetRuntimeState()
       useSpaghettiStore.getState().setGraph({
         schemaVersion: 1,
         nodes: [
@@ -1054,6 +1082,15 @@ describe('ViewerHost reference loading', () => {
         (edge) => edge.from.nodeId === liveExtrudeNodeId && edge.to.portId === 'in:solid:s001',
       ),
     ).toHaveLength(1)
+    expect(useBuildPathRuntimeStore.getState().readMasterTimeline().steps.map(
+      (step) => step.display.label,
+    )).toEqual(['Sketch', 'Extrude'])
+    expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toMatchObject([
+      {
+        fromNodeId: 'node-sketch-1',
+        toNodeId: liveExtrudeNodeId,
+      },
+    ])
     expect(editHistoryStore.getUndoEntries().at(-1)).toMatchObject({
       label: 'Extrude',
       targetId: liveExtrudeNodeId,

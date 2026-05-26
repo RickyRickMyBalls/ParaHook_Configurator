@@ -507,8 +507,10 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
 
     const openNodeMenu = async () => {
       const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+      const canvasRoot = container?.querySelector('.SpaghettiCanvasRoot') as HTMLElement | null
       expect(scroller).not.toBeNull()
-      if (scroller === null) {
+      expect(canvasRoot).not.toBeNull()
+      if (scroller === null || canvasRoot === null) {
         return
       }
       scroller.getBoundingClientRect = () => ({
@@ -525,11 +527,19 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
 
       await act(async () => {
         scroller.dispatchEvent(
-          new MouseEvent('contextmenu', {
+          new PointerEventCtor('pointermove', {
             bubbles: true,
             cancelable: true,
             clientX: 100,
             clientY: 80,
+          }),
+        )
+        canvasRoot.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'S',
+            shiftKey: true,
           }),
         )
       })
@@ -581,6 +591,289 @@ describe('SpaghettiCanvas live extrude row rendering', () => {
     expect(editHistoryStore.getUndoEntries()[1]).toMatchObject({
       label: 'Add graph node',
       targetLabel: 'Geometry/Extrude',
+    })
+  })
+
+  it('opens canvas organization actions from empty-space right-click instead of node search', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+      ],
+      edges: [],
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    expect(scroller).not.toBeNull()
+    if (scroller === null) {
+      return
+    }
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 90,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.SpaghettiNodeAddMenu')).toBeNull()
+    const menu = container?.querySelector('.SpaghettiContextMenu')
+    expect(menu?.textContent).toContain('Parallel')
+    expect(menu?.textContent).toContain('Linear')
+  })
+
+  it('organizes graph nodes in parallel from the canvas context menu with one history entry', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-extrude',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-extrude-output',
+          from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+        },
+      ],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 900, y: 900 },
+          'node-extrude-1': { x: 100, y: 900 },
+          'node-output-preview-1': { x: 100, y: 100 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    expect(scroller).not.toBeNull()
+    if (scroller === null) {
+      return
+    }
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 90,
+        }),
+      )
+    })
+
+    const organizationButton = Array.from(
+      container?.querySelectorAll('.SpaghettiContextMenuItem') ?? [],
+    ).find((button) => button.textContent === 'Parallel') as HTMLButtonElement | undefined
+    expect(organizationButton).toBeDefined()
+
+    await act(async () => {
+      organizationButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes).toMatchObject({
+      'node-sketch-1': { x: 80, y: 80 },
+      'node-extrude-1': { x: 440, y: 80 },
+      'node-output-preview-1': { x: 800, y: 80 },
+    })
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Organize graph nodes',
+    })
+
+    await act(async () => {
+      editHistoryStore.undo()
+    })
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.['node-sketch-1']).toMatchObject({
+      x: 900,
+      y: 900,
+    })
+  })
+
+  it('organizes graph nodes in linear order from the canvas context menu', async () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature(),
+          },
+        },
+        {
+          nodeId: 'node-extrude-2',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 12,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-extrude-1',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-sketch-extrude-2',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-2', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-extrude-1-output',
+          from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+        },
+        {
+          edgeId: 'edge-extrude-2-output',
+          from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s002' },
+        },
+      ],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 900, y: 900 },
+          'node-extrude-1': { x: 100, y: 900 },
+          'node-extrude-2': { x: 100, y: 500 },
+          'node-output-preview-1': { x: 100, y: 100 },
+        },
+      },
+    })
+    const editorViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(editorViewportId).not.toBeNull()
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiCanvas
+          editorViewportId={editorViewportId ?? ''}
+          graphDocumentId="graph-document-1"
+          viewMode="expanded"
+          onSetViewMode={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const scroller = container?.querySelector('.SpaghettiCanvasScroller') as HTMLElement | null
+    expect(scroller).not.toBeNull()
+    if (scroller === null) {
+      return
+    }
+    stubElementRect(scroller, { left: 0, top: 0, width: 800, height: 600 })
+
+    await act(async () => {
+      scroller.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 90,
+        }),
+      )
+    })
+
+    const linearButton = Array.from(
+      container?.querySelectorAll('.SpaghettiContextMenuItem') ?? [],
+    ).find((button) => button.textContent === 'Linear') as HTMLButtonElement | undefined
+    expect(linearButton).toBeDefined()
+
+    await act(async () => {
+      linearButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().graph.ui?.nodes).toMatchObject({
+      'node-sketch-1': { x: 80, y: 80 },
+      'node-extrude-1': { x: 440, y: 80 },
+      'node-extrude-2': { x: 800, y: 80 },
+      'node-output-preview-1': { x: 1160, y: 80 },
     })
   })
 

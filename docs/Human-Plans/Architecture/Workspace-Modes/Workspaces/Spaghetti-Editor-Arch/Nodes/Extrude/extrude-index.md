@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+99. 2026-05-26 07:27:41: Marked `Extrude-11 - Toolbar Build Path Intake Repair` accepted after toolbar OK began recording accepted Extrude command summaries into Build Path through the shared intake helper with commit-profile dependency hints and focused proof.
+98. 2026-05-26 07:18:47: Added `Extrude-11 - Toolbar Build Path Intake Repair` as the next repair lane after read-only research found the toolbar OK path commits the Spaghetti graph but drops the returned command summary before Build Path intake.
+97. 2026-05-26 07:02:05: Marked `Extrude-10 - Command Profile Staging Lists` accepted after the active Extrude command gained a candidate-versus-commit profile staging contract, two focused-item toolbar lists, commit-only preview and accepted graph wires, hard remove semantics, focused tests, production build, and explicit lock-mode deferral.
+96. 2026-05-26 06:50:26: Added `Extrude-10 - Command Profile Staging Lists` as the next future lane for splitting active Extrude profile handling into viewport-selected candidate profiles and explicit `to extrude` commit profiles, with preview and `OK` commit driven only by the commit list.
 95. 2026-05-25 16:25:46: Marked `Extrude-9 - Command Toolbar Node Control Unification` accepted after the active command toolbar moved from readout-only chips to the shared viewport command-panel shell with ParaSlider and ParaSelect rows backed by live `Geometry/Extrude` node params, reusable Extrude control rules, and focused accept/cancel/preview proof.
 94. 2026-05-25 14:47:06: Linked `Extrude-9 - Command Toolbar Node Control Unification` to the new `Templates/Viewport Command Toolbar Shell` family so the in-viewport Sketch/Transform/Extrude toolbar shell prep is separated from detached/floating app-window shell planning.
 93. 2026-05-25 14:12:59: Added `Extrude-9 - Command Toolbar Node Control Unification` as the next future lane for turning the active Extrude command toolbar from a readout-only `ViewerHost` strip into a ParaSlider and ParaSelect-backed control surface over the same live `Geometry/Extrude` node params used by the Spaghetti editor.
@@ -180,6 +184,8 @@ The current dedicated follow-on docs for that stack are:
 - `Extrude-4 - Closed Profile Selection And Consumption Contract`
 - `Extrude-5 - Output Row Standardization And UI Cleanup`
 - `Extrude-9 - Command Toolbar Node Control Unification` accepted
+- `Extrude-10 - Command Profile Staging Lists` accepted
+- `Extrude-11 - Toolbar Build Path Intake Repair` accepted
 
 The current `Extrude-3.1` status is:
 - `Phase 3.1-1 - Shared Enum Row Foundation And First Extrude Adoption`
@@ -467,6 +473,8 @@ Active future phase docs:
 - `Future/Extrude_Phase Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty.md`
 - `Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
 - `Future/Extrude_Phase Extrude-9 - Command Toolbar Node Control Unification.md`
+- `Future/Extrude_Phase Extrude-10 - Command Profile Staging Lists.md`
+- `Future/Extrude_Phase Extrude-11 - Toolbar Build Path Intake Repair.md`
 
 Historical planning doc still worth keeping:
 - `Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
@@ -480,6 +488,8 @@ The highest-value next extrude planning cuts are probably:
 - adding `Extrude-5 - Output Row Standardization And UI Cleanup` so the current `SolidBody` output row adopts the calmer standardized row template before that output language widens across all nodes
 - shipping `Extrude-2` node enrichment and the first dedicated extrude toolbar now that viewport placement is trustworthy
 - shipping `Extrude-9` so the active Extrude command toolbar becomes a ParaSlider and ParaSelect-backed editor over live `Geometry/Extrude` node params instead of a separate readout strip
+- shipping `Extrude-10` so the active Extrude command toolbar can show viewport-selected profile candidates separately from profiles that will actually preview and commit
+- shipping `Extrude-11` so toolbar-committed Extrudes record the same Build Path accepted-command event and dependency hints as Console-committed Extrudes
 - consuming `Templates/Viewport Command Toolbar Shell / VCTS - 1` for the command-panel shell so Extrude does not grow another feature-local toolbar chrome path
 - removing the visible `Extrude Geometry` title and using that header area as the one-button extrude-toolbar launcher
 - locking the first real feature-completion task stack in `Extrude-3`, starting with:
@@ -970,3 +980,65 @@ Current status:
 - Use the dedicated `Extrude-8` future doc for the actual phase ladder and execution-ready details.
 - Keep `Extrude-8` focused on command-flow cleanup around active Extrude, Console focus, clean Depth input, and shortcut/camera ownership proof.
 - Do not reopen graph/runtime extrusion semantics, multi-wire profile execution, or broader Console staged-navigation design in this lane.
+
+## [x] Extrude-10 - Command Profile Staging Lists
+
+### Summary
+
+This umbrella now has a dedicated future-phase home:
+- `Future/Extrude_Phase Extrude-10 - Command Profile Staging Lists.md`
+
+That doc owns the actual `Extrude 10 Phase 1` through `Phase 4` breakdown.
+
+Current status:
+- `Extrude 10 Phase 1 - Profile Staging Session Contract`
+  - accepted
+- `Extrude 10 Phase 2 - Two-List Toolbar Profile UI`
+  - accepted
+- `Extrude 10 Phase 3 - Preview Commit And Rollback Proof`
+  - accepted
+- `Extrude 10 Phase 4 - Optional Lock Mode Decision`
+  - accepted as deferred until live use proves lock mode is needed
+
+### Questions
+
+- Should the active Extrude command track viewport-selected candidate profiles separately from the profiles that will actually preview and commit?
+- Should clicking a candidate profile toggle it into or out of the commit list while `X` remains the hard-remove action?
+- Should a lock button be deferred until the two-list staging model proves it needs frozen commit-list behavior?
+
+### Spec
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Extrude-10` future doc for the actual phase ladder and execution-ready details.
+- Keep `Extrude-10` focused on active command profile staging, toolbar list clarity, preview filtering, and commit filtering.
+- Do not reopen Extrude runtime geometry meaning, multi-wire graph contract semantics, or broad Sketch selection redesign in this lane.
+- Treat the lock button as intentionally deferred unless live use proves the basic two-list behavior is too eager.
+
+## [x] Extrude-11 - Toolbar Build Path Intake Repair
+
+### Summary
+
+This umbrella now has a dedicated future-phase home:
+- `Future/Extrude_Phase Extrude-11 - Toolbar Build Path Intake Repair.md`
+
+That doc owns the actual `Extrude 11 Phase 1` through `Phase 3` breakdown.
+
+Current status:
+- `Extrude 11 Phase 1 - Shared Extrude Build Path Intake Helper`
+  - accepted
+- `Extrude 11 Phase 2 - Toolbar OK Build Path Recording`
+  - accepted
+- `Extrude 11 Phase 3 - Verification And Closeout`
+  - accepted
+
+### Questions
+
+- Should toolbar OK share the same Build Path intake behavior as Console Extrude acceptance?
+- Should dependency hints be based on commit-profile sources instead of inactive candidate profiles?
+
+### Spec
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Extrude-11` future doc for the actual phase ladder and execution-ready details.
+- Keep `Extrude-11` focused on accepted command summary intake, source Sketch backfill, and dependency hint recording.
+- Do not reopen Extrude runtime geometry meaning, toolbar visual styling, or two-list profile staging UX in this lane.

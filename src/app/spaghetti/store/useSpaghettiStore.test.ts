@@ -333,6 +333,64 @@ describe('useSpaghettiStore graph normalization', () => {
     )
   })
 
+  it('keeps inactive Extrude profile candidates out of live command wires', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-b',
+        },
+      ],
+    })
+
+    useSpaghettiStore.getState().setExtrudeCommandCommitProfileSources([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+
+    const state = useSpaghettiStore.getState()
+    const liveExtrudeNodeId = state.extrudeCommandSession?.liveGraph?.liveExtrudeNodeId
+    const profileEdges = state.graph.edges.filter(
+      (edge) => edge.to.nodeId === liveExtrudeNodeId && edge.to.portId === 'ExtrusionProfile',
+    )
+
+    expect(state.extrudeCommandSession?.selectedProfileSources).toHaveLength(2)
+    expect(state.extrudeCommandSession?.commitProfileSources).toEqual([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+    expect(profileEdges).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      },
+    ])
+  })
+
   it('cancels a new live Extrude session by removing the created node and wires', () => {
     useSpaghettiStore.getState().setGraph({
       schemaVersion: 1,
@@ -517,6 +575,59 @@ describe('useSpaghettiStore graph normalization', () => {
       addedEdgeIds: [...profileEdgeIds, outputPreviewEdge?.edgeId],
       removedEdgeIds: [],
     })
+  })
+
+  it('accepts only commit-active Extrude profile sources', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-b',
+        },
+      ],
+    })
+    useSpaghettiStore.getState().setExtrudeCommandCommitProfileSources([
+      {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfile:profile-a',
+      },
+    ])
+
+    const liveExtrudeNodeId =
+      useSpaghettiStore.getState().extrudeCommandSession?.liveGraph?.liveExtrudeNodeId
+
+    useSpaghettiStore.getState().acceptExtrudeCommandSession()
+
+    const acceptedProfileEdges = useSpaghettiStore.getState().graph.edges.filter(
+      (edge) => edge.to.nodeId === liveExtrudeNodeId && edge.to.portId === 'ExtrusionProfile',
+    )
+
+    expect(acceptedProfileEdges).toMatchObject([
+      {
+        from: {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      },
+    ])
   })
 
   it('removes and restores Build Path command cards when graph command history is undone and redone', () => {
@@ -1813,6 +1924,65 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(
       2,
     )
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
+  })
+
+  it('organizes graph node positions with one undoable document-only edit', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [],
+      ui: {
+        nodes: {
+          'node-sketch-1': { x: 400, y: 400 },
+          'node-extrude-1': { x: 500, y: 500, width: 333 },
+        },
+      },
+    })
+    editHistoryStore.clear()
+
+    const runtimeAfterGeometryEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']
+    expect(runtimeAfterGeometryEdit?.compileBuild.currentDocumentRevision).toBe(1)
+    expect(runtimeAfterGeometryEdit?.compileBuild.currentGraphRevision).toBe(1)
+
+    const committed = useSpaghettiStore.getState().organizeGraphNodePositionsWithHistory([
+      { nodeId: 'node-sketch-1', x: 80, y: 80 },
+      { nodeId: 'node-extrude-1', x: 440, y: 80, width: 333 },
+    ])
+
+    expect(committed).toBe(true)
+    let state = useSpaghettiStore.getState()
+    expect(state.graph.ui?.nodes).toMatchObject({
+      'node-sketch-1': { x: 80, y: 80, width: DEFAULT_SPAGHETTI_NODE_WIDTH },
+      'node-extrude-1': { x: 440, y: 80, width: 333 },
+    })
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(
+      2,
+    )
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
+    expect(editHistoryStore.getUndoEntries()).toHaveLength(1)
+    expect(editHistoryStore.getUndoEntries()[0]).toMatchObject({
+      label: 'Organize graph nodes',
+    })
+
+    editHistoryStore.undo()
+    state = useSpaghettiStore.getState()
+    expect(state.graph.ui?.nodes).toMatchObject({
+      'node-sketch-1': { x: 400, y: 400, width: DEFAULT_SPAGHETTI_NODE_WIDTH },
+      'node-extrude-1': { x: 500, y: 500, width: 333 },
+    })
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
   })
 

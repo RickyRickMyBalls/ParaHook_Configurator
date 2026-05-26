@@ -103,7 +103,12 @@ import {
   deriveBuildPathViewportPreviewRead,
 } from '../buildPath/buildPathViewportPreview'
 import { useBuildPathRuntimeStore } from '../buildPath/useBuildPathRuntimeStore'
-import type { ExtrudeCommandSession } from '../spaghetti/commands/extrudeCommandSession'
+import { recordAcceptedExtrudeCommandForBuildPath } from '../buildPath/recordBuildPathGraphCommand'
+import {
+  getExtrudeProfileSourceKey,
+  selectExtrudeCommandCommitProfileSources,
+  type ExtrudeCommandSession,
+} from '../spaghetti/commands/extrudeCommandSession'
 import {
   GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_SELECT_OPTIONS,
   GEOMETRY_EXTRUDE_DIRECTION_SELECT_OPTIONS,
@@ -405,6 +410,13 @@ const formatExtrudeSelectedProfileCount = (
   return `${count} ${count === 1 ? 'selected' : 'selected'}`
 }
 
+const formatExtrudeCommitProfileCount = (
+  commitProfileSources: ExtrudeCommandSession['commitProfileSources'],
+): string => {
+  const count = commitProfileSources.length
+  return `${count} to extrude`
+}
+
 const formatExtrudeSelectedProfileName = (
   source: ExtrudeCommandSession['selectedProfileSources'][number],
   index: number,
@@ -477,6 +489,7 @@ const ExtrudeCommandToolbar = ({
   onConfirm,
   onManualPlacementChange,
   onParamsChange,
+  onCommitProfileSourcesChange,
   onSelectedProfileSourcesChange,
   session,
 }: {
@@ -490,6 +503,9 @@ const ExtrudeCommandToolbar = ({
   onConfirm: () => void
   onManualPlacementChange: (rect: ViewportFloatingToolPanelRect) => void
   onParamsChange: (params: Record<string, unknown>) => void
+  onCommitProfileSourcesChange: (
+    commitProfileSources: ExtrudeCommandSession['commitProfileSources'],
+  ) => void
   onSelectedProfileSourcesChange: (
     selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
   ) => void
@@ -587,9 +603,46 @@ const ExtrudeCommandToolbar = ({
     }
   }
 
+  const commitProfileSources = selectExtrudeCommandCommitProfileSources(session)
+  const commitProfileSourceKeys = new Set(commitProfileSources.map(getExtrudeProfileSourceKey))
+
   const handleRemoveProfileSource = (profileIndex: number) => {
+    const removedSource = session.selectedProfileSources[profileIndex]
+    if (removedSource === undefined) {
+      return
+    }
+    const removedSourceKey = getExtrudeProfileSourceKey(removedSource)
     onSelectedProfileSourcesChange(
       session.selectedProfileSources.filter((_source, index) => index !== profileIndex),
+    )
+    onCommitProfileSourcesChange(
+      commitProfileSources.filter(
+        (source) => getExtrudeProfileSourceKey(source) !== removedSourceKey,
+      ),
+    )
+  }
+
+  const handleRemoveProfileSourceByKey = (sourceKey: string) => {
+    onSelectedProfileSourcesChange(
+      session.selectedProfileSources.filter(
+        (source) => getExtrudeProfileSourceKey(source) !== sourceKey,
+      ),
+    )
+    onCommitProfileSourcesChange(
+      commitProfileSources.filter((source) => getExtrudeProfileSourceKey(source) !== sourceKey),
+    )
+  }
+
+  const handleToggleProfileSourceCommit = (
+    source: ExtrudeCommandSession['selectedProfileSources'][number],
+  ) => {
+    const sourceKey = getExtrudeProfileSourceKey(source)
+    onCommitProfileSourcesChange(
+      commitProfileSourceKeys.has(sourceKey)
+        ? commitProfileSources.filter(
+            (candidate) => getExtrudeProfileSourceKey(candidate) !== sourceKey,
+          )
+        : [...commitProfileSources, source],
     )
   }
 
@@ -638,32 +691,86 @@ const ExtrudeCommandToolbar = ({
               value={
                 <div className="ViewportExtrudeCommandToolbarProfileReadout">
                   <span data-testid="extrude-command-selected-count">
-                    {formatExtrudeSelectedProfileCount(session.selectedProfileSources)}
+                    {formatExtrudeSelectedProfileCount(session.selectedProfileSources)} /{' '}
+                    {formatExtrudeCommitProfileCount(commitProfileSources)}
                   </span>
                   {session.selectedProfileSources.length > 0 ? (
-                    <FocusedItemList
-                      className="ViewportExtrudeCommandToolbarProfileList"
-                      aria-label="Selected Extrude profiles"
-                      items={session.selectedProfileSources.map((source, index) => {
-                        const label = formatExtrudeSelectedProfileName(source, index)
-                        return {
-                          id: `${source.nodeId}:${source.portId}:${index}`,
-                          label,
-                          detail: formatExtrudeSelectedProfileDetail(source),
-                          title: `${source.nodeId}:${source.portId}`,
-                          indexLabel: index + 1,
-                          included: true,
-                          include: {
-                            ariaLabel: `${label} selected`,
-                          },
-                          remove: {
-                            ariaLabel: `Remove ${label}`,
-                            title: `Remove ${label}`,
-                            onClick: () => handleRemoveProfileSource(index),
-                          },
-                        }
-                      })}
-                    />
+                    <div className="ViewportExtrudeCommandToolbarProfileStage">
+                      <div className="ViewportExtrudeCommandToolbarProfileStageList">
+                        <span className="ViewportExtrudeCommandToolbarProfileStageLabel">
+                          Viewport Profiles
+                        </span>
+                        <FocusedItemList
+                          className="ViewportExtrudeCommandToolbarProfileList"
+                          aria-label="Viewport Extrude profiles"
+                          items={session.selectedProfileSources.map((source, index) => {
+                            const label = formatExtrudeSelectedProfileName(source, index)
+                            const included = commitProfileSourceKeys.has(
+                              getExtrudeProfileSourceKey(source),
+                            )
+                            return {
+                              id: `${source.nodeId}:${source.portId}:${index}`,
+                              label,
+                              detail: formatExtrudeSelectedProfileDetail(source),
+                              title: `${source.nodeId}:${source.portId}`,
+                              indexLabel: index + 1,
+                              active: included,
+                              included,
+                              include: {
+                                ariaLabel: included
+                                  ? `${label} will extrude`
+                                  : `${label} will not extrude`,
+                                onClick: () => handleToggleProfileSourceCommit(source),
+                              },
+                              onClick: () => handleToggleProfileSourceCommit(source),
+                              remove: {
+                                ariaLabel: `Remove ${label}`,
+                                title: `Remove ${label}`,
+                                onClick: () => handleRemoveProfileSource(index),
+                              },
+                            }
+                          })}
+                        />
+                      </div>
+                      <div className="ViewportExtrudeCommandToolbarProfileStageList">
+                        <span className="ViewportExtrudeCommandToolbarProfileStageLabel">
+                          Extrude Profiles
+                        </span>
+                        {commitProfileSources.length > 0 ? (
+                          <FocusedItemList
+                            className="ViewportExtrudeCommandToolbarProfileList"
+                            aria-label="Profiles to Extrude"
+                            items={commitProfileSources.map((source, index) => {
+                              const label = formatExtrudeSelectedProfileName(source, index)
+                              const sourceKey = getExtrudeProfileSourceKey(source)
+                              return {
+                                id: `${source.nodeId}:${source.portId}:${index}`,
+                                label,
+                                detail: formatExtrudeSelectedProfileDetail(source),
+                                title: `${source.nodeId}:${source.portId}`,
+                                indexLabel: index + 1,
+                                active: true,
+                                included: true,
+                                include: {
+                                  ariaLabel: `${label} will extrude`,
+                                  onClick: () => handleToggleProfileSourceCommit(source),
+                                },
+                                onClick: () => handleToggleProfileSourceCommit(source),
+                                remove: {
+                                  ariaLabel: `Remove ${label}`,
+                                  title: `Remove ${label}`,
+                                  onClick: () => handleRemoveProfileSourceByKey(sourceKey),
+                                },
+                              }
+                            })}
+                          />
+                        ) : (
+                          <span className="ViewportExtrudeCommandToolbarProfileStageEmpty">
+                            No profiles to extrude
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               }
@@ -955,6 +1062,9 @@ export function ViewerHost(props: ViewerHostProps) {
   )
   const setExtrudeCommandSelectedProfileSources = useSpaghettiStore(
     (state) => state.setExtrudeCommandSelectedProfileSources,
+  )
+  const setExtrudeCommandCommitProfileSources = useSpaghettiStore(
+    (state) => state.setExtrudeCommandCommitProfileSources,
   )
   const activeGeometrySketchNode = useSpaghettiStore((state) => {
     const nodeId = state.geometrySketchSession?.nodeId
@@ -1433,7 +1543,7 @@ export function ViewerHost(props: ViewerHostProps) {
       return null
     }
 
-    const profiles = extrudeCommandSession.selectedProfileSources.flatMap((source) => {
+    const profiles = selectExtrudeCommandCommitProfileSources(extrudeCommandSession).flatMap((source) => {
       const parsed = parseSketchProfileMemberPortId(source.portId)
       if (parsed === null) {
         return []
@@ -2847,6 +2957,24 @@ export function ViewerHost(props: ViewerHostProps) {
     [setViewportLocalViewState, viewportId, viewportLocalViewState?.commandToolbarPlacementByKey],
   )
 
+  const handleConfirmExtrudeCommandSession = useCallback(() => {
+    const activeSession = useSpaghettiStore.getState().extrudeCommandSession
+    const graphDocumentId = activeSession?.graphDocumentId ?? null
+    const profileSources =
+      activeSession === null ? [] : [...selectExtrudeCommandCommitProfileSources(activeSession)]
+    const summary = acceptExtrudeCommandSession()
+
+    if (graphDocumentId === null) {
+      return
+    }
+
+    recordAcceptedExtrudeCommandForBuildPath({
+      commandSummary: summary,
+      graphDocumentId,
+      profileSources,
+    })
+  }, [acceptExtrudeCommandSession])
+
   return (
     <div
       ref={rootRef}
@@ -2870,8 +2998,9 @@ export function ViewerHost(props: ViewerHostProps) {
           incomingEdges={liveExtrudeCommandIncomingEdges}
           onManualPlacementChange={handleExtrudeToolbarManualPlacementChange}
           onParamsChange={setExtrudeCommandParams}
+          onCommitProfileSourcesChange={setExtrudeCommandCommitProfileSources}
           onSelectedProfileSourcesChange={setExtrudeCommandSelectedProfileSources}
-          onConfirm={acceptExtrudeCommandSession}
+          onConfirm={handleConfirmExtrudeCommandSession}
           onCancel={cancelExtrudeCommandSession}
         />
       ) : null}

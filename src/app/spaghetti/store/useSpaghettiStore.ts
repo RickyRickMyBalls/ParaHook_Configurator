@@ -209,7 +209,9 @@ import {
 } from './sketch/geometrySketchComponentEditActions'
 import {
   createExtrudeCommandSession,
+  selectExtrudeCommandCommitProfileSources,
   setExtrudeCommandSessionDepth,
+  setExtrudeCommandSessionCommitProfileSources,
   setExtrudeCommandSessionLiveGraphState,
   setExtrudeCommandSessionProfileSources,
   type CreateExtrudeCommandSessionOptions,
@@ -850,6 +852,7 @@ export type SpaghettiStoreState = {
   ) => void
   setNodePos: (nodeId: string, x: number, y: number) => void
   setManyNodePos: (updates: NodePosUpdate[]) => void
+  organizeGraphNodePositionsWithHistory: (updates: NodePosUpdate[]) => boolean
   commitGraphNodeMoveWithHistory: (options: CommitGraphNodeMoveHistoryOptions) => boolean
   commitGraphNodeParameterWithHistory: (
     options: CommitGraphNodeParameterHistoryOptions,
@@ -993,6 +996,9 @@ export type SpaghettiStoreState = {
   setExtrudeCommandParams: (params: Record<string, unknown>) => void
   setExtrudeCommandSelectedProfileSources: (
     selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
+  ) => void
+  setExtrudeCommandCommitProfileSources: (
+    commitProfileSources: ExtrudeCommandSession['commitProfileSources'],
   ) => void
   setUiMessage: (message: CanvasUiMessage | null) => void
   clearUiMessage: () => void
@@ -2035,6 +2041,55 @@ const restoreGraphNodePositionSnapshot = (
   })
 }
 
+const restoreGraphNodePositionsSnapshot = (
+  graphDocumentId: string,
+  positionsByNodeId: Record<string, GraphNodePos>,
+): void => {
+  const roundedPositions = Object.fromEntries(
+    Object.entries(positionsByNodeId).map(([nodeId, position]) => [
+      nodeId,
+      roundGraphNodePos(position),
+    ]),
+  )
+  const state = useSpaghettiStore.getState()
+  if (state.activeGraphDocumentId === graphDocumentId) {
+    useSpaghettiStore.setState((current) => {
+      const nextGraph = upsertNodePos(current.graph, roundedPositions)
+      return {
+        ...withUpdatedActiveGraphDocumentState(current, nextGraph, 'document-only'),
+      }
+    })
+    return
+  }
+
+  useSpaghettiStore.setState((current) => {
+    const document = current.graphDocumentsById[graphDocumentId]
+    if (document === undefined) {
+      return current
+    }
+    const nextGraph = upsertNodePos(document.graph, roundedPositions)
+    if (
+      areNormalizedGraphsEqual(
+        normalizeGraphForStoreCommit(document.graph),
+        normalizeGraphForStoreCommit(nextGraph),
+      )
+    ) {
+      return current
+    }
+
+    return {
+      ...current,
+      graphDocumentsById: {
+        ...current.graphDocumentsById,
+        [graphDocumentId]: {
+          ...document,
+          graph: nextGraph,
+        },
+      },
+    }
+  })
+}
+
 const restoreGraphNodeParameterSnapshot = (
   graphDocumentId: string,
   nodeId: string,
@@ -2269,6 +2324,60 @@ const {
   restoreGraphNodeParameterSnapshot,
   restoreGraphNodePositionSnapshot,
 })
+
+const commitGraphNodeOrganizationHistoryCommand = (
+  updates: NodePosUpdate[],
+): boolean => {
+  if (updates.length === 0) {
+    return false
+  }
+  const state = useSpaghettiStore.getState()
+  const graphDocumentId = state.activeGraphDocumentId
+  const beforeGraph = normalizeGraphForStoreCommit(state.graph)
+  const updatesByNodeId: Record<string, GraphNodePos> = {}
+
+  updates.forEach((update) => {
+    updatesByNodeId[update.nodeId] = {
+      x: update.x,
+      y: update.y,
+      ...(typeof update.width === 'number' ? { width: update.width } : {}),
+    }
+  })
+
+  const afterGraph = upsertNodePos(beforeGraph, updatesByNodeId)
+  if (areNormalizedGraphsEqual(beforeGraph, afterGraph)) {
+    return false
+  }
+
+  const beforePositionsByNodeId: Record<string, GraphNodePos> = {}
+  const afterPositionsByNodeId: Record<string, GraphNodePos> = {}
+
+  Object.keys(updatesByNodeId).forEach((nodeId) => {
+    const beforePosition = beforeGraph.ui?.nodes?.[nodeId]
+    const afterPosition = afterGraph.ui?.nodes?.[nodeId]
+    if (beforePosition === undefined || afterPosition === undefined) {
+      return
+    }
+    beforePositionsByNodeId[nodeId] = beforePosition
+    afterPositionsByNodeId[nodeId] = afterPosition
+  })
+
+  if (Object.keys(afterPositionsByNodeId).length === 0) {
+    return false
+  }
+
+  restoreGraphNodePositionsSnapshot(graphDocumentId, afterPositionsByNodeId)
+
+  return editHistoryStore.commitEntry({
+    entryId: nextGraphStructureHistoryEntryId(graphDocumentId),
+    label: 'Organize graph nodes',
+    source: graphNodeMoveHistorySource,
+    targetId: graphDocumentId,
+    targetLabel: 'Graph node organization',
+    undo: () => restoreGraphNodePositionsSnapshot(graphDocumentId, beforePositionsByNodeId),
+    redo: () => restoreGraphNodePositionsSnapshot(graphDocumentId, afterPositionsByNodeId),
+  })
+}
 
 const buildGeometrySketchToolSelectionCommand = (options: {
   tool: GeometrySketchTool
@@ -4605,6 +4714,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
       }
     })
   },
+  organizeGraphNodePositionsWithHistory: (updates) =>
+    commitGraphNodeOrganizationHistoryCommand(updates),
   commitGraphNodeMoveWithHistory: (options) => commitGraphNodeMoveHistoryCommand(options),
   commitGraphNodeParameterWithHistory: (options) =>
     commitGraphNodeParameterHistoryCommand(options),
@@ -5224,13 +5335,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         options.reuseExtrudeNodeId ??
           (options.reuseSelectedExtrudeNode === true ? state.selectedNodeId : null),
       )
-      const initialSelectedProfileSources = options.selectedProfileSources ?? []
+      const initialCommitProfileSources =
+        options.commitProfileSources ?? options.selectedProfileSources ?? []
       const syncedLiveGraph =
-        initialSelectedProfileSources.length > 0
+        initialCommitProfileSources.length > 0
           ? syncLiveExtrudeProfileEdges(
               ensuredLiveGraph.graph,
               ensuredLiveGraph.liveGraph,
-              initialSelectedProfileSources,
+              initialCommitProfileSources,
             )
           : ensuredLiveGraph
       const liveParamGraph =
@@ -5328,7 +5440,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
           session.liveGraph,
         ),
       )
-      if (session.selectedProfileSources.length === 0) {
+      const commitProfileSources = selectExtrudeCommandCommitProfileSources(session)
+      if (commitProfileSources.length === 0) {
         cancel('missing-profile-selection')
         return state
       }
@@ -5506,7 +5619,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
       const syncedLiveGraph = syncLiveExtrudeProfileEdges(
         targetDocument.graph,
         state.extrudeCommandSession.liveGraph,
-        selectedProfileSources,
+        selectExtrudeCommandCommitProfileSources(
+          setExtrudeCommandSessionProfileSources(
+            state.extrudeCommandSession,
+            selectedProfileSources,
+          ),
+        ),
       )
       const nextGraph = normalizeGraphForStoreCommit(syncedLiveGraph.graph)
       const nextSession = setExtrudeCommandSessionLiveGraphState(
@@ -5523,6 +5641,40 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
           state.extrudeCommandSession.graphDocumentId,
           nextGraph,
         ),
+        extrudeCommandSession: nextSession,
+      }
+    })
+  },
+  setExtrudeCommandCommitProfileSources: (commitProfileSources) => {
+    set((state) => {
+      if (state.extrudeCommandSession === null) {
+        return state
+      }
+
+      const nextBaseSession = setExtrudeCommandSessionCommitProfileSources(
+        state.extrudeCommandSession,
+        commitProfileSources,
+      )
+      const targetDocument = selectGraphDocumentById(state, nextBaseSession.graphDocumentId)
+      if (targetDocument === null || nextBaseSession.liveGraph === null) {
+        return {
+          extrudeCommandSession: nextBaseSession,
+        }
+      }
+
+      const syncedLiveGraph = syncLiveExtrudeProfileEdges(
+        targetDocument.graph,
+        nextBaseSession.liveGraph,
+        selectExtrudeCommandCommitProfileSources(nextBaseSession),
+      )
+      const nextGraph = normalizeGraphForStoreCommit(syncedLiveGraph.graph)
+      const nextSession = setExtrudeCommandSessionLiveGraphState(
+        nextBaseSession,
+        syncedLiveGraph.liveGraph,
+      )
+
+      return {
+        ...withUpdatedGraphDocumentState(state, nextBaseSession.graphDocumentId, nextGraph),
         extrudeCommandSession: nextSession,
       }
     })

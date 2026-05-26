@@ -6,6 +6,7 @@ import {
 } from '../console/commandCommitContract'
 import { editHistoryStore } from '../store/editHistoryStore'
 import {
+  recordAcceptedExtrudeCommandForBuildPath,
   recordGraphCommandSummaryForBuildPath,
   recordGraphDependenciesForBuildPath,
   recordSketchSourceForBuildPathIfMissing,
@@ -185,11 +186,56 @@ describe('recordGraphCommandSummaryForBuildPath', () => {
       {
         edgeId: 'edge-profile-1',
         fromNodeId: 'sketch-node-1',
+        graphDocumentId: 'graph-document-1',
+        sourceKind: 'recorded',
         toNodeId: 'extrude-node-1',
       },
     ])
     expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toEqual(dependencies)
     expect(editHistoryStore.getUndoEntries()).toEqual([])
     expect(editHistoryStore.getRedoEntries().map((entry) => entry.entryId)).toEqual(redoBefore)
+  })
+
+  it('records accepted Extrude summaries with source Sketch backfill and commit-profile dependencies', () => {
+    const extrude = recordAcceptedExtrudeCommandForBuildPath({
+      graphDocumentId: 'graph-document-1',
+      profileSources: [
+        {
+          nodeId: 'sketch-node-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      commandSummary: commitReadyGraphCommandPlan(
+        createReadyGraphCommandCommitPlan({
+          commandFamily: 'Extrude',
+          entryPoint: 'viewport-toolbar',
+          intendedMutations: ['create-node', 'add-wire'],
+        }),
+        {
+          addedEdgeIds: ['edge-profile-a', 'edge-output'],
+          createdNodeIds: ['extrude-node-1'],
+          updatedNodeIds: ['extrude-node-1'],
+        },
+      ),
+    })
+
+    expect(extrude.status).toBe('accepted')
+    expect(useBuildPathRuntimeStore.getState().readEvents()).toMatchObject([
+      {
+        commandFamily: 'Sketch',
+        affectedNodeIds: ['sketch-node-1'],
+      },
+      {
+        commandFamily: 'Extrude',
+        affectedNodeIds: ['extrude-node-1'],
+      },
+    ])
+    expect(useBuildPathRuntimeStore.getState().readGraphDependencies()).toMatchObject([
+      {
+        edgeId: 'edge-profile-a',
+        fromNodeId: 'sketch-node-1',
+        toNodeId: 'extrude-node-1',
+      },
+    ])
   })
 })

@@ -29,13 +29,13 @@ Do not use it for:
 ### Active Objective
 
 - Status: complete
-- User objective: run the Dispatch 5 Simpler manager loop for `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence`.
-- Active family: `Viewport Command Toolbar Shell`
+- User objective: run the Dispatch 5 Simpler manager loop and finish `Spaghetti-Editor 12 - Canvas Context Menu And Node Organization`.
+- Active family: `Spaghetti Editor`
 - Active vision/planning surface: `docs/Vision.md`
-- Active generation/index surface: `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Viewport-Command-Toolbar-Shell-Index.md`
-- Active family phase plan doc: `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 4 - Viewport-Local Toolbar Placement And Persistence.md`
-- Active phase packet: `VCTS - 4 / Phase 1 - Coordinate Owner Audit And Anchor Contract`
-- Manager resume point: `VCTS - 4` is Manager-accepted complete under Dispatch 5.
+- Active generation/index surface: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- Active family phase plan doc: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 12 - Canvas Context Menu And Node Organization.md`
+- Active phase packet: `Spaghetti-Editor 12 / Phases 1-5 - Shift+S search, canvas context menu, dependency organization, history apply, and proof closeout`
+- Manager resume point: `Spaghetti-Editor 12` is Manager-accepted complete under Dispatch 5.
 
 ### Active Roles
 
@@ -45,18 +45,21 @@ Do not use it for:
 
 ### Current Phase Packet
 
-- Phase: `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence`
-- Scope: shared viewport-local right-anchor helpers, Transform right-anchor repair, Extrude right-anchor adoption, per-viewport manual placement persistence, Sketch follow-on routing, focused verification, and production build proof.
-- Exclusions: broad Sketch session rewrite, detached/floating app-window placement, Spaghetti Editor window placement, command graph writes, preview semantics, accept/cancel behavior changes, and reset-to-anchor UI implementation.
-- Likely files or seams: `src/app/components/useViewportFloatingToolPanel.ts`, `src/app/components/ReferenceTransformToolbar.tsx`, `src/app/components/ViewportOverlay.tsx`, `src/app/components/ViewerHost.tsx`, `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/workspacePersistence.ts`, focused tests, VCTS family docs, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
-- Verification: passed focused floating-panel helper tests, Transform toolbar placement tests, workspace-store placement tests, Extrude toolbar tests, and production build; browser load smoke passed on `localhost:5173` after `127.0.0.1:5173` was blocked by the browser client.
+- Phase: `Spaghetti-Editor 12 - Canvas Context Menu And Node Organization`
+- Scope: focused Spaghetti canvas add-node search launcher migration, empty-space canvas context menu, pure dependency-column organization planner, document-only organization application, undo/redo proof, worker-build isolation proof, production build, and tracking docs.
+- Exclusions: Build Path Parallel UI changes, graph semantic changes, node params, wires, worker pipeline changes, persistent alternate layout layers, selected-only organization, compact-chain modes, and alignment-control toolbars.
+- Likely files or seams: `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, `src/app/spaghetti/layout/graphNodeOrganization.ts`, `src/app/spaghetti/store/useSpaghettiStore.ts`, focused layout/canvas/store/app-store tests, Spaghetti Editor family docs, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
+- Verification: passed focused graph-node organization layout tests, Spaghetti store organization-history tests, Spaghetti canvas render routing/apply tests, app-store build-isolation test, production build, and in-app browser mount smoke.
 - Build gate: passed.
-- Tracking docs: updated VCTS-4 phase doc, VCTS family index, Dispatch 5 run state, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
-- Stop condition: met; Transform and Extrude use viewport-local right anchors and remembered manual placement while Sketch/reset work is honestly routed as follow-on.
+- Tracking docs: updated Spaghetti-Editor 12 phase doc, Spaghetti Editor index, Dispatch 5 run state, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
+- Stop condition: met; users can right-click empty Spaghetti canvas space for `Organization`, press `Shift+S` for add-node search, organize full nodes and wires into dependency columns, and undo/redo the document-only position update.
 - Approval mode: Manager-owned implementation accepted.
 
 ### Last Accepted Result
 
+- 2026-05-26 08:02:40: Accepted `Spaghetti-Editor 12 - Canvas Context Menu And Node Organization` with focused canvas `Shift+S` add-node search, empty-space right-click canvas actions, full-node dependency organization, one undoable document-only apply action, layout/canvas/store/app-store proof, production build, in-app browser mount smoke, and follow-on routing for selected-only organization and alignment controls.
+- 2026-05-26 07:27:41: Accepted `Extrude-11 - Toolbar Build Path Intake Repair` with shared accepted-Extrude Build Path intake, toolbar OK recording, commit-profile dependency hints, source Sketch backfill, focused helper/toolbar/Console tests, production build, and browser smoke.
+- 2026-05-26 07:02:05: Accepted `Extrude-10 - Command Profile Staging Lists` with candidate-versus-commit profile session state, two active command toolbar profile lists, candidate row toggles, hard remove behavior, commit-only live wires/preview/accept, focused tests, production build, browser smoke, and lock-mode deferral.
 - 2026-05-26 06:32:45: Accepted `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence` with shared viewport-local placement helpers, Transform and Extrude right-anchor migration, per-viewport command-toolbar manual placement persistence, focused tests, production build proof, and browser load smoke on `localhost:5173`.
 - 2026-05-25 22:23:39: Accepted `Build-Path-16 / Phases 1-2 - Feature Edit Context Menu` with supported timeline/topology right-click edit menus, `edit sketch` and `edit extrude` labels, canonical Sketch Draw handoff, existing-node Extrude command-toolbar handoff with profile/depth prefill, focused tests, and production build proof.
 - 2026-05-25 20:03:04: Accepted `VCTS - 3 - Command Panel Visual Structure Extraction` with shared `ViewportCommandPanel*` visual grammar components, Extrude toolbar body/readback/control/title-action migration, focused Extrude and Transform regression tests, shared floating helper tests, and production build proof.
@@ -102,4 +105,4 @@ Do not use it for:
 
 ### Next Legal Task
 
-Next legal task is user visual review of Transform/Extrude toolbar placement or a follow-on VCTS cleanup lane for Sketch adoption and reset-to-right-anchor affordance.
+Next legal task is user app verification of Spaghetti canvas `Shift+S` search and empty-space right-click `Organization`, or a follow-on organization phase for selected-only organization, alignment controls, compact-chain mode, or saved alternate layout presets.
