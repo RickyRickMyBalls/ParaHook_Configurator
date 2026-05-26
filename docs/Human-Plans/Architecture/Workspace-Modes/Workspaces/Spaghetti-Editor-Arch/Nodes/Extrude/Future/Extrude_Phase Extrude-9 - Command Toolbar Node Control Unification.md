@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-05-25 16:25:46: Completed the Dispatch 5 manager loop for `Extrude-9`, accepting all four phases after the active Extrude command toolbar moved onto the shared viewport panel shell, began editing live `Geometry/Extrude` node params through ParaSlider and ParaSelect controls, reused the same Extrude control model as the Spaghetti node surface, and proved accept/cancel/preview convergence with focused tests and production build verification.
 3. 2026-05-25 14:47:06: Rerouted the shared command-toolbar shell dependency from `Floating Window Shell` to the dedicated `Templates/Viewport Command Toolbar Shell` family so detached/floating app-window shell planning stays separate from Sketch, Transform, and Extrude in-viewport command panels.
 2. 2026-05-25 14:45:19: Linked this Extrude toolbar/node-control lane to the new `FWS - 2 - Viewport Command Toolbar Shell` prep phase so shared command-toolbar shell ownership is planned in `Architecture/Templates` before the Extrude active command strip is replaced.
 1. 2026-05-25 14:12:59: Added this future phase doc after read-only research found that the active Extrude command toolbar is still a readout-only `ViewerHost` overlay while the real `Geometry/Extrude` authored controls already exist as ParaSlider and ParaSelect-backed node rows in `NodeView`.
@@ -121,49 +122,49 @@ The user can start Extrude from the viewport, pick profiles, adjust distance and
 
 ### High Level Goals
 
-- [ ] `Extrude-Gen1-HLG-1. When the user starts Extrude, the toolbar should show a real list of ParaSlider and ParaSelect controls instead of readout-only chips.`
-- [ ] `Extrude-Gen1-HLG-2. The toolbar should expose the same important options as the Geometry/Extrude node in the Spaghetti editor.`
-- [ ] `Extrude-Gen1-HLG-3. Sketch, Transform, and Extrude toolbars should move toward one shared control-surface pattern instead of one-off toolbar code.`
-- [ ] `Extrude-Gen1-HLG-4. The toolbar must edit graph-authored Extrude node truth, not become a separate hidden owner.`
-- [ ] `Extrude-Gen1-HLG-5. Accept, cancel, preview, and edit history should all agree with the visible toolbar values.`
+- [x] `Extrude-Gen1-HLG-1. When the user starts Extrude, the toolbar should show a real list of ParaSlider and ParaSelect controls instead of readout-only chips.`
+- [x] `Extrude-Gen1-HLG-2. The toolbar should expose the same important options as the Geometry/Extrude node in the Spaghetti editor.`
+- [x] `Extrude-Gen1-HLG-3. Sketch, Transform, and Extrude toolbars should move toward one shared control-surface pattern instead of one-off toolbar code.`
+- [x] `Extrude-Gen1-HLG-4. The toolbar must edit graph-authored Extrude node truth, not become a separate hidden owner.`
+- [x] `Extrude-Gen1-HLG-5. Accept, cancel, preview, and edit history should all agree with the visible toolbar values.`
 
 ### Codex Level Goals
 
-- [ ] CLG 1. Route active Extrude command option reads through the live command-owned `Geometry/Extrude` node where possible.
-- [ ] CLG 2. Extract one reusable Extrude control VM or helper layer from the current node-surface logic.
-- [ ] CLG 3. Replace the readout-only `ViewerHost` toolbar with ParaSlider and ParaSelect-backed rows using that shared control model.
-- [ ] CLG 4. Update command accept so it preserves live node params instead of writing hardcoded defaults.
-- [ ] CLG 5. Add focused proof that node edits and toolbar edits stay in sync through preview, accept, cancel, and history.
+- [x] CLG 1. Route active Extrude command option reads through the live command-owned `Geometry/Extrude` node where possible.
+- [x] CLG 2. Extract one reusable Extrude control VM or helper layer from the current node-surface logic.
+- [x] CLG 3. Replace the readout-only `ViewerHost` toolbar with ParaSlider and ParaSelect-backed rows using that shared control model.
+- [x] CLG 4. Update command accept so it preserves live node params instead of writing hardcoded defaults.
+- [x] CLG 5. Add focused proof that node edits and toolbar edits stay in sync through preview, accept, cancel, and history.
 
 ### `Extrude-9 / Phase 1`
 
-- [ ] `HLG 4. The toolbar must edit graph-authored Extrude node truth, not become a separate hidden owner.`
+- [x] `HLG 4. The toolbar must edit graph-authored Extrude node truth, not become a separate hidden owner.`
 - identify the active command node param read source
 - add narrow store helpers for active-command Extrude param writes
 - make command depth read from and write to the live node param path
 
 ### `Extrude-9 / Phase 2`
 
-- [ ] `HLG 2. The toolbar should expose the same important options as the Geometry/Extrude node in the Spaghetti editor.`
-- [ ] `HLG 3. Sketch, Transform, and Extrude toolbars should move toward one shared control-surface pattern instead of one-off toolbar code.`
+- [x] `HLG 2. The toolbar should expose the same important options as the Geometry/Extrude node in the Spaghetti editor.`
+- [x] `HLG 3. Sketch, Transform, and Extrude toolbars should move toward one shared control-surface pattern instead of one-off toolbar code.`
 - extract reusable Extrude control VM/helpers for type, direction, depth rows, taper visibility, and output mode
 - keep node-surface behavior unchanged while moving rule ownership out of inline `NodeView` code
 
 ### `Extrude-9 / Phase 3`
 
-- [ ] `HLG 1. When the user starts Extrude, the toolbar should show a real list of ParaSlider and ParaSelect controls instead of readout-only chips.`
-- [ ] `HLG 2. The toolbar should expose the same important options as the Geometry/Extrude node in the Spaghetti editor.`
+- [x] `HLG 1. When the user starts Extrude, the toolbar should show a real list of ParaSlider and ParaSelect controls instead of readout-only chips.`
+- [x] `HLG 2. The toolbar should expose the same important options as the Geometry/Extrude node in the Spaghetti editor.`
 - render the active Extrude toolbar as a list of ParaSlider and ParaSelect controls
 - keep profile selection as a summary/action row while durable options use the shared node-control model
 
 ### `Extrude-9 / Phase 4`
 
-- [ ] `HLG 5. Accept, cancel, preview, and edit history should all agree with the visible toolbar values.`
+- [x] `HLG 5. Accept, cancel, preview, and edit history should all agree with the visible toolbar values.`
 - make accept preserve live node params
 - prove cancel rollback restores the prior graph
 - prove toolbar and node edits converge on one accepted history entry shape
 
-## [ ] `Extrude-9 / Phase 1` - `Live Command Node Parameter Ownership`
+## [x] `Extrude-9 / Phase 1` - `Live Command Node Parameter Ownership`
 
 ### Phase 1 Summary
 
@@ -222,7 +223,7 @@ Do not add new Extrude options yet. This phase is about source-of-truth repair f
 
 Active command `Depth` is no longer primarily a toolbar/session-only value.
 
-## [ ] `Extrude-9 / Phase 2` - `Reusable Extrude Control Model`
+## [x] `Extrude-9 / Phase 2` - `Reusable Extrude Control Model`
 
 ### Phase 2 Summary
 
@@ -280,7 +281,7 @@ Do not move broad node-shell rendering out of `NodeView`. Extract only the rules
 
 There is one reusable Extrude control model ready for both the node surface and command toolbar.
 
-## [ ] `Extrude-9 / Phase 3` - `ParaSlider And ParaSelect Command Toolbar`
+## [x] `Extrude-9 / Phase 3` - `ParaSlider And ParaSelect Command Toolbar`
 
 ### Phase 3 Summary
 
@@ -345,7 +346,7 @@ Do not create a second custom Extrude selector widget. Use `ParaSlider` and `Par
 
 The active Extrude command toolbar is a real list of node-backed controls instead of readout-only chips.
 
-## [ ] `Extrude-9 / Phase 4` - `Accept Cancel Preview And History Convergence`
+## [x] `Extrude-9 / Phase 4` - `Accept Cancel Preview And History Convergence`
 
 ### Phase 4 Summary
 

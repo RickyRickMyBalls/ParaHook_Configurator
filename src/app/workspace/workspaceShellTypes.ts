@@ -199,6 +199,13 @@ export type WorkspaceViewportChromeState = {
 }
 
 export type WorkspaceViewportResultMode = 'auto' | 'draft' | 'final'
+export type WorkspaceViewportCommandToolbarPlacementKey = 'extrude' | 'transform' | 'sketch'
+export type WorkspaceViewportCommandToolbarPlacement = {
+  left: number
+  top: number
+  width: number
+  height: number
+}
 export type WorkspaceViewToolbarExpandedPresentationMode = 'classic' | 'tabs'
 export type WorkspaceViewToolbarHostMode = 'docked' | 'floating'
 export type WorkspaceViewToolbarDockMode = 'below-axis' | 'top-right-cluster'
@@ -225,6 +232,9 @@ export type WorkspaceViewportLocalViewState = {
   viewToolbarActiveTab: WorkspaceViewToolbarTabKey
   viewToolbarCompactAxisWidgetSize: number | null
   viewToolbarExpandedAxisWidgetSize: number | null
+  commandToolbarPlacementByKey: Partial<
+    Record<WorkspaceViewportCommandToolbarPlacementKey, WorkspaceViewportCommandToolbarPlacement>
+  >
   viewportResultMode: WorkspaceViewportResultMode
 }
 
@@ -382,6 +392,7 @@ export const createDefaultWorkspaceViewportLocalViewState =
     viewToolbarActiveTab: 'camera',
     viewToolbarCompactAxisWidgetSize: null,
     viewToolbarExpandedAxisWidgetSize: null,
+    commandToolbarPlacementByKey: {},
     viewportResultMode: 'auto',
   })
 

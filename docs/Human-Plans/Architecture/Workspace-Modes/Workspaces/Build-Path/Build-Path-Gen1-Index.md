@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+50. 2026-05-25 22:23:39: Recorded `Build-Path-16 / Phases 1-2` as implemented with supported Build Path Sketch/Extrude icon right-click menus, `edit sketch` and `edit extrude` labels, canonical Sketch Draw and existing-node Extrude toolbar handoffs, focused tests, and production build proof.
+49. 2026-05-25 22:09:52: Added `Build-Path-16 - Feature Edit Context Menu` as the next Build Path interaction handoff, planning right-click `edit sketch` and `edit extrude` menu actions from Build Path icons back into the owning graph/feature authoring surfaces without making Build Path mutate graph truth.
 48. 2026-05-25 10:44:40: Implemented and closed `Build-Path-15 / Phases 1-2` with presentation-only `past` / `current` / `future` temporal-state attributes on linear timeline cards, Fusion-style subdued future icon styling that keeps cards clickable, and matching workspace Parallel topology card/connector future dimming from the selected master scrub position.
 47. 2026-05-25 10:38:21: Added `Build-Path-15 - Scrub Future Icon State` as the next visual scrub clarity phase so timeline icons after the selected scrub position can read as inactive/future without becoming disabled, while preserving click-to-scrub behavior, graph truth, and Edit History boundaries.
 46. 2026-05-25 10:27:42: Recorded `Build-Path-11 / Phases 3-6` as implemented with the workspace Parallel topology graph unboxed from nested `Parallel` panel chrome, UI-only top/center/bottom alignment controls, collapsed secondary lane readback, connector/card polish, focused alignment proof, TypeScript proof, production build proof, and an attempted browser smoke blocked by unavailable `iab`.
@@ -128,6 +130,7 @@ Current legal family-phase ladder:
 - `Build-Path-13` - draggable current-position line
 - `Build-Path-14` - node deletion and reference orphan contract
 - `Build-Path-15` - scrub future icon state
+- `Build-Path-16` - feature edit context menu
 
 Important planning rule:
 - use this index to choose and bound the next `Build-Path-N` family phase
@@ -143,6 +146,7 @@ Dispatch next:
 - `Build-Path-14 / Phase 1` is complete: direct Spaghetti node deletion removes current Build Path command cards from graph truth, while downstream receive-reference reads preserve explicit unresolved intent instead of silently remapping.
 - `Build-Path-11` is complete through Phase 6: workspace Parallel mode now renders the topology graph unboxed in workspace space, supports top/center/bottom source/sink alignment as UI state, keeps lane readback secondary/collapsed, and preserves semantic connector colors.
 - `Build-Path-15` is complete: linear timeline cards and workspace Parallel topology cards/connectors now expose presentation-only temporal state so future steps after the current scrub position read as inactive/future while staying clickable scrub targets.
+- `Build-Path-16` is complete: right-clicking Sketch and Extrude Build Path icons opens a small context menu whose first item is `edit sketch` or `edit extrude`, then hands the user back to the owning graph/feature authoring surface.
 - `Build-Path-12` is complete for reconstructed loaded-graph structure; exact persisted Build Path event history remains a later schema/file-format phase.
 - `Build-Path-11` visual direction is captured: the canonical proof graph is `docs/example-graphs/Graph-1.parahook-graph-PARALLEL.json`, which should read as `Sketch -> six parallel Extrudes -> Output`.
 - later action runtime still needs a new explicit phase for compare UI, pin persistence, restore/branch execution, worker checkpoint/cache ownership, or deeper seeded browser replay proof.
@@ -192,6 +196,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
 - [x] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
 - [x] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [ ] `Build-Path-Gen1-HLG-10. Build Path icons should offer a right-click edit menu that can return the user to the owning feature authoring surface, such as Sketch Draw or the Extrude command toolbar.`
 
 ### Codex Level Goals
 
@@ -212,6 +217,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] Build-Path-Gen1-CLG-14. Add a visible draggable current-position line to the Build Path timeline that scrubs existing selection state without changing graph truth, accepted event order, or restore/replay boundaries.
 - [ ] Build-Path-Gen1-CLG-15. Treat direct Spaghetti node deletion as graph truth for Build Path card removal while preserving downstream reference intent as explicit unresolved or orphaned dependencies.
 - [x] Build-Path-Gen1-CLG-16. Add presentation-only temporal state to Build Path timeline icons so future steps after the scrub position read as inactive without becoming disabled or mutating graph truth.
+- [ ] Build-Path-Gen1-CLG-17. Add Build Path icon context-menu edit actions that route Sketch and Extrude events through canonical workspace intents back to their owning authoring surfaces without adding Build Path-owned graph mutation.
 
 ### `Build-Path-1`
 
@@ -465,6 +471,18 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] `Build-Path-Gen1-HLG-7`
 - [x] `Build-Path-Gen1-HLG-9`
 - [x] Build-Path-Gen1-CLG-16.
+
+### `Build-Path-16`
+
+- [ ] Create the standalone `Future/Build-Path-16 - Feature Edit Context Menu.md` Family Phase Doc.
+- [ ] Add a Build Path icon context menu with `edit sketch` and `edit extrude` as the first item for supported feature cards.
+- [ ] Route `edit sketch` through the existing Sketch Draw workspace intent for the source graph document and sketch node.
+- [ ] Route `edit extrude` through an explicit existing-node Extrude edit intent that reopens the command toolbar against the selected Extrude node.
+- [ ] Keep unsupported lifecycle and output/sink cards free of fake edit actions.
+- [ ] Preserve scrub selection, graph truth, Edit History, and Build Path event order while invoking the edit handoff.
+- [ ] `Build-Path-Gen1-HLG-7`
+- [ ] `Build-Path-Gen1-HLG-10`
+- [ ] Build-Path-Gen1-CLG-17.
 
 ## [x] `Build-Path-1` - `Accepted Graph Event Timeline Foundation`
 
@@ -1203,3 +1221,44 @@ Current handoff:
 ### Family Phase Doc
 
 - [x] `Future/Build-Path-15 - Scrub Future Icon State.md`
+
+## [x] `Build-Path-16` - `Feature Edit Context Menu`
+
+### Family Phase Summary
+
+Add a right-click menu to supported Build Path feature icons so users can jump back into the owning feature edit workflow from the build timeline.
+
+Current handoff:
+- `Future/Build-Path-16 - Feature Edit Context Menu.md`
+- implementation is complete.
+- first target action is `edit sketch` for Sketch cards, reopening Sketch Draw for the source graph node.
+- second target action is `edit extrude` for Extrude cards, reopening the Extrude command toolbar against the existing Extrude node and its current graph-authored settings.
+- the menu is a handoff into existing authoring owners, not a Build Path-owned graph editor or restore action.
+
+### HLG / CLG Coverage
+
+- [x] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
+- [x] `Build-Path-Gen1-HLG-10. Build Path icons should offer a right-click edit menu that can return the user to the owning feature authoring surface, such as Sketch Draw or the Extrude command toolbar.`
+- [x] Build-Path-Gen1-CLG-17. Add Build Path icon context-menu edit actions that route Sketch and Extrude events through canonical workspace intents back to their owning authoring surfaces without adding Build Path-owned graph mutation.
+
+### Owns
+
+- Build Path feature-icon context-menu planning
+- supported edit action labels such as `edit sketch` and `edit extrude`
+- Sketch card handoff to Sketch Draw through the canonical workspace intent path
+- Extrude card handoff to an existing-node Extrude command toolbar/session
+- unsupported-card no-action behavior for lifecycle cards and output/sink cards
+- proof that opening the menu or choosing an edit action preserves Build Path event order, scrub truth, graph truth, and Edit History boundaries
+
+### Does Not Own
+
+- restore, replay, Branch From Here, Compare, Pin, or checkpoint execution
+- Build Path-owned graph mutation
+- deleting, reordering, or rewriting Build Path events
+- broad feature-stack context-menu actions beyond the first edit handoff
+- new Sketch Draw or Extrude toolbar feature capabilities
+- output/sink edit behavior before a real owning authoring surface exists
+
+### Family Phase Doc
+
+- [x] `Future/Build-Path-16 - Feature Edit Context Menu.md`

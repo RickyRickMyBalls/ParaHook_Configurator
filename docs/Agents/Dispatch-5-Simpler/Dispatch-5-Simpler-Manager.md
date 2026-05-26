@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-05-25 15:05:33: Added Manager responsibilities for the generic Dispatch 5 phase-marker lifecycle, including when to move owning phase docs from `[ ]` to `[~]` during prep and from `[~]` to `[x]` only after Manager acceptance.
 1. 2026-05-22 15:51:36: Added the Dispatch 5 Simpler Manager role, defining Manager ownership for phase selection, phase packets, risk-based approval, Worker routing, compact run-state upkeep, and acceptance without requiring Dispatch 4 style prep and implementation ledger entries for every small phase.
 
 ### Purpose
@@ -29,6 +30,8 @@ Manager does not need to create a heavy approval trail for every small step, but
 - user communication
 - reading the relevant vision, generation index, family phase doc, and local architecture docs
 - choosing the next ready phase
+- updating the owning phase heading marker from `[ ]` to `[~]` when a phase is prepped or active
+- updating the owning phase heading marker from `[~]` to `[x]` only after Manager accepts the phase
 - deciding whether the current phase needs a new or revised phase packet
 - deciding whether Worker can prep and implement in one pass
 - deciding whether explicit Manager approval is required before implementation
@@ -85,6 +88,44 @@ When reviewing a phase packet, Manager checks:
 
 Manager may approve, revise, ask Worker to repair the packet, or keep the implementation local.
 
+### Phase Marker Lifecycle
+
+Manager owns the phase markers in the owning family phase doc.
+
+Use:
+
+- `[ ]`
+  - the phase is planned but not started
+- `[~]`
+  - the phase is prepped, active, under review, being repaired, or waiting on a blocker/follow-up decision
+- `[x]`
+  - the phase is complete and accepted by Manager
+
+Manager should move `[ ]` to `[~]` when:
+
+- the phase becomes the active Dispatch 5 target
+- the phase packet is written or tightened enough to guide implementation
+- Worker receives a `Packet`, `Implement`, `Packet + Implement`, or `Research` assignment against that phase
+
+Manager should keep `[~]` when:
+
+- verification is incomplete
+- build proof is missing for runtime work
+- tracking docs are not updated yet
+- the result needs repair
+- the implementation showed that a follow-up or defer note is needed
+
+Manager should move `[~]` to `[x]` only when:
+
+- the result matches the phase packet
+- exclusions stayed excluded
+- required verification is recorded
+- required tracking docs are updated
+- the owning family docs still tell the truth
+- Manager accepts the phase as complete
+
+This marker workflow helps Manager. It does not weaken Manager judgment, because `[x]` is still an acceptance decision, not an automatic Worker claim.
+
 ### Worker Routing
 
 Manager can send Worker one of four assignment types:
@@ -112,6 +153,7 @@ Before accepting implementation, Manager confirms:
 - docs changes updated `docs/Doc-Log.md`
 - family docs still tell the truth
 - claimed wishlist, HLG, and CLG coverage is actually achieved
+- the owning phase marker should now become `[x]`, or remain `[~]` with the reason recorded
 
 ### Follow-Up Rule
 

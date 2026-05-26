@@ -72,6 +72,497 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 2139 -->
+
+### [2139] - 2026-05-26 06:32 - `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence`
+
+HUMAN SUMMARY: `Transform and Extrude command toolbars now anchor to the active Model Viewport instead of the browser window when viewport bounds are available. User drag/resize placement is remembered per Model Viewport and per toolbar key, with Sketch and reset-to-anchor UI routed as follow-on shell cleanup.`
+
+#### Scope / Constraints Honored
+
+- Kept command state, graph writes, preview, accept/cancel, and history behavior feature-owned.
+- Kept browser-window dimensions as fallback behavior only.
+- Kept Sketch runtime stable and routed Sketch adoption as follow-on work.
+- Kept reset-to-right-anchor as a later UX affordance.
+
+#### Summary of Implementation
+
+- Added shared viewport floating-panel helpers for right-anchor resolution and manual rect clamping.
+- Updated Transform to consume `ViewportOverlayRoot` bounds, anchor right inside the Model Viewport pane, and persist manual placement.
+- Updated Extrude to consume Model Viewport root bounds, anchor right inside the pane, and persist manual placement.
+- Added `WorkspaceViewportLocalViewState.commandToolbarPlacementByKey` and workspace persistence normalization for command toolbar placement.
+- Added first-mount bounds refresh so toolbars correct from fallback window bounds into viewport-local bounds after refs are available.
+
+#### Phase Acceptance Breakdown
+
+- `VCTS - 4 / Phase 1 - Coordinate Owner Audit And Anchor Contract`: accepted the `ViewportOverlayRoot` / Model Viewport root as the normal coordinate owner after confirming Transform and Extrude still had browser-window placement defaults.
+- `VCTS - 4 / Phase 2 - Shared Viewport Placement Helpers`: shipped shared right-anchor and manual-rect clamp helpers with focused split-view bounds coverage.
+- `VCTS - 4 / Phase 3 - Transform Right Anchor Repair`: moved Transform toolbar default placement onto viewport-local bounds and preserved Transform command behavior.
+- `VCTS - 4 / Phase 4 - Extrude Right Anchor Adoption`: moved Extrude toolbar default placement onto the same viewport-local right-anchor route while preserving command-session reuse, preview, accept, and cancel behavior.
+- `VCTS - 4 / Phase 5 - Per-Viewport Manual Placement Persistence`: added per-viewport and per-toolbar-key manual placement state plus persistence normalization.
+- `VCTS - 4 / Phase 6 - Sketch Route And Reset Affordance`: kept Sketch runtime-stable, documented Sketch adoption as follow-on shell cleanup, and left reset-to-right-anchor as a later UX affordance.
+
+#### Verification
+
+- Passed `npm.cmd test -- --run src/app/components/useViewportFloatingToolPanel.test.ts`.
+- Passed `npm.cmd test -- --run src/app/components/ReferenceTransformToolbar.test.tsx -t "shared overlay|viewport-local|remembers manual"`.
+- Passed `npm.cmd test -- --run src/app/workspace/useWorkspaceStore.test.ts -t "command toolbar placement|per-viewport local view"`.
+- Passed `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar"`.
+- Passed `npm.cmd test -- --run src/app/components/useViewportFloatingToolPanel.test.ts src/app/workspace/useWorkspaceStore.test.ts`.
+- Passed `npm.cmd run build`.
+- Browser load smoke passed on `http://localhost:5173`; `http://127.0.0.1:5173` was blocked by the browser client.
+
+<!-- ENTRY 2138 -->
+
+### [2138] - 2026-05-26 06:02 - `Build-Path-16 - Edit Extrude Toolbar Only Handoff`
+
+HUMAN SUMMARY: ``Build Path `edit extrude` now starts the existing-node Extrude toolbar without forcing Spaghetti Editor or a graph viewport open. The graph-navigation behavior stays on the separate `focus graph node` context-menu action.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path `edit extrude` as a feature-toolbar handoff.
+- Kept `focus graph node` as the graph-navigation handoff.
+- Preserved existing-node Extrude reuse by passing the target node id explicitly to the command-session owner.
+
+#### Summary of Implementation
+
+- Changed `startExtrudeEditIntent` to select the graph target and start the Extrude command session without activating Spaghetti Editor.
+- Added `reuseExtrudeNodeId` to Extrude command-session options so existing-node edit does not depend on an active graph viewport selection.
+- Updated workspace intent coverage to prove `edit extrude` leaves active surface unchanged while reusing the existing Extrude node.
+
+#### Files Changed
+
+- `src/app/store/workspaceIntents.ts`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Choosing `edit extrude` from Build Path opens the Extrude toolbar/session only.
+- Choosing `focus graph node` remains the way to open/focus the graph node.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/store/workspaceIntents.test.ts`
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude session|Extrude command"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2137 -->
+
+### [2137] - 2026-05-26 05:57 - `Build-Path-16 - Focus Graph Node Menu Action`
+
+HUMAN SUMMARY: ``Build Path feature right-click menus now include a second `focus graph node` action after `edit sketch` or `edit extrude`, giving users a graph-navigation option that selects and fits the source node without opening the feature editor toolbar.``
+
+#### Scope / Constraints Honored
+
+- Kept `edit sketch` and `edit extrude` as the first feature-edit actions.
+- Added graph-node focus as a navigation handoff through the canonical workspace intent path.
+- Preserved Build Path as a derived reader without graph mutation or feature-session ownership.
+
+#### Summary of Implementation
+
+- Added a second Build Path feature context-menu action labeled `focus graph node`.
+- Routed the action through `activateGraphNodeIntent` with node-fit behavior.
+- Added regression coverage proving graph focus does not start an Extrude command session or Sketch session.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Supported Build Path feature menus now show `edit <feature>` first and `focus graph node` second.
+- `focus graph node` opens/focuses the graph node without opening the feature editing toolbar.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/workspaceIntents.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2136 -->
+
+### [2136] - 2026-05-26 05:52 - `Build-Path-16 - Docked Menu Portal And Edge Clamp`
+
+HUMAN SUMMARY: ``The Build Path feature edit context menu now renders through a document-level portal and clamps to the visible viewport, so right-click menus from bottom-docked Sketch/Extrude icons are no longer clipped by the viewport dock or hidden below the screen edge.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair scoped to the Build Path feature edit menu.
+- Preserved the existing Sketch Draw and Extrude command-toolbar handoff actions.
+- Avoided changing the shared `SpaghettiContextMenu` behavior for other surfaces.
+
+#### Summary of Implementation
+
+- Moved Build Path feature edit menu rendering through `createPortal(..., document.body)`.
+- Added viewport-aware menu positioning that opens docked edge icons above the icon when there is not enough space below.
+- Updated Build Path menu tests to assert the portaled menu and bottom-dock edge positioning.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Right-clicking bottom-docked Build Path Sketch/Extrude icons should show the edit menu visibly above the icon when needed.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/workspaceIntents.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2135 -->
+
+### [2135] - 2026-05-26 05:48 - `Build-Path-16 - Viewport Dock Context Menu Position Repair`
+
+HUMAN SUMMARY: ``The viewport-docked Build Path right-click menu now uses fixed viewport positioning, so right-clicking the bottom-left Sketch or Extrude icon shows the edit menu at the pointer instead of rendering invisibly outside the tiny dock surface.``
+
+#### Scope / Constraints Honored
+
+- Kept the repair scoped to Build Path's feature edit context menu presentation.
+- Preserved the existing `edit sketch` and `edit extrude` workspace-intent handoffs.
+- Left the shared `SpaghettiContextMenu` component behavior unchanged for other owners.
+
+#### Summary of Implementation
+
+- Added Build Path-specific fixed positioning for `.BuildPathFeatureEditContextMenu`.
+- Added a viewport-docked Build Path strip regression test that right-clicks a Sketch icon and expects `edit sketch` at the pointer coordinates.
+
+#### Files Changed
+
+- `src/app/theme/foundation/base.css`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Right-clicking a Build Path icon in the viewport dock now visibly opens the feature edit menu at the cursor.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 2134 -->
+
+### [2134] - 2026-05-25 22:23 - `Build-Path-16 - Feature Edit Context Menu`
+
+HUMAN SUMMARY: ``Build Path Sketch and Extrude icons now support a right-click edit menu whose first action returns to the owning feature workflow: Sketch Draw for sketches and the existing-node Extrude command toolbar for extrudes. The handoff stays graph-safe by routing through workspace intents instead of mutating Build Path event truth.``
+
+#### Scope / Constraints Honored
+
+- Kept Build Path as a derived navigation surface, not a graph editor or restore/replay owner.
+- Scoped menu actions to supported Sketch and Extrude build-event cards.
+- Left lifecycle cards and output/sink cards without fake edit actions.
+- Preserved existing click-to-scrub and branch-local topology selection behavior.
+
+#### Summary of Implementation
+
+- Added Build Path feature context-menu state and reused `SpaghettiContextMenu` for timeline and Parallel topology feature icons.
+- Wired `edit sketch` to the canonical Sketch Draw workspace intent for the card's graph document and node.
+- Added `startExtrudeEditIntent` to activate the existing Extrude node and start the Extrude command session in reuse mode.
+- Prefilled existing Extrude profile sources and current depth from graph truth where the live command session supports them.
+
+#### Files Changed
+
+- `src/app/buildPath/BuildPathSurface.tsx`
+- `src/app/buildPath/BuildPathSurface.test.tsx`
+- `src/app/store/workspaceIntents.ts`
+- `src/app/store/workspaceIntents.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-16 - Feature Edit Context Menu.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Right-clicking supported Sketch timeline/topology icons opens `edit sketch`.
+- Right-clicking supported Extrude timeline/topology icons opens `edit extrude`.
+- Choosing `edit sketch` opens/focuses the target graph node and enters Sketch Draw.
+- Choosing `edit extrude` opens/focuses the target Extrude node and brings back the Extrude command toolbar against the existing node.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/buildPath/BuildPathSurface.test.tsx`
+- `npm.cmd test -- --run src/app/store/workspaceIntents.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2133 -->
+
+### [2133] - 2026-05-25 22:02 - `VCTS - 3 - Extrude Command Readout Stack`
+
+HUMAN SUMMARY: ``The Extrude command toolbar now stacks the Command readouts vertically so the Profiles focused-item list uses the full panel width and Operation sits on its own row instead of sharing a cramped two-column card.``
+
+#### Scope / Constraints Honored
+
+- Kept the change scoped to Extrude command-panel layout.
+- Preserved the shared focused-item list renderer and existing Extrude profile removal behavior.
+- Left shared command-panel defaults intact for other toolbars.
+
+#### Summary of Implementation
+
+- Added an Extrude-specific command status-row class.
+- Overrode the Extrude Command section status grid to one full-width column so Profiles and Operation render as separate full-width rows.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- The Extrude Profiles list now has the full command section width.
+- The Operation readout now appears on a separate line below Profiles.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2132 -->
+
+### [2132] - 2026-05-25 20:56 - `VCTS - 3 - Shared Focused Item List Reuse`
+
+HUMAN SUMMARY: ``The Extrude command toolbar selected-profile list now reuses the same focused-item row component as Properties > Materials, keeping the removable profile rows visually and structurally aligned with the existing focused-items list while preserving profile removal behavior.``
+
+#### Scope / Constraints Honored
+
+- Kept the change focused on sharing the focused-item list primitive between Properties and the Extrude viewport command toolbar.
+- Preserved existing Properties focused-object data attributes and behavior so materials assignment tests continue to cover the same user-facing contract.
+- Left graph-authored Extrude command/session ownership unchanged; the list remains a UI projection over selected profile sources.
+
+#### Summary of Implementation
+
+- Added a reusable `FocusedItemList` component that renders the compact focused-item row structure used by Properties.
+- Migrated the Properties focused-object list to the shared component without changing its include, active-row, resize, or remove semantics.
+- Migrated the Extrude selected-profile readout to the shared focused-item list and kept individual profile removal wired to the active Extrude command session.
+- Added small shared/static styling support for non-clickable selected markers and scoped Extrude list sizing inside the viewport command panel.
+
+#### Files Changed
+
+- `src/app/components/FocusedItemList.tsx`
+- `src/app/workspace/PropertiesSurface.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/settings.css`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Extrude selected profiles now use the same row anatomy as Properties focused items: selected marker, index pill, primary label, secondary detail, and right-side remove button.
+- Properties > Materials keeps the same focused-item list behavior while sharing the renderer with future toolbar lists.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar"`
+- `npm.cmd test -- --run src/app/workspace/PropertiesSurface.test.tsx -t "focused"`
+- `npm.cmd run build`
+- In-app browser reload smoke at `http://localhost:5173/ParaHook_Configurator/` confirmed the app mounted without captured console errors.
+
+<!-- ENTRY 2131 -->
+
+### [2131] - 2026-05-25 20:31 - `VCTS - 3 - Extrude Profile Selection List`
+
+HUMAN SUMMARY: ``The Extrude command toolbar now shows selected profiles as a removable list instead of only a count, so users can remove individual selected profiles from the active command panel while keeping the live Extrude command session and preview state in sync.``
+
+<!-- ENTRY 2131 -->
+
+#### Scope / Constraints Honored
+
+- Kept profile selection owned by the active Extrude command session.
+- Reused the existing `setExtrudeCommandSelectedProfileSources` store seam so live profile edges remain synchronized.
+- Kept the shared command-panel visual grammar from `VCTS - 3`.
+
+#### Summary of Implementation
+
+- Rendered selected Extrude profiles as a list inside the Profiles readout.
+- Added per-profile remove buttons that update the active selected profile source list.
+- Added focused toolbar test coverage proving profile rows render and removal updates both the UI count and store session.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Users can remove individual selected profiles directly from the Extrude command toolbar.
+- Removing the final profile returns the command session to its existing no-profile validation behavior through the store.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar"`
+- `npm.cmd run build`
+
+<!-- ENTRY 2130 -->
+
+### [2130] - 2026-05-25 20:03 - `VCTS - 3 - Command Panel Visual Structure Extraction`
+
+HUMAN SUMMARY: ``The viewport command-toolbar shell now owns a reusable visual grammar layer for command-panel body rhythm, framed sections, readback rows, control stacks, and title actions. Extrude now uses that shared grammar instead of bespoke stat tiles and loose toolbar styling, while preserving its live node-backed controls and shared floating behavior.``
+
+<!-- ENTRY 2130 -->
+
+#### Scope / Constraints Honored
+
+- Kept `ViewportOverlayToolPanel` as the outer shared shell.
+- Kept `useViewportFloatingToolPanel` as the drag/resize behavior owner.
+- Kept Extrude graph writes, preview, validation, OK/Cancel semantics, and live node-backed ParaSlider/ParaSelect controls feature-owned.
+- Left Sketch and Transform runtime behavior stable while documenting them as compatible skins or later selective cleanup targets.
+
+#### Summary of Implementation
+
+- Added shared `ViewportCommandPanel*` visual grammar components beside `ViewportOverlayToolPanel`.
+- Added shared CSS for command-panel bodies, framed sections, headers, readback/status rows, control stacks, and title buttons.
+- Migrated Extrude's active command toolbar body onto the shared visual grammar.
+- Replaced Extrude's bespoke OK/Cancel buttons with shared title button variants.
+- Adjusted Extrude's default floating panel size to a narrower, more vertical command-panel layout.
+
+#### Files Changed
+
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 3 - Command Panel Visual Structure Extraction.md`
+- `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Viewport-Command-Toolbar-Shell-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Extrude's command toolbar now presents command facts and controls through the shared command-panel section grammar.
+- Extrude's OK/Cancel title actions now use shared command-panel title button styling.
+- Future viewport command toolbars have a reusable visual setup path instead of copying Transform, Sketch, or Extrude-specific CSS.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar"`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "projects the active Extrude command preview"`
+- `npm.cmd test -- --run src/app/components/ReferenceTransformToolbar.test.tsx`
+- `npm.cmd test -- --run src/app/components/useViewportFloatingToolPanel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 2129 -->
+
+### [2129] - 2026-05-25 19:32 - `VCTS - 2 - Floating Panel Behavior Unification`
+
+HUMAN SUMMARY: ``Viewport command panels now have a shared floating behavior helper, and both Extrude and Transform use it for title-bar dragging, all-edge/corner resizing, viewport clamping, and auto/manual height behavior. Extrude keeps its `Extrude-9` node-backed ParaSlider/ParaSelect controls while gaining the same movable shell behavior as the mature Transform toolbar.``
+
+<!-- ENTRY 2129 -->
+
+#### Scope / Constraints Honored
+
+- Kept `ViewportOverlayToolPanel` as the visual command-panel shell.
+- Kept command bodies, graph writes, preview, accept/cancel, and history in their owning feature components and stores.
+- Kept detached/floating Model Viewport app-window behavior outside this phase.
+- Staged Sketch runtime migration as a follow-on route because its plane/session shells carry broader density, i-menu, and entity-list behavior.
+
+#### Summary of Implementation
+
+- Added `useViewportFloatingToolPanel` as the shared in-viewport panel behavior owner for placement, title-bar drag, all-edge/corner resize, viewport clamping, min sizing, and auto/manual height.
+- Moved the active Extrude command toolbar onto the shared helper and enabled all 8 resize handles.
+- Replaced Transform toolbar's local drag/resize math with the shared helper while preserving visible toolbar content and title actions.
+- Added pure helper tests and an Extrude toolbar render assertion for resize-handle availability.
+
+#### Files Changed
+
+- `src/app/components/useViewportFloatingToolPanel.ts`
+- `src/app/components/useViewportFloatingToolPanel.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ReferenceTransformToolbar.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 2 - Floating Panel Behavior Unification.md`
+- `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Viewport-Command-Toolbar-Shell-Index.md`
+- `docs/Agents/Dispatch-5-Simpler/Dispatch-5-Simpler-Run-State.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+
+- Extrude command toolbar can now be dragged by its title bar and resized from each edge and corner.
+- Transform toolbar uses the same floating-panel behavior path as Extrude instead of a local implementation.
+- New viewport command toolbars have a documented setup path for shared drag/resize behavior.
+
+#### Verification Steps
+
+- `npm.cmd test -- --run src/app/components/useViewportFloatingToolPanel.test.ts`
+- `npm.cmd test -- --run src/app/components/ReferenceTransformToolbar.test.tsx`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar"`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx -t "projects the active Extrude command preview"`
+- `npm.cmd run build`
+- Attempted `npm.cmd test -- --run src/app/components/useViewportFloatingToolPanel.test.ts src/app/components/ViewerHost.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx`; the combined run timed out while the focused suites above passed.
+
+<!-- ENTRY 2128 -->
+
+### [2128] - 2026-05-25 16:25 - `Extrude-9 - Command Toolbar Node Control Unification`
+
+HUMAN SUMMARY: ``The active Extrude command toolbar now uses the shared viewport command-panel shell and edits the live `Geometry/Extrude` node through ParaSlider and ParaSelect controls, so toolbar values, node rows, preview, accept, cancel, and history share one authored node truth.``
+
+#### Scope / Constraints Honored
+
+- Kept the implementation scoped to active Extrude command toolbar/node-param unification.
+- Consumed `ViewportOverlayToolPanel` as the first shared in-viewport command toolbar shell target from `VCTS - 1`.
+- Preserved profile-picking workflow state while moving durable Extrude option edits onto live `Geometry/Extrude` node params.
+- Did not add new Extrude geometry meanings, boolean behavior, or broad Sketch/Transform refactors.
+
+#### Summary of Implementation
+
+- Added a reusable Extrude control model for shared type, direction, output, depth, start/end depth, and taper visibility/readback rules.
+- Routed `NodeView` Extrude rows through the shared control model so the command toolbar and node surface use the same option lists and visibility rules.
+- Replaced the readout-only active Extrude toolbar with a `ViewportOverlayToolPanel` body containing ParaSelect controls for Type, Direction, and Output plus ParaSlider controls for visible numeric params.
+- Added active command param patching in the Spaghetti store so toolbar edits update the live command-owned `Geometry/Extrude` node.
+- Changed accept to preserve live node params and cancel to restore reused-node params as well as replaced profile wires.
+
+#### Files Changed
+
+- `src/app/components/ViewerHost.tsx`
+- `src/app/theme/surfaces/viewport-overlay.css`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/extrudeControlModel.ts`
+- `src/app/spaghetti/canvas/extrudeControlModel.test.ts`
+- `src/app/spaghetti/commands/extrudeCommandSession.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Behavior Changes
+
+- Starting Extrude now shows node-backed controls instead of only Profiles/Distance/Operation readouts.
+- Toolbar edits update the live command Extrude node and live preview depth reads from that same node param path.
+- Accept keeps toolbar-authored node params instead of replacing them with hardcoded defaults.
+- Cancel restores the pre-command graph, including params on a reused Extrude node.
+
+#### Verification Steps
+
+- `npx.cmd tsc -b`
+- `npm.cmd test -- src/app/spaghetti/canvas/extrudeControlModel.test.ts`
+- `npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "Extrude session|Extrude command|toolbar edits|reused live Extrude|repeated profile-driven"`
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "Extrude command toolbar|Extrude command preview|viewport sketch profiles"`
+- `npm.cmd run build`
+- In-app browser reload smoke at `http://localhost:5173/ParaHook_Configurator/` confirmed the app mounted and the viewport root was present.
+
 <!-- ENTRY 2127 -->
 
 ### [2127] - 2026-05-25 14:39 - `Spaghetti-Editor 11 - Phase 1 - Canvas Viewport Persistence Build Isolation`

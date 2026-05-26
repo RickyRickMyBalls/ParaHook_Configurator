@@ -4,6 +4,10 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+319. 2026-05-26 06:13:29: Added `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 4 - Viewport-Local Toolbar Placement And Persistence.md` to the docs map and refreshed the Viewport Command Toolbar Shell family index so viewport-local right anchoring, Transform split-view repair, Extrude placement adoption, and remembered manual toolbar placement have a planned shared-shell owner.
+318. 2026-05-25 22:09:52: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-16 - Feature Edit Context Menu.md` to the docs map and refreshed the Build Path workspace-family routing so right-click `edit sketch` and `edit extrude` icon-menu handoffs have a planned owner.
+317. 2026-05-25 19:51:44: Added `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 3 - Command Panel Visual Structure Extraction.md` to the docs map and refreshed the Viewport Command Toolbar Shell family index so command-panel body rhythm, section framing, title actions, status/readback rows, and control grouping have a planned shared-shell owner.
+316. 2026-05-25 16:48:47: Added `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 2 - Floating Panel Behavior Unification.md` to the docs map and refreshed the Viewport Command Toolbar Shell family index so shared in-viewport command-panel drag, resize, placement, and future-toolbar setup behavior has a planned owner.
 315. 2026-05-25 14:47:06: Rerouted the shared command-toolbar shell prep docs out of `Templates/Floating Window Shell` and into the new `Templates/Viewport Command Toolbar Shell` family, updated the docs map, and refreshed `Extrude-9` so in-viewport Sketch/Transform/Extrude toolbar planning stays separate from detached/floating Model Viewport shell planning.
 314. 2026-05-25 14:45:19: Added `docs/Human-Plans/Architecture/Templates/Floating Window Shell/Future/Floating_Window_Shell_Phase FWS - 2 - Viewport Command Toolbar Shell.md` to the docs map, refreshed the Floating Window Shell family index, and linked `Extrude-9` to the shared command-toolbar shell prep lane before Extrude toolbar implementation starts.
 313. 2026-05-25 14:34:33: Added `docs/Bugs/25_2026-05-25_spaghetti-canvas-zoom-triggers-worker-build.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 11 - Canvas Viewport Persistence Build Isolation.md` to the docs map, refreshed the master bug report, and refreshed the Spaghetti editor family index so the canvas zoom worker-build bug has a planned fix lane.
@@ -886,6 +890,7 @@ Rule notes:
             - `Workspaces/Build-Path/Future/Build-Path-1 - Accepted Graph Event Timeline Foundation.md`
             - `Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
             - `Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
+            - `Workspaces/Build-Path/Future/Build-Path-16 - Feature Edit Context Menu.md`
 ###### -------------Home-Page
             - `Workspaces/Home-Page/Home-Page-Vision.md`
             - `Workspaces/Home-Page/Home-Page-Gen1-Index.md`
@@ -1145,6 +1150,9 @@ Rule notes:
             - `Templates/Viewport Command Toolbar Shell/Viewport-Command-Toolbar-Shell-Index.md`
         ###### -------------Future
             - `Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 1 - Shared Command Panel Prep.md`
+            - `Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 2 - Floating Panel Behavior Unification.md`
+            - `Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 3 - Command Panel Visual Structure Extraction.md`
+            - `Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 4 - Viewport-Local Toolbar Placement And Persistence.md`
         ##### ------------Buttons
         ###### -------------ParaVec3Slider
             - `Templates/Buttons/ParaVec3Slider/ParaVec3Slider-Index.md`

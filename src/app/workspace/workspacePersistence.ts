@@ -37,6 +37,8 @@ import {
   type WorkspaceRetainedSurfaceInstanceIdsByKind,
   type WorkspaceViewportSlot,
   type WorkspaceViewportChromeState,
+  type WorkspaceViewportCommandToolbarPlacement,
+  type WorkspaceViewportCommandToolbarPlacementKey,
   type WorkspaceViewportId,
 } from './workspaceShellTypes'
 import {
@@ -81,6 +83,58 @@ const cloneWorkspaceFloatingRect = (rect: WorkspaceFloatingRect): WorkspaceFloat
   width: roundNumber(rect.width, 320),
   height: roundNumber(rect.height, 560),
 })
+
+const commandToolbarPlacementKeys: readonly WorkspaceViewportCommandToolbarPlacementKey[] = [
+  'extrude',
+  'transform',
+  'sketch',
+]
+
+const normalizeWorkspaceCommandToolbarPlacement = (
+  value: unknown,
+): WorkspaceViewportCommandToolbarPlacement | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const left = Number(value.left)
+  const top = Number(value.top)
+  const width = Number(value.width)
+  const height = Number(value.height)
+  if (
+    !Number.isFinite(left) ||
+    !Number.isFinite(top) ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height)
+  ) {
+    return null
+  }
+  return {
+    left: roundNumber(left, 12),
+    top: roundNumber(top, 12),
+    width: Math.max(1, roundNumber(width, 300)),
+    height: Math.max(1, roundNumber(height, 360)),
+  }
+}
+
+const normalizeWorkspaceCommandToolbarPlacementByKey = (
+  value: unknown,
+): Partial<
+  Record<WorkspaceViewportCommandToolbarPlacementKey, WorkspaceViewportCommandToolbarPlacement>
+> => {
+  if (!isRecord(value)) {
+    return {}
+  }
+  const placements: Partial<
+    Record<WorkspaceViewportCommandToolbarPlacementKey, WorkspaceViewportCommandToolbarPlacement>
+  > = {}
+  for (const key of commandToolbarPlacementKeys) {
+    const placement = normalizeWorkspaceCommandToolbarPlacement(value[key])
+    if (placement !== null) {
+      placements[key] = placement
+    }
+  }
+  return placements
+}
 
 const normalizeWorkspaceFloatingRect = (value: unknown): WorkspaceFloatingRect | null => {
   if (!isRecord(value)) {
@@ -229,6 +283,9 @@ const cloneViewportChromeState = (
           : chrome.localViewState?.viewToolbarFloatingRect === undefined
             ? baseChrome.localViewState.viewToolbarFloatingRect
             : cloneWorkspaceFloatingRect(chrome.localViewState.viewToolbarFloatingRect),
+      commandToolbarPlacementByKey: normalizeWorkspaceCommandToolbarPlacementByKey(
+        chrome.localViewState?.commandToolbarPlacementByKey,
+      ),
     },
   }
 }
@@ -405,6 +462,13 @@ const normalizeViewportChromeRecord = (
         : localViewState?.viewToolbarCompactAxisWidgetSize === null
           ? { viewToolbarCompactAxisWidgetSize: null }
           : {}),
+      ...(isRecord(localViewState?.commandToolbarPlacementByKey)
+        ? {
+            commandToolbarPlacementByKey: normalizeWorkspaceCommandToolbarPlacementByKey(
+              localViewState.commandToolbarPlacementByKey,
+            ),
+          }
+        : {}),
       ...(localViewState?.viewportResultMode === 'draft' ||
       localViewState?.viewportResultMode === 'final'
         ? { viewportResultMode: localViewState.viewportResultMode }

@@ -323,6 +323,76 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
   })
 
+  it('starts extrude edit without forcing Spaghetti Editor focus through the shared workspace intent band', async () => {
+    const { buildWorkspaceIntentDepsFromCurrentStoreState, startExtrudeEditIntent } =
+      await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            ...getDefaultNodeParams('Geometry/Extrude'),
+            depthMm: 42,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-profile-1',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfile:profile-a' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+      ],
+    })
+
+    const result = startExtrudeEditIntent(
+      buildWorkspaceIntentDepsFromCurrentStoreState(),
+      'graph-document-1',
+      'node-extrude-1',
+    )
+
+    const session = useSpaghettiStore.getState().extrudeCommandSession
+
+    expect(result.graphDocumentId).toBe('graph-document-1')
+    expect(result.editorViewportId).toBeNull()
+    expect(result.createdNewViewport).toBe(false)
+    expect(result.nodeId).toBe('node-extrude-1')
+    expect(useSpaghettiStore.getState().selectedNodeId).toBeNull()
+    expect(session).toMatchObject({
+      commandFamily: 'Extrude',
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      activeStep: 'depth',
+      selectedProfileSources: [
+        { nodeId: 'node-sketch-1', portId: 'SketchProfile:profile-a' },
+      ],
+      depth: 42,
+      liveGraph: {
+        liveExtrudeNodeId: 'node-extrude-1',
+        createdExtrudeNodeId: null,
+      },
+    })
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-extrude-1',
+    })
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBeNull()
+  })
+
   it('activates a reference item through the canonical workspace intent seam', async () => {
     const { activateReferenceItemIntent } = await import('./workspaceIntents')
     const { buildImportedReferenceRowId, useAppStore } = await import('./useAppStore')

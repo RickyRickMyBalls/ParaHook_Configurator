@@ -1025,6 +1025,98 @@ describe('ReferenceTransformToolbar', () => {
     expect(toolPanel?.style.height).toBe('404px')
   })
 
+  it('anchors the Transform toolbar to supplied viewport-local bounds', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ReferenceTransformToolbar getBounds={() => ({ width: 520, height: 720 })} />,
+      )
+    })
+
+    const toolPanel = container.querySelector(
+      '.ViewportOverlayToolPanel.ReferenceTransformToolbar',
+    ) as HTMLDivElement | null
+
+    expect(toolPanel?.style.left).toBe('208px')
+    expect(toolPanel?.style.top).toBe('22px')
+  })
+
+  it('remembers manual Transform toolbar placement per viewport', async () => {
+    const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+    })
+
+    await act(async () => {
+      root?.render(
+        <ReferenceTransformToolbar
+          viewportId="model-viewer-primary"
+          getBounds={() => ({ width: 640, height: 480 })}
+        />,
+      )
+    })
+
+    const toolPanel = container.querySelector(
+      '.ViewportOverlayToolPanel.ReferenceTransformToolbar',
+    ) as HTMLDivElement | null
+    const titleBar = container.querySelector('.ViewportOverlayToolPanelTitleBar') as
+      | HTMLDivElement
+      | null
+
+    expect(toolPanel).not.toBeNull()
+
+    if (toolPanel !== null) {
+      Object.defineProperty(toolPanel, 'offsetWidth', {
+        configurable: true,
+        get: () => 300,
+      })
+      Object.defineProperty(toolPanel, 'offsetHeight', {
+        configurable: true,
+        get: () => 360,
+      })
+    }
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 100,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new MouseEvent('mousemove', {
+          clientX: 132,
+          clientY: 148,
+        }),
+      )
+      window.dispatchEvent(new MouseEvent('mouseup'))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .commandToolbarPlacementByKey.transform,
+    ).toEqual({
+      left: 328,
+      top: 50,
+      width: 300,
+      height: 360,
+    })
+  })
+
   it('toggles the keyboard shortcuts help from the header info button', async () => {
     const { ReferenceTransformToolbar } = await import('./ReferenceTransformToolbar')
 

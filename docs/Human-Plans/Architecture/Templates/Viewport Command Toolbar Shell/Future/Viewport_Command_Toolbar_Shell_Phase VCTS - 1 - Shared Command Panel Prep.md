@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-05-25 15:07:48: Ran the Dispatch 5 Simpler manager loop through `VCTS - 1`, marking all three prep phases complete after code-backed research confirmed `ViewportOverlayToolPanel` as the shared shell primitive, locked the Extrude shell/body handoff contract, and deferred broader Sketch/Transform cleanup until after Extrude proves the pattern.
 1. 2026-05-25 14:47:06: Added this standalone future phase doc to prep the shared in-viewport command-toolbar shell for Sketch, Transform, and Extrude before `Extrude-9` moves the active Extrude command toolbar onto ParaSlider and ParaSelect-backed node controls.
 
 ### Purpose
@@ -105,6 +106,29 @@ This phase is healthy when:
 - Sketch and Transform are described honestly as partially shell-aligned, not fully unified
 - future cleanup has a route for command-toolbar shell convergence after Extrude proves the pattern
 
+### Dispatch 5 Completion Read
+
+Manager loop:
+- `VCTS - 1 / Phase 1` was selected, prepped, researched, and accepted as a shell-owner read.
+- `VCTS - 1 / Phase 2` was selected, prepped, researched, and accepted as the Extrude shell prep contract.
+- `VCTS - 1 / Phase 3` was selected, prepped, researched, and accepted as the post-Extrude cleanup route.
+
+Accepted result:
+- `ViewportOverlayToolPanel` is the shared in-viewport command-toolbar shell primitive.
+- Transform is shell-aligned through direct `ViewportOverlayToolPanel` use in `ReferenceTransformToolbar`.
+- Sketch is partially shell-aligned through `ViewportOverlay` and shared panel classes, but still carries sketch-specific placement and session plumbing.
+- Extrude is not shell-aligned yet; its active command toolbar remains a bespoke `ViewerHost` strip until `Extrude-9`.
+- The first Extrude migration should consume the shared shell direction while keeping Extrude body content, graph param truth, preview, accept/cancel, and history in the Extrude/Spaghetti families.
+- A later wrapper around `ViewportOverlayToolPanel` is allowed only after the Extrude migration proves repeated command-panel chrome worth extracting.
+
+Verification:
+- read `src/app/components/ViewportOverlayToolPanel.tsx`
+- read `src/app/components/ReferenceTransformToolbar.tsx`
+- read `src/app/components/ViewportOverlay.tsx`
+- read `src/app/components/ViewerHost.tsx`
+- no runtime code changed
+- no build was required
+
 ## Wishlist Organization
 
 ### High Level Goals
@@ -116,28 +140,28 @@ This phase is healthy when:
 
 ### `VCTS - 1 Phase 1`
 
-- [ ] `HLG 1. Active viewport command toolbars should share one shell direction instead of growing feature-local chrome.`
-- [ ] `HLG 3. Sketch and Transform should be treated as partial precedents, not already-complete unification.`
-- audit Sketch, Transform, and Extrude toolbar shell ownership
-- lock `ViewportOverlayToolPanel` as the first shared shell target
-- define what the shell owns versus what feature toolbar bodies own
+- [x] `HLG 1. Active viewport command toolbars should share one shell direction instead of growing feature-local chrome.`
+- [x] `HLG 3. Sketch and Transform should be treated as partial precedents, not already-complete unification.`
+- [x] audit Sketch, Transform, and Extrude toolbar shell ownership
+- [x] lock `ViewportOverlayToolPanel` as the first shared shell target
+- [x] define what the shell owns versus what feature toolbar bodies own
 
 ### `VCTS - 1 Phase 2`
 
-- [ ] `HLG 2. Extrude should adopt the shared toolbar shell before it gains richer ParaSlider and ParaSelect controls.`
-- [ ] `HLG 4. Shared shell ownership must stay separate from feature content and graph truth.`
-- prep the Extrude migration contract over the shared shell
-- identify which body slots Extrude needs for profile summary, ParaSlider/ParaSelect rows, and OK/Cancel
-- keep graph-authored Extrude params owned by the Spaghetti/Extrude family
+- [x] `HLG 2. Extrude should adopt the shared toolbar shell before it gains richer ParaSlider and ParaSelect controls.`
+- [x] `HLG 4. Shared shell ownership must stay separate from feature content and graph truth.`
+- [x] prep the Extrude migration contract over the shared shell
+- [x] identify which body slots Extrude needs for profile summary, ParaSlider/ParaSelect rows, and OK/Cancel
+- [x] keep graph-authored Extrude params owned by the Spaghetti/Extrude family
 
 ### `VCTS - 1 Phase 3`
 
-- [ ] `HLG 1. Active viewport command toolbars should share one shell direction instead of growing feature-local chrome.`
-- [ ] `HLG 3. Sketch and Transform should be treated as partial precedents, not already-complete unification.`
-- after Extrude proves the pattern, evaluate whether Sketch and Transform should move through a small shared command-toolbar wrapper
-- route any cleanup follow-ons without blocking the first Extrude toolbar migration
+- [x] `HLG 1. Active viewport command toolbars should share one shell direction instead of growing feature-local chrome.`
+- [x] `HLG 3. Sketch and Transform should be treated as partial precedents, not already-complete unification.`
+- [x] after Extrude proves the pattern, evaluate whether Sketch and Transform should move through a small shared command-toolbar wrapper
+- [x] route any cleanup follow-ons without blocking the first Extrude toolbar migration
 
-## [ ] `VCTS - 1 / Phase 1` - `Command Toolbar Shell Owner Read`
+## [x] `VCTS - 1 / Phase 1` - `Command Toolbar Shell Owner Read`
 
 ### Phase 1 Summary
 
@@ -177,7 +201,46 @@ Name the current shell ownership reality for Sketch, Transform, and Extrude, the
 
 `VCTS - 1 / Phase 1` is done when the shell owner and boundaries are clear enough that `Extrude-9` can start without inventing a new toolbar shell.
 
-## [ ] `VCTS - 1 / Phase 2` - `Extrude Shell Prep Contract`
+### Phase 1 Dispatch Packet
+
+#### Scope
+
+Audit the live shell owner seams for Sketch, Transform, and Extrude, then lock the first shared shell target for Extrude.
+
+#### Exclusions
+
+- no runtime implementation
+- no Extract/Move code changes
+- no Sketch or Transform behavior changes
+- no Extrude parameter ownership changes
+
+#### Code-Backed Findings
+
+- `src/app/components/ViewportOverlayToolPanel.tsx`
+  - exports the reusable panel shell, title bar, title actions, resize handles, body area, split layout, and section stack helpers.
+- `src/app/components/ReferenceTransformToolbar.tsx`
+  - directly wraps Transform UI in `ViewportOverlayToolPanel`.
+  - uses `ParaSlider` and `ParaSelect` inside the panel body.
+  - keeps Transform-specific state and behavior outside the shell.
+- `src/app/components/ViewportOverlay.tsx`
+  - uses `ViewportOverlayToolPanel` for Sketch Plane tooling.
+  - uses shared `ViewportOverlayToolPanel*` classes for Sketch Draw-style panel markup.
+  - still owns sketch-specific placement, density, customization, and session logic locally.
+- `src/app/components/ViewerHost.tsx`
+  - owns `ExtrudeCommandToolbar` as a bespoke `section` with readout chips and OK/Cancel buttons.
+  - does not consume `ViewportOverlayToolPanel` for Extrude yet.
+
+#### Accepted Decision
+
+`ViewportOverlayToolPanel` is the shell primitive for the first Extrude command-toolbar migration.
+
+Transform and Sketch are precedents, not owners. Extrude should not copy `ReferenceTransformToolbar` or `ViewportOverlay` wholesale.
+
+#### Verification Result
+
+Passed by read-only source inspection. No runtime verification was needed because this phase only locks the shell-owner read.
+
+## [x] `VCTS - 1 / Phase 2` - `Extrude Shell Prep Contract`
 
 ### Phase 2 Summary
 
@@ -221,7 +284,69 @@ Define the shell/body contract Extrude should use when it moves from a readout s
 
 `VCTS - 1 / Phase 2` is done when Extrude has a prepared shared-shell contract for its first real toolbar migration.
 
-## [ ] `VCTS - 1 / Phase 3` - `Post-Extrude Toolbar Shell Cleanup Route`
+### Phase 2 Dispatch Packet
+
+#### Scope
+
+Define the shell/body contract that `Extrude-9` should consume when the active Extrude command toolbar moves from a bespoke readout strip to a real control panel.
+
+#### Exclusions
+
+- no Extrude node param implementation
+- no ParaSlider or ParaSelect design changes
+- no accept/cancel graph rollback changes
+- no broad command-toolbar wrapper extraction before proof
+
+#### Accepted Shell Contract
+
+Initial Extrude migration stack:
+
+```text
+ViewerHost
+  -> ViewportOverlayToolPanel
+    -> Extrude command toolbar body
+      -> Extrude control VM
+        -> live Geometry/Extrude node params
+```
+
+Shell owns:
+- panel title and optional title meta
+- action placement convention
+- body container and section layout
+- optional resize/drag affordances only when adopted from the existing overlay panel behavior
+
+Extrude body owns:
+- profile summary and re-pick affordance
+- ParaSlider/ParaSelect control rows
+- row visibility and disabled/driven state from the Extrude control VM
+- OK/Cancel command actions when those actions are command-specific
+
+Spaghetti/Extrude owns:
+- live `Geometry/Extrude` node params
+- graph writes
+- preview semantics
+- accept/cancel rollback
+- edit-history shape
+
+#### First Extrude Body Slots
+
+The first Extrude command toolbar should reserve:
+- title: `Extrude`
+- title meta or status: active step / selected profile count
+- profile summary/action row
+- `Type` ParaSelect
+- `Direction` ParaSelect
+- `Depth` ParaSlider for one-sided direction
+- `Start Depth` and `End Depth` ParaSliders for two-sided direction
+- `Taper Angle` ParaSlider when supported
+- `Output` ParaSelect
+- OK/Cancel action area
+
+#### Verification Result
+
+Passed by comparing the desired Extrude slots against the current `ViewerHost` toolbar and the existing Transform/Sketch overlay panel usage. Runtime implementation remains deferred to `Extrude-9`.
+
+## [x] `VCTS - 1 / Phase 3` - `Post-Extrude Toolbar Shell Cleanup Route`
 
 ### Phase 3 Summary
 
@@ -259,3 +384,43 @@ Keep Sketch and Transform cleanup honest after Extrude proves the shared shell p
 #### Done Shape
 
 `VCTS - 1 / Phase 3` is done when the next Sketch/Transform shell cleanup step is either explicitly routed or intentionally deferred.
+
+### Phase 3 Dispatch Packet
+
+#### Scope
+
+Route later Sketch/Transform cleanup without blocking the first Extrude migration.
+
+#### Exclusions
+
+- no Sketch migration before Extrude proves the shell pattern
+- no Transform rewrite before repeated command-panel chrome is proven
+- no generic command-toolbar wrapper until there is actual duplication to extract
+
+#### Accepted Cleanup Route
+
+After `Extrude-9` lands, compare the implemented Extrude panel against:
+- `ReferenceTransformToolbar` direct `ViewportOverlayToolPanel` usage
+- `ViewportOverlay` Sketch Plane `ViewportOverlayToolPanel` usage
+- Sketch Draw class-compatible panel markup
+
+Create a follow-on only if the comparison shows repeated command-toolbar chrome worth extracting.
+
+Possible follow-on:
+- `VCTS - 2 - Command Toolbar Wrapper Extraction`
+
+That follow-on should consider a small wrapper around `ViewportOverlayToolPanel` for:
+- default command title/action layout
+- shared command body section stack defaults
+- common OK/Cancel placement only when command actions really align
+- shared fixed/drag/resize policy after Extrude validates the need
+
+The follow-on must not merge:
+- Sketch session behavior
+- Transform target/gizmo behavior
+- Extrude node-param control logic
+- graph writes, preview, or history behavior
+
+#### Verification Result
+
+Passed by deferring cleanup until after Extrude provides implementation proof. No new follow-on doc was created because the next legal action remains `Extrude-9`, not a premature wrapper extraction.

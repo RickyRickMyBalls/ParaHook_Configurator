@@ -22,6 +22,7 @@ export type ExtrudeCommandLiveGraphState = {
   createdExtrudeNodeId: string | null
   commandOwnedProfileEdgeIds: readonly string[]
   replacedProfileEdges: readonly SpaghettiEdge[]
+  replacedExtrudeNodeParams: SpaghettiNode['params'] | null
 }
 
 export type ExtrudeCommandSession = {
@@ -45,6 +46,7 @@ export type CreateExtrudeCommandSessionOptions = {
   depth?: number
   liveGraph?: ExtrudeCommandLiveGraphState | null
   reuseSelectedExtrudeNode?: boolean
+  reuseExtrudeNodeId?: string | null
 }
 
 export type ExtrudeProfileConsoleChoice = {

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-05-25 22:09:52: Added a Build Path Gen1 high-level goal for right-click feature edit handoff menus so timeline icons can eventually return users to the owning Sketch or Extrude command surface without turning Build Path into a graph editor.
 2. 2026-05-22 18:45:37: Added the Build Path presentation direction so the default surface is a clean Model Viewport icon timeline with no content label, while split/tiled workspace mode keeps normal Console-like titlebar chrome.
 1. 2026-05-22 17:51:51: Added this dedicated `Build Path` workspace vision doc so graph-authored CAD/build history, master scrub, branch-local scrub lanes, and the boundary against canonical Edit History undo/redo have one stable planning home.
 
@@ -221,6 +222,7 @@ Keep these as the explicit human-level wishlist items for `Build Path`:
 - [ ] `Build-Path-Gen1-HLG-7. Build Path should stay derived from graph and accepted build truth instead of becoming a second authored graph or a second undo stack.`
 - [ ] `Build-Path-Gen1-HLG-8. Build Path should eventually support explicit restore, branch-from-here, compare, or pin actions only after view-only scrub is trustworthy.`
 - [ ] `Build-Path-Gen1-HLG-9. Build Path should default to a clean Model Viewport icon-strip presentation with no content label, while split/tiled/windowed mode keeps normal titlebar chrome like Console.`
+- [ ] `Build-Path-Gen1-HLG-10. Build Path icons should offer a right-click edit menu that can return the user to the owning feature authoring surface, such as Sketch Draw or the Extrude command toolbar.`
 
 ### Build Path Generations
 

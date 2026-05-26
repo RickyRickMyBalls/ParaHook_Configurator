@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type HTMLAttributes,
   type MouseEvent as ReactMouseEvent,
   type MouseEventHandler,
   type PointerEvent as ReactPointerEvent,
@@ -60,6 +61,39 @@ type ViewportOverlayToolSectionProps = {
   className?: string
   label?: ReactNode
   children: ReactNode
+}
+
+type ViewportCommandPanelBodyProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode
+}
+
+type ViewportCommandPanelSectionProps = {
+  actions?: ReactNode
+  children: ReactNode
+  className?: string
+  defaultExpanded?: boolean
+  label: ReactNode
+}
+
+type ViewportCommandPanelStatusRowProps = {
+  children: ReactNode
+  className?: string
+}
+
+type ViewportCommandPanelReadoutProps = {
+  label: ReactNode
+  value: ReactNode
+  className?: string
+}
+
+type ViewportCommandPanelTitleButtonProps = {
+  ariaLabel: string
+  children: ReactNode
+  className?: string
+  disabled?: boolean
+  onClick: () => void
+  title?: string
+  variant?: 'primary' | 'secondary' | 'icon'
 }
 
 type ViewportOverlayToolSplitLayoutProps = {
@@ -325,6 +359,111 @@ export function ViewportOverlayToolSection(props: ViewportOverlayToolSectionProp
       ) : null}
       {children}
     </div>
+  )
+}
+
+export function ViewportCommandPanelBody(props: ViewportCommandPanelBodyProps) {
+  const { children, className, ...rest } = props
+  return (
+    <div className={`ViewportCommandPanelBody${className ? ` ${className}` : ''}`} {...rest}>
+      {children}
+    </div>
+  )
+}
+
+export function ViewportCommandPanelSection(props: ViewportCommandPanelSectionProps) {
+  const { actions, children, className, defaultExpanded = true, label } = props
+  const [expanded, setExpanded] = useState(defaultExpanded)
+
+  return (
+    <section
+      className={`ViewportCommandPanelSection${expanded ? ' isExpanded' : ' isCollapsed'}${
+        className ? ` ${className}` : ''
+      }`}
+    >
+      <div className="ViewportCommandPanelSectionHeader">
+        <button
+          type="button"
+          className="ViewportCommandPanelSectionToggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <span
+            className={`ViewportOverlayToolPanelChevron ${expanded ? 'isExpanded' : ''}`}
+            aria-hidden="true"
+          >
+            &gt;
+          </span>
+          <span className="ViewportCommandPanelSectionLabel">{label}</span>
+        </button>
+        {actions !== undefined && actions !== null ? (
+          <div className="ViewportCommandPanelSectionActions">{actions}</div>
+        ) : null}
+      </div>
+      {expanded ? <div className="ViewportCommandPanelSectionBody">{children}</div> : null}
+    </section>
+  )
+}
+
+export function ViewportCommandPanelStatusRow(props: ViewportCommandPanelStatusRowProps) {
+  const { children, className } = props
+  return (
+    <dl className={`ViewportCommandPanelStatusRow${className ? ` ${className}` : ''}`}>
+      {children}
+    </dl>
+  )
+}
+
+export function ViewportCommandPanelReadout(props: ViewportCommandPanelReadoutProps) {
+  const { className, label, value } = props
+  return (
+    <div className={`ViewportCommandPanelReadout${className ? ` ${className}` : ''}`}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  )
+}
+
+export function ViewportCommandPanelControlStack(props: ViewportCommandPanelBodyProps) {
+  const { children, className } = props
+  return (
+    <div className={`ViewportCommandPanelControlStack${className ? ` ${className}` : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+export function ViewportCommandPanelTitleButton(props: ViewportCommandPanelTitleButtonProps) {
+  const {
+    ariaLabel,
+    children,
+    className,
+    disabled = false,
+    onClick,
+    title,
+    variant = 'secondary',
+  } = props
+  return (
+    <button
+      type="button"
+      className={`ViewportCommandPanelTitleButton ViewportCommandPanelTitleButton--${variant}${
+        className ? ` ${className}` : ''
+      }`}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      title={title}
+      onPointerDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      }}
+      onMouseDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      }}
+      onClick={onClick}
+    >
+      {children}
+    </button>
   )
 }
 

@@ -168,6 +168,229 @@ describe('BuildPathSurface', () => {
     expect(container?.textContent).not.toContain('Build Path')
   })
 
+  it('opens feature edit context menu labels from Build Path timeline icons', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-menu-sketch',
+        affectedNodeIds: ['node-menu-sketch'],
+      }),
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 2,
+        projectionId: 'projection-menu-extrude',
+        affectedNodeIds: ['node-menu-extrude'],
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-menu-test" hostMode="workspace" />,
+      )
+    })
+
+    const sketchStep = container?.querySelector(
+      '.BuildPathTimelineStep--sketch',
+    ) as HTMLButtonElement | null
+    const extrudeStep = container?.querySelector(
+      '.BuildPathTimelineStep--extrude',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      sketchStep?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 44,
+          clientY: 55,
+        }),
+      )
+    })
+
+    let menu = document.body.querySelector('.BuildPathFeatureEditContextMenu')
+    let menuItems = Array.from(menu?.querySelectorAll('.SpaghettiContextMenuItem') ?? [])
+
+    expect(menu).not.toBeNull()
+    expect(menuItems.map((item) => item.textContent)).toEqual([
+      'edit sketch',
+      'focus graph node',
+    ])
+    expect((menu as HTMLElement | null)?.style.left).toBe('44px')
+    expect((menu as HTMLElement | null)?.style.top).toBe('55px')
+
+    await act(async () => {
+      extrudeStep?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 66,
+          clientY: 77,
+        }),
+      )
+    })
+
+    menu = document.body.querySelector('.BuildPathFeatureEditContextMenu')
+    menuItems = Array.from(menu?.querySelectorAll('.SpaghettiContextMenuItem') ?? [])
+
+    expect(menuItems.map((item) => item.textContent)).toEqual([
+      'edit extrude',
+      'focus graph node',
+    ])
+    expect((menu as HTMLElement | null)?.style.left).toBe('66px')
+    expect((menu as HTMLElement | null)?.style.top).toBe('77px')
+  })
+
+  it('opens the feature edit context menu from the viewport-docked Build Path strip', async () => {
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Sketch',
+        eventSequence: 1,
+        projectionId: 'projection-dock-menu-sketch',
+        affectedNodeIds: ['node-dock-menu-sketch'],
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(<BuildPathViewportDock />)
+    })
+
+    const sketchStep = container?.querySelector(
+      '.BuildPathTimelineStep--sketch',
+    ) as HTMLButtonElement | null
+
+    Object.defineProperty(sketchStep, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 744,
+        height: 24,
+        left: 22,
+        right: 46,
+        top: 720,
+        width: 24,
+        x: 22,
+        y: 720,
+        toJSON: () => undefined,
+      }),
+    })
+
+    await act(async () => {
+      sketchStep?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 22,
+          clientY: 680,
+        }),
+      )
+    })
+
+    const menu = document.body.querySelector('.BuildPathFeatureEditContextMenu')
+    const menuItems = Array.from(menu?.querySelectorAll('.SpaghettiContextMenuItem') ?? [])
+
+    expect(menu).not.toBeNull()
+    expect(menuItems.map((item) => item.textContent)).toEqual([
+      'edit sketch',
+      'focus graph node',
+    ])
+    expect((menu as HTMLElement | null)?.style.left).toBe('22px')
+    expect((menu as HTMLElement | null)?.style.top).toBe('674px')
+  })
+
+  it('focuses a graph node from the Build Path context menu without starting feature edit', async () => {
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useBuildPathRuntimeStore.getState().resetRuntimeState([
+      createBuildPathEvent({
+        commandFamily: 'Extrude',
+        eventSequence: 1,
+        projectionId: 'projection-menu-focus-extrude',
+        affectedNodeIds: ['node-menu-focus-extrude'],
+      }),
+    ])
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-focus-menu-test" hostMode="workspace" />,
+      )
+    })
+
+    const extrudeStep = container?.querySelector(
+      '.BuildPathTimelineStep--extrude',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      extrudeStep?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 66,
+          clientY: 77,
+        }),
+      )
+    })
+
+    const focusAction = Array.from(
+      document.body.querySelectorAll('.BuildPathFeatureEditContextMenu .SpaghettiContextMenuItem'),
+    ).find((item) => item.textContent === 'focus graph node') as HTMLButtonElement | undefined
+
+    await act(async () => {
+      focusAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-menu-focus-extrude')
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useSpaghettiStore.getState().geometrySketchSession).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-menu-focus-extrude',
+    })
+    expect(document.body.querySelector('.BuildPathFeatureEditContextMenu')).toBeNull()
+  })
+
+  it('does not open a feature edit context menu for Build Path lifecycle icons', async () => {
+    const graphLoadedCard = createBuildPathLifecycleCard({
+      lifecycleKind: 'graph-loaded',
+      graphDocumentId: 'graph-document-loaded',
+      graphLabel: 'Loaded Graph',
+      sourceKind: 'reconstructed',
+      eventSequence: 1,
+    })
+    useBuildPathRuntimeStore.setState((state) => ({
+      runtimeState: {
+        ...state.runtimeState,
+        lifecycleCards: [graphLoadedCard],
+      },
+    }))
+
+    await act(async () => {
+      root?.render(
+        <BuildPathSurface surfaceInstanceId="build-path-lifecycle-menu-test" hostMode="workspace" />,
+      )
+    })
+
+    const lifecycleStep = container?.querySelector(
+      '.BuildPathTimelineStep--graph-loaded',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      lifecycleStep?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 88,
+          clientY: 99,
+        }),
+      )
+    })
+
+    expect(document.body.querySelector('.BuildPathFeatureEditContextMenu')).toBeNull()
+  })
+
   it('keeps the viewport dock to the icon timeline and marker scrub controls', async () => {
     editHistoryStore.commitEntry({
       entryId: 'viewport-dock-redo-proof',
@@ -1044,6 +1267,16 @@ describe('BuildPathSurface', () => {
     await act(async () => {
       firstExtrudeCard?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
+    await act(async () => {
+      firstExtrudeCard?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 132,
+        }),
+      )
+    })
 
     expect(topologyRead?.getAttribute('data-build-path-topology-state')).toBe('ready')
     expect(topologyRead?.getAttribute('data-build-path-topology-column-count')).toBe('3')
@@ -1087,6 +1320,11 @@ describe('BuildPathSurface', () => {
       (connector) => connector.getAttribute('data-build-path-topology-temporal-state'),
     )).toEqual(Array.from({ length: 12 }, () => 'future'))
     expect(firstExtrudeCard?.getAttribute('aria-pressed')).toBe('true')
+    expect(
+      document.body
+        ?.querySelector('.BuildPathFeatureEditContextMenu .SpaghettiContextMenuItem')
+        ?.textContent,
+    ).toBe('edit extrude')
     expect(editHistoryStore.getUndoEntries()).toEqual([])
   })
 

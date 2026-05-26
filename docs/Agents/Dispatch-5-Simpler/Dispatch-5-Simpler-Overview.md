@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-05-25 15:05:33: Added the generic phase-marker lifecycle for Dispatch 5 Simpler so any family phase can move from `[ ]` not started, to `[~]` prepped or active, to `[x]` Manager-accepted complete without making the workflow specific to one phase family.
 1. 2026-05-22 15:51:36: Added this simpler Manager plus Worker dispatch model so long-running family work can use one phase packet, risk-based approval, compact run-state tracking, and normal repo tracking docs without repeating a full prep and implementation ledger for every small phase.
 
 ### Purpose
@@ -47,6 +48,8 @@ Dispatch run state is only a dashboard for the active thread. It is not a second
 ```text
 Manager selects the next ready phase
   ->
+Manager marks that phase `[~]` when the packet is prepped or active
+  ->
 Manager or Worker writes one Phase Packet
   ->
 Manager decides whether explicit approval is needed
@@ -56,7 +59,35 @@ Worker implements the packet or Manager keeps the work local
 Focused verification runs, then npm run build when runtime code changed
   ->
 Manager accepts, asks for repair, adds a follow-up, or pauses
+  ->
+Manager marks accepted work `[x]` or leaves incomplete work `[~]` with a blocker/follow-up
 ```
+
+### Phase Markers
+
+Dispatch 5 Simpler uses the owning family phase doc as the durable status surface.
+
+Use these generic heading markers:
+
+- `[ ]`
+  - not started
+  - no active packet has been accepted for that phase yet
+- `[~]`
+  - prepped or active
+  - the phase has a packet, Manager attention, Worker assignment, or in-progress implementation
+- `[x]`
+  - Manager-accepted complete
+  - the phase met its packet, verification, tracking-doc, and family-doc truth requirements
+
+Marker rules:
+
+- move a phase from `[ ]` to `[~]` when Manager selects it and the packet is written or tightened enough to guide work
+- keep a phase `[~]` while implementation, verification, review, repair, or follow-up routing is still active
+- move a phase from `[~]` to `[x]` only after Manager accepts the result against the phase packet and owning family doc
+- prep the next phase as `[~]` only when it becomes the next legal active phase
+- if work is useful but incomplete, keep the current phase `[~]` and add a blocker, defer note, or follow-up instead of marking it `[x]`
+
+The marker lifecycle does not reduce Manager authority. It gives Manager a visible handoff state between "not started" and "accepted complete."
 
 ### Phase Packet
 
@@ -145,5 +176,6 @@ A phase is complete only when:
 - required tracking docs are updated
 - the owning family docs still tell the truth
 - Manager accepts the result against the claimed wishlist, HLG, and CLG coverage
+- the owning phase heading is moved to `[x]` only after that acceptance
 
 If the work is useful but incomplete, add a follow-up instead of pretending the phase is done.

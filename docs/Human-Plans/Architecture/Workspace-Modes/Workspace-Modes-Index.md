@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+253. 2026-05-25 22:23:39: Recorded `Build-Path-16 / Phases 1-2` as implemented so supported Build Path Sketch and Extrude icons now expose right-click `edit sketch` and `edit extrude` handoffs back into Sketch Draw or the existing-node Extrude command toolbar without making Build Path mutate graph truth.
+252. 2026-05-25 22:09:52: Added `Build-Path-16 - Feature Edit Context Menu` to the Build Path workspace handoff so supported Build Path icons can plan right-click `edit sketch` and `edit extrude` actions back into the owning feature authoring surfaces without turning Build Path into a graph editor.
 251. 2026-05-25 10:44:40: Recorded `Build-Path-15 / Phases 1-2` as implemented with presentation-only temporal state on linear timeline icons and workspace Parallel topology cards/connectors so future steps after the current scrub position read as visually inactive without disabling scrub targets or changing graph truth.
 250. 2026-05-25 10:38:21: Added `Build-Path-15 - Scrub Future Icon State` to the Build Path workspace handoff so timeline icons after the current scrub position can be planned as visually inactive/future while staying clickable and preserving graph/Edit History truth.
 249. 2026-05-25 10:27:42: Recorded `Build-Path-11 / Phases 3-6` as implemented with an unboxed workspace Parallel topology graph, UI-only top/center/bottom alignment controls, secondary collapsed lane readback, connector/card polish, focused proof, TypeScript proof, production build proof, and an attempted browser smoke blocked by unavailable `iab`.
@@ -1207,6 +1209,7 @@ The right mental model is:
     - mini connector lines use the same semantic color family as the underlying Spaghetti reference wires
     - lane readback is secondary and collapsed once the topology graph is the primary visual read
     - timeline icons after the current scrub position now read as inactive/future, not disabled, so users can see which later operations are off at the selected build time while still clicking them to scrub forward
+    - supported feature icons should expose a right-click edit menu whose first action returns to the owning Sketch Draw or Extrude command toolbar surface
     - the strip can dock top or bottom, and bottom dock sits above `Console`
     - split, tiled, and windowed Build Path surfaces still use normal workspace titlebar chrome like `Console`
   - current implementation-planning owner:
@@ -1215,8 +1218,13 @@ The right mental model is:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-14 - Node Deletion And Reference Orphan Contract.md`
   - current visual scrub-state owner:
     - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
+  - current feature edit handoff owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-16 - Feature Edit Context Menu.md`
   - current next implementation phase:
     - `Build-Path-15` is complete through Phase 2.
+    - `Build-Path-16` is complete through Phase 2.
+    - right-click Sketch and Extrude icons should offer `edit sketch` or `edit extrude` as the first context-menu action.
+    - those actions should route through canonical workspace/feature owners rather than mutating graph truth inside Build Path.
     - linear timeline cards are marked as `past`, `current`, or `future` from the selected master scrub position
     - Parallel topology cards and connectors carry the same future-state language without changing graph truth
     - landed rendering rule: topology columns are the visual x-axis, lane indexes are the y-axis, and connector strokes use the semantic connector color from the read model

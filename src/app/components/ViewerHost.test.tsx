@@ -724,6 +724,67 @@ describe('ViewerHost reference loading', () => {
     expect(cancelButton?.disabled).toBe(false)
   })
 
+  it('anchors the Extrude command toolbar to the viewport root bounds', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'clientWidth',
+    )
+    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'clientHeight',
+    )
+
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get() {
+        return this.classList?.contains('ViewportRoot') ? 640 : 0
+      },
+    })
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      get() {
+        return this.classList?.contains('ViewportRoot') ? 520 : 0
+      },
+    })
+
+    act(() => {
+      useSpaghettiStore.getState().startExtrudeCommandSession({
+        graphDocumentId: 'graph-document-1',
+        entryPoint: 'console-root',
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    try {
+      await act(async () => {
+        root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+      })
+
+      const toolbar = container.querySelector('.ViewportExtrudeCommandToolbar') as
+        | HTMLDivElement
+        | null
+
+      expect(toolbar?.style.left).toBe('198px')
+      expect(toolbar?.style.top).toBe('12px')
+    } finally {
+      if (clientWidthDescriptor === undefined) {
+        delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth
+      } else {
+        Object.defineProperty(HTMLElement.prototype, 'clientWidth', clientWidthDescriptor)
+      }
+      if (clientHeightDescriptor === undefined) {
+        delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight
+      } else {
+        Object.defineProperty(HTMLElement.prototype, 'clientHeight', clientHeightDescriptor)
+      }
+    }
+  })
+
   it('renders the Extrude command toolbar depth state from selected profile sources', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
@@ -763,7 +824,34 @@ describe('ViewerHost reference loading', () => {
     expect(toolbar?.textContent).toContain('Depth')
     expect(toolbar?.textContent).toContain('2 selected')
     expect(toolbar?.textContent).toContain('25')
+    expect(container.querySelectorAll('.ViewportExtrudeCommandToolbar .ViewportCommandPanelSection')).toHaveLength(3)
+    expect(container.querySelector('.ViewportExtrudeCommandToolbar .ViewportCommandPanelStatusRow')).not.toBeNull()
+    expect(container.querySelectorAll('.ViewportExtrudeCommandToolbar .ViewportCommandPanelTitleButton')).toHaveLength(2)
+    expect(
+      container.querySelectorAll(
+        '.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemRow',
+      ),
+    ).toHaveLength(2)
+    expect(container.querySelectorAll('.ViewportExtrudeCommandToolbar .ViewportOverlayToolPanelResizeHandle')).toHaveLength(8)
     expect(okButton?.disabled).toBe(false)
+
+    const removeFirstProfile = container.querySelector(
+      '.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemRemoveButton',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      removeFirstProfile?.click()
+    })
+
+    expect(container.querySelector('[data-testid="extrude-command-selected-count"]')?.textContent).toBe(
+      '1 selected',
+    )
+    expect(
+      container.querySelectorAll(
+        '.ViewportExtrudeCommandToolbarProfileList .PropertiesFocusedItemRow',
+      ),
+    ).toHaveLength(1)
+    expect(useSpaghettiStore.getState().extrudeCommandSession?.selectedProfileSources).toHaveLength(1)
   })
 
   it('projects the active Extrude command preview from selected profile sources', async () => {

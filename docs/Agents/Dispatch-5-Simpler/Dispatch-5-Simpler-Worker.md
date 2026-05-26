@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-05-25 15:05:33: Added Worker return expectations for the generic Dispatch 5 phase-marker lifecycle so Worker reports whether the active phase should remain `[~]` for Manager review or is ready for Manager to mark `[x]`.
 1. 2026-05-22 15:51:36: Added the Dispatch 5 Simpler Worker role, defining packet, implementation, combined packet-and-implementation, and research assignments with compact return requirements and normal tracking-doc obligations.
 
 ### Purpose
@@ -23,6 +24,8 @@ Use it to answer:
 Worker follows the phase packet.
 
 Worker may prep, implement, prep plus implement, or research depending on Manager's assignment. Worker does not widen scope, choose family direction, or call a phase complete without Manager acceptance.
+
+Worker may report that a phase appears ready for acceptance, but Manager owns the final move from `[~]` to `[x]`.
 
 ### Assignment Types
 
@@ -90,6 +93,7 @@ Worker returns:
 
 - assignment type
 - status
+- phase-marker recommendation, such as keep `[~]` for review/repair or ready for Manager to mark `[x]`
 - files changed
 - summary
 - verification

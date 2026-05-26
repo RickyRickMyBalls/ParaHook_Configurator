@@ -567,6 +567,59 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     )
   })
 
+  it('keeps command toolbar placement per viewport and per toolbar key', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'modelViewer',
+      surfaceInstanceId: 'model-viewer-workspace-slot-2',
+    })
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-workspace-slot-2')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      commandToolbarPlacementByKey: {
+        transform: {
+          left: 100,
+          top: 40,
+          width: 300,
+          height: 360,
+        },
+      },
+    })
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-workspace-slot-2', {
+      commandToolbarPlacementByKey: {
+        extrude: {
+          left: 220,
+          top: 52,
+          width: 430,
+          height: 520,
+        },
+      },
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .commandToolbarPlacementByKey,
+    ).toEqual({
+      transform: {
+        left: 100,
+        top: 40,
+        width: 300,
+        height: 360,
+      },
+    })
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-workspace-slot-2']
+        ?.localViewState.commandToolbarPlacementByKey,
+    ).toEqual({
+      extrude: {
+        left: 220,
+        top: 52,
+        width: 430,
+        height: 520,
+      },
+    })
+  })
+
   it('defaults viewport result mode to auto and keeps mode ownership viewport-local', () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
       surfaceKind: 'modelViewer',

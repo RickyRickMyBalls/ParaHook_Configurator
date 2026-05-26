@@ -3,6 +3,7 @@ import {
   useRef,
   useState,
   useMemo,
+  useCallback,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
@@ -483,6 +484,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const sketchPlaneToolPanelRef = useRef<HTMLDivElement | null>(null)
   const sketchSessionWindowRef = useRef<HTMLDivElement | null>(null)
   const [flyMoveSpeed, setFlyMoveSpeed] = useState<number | null>(null)
+  const [overlayBoundsVersion, setOverlayBoundsVersion] = useState(0)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const currentProject = useAppStore((state) => state.currentProject)
@@ -1086,7 +1088,11 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         ? 'Toolbar mode: Essentials. Click to switch to Expanded.'
         : 'Toolbar mode: Expanded. Click to switch to Collapsed.'
 
-  const getOverlayHostMetrics = () => {
+  useEffect(() => {
+    setOverlayBoundsVersion((version) => version + 1)
+  }, [])
+
+  const getOverlayHostMetrics = useCallback(() => {
     const overlayRoot = overlayRootRef.current
     const overlayRect = overlayRoot?.getBoundingClientRect()
     const width = overlayRoot?.clientWidth ?? 0
@@ -1097,7 +1103,15 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       width: width > 0 ? width : window.innerWidth,
       height: height > 0 ? height : window.innerHeight,
     }
-  }
+  }, [overlayBoundsVersion])
+
+  const getOverlayToolPanelBounds = useCallback(() => {
+    const overlayHost = getOverlayHostMetrics()
+    return {
+      width: overlayHost.width,
+      height: overlayHost.height,
+    }
+  }, [getOverlayHostMetrics])
 
   const getSketchOverlaySpawnPosition = (
     preferredWidth: number,
@@ -2670,7 +2684,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       className="ViewportOverlayRoot"
       data-workspace-viewport-id={viewportId}
     >
-      <ReferenceTransformToolbar />
+      <ReferenceTransformToolbar viewportId={viewportId} getBounds={getOverlayToolPanelBounds} />
       {axisOverlayEnabled ? (
         <div
           ref={axisWidgetRef}

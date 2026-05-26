@@ -4974,6 +4974,11 @@ button.FloatingWindowHeaderAction:disabled {
   pointer-events: auto;
 }
 
+.BuildPathFeatureEditContextMenu {
+  position: fixed;
+  z-index: 90;
+}
+
 .BuildPathTimelineStrip {
   --build-path-step-size: 24px;
   --build-path-step-gap: 6px;

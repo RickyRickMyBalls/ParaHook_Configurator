@@ -29,13 +29,13 @@ Do not use it for:
 ### Active Objective
 
 - Status: complete
-- User objective: run the Dispatch 5 Simpler manager loop and finish `Build-Path-15 - Scrub Future Icon State`.
-- Active family: `Build Path`
+- User objective: run the Dispatch 5 Simpler manager loop for `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence`.
+- Active family: `Viewport Command Toolbar Shell`
 - Active vision/planning surface: `docs/Vision.md`
-- Active generation/index surface: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Gen1-Index.md`
-- Active family phase plan doc: `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Future/Build-Path-15 - Scrub Future Icon State.md`
-- Active phase packet: `Build-Path-15 / Phases 1-2 - Scrub Future Icon State`
-- Manager resume point: `Build-Path-15` is complete through Phase 2; ready for user visual review or the next requested Build Path phase.
+- Active generation/index surface: `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Viewport-Command-Toolbar-Shell-Index.md`
+- Active family phase plan doc: `docs/Human-Plans/Architecture/Templates/Viewport Command Toolbar Shell/Future/Viewport_Command_Toolbar_Shell_Phase VCTS - 4 - Viewport-Local Toolbar Placement And Persistence.md`
+- Active phase packet: `VCTS - 4 / Phase 1 - Coordinate Owner Audit And Anchor Contract`
+- Manager resume point: `VCTS - 4` is Manager-accepted complete under Dispatch 5.
 
 ### Active Roles
 
@@ -45,18 +45,24 @@ Do not use it for:
 
 ### Current Phase Packet
 
-- Phase: `Build-Path-15 / Phases 1-2 - Scrub Future Icon State`
-- Scope: derive `past`, `current`, and `future` temporal state from the selected master scrub position, suppress future linear timeline icons without disabling them, and apply matching future-state dimming to workspace Parallel topology cards/connectors.
-- Exclusions: graph mutation, restore/replay, command disabling, worker checkpoint/cache implementation, viewport geometry masking changes, accepted event order changes, and branch-local playhead history changes.
-- Likely files or seams: `src/app/buildPath/BuildPathSurface.tsx`, `src/app/buildPath/BuildPathSurface.test.tsx`, `src/app/theme/foundation/base.css`, Build Path 15 phase doc, Build Path generation index, Workspace Modes index, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
-- Verification: focused Build Path surface/reconstruction tests passed; TypeScript passed; production build passed.
+- Phase: `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence`
+- Scope: shared viewport-local right-anchor helpers, Transform right-anchor repair, Extrude right-anchor adoption, per-viewport manual placement persistence, Sketch follow-on routing, focused verification, and production build proof.
+- Exclusions: broad Sketch session rewrite, detached/floating app-window placement, Spaghetti Editor window placement, command graph writes, preview semantics, accept/cancel behavior changes, and reset-to-anchor UI implementation.
+- Likely files or seams: `src/app/components/useViewportFloatingToolPanel.ts`, `src/app/components/ReferenceTransformToolbar.tsx`, `src/app/components/ViewportOverlay.tsx`, `src/app/components/ViewerHost.tsx`, `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/workspacePersistence.ts`, focused tests, VCTS family docs, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
+- Verification: passed focused floating-panel helper tests, Transform toolbar placement tests, workspace-store placement tests, Extrude toolbar tests, and production build; browser load smoke passed on `localhost:5173` after `127.0.0.1:5173` was blocked by the browser client.
 - Build gate: passed.
-- Tracking docs: updated `Build-Path-15 - Scrub Future Icon State.md`, `Build-Path-Gen1-Index.md`, `Workspace-Modes-Index.md`, `Dispatch-5-Simpler-Run-State.md`, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
-- Stop condition: met; Build Path timeline and Parallel topology now expose presentation-only future state for operations after the selected scrub position while keeping future cards clickable and graph truth unchanged.
-- Approval mode: low-risk Manager-owned Packet + Implement.
+- Tracking docs: updated VCTS-4 phase doc, VCTS family index, Dispatch 5 run state, `docs/CHANGELOG.md`, and `docs/Doc-Log.md`.
+- Stop condition: met; Transform and Extrude use viewport-local right anchors and remembered manual placement while Sketch/reset work is honestly routed as follow-on.
+- Approval mode: Manager-owned implementation accepted.
 
 ### Last Accepted Result
 
+- 2026-05-26 06:32:45: Accepted `VCTS - 4 - Viewport-Local Toolbar Placement And Persistence` with shared viewport-local placement helpers, Transform and Extrude right-anchor migration, per-viewport command-toolbar manual placement persistence, focused tests, production build proof, and browser load smoke on `localhost:5173`.
+- 2026-05-25 22:23:39: Accepted `Build-Path-16 / Phases 1-2 - Feature Edit Context Menu` with supported timeline/topology right-click edit menus, `edit sketch` and `edit extrude` labels, canonical Sketch Draw handoff, existing-node Extrude command-toolbar handoff with profile/depth prefill, focused tests, and production build proof.
+- 2026-05-25 20:03:04: Accepted `VCTS - 3 - Command Panel Visual Structure Extraction` with shared `ViewportCommandPanel*` visual grammar components, Extrude toolbar body/readback/control/title-action migration, focused Extrude and Transform regression tests, shared floating helper tests, and production build proof.
+- 2026-05-25 19:32:34: Accepted `VCTS - 2 - Floating Panel Behavior Unification` with shared `useViewportFloatingToolPanel` drag/resize/placement behavior, Extrude toolbar all-edge/corner resize adoption, Transform toolbar migration off local drag/resize math, Sketch follow-on routing, focused helper/toolbar tests, and production build proof.
+- 2026-05-25 16:25:46: Accepted `Extrude-9 - Command Toolbar Node Control Unification` with live `Geometry/Extrude` node params as the active command toolbar source of truth, a reusable Extrude control model shared with `NodeView`, `ViewportOverlayToolPanel` toolbar shell adoption, ParaSlider/ParaSelect command controls, cancel rollback of reused-node params, focused Extrude tests, TypeScript, production build, and in-app browser reload smoke.
+- 2026-05-25 15:07:48: Accepted `VCTS - 1 - Shared Command Panel Prep` after completing Phase 1 shell-owner read, Phase 2 Extrude shell prep contract, and Phase 3 post-Extrude cleanup route; `ViewportOverlayToolPanel` is locked as the first command-toolbar shell target, Extrude implementation is deferred to `Extrude-9`, and no runtime build was required.
 - 2026-05-25 10:44:40: Accepted `Build-Path-15 / Phases 1-2 - Scrub Future Icon State` with presentation-only `past` / `current` / `future` state on linear timeline cards, Fusion-style subdued future icon styling, Parallel topology card/connector future dimming, focused tests, TypeScript, and production build.
 - 2026-05-25 10:27:42: Accepted `Build-Path-11 / Phases 3-6 - Parallel Graph Polish And Closeout` with the workspace Parallel topology graph unboxed from nested panel chrome, top/center/bottom UI-only alignment controls, secondary collapsed lane readback, connector/card polish, focused tests, TypeScript, production build, and attempted browser smoke blocked by unavailable `iab`.
 - 2026-05-25 10:06:57: Accepted `Build-Path-11 / Phase 2 - Parallel Icon Lane Rendering` with visible workspace topology icon cards, semantic-color SVG connector paths, branch-playhead selection, and focused `1 > 6 > 1` proof.
@@ -88,11 +94,12 @@ Do not use it for:
 
 - In-app Browser smoke for `Build-Path-11` could not run because the Browser plugin reported `iab` unavailable, even though a local server was listening on port 5173.
 - Full `src/app/console/ConsoleDock.test.tsx` still has unrelated failures in older workspace-mode, graph, reference/transform, and sketch-plane expectations; the focused Console 13 root alias shortcut tests pass.
-- Full `src/app/spaghetti/store/useSpaghettiStore.test.ts` still has unrelated OutputPreview expectation mismatches around normalized `publicationMode` fields; the focused graph-load tests for Build-Path-12 and Build-Path-12.1 pass.
+- Full `src/app/spaghetti/store/useSpaghettiStore.test.ts` still has unrelated OutputPreview expectation mismatches around normalized `publicationMode` fields and reconstructed dependency metadata; the focused Extrude command tests pass.
+- Full `src/app/components/ViewerHost.test.tsx` timed out during the `VCTS - 2` combined verification run; focused Extrude command toolbar and Extrude preview tests passed.
 - Existing in-memory Build Path events are not retroactively reordered; the source-Sketch backfill applies to new accepted dependent Extrude commits after the hot update.
 - Existing in-memory Build Path events are not retroactively annotated with dependency hints; branch lanes appear for new accepted graph command summaries that emit dependency hints.
 - Full `src/app/workspace/ViewportSurfaceRegistry.test.tsx` still has an unrelated Properties assertion failure: the existing Properties surface test expects `Object` text that is no longer present in that body. The targeted Build Path registry test from Build-Path-3 passes.
 
 ### Next Legal Task
 
-Next legal task is user-guided Build Path visual review or the next requested Build Path phase.
+Next legal task is user visual review of Transform/Extrude toolbar placement or a follow-on VCTS cleanup lane for Sketch adoption and reset-to-right-anchor affordance.

@@ -8,6 +8,8 @@ import type {
 import { buildImportedReferenceRowId, useAppStore } from './useAppStore'
 import { commitWorkspaceTargetSelection } from './workspaceSelectionCommands'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import type { CreateExtrudeCommandSessionOptions } from '../spaghetti/commands/extrudeCommandSession'
+import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 
 type ViewportPosition = {
   x: number
@@ -36,6 +38,8 @@ type WorkspaceIntentAppDeps = {
 type WorkspaceIntentSpaghettiDeps = {
   activeEditorViewportId: string
   editorViewportsById: Record<string, EditorViewportRecord>
+  graph?: SpaghettiGraph
+  graphDocumentsById?: Record<string, { graph: SpaghettiGraph }>
   openGraphDocumentInViewport: (graphDocumentId: string) => string | null
   openGraphDocumentInNewViewport: (graphDocumentId: string) => string | null
   swapFocusedEditorViewportToGraphDocument: (graphDocumentId: string) => string | null
@@ -46,6 +50,9 @@ type WorkspaceIntentSpaghettiDeps = {
   requestEditorViewportNodeFit: (editorViewportId: string, nodeId: string) => void
   startSketchPlanePick?: (nodeId: string) => void
   startGeometrySketchSession?: (nodeId: string, mode: 'draw' | 'review') => void
+  startExtrudeCommandSession?: (
+    options: CreateExtrudeCommandSessionOptions,
+  ) => unknown
 }
 
 export type WorkspaceIntentDeps = {
@@ -71,6 +78,8 @@ export const buildWorkspaceIntentDepsFromCurrentStoreState = (): WorkspaceIntent
     spaghetti: {
       activeEditorViewportId: spaghettiState.activeEditorViewportId,
       editorViewportsById: spaghettiState.editorViewportsById,
+      graph: spaghettiState.graph,
+      graphDocumentsById: spaghettiState.graphDocumentsById,
       openGraphDocumentInViewport: spaghettiState.openGraphDocumentInViewport,
       openGraphDocumentInNewViewport: spaghettiState.openGraphDocumentInNewViewport,
       swapFocusedEditorViewportToGraphDocument:
@@ -82,6 +91,7 @@ export const buildWorkspaceIntentDepsFromCurrentStoreState = (): WorkspaceIntent
       requestEditorViewportNodeFit: spaghettiState.requestEditorViewportNodeFit,
       startSketchPlanePick: spaghettiState.startSketchPlanePick,
       startGeometrySketchSession: spaghettiState.startGeometrySketchSession,
+      startExtrudeCommandSession: spaghettiState.startExtrudeCommandSession,
     },
   }
 }
@@ -302,6 +312,73 @@ export const startSketchReviewIntent = (
   const result = activateGraphNodeIntent(deps, graphDocumentId, nodeId)
   deps.spaghetti.startGeometrySketchSession?.(nodeId, 'review')
   return result
+}
+
+const readGraphForWorkspaceIntent = (
+  deps: WorkspaceIntentDeps,
+  graphDocumentId: string,
+): SpaghettiGraph =>
+  deps.spaghetti.graphDocumentsById?.[graphDocumentId]?.graph ??
+  deps.spaghetti.graph ?? {
+    schemaVersion: 1,
+    nodes: [],
+    edges: [],
+  }
+
+const listIncomingExtrudeProfileSources = (
+  graph: SpaghettiGraph,
+  extrudeNodeId: string,
+): Array<{ nodeId: string; portId: string }> =>
+  graph.edges
+    .filter(
+      (edge) =>
+        edge.to.nodeId === extrudeNodeId &&
+        (edge.to.portId === 'ExtrusionProfile' ||
+          edge.to.portId.startsWith('ExtrusionProfile:') ||
+          edge.to.portId.startsWith('in:ExtrusionProfile:')),
+    )
+    .map((edge) => ({
+      nodeId: edge.from.nodeId,
+      portId: edge.from.portId,
+    }))
+
+const readExtrudeDepthForEditIntent = (
+  graph: SpaghettiGraph,
+  extrudeNodeId: string,
+): number | undefined => {
+  const node = graph.nodes.find(
+    (candidate) =>
+      candidate.nodeId === extrudeNodeId && candidate.type === 'Geometry/Extrude',
+  )
+  const depth = node?.params.depthMm
+  return typeof depth === 'number' && Number.isFinite(depth) ? depth : undefined
+}
+
+export const startExtrudeEditIntent = (
+  deps: WorkspaceIntentDeps,
+  graphDocumentId: string,
+  nodeId: string,
+): OpenGraphDocumentIntentResult & { nodeId: string } => {
+  selectTargetIntent(deps, {
+    kind: 'graph-node',
+    graphDocumentId,
+    nodeId,
+  })
+  const graph = readGraphForWorkspaceIntent(deps, graphDocumentId)
+  deps.spaghetti.startExtrudeCommandSession?.({
+    graphDocumentId,
+    entryPoint: 'viewport-toolbar',
+    reuseSelectedExtrudeNode: true,
+    reuseExtrudeNodeId: nodeId,
+    selectedProfileSources: listIncomingExtrudeProfileSources(graph, nodeId),
+    depth: readExtrudeDepthForEditIntent(graph, nodeId),
+  })
+  return {
+    graphDocumentId,
+    editorViewportId: null,
+    createdNewViewport: false,
+    nodeId,
+  }
 }
 
 export const activateReferenceItemIntent = (

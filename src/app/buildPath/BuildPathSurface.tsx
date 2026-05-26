@@ -3,8 +3,10 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import {
   deriveBuildPathBranchProjection,
   deriveBuildPathTopologyLayout,
@@ -25,6 +27,13 @@ import {
   useBuildPathRuntimeStore,
   type BuildPathTopologyAlignment,
 } from './useBuildPathRuntimeStore'
+import {
+  activateGraphNodeIntent,
+  buildWorkspaceIntentDepsFromCurrentStoreState,
+  startExtrudeEditIntent,
+  startSketchDrawIntent,
+} from '../store/workspaceIntents'
+import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 
 export type BuildPathSurfaceHostMode = 'viewport-dock' | 'workspace'
 export type BuildPathViewportDockPlacement = 'top' | 'bottom'
@@ -34,6 +43,10 @@ type BuildPathTimelineStripProps = {
   hostMode: BuildPathSurfaceHostMode
   selectedTimelineStepId?: string | null
   onSelectTimelineStep?: (timelineStepId: string) => void
+  onOpenFeatureContextMenu?: (
+    event: ReactMouseEvent<HTMLElement>,
+    step: BuildPathTimelineStep,
+  ) => void
 }
 
 type BuildPathSurfaceProps = {
@@ -48,6 +61,70 @@ type BuildPathViewportDockProps = {
 }
 
 type BuildPathTemporalState = 'past' | 'current' | 'future'
+
+type BuildPathFeatureEditContextMenuState = {
+  x: number
+  y: number
+  featureName: 'sketch' | 'extrude'
+  commandFamily: 'Sketch' | 'Extrude'
+  graphDocumentId: string
+  graphNodeId: string
+}
+
+const BUILD_PATH_FEATURE_EDIT_MENU_WIDTH = 150
+const BUILD_PATH_FEATURE_EDIT_MENU_HEIGHT = 42
+const BUILD_PATH_FEATURE_EDIT_MENU_MARGIN = 8
+
+const clampBuildPathFeatureEditMenuPosition = ({
+  x,
+  y,
+}: {
+  x: number
+  y: number
+}): { x: number; y: number } => {
+  if (typeof window === 'undefined') {
+    return { x, y }
+  }
+
+  const maxX = Math.max(
+    BUILD_PATH_FEATURE_EDIT_MENU_MARGIN,
+    window.innerWidth - BUILD_PATH_FEATURE_EDIT_MENU_WIDTH - BUILD_PATH_FEATURE_EDIT_MENU_MARGIN,
+  )
+  const maxY = Math.max(
+    BUILD_PATH_FEATURE_EDIT_MENU_MARGIN,
+    window.innerHeight - BUILD_PATH_FEATURE_EDIT_MENU_HEIGHT - BUILD_PATH_FEATURE_EDIT_MENU_MARGIN,
+  )
+
+  return {
+    x: Math.min(Math.max(BUILD_PATH_FEATURE_EDIT_MENU_MARGIN, x), maxX),
+    y: Math.min(Math.max(BUILD_PATH_FEATURE_EDIT_MENU_MARGIN, y), maxY),
+  }
+}
+
+const readBuildPathFeatureEditMenuPosition = (
+  event: ReactMouseEvent<HTMLElement>,
+  hostMode: BuildPathSurfaceHostMode,
+): { x: number; y: number } => {
+  if (hostMode !== 'viewport-dock') {
+    return clampBuildPathFeatureEditMenuPosition({
+      x: event.clientX,
+      y: event.clientY,
+    })
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect()
+  const shouldOpenAbove =
+    typeof window !== 'undefined' &&
+    rect.bottom + BUILD_PATH_FEATURE_EDIT_MENU_HEIGHT + BUILD_PATH_FEATURE_EDIT_MENU_MARGIN >
+      window.innerHeight
+
+  return clampBuildPathFeatureEditMenuPosition({
+    x: rect.left,
+    y: shouldOpenAbove
+      ? rect.top - BUILD_PATH_FEATURE_EDIT_MENU_HEIGHT - 4
+      : rect.bottom + 4,
+  })
+}
 
 const readBuildPathTemporalState = (
   step: Pick<BuildPathTimelineStep, 'orderIndex'> | null,
@@ -337,6 +414,7 @@ function BuildPathParallelModeRead({
   branchProjection,
   hasDependencyHints,
   isLaneReadbackExpanded,
+  onOpenFeatureContextMenu,
   onSelectBranchTimelineStep,
   onSetAlignment,
   onSetLaneReadbackExpanded,
@@ -350,6 +428,10 @@ function BuildPathParallelModeRead({
   branchProjection: BuildPathBranchProjection
   hasDependencyHints: boolean
   isLaneReadbackExpanded: boolean
+  onOpenFeatureContextMenu?: (
+    event: ReactMouseEvent<HTMLElement>,
+    step: BuildPathTimelineStep,
+  ) => void
   onSelectBranchTimelineStep: (branchLaneId: string, timelineStepId: string) => void
   onSetAlignment: (alignment: BuildPathTopologyAlignment) => void
   onSetLaneReadbackExpanded: (isExpanded: boolean) => void
@@ -388,6 +470,7 @@ function BuildPathParallelModeRead({
         <BuildPathTopologyRead
           alignment={alignment}
           classificationByStepId={classificationByStepId}
+          onOpenFeatureContextMenu={onOpenFeatureContextMenu}
           onSelectBranchTimelineStep={onSelectBranchTimelineStep}
           selectedBranchTimelineStepIdByLaneId={selectedBranchTimelineStepIdByLaneId}
           selectedMasterStepIndex={selectedMasterStepIndex}
@@ -523,6 +606,7 @@ function BuildPathTopologyAlignmentIcon({ icon }: { icon: 'top' | 'center' | 'bo
 function BuildPathTopologyRead({
   alignment,
   classificationByStepId,
+  onOpenFeatureContextMenu,
   onSelectBranchTimelineStep,
   selectedBranchTimelineStepIdByLaneId,
   selectedMasterStepIndex,
@@ -531,6 +615,10 @@ function BuildPathTopologyRead({
 }: {
   alignment: BuildPathTopologyAlignment
   classificationByStepId: Map<string, BuildPathBranchEventClassification>
+  onOpenFeatureContextMenu?: (
+    event: ReactMouseEvent<HTMLElement>,
+    step: BuildPathTimelineStep,
+  ) => void
   onSelectBranchTimelineStep: (branchLaneId: string, timelineStepId: string) => void
   selectedBranchTimelineStepIdByLaneId: Record<string, string>
   selectedMasterStepIndex: number
@@ -758,6 +846,15 @@ function BuildPathTopologyRead({
                 data-build-path-topology-icon={node.display.icon}
                 data-build-path-topology-temporal-state={temporalState}
                 style={cardStyle}
+                onContextMenu={(event) => {
+                  const step = timelineStepById.get(
+                    node.timelineStepId ?? classification.timelineStepId,
+                  )
+
+                  if (step !== undefined) {
+                    onOpenFeatureContextMenu?.(event, step)
+                  }
+                }}
                 onClick={() =>
                   onSelectBranchTimelineStep(
                     classification.branchLaneId,
@@ -880,6 +977,7 @@ function BuildPathBranchStep({
 
 export function BuildPathTimelineStrip({
   hostMode,
+  onOpenFeatureContextMenu,
   onSelectTimelineStep,
   selectedTimelineStepId = null,
   timeline,
@@ -1007,6 +1105,7 @@ export function BuildPathTimelineStrip({
                   data-build-path-step-temporal-state={
                     readBuildPathTemporalState(step, selectedStepIndex)
                   }
+                  onContextMenu={(event) => onOpenFeatureContextMenu?.(event, step)}
                   onClick={() => onSelectTimelineStep?.(step.timelineStepId)}
                 >
                   <BuildPathStepIcon step={step} />
@@ -1069,6 +1168,8 @@ export function BuildPathSurface({
   const setParallelLaneReadbackExpanded = useBuildPathRuntimeStore(
     (state) => state.setParallelLaneReadbackExpanded,
   )
+  const [featureEditContextMenu, setFeatureEditContextMenu] =
+    useState<BuildPathFeatureEditContextMenuState | null>(null)
   const resolvedTimeline = timeline ?? readBuildPathRuntimeMasterTimeline(runtimeState)
   const resolvedSelectedStepId =
     selectedTimelineStepId ??
@@ -1099,6 +1200,71 @@ export function BuildPathSurface({
   const timelineStepById = new Map(
     resolvedTimeline.steps.map((step) => [step.timelineStepId, step]),
   )
+  const openFeatureEditContextMenu = (
+    event: ReactMouseEvent<HTMLElement>,
+    step: BuildPathTimelineStep,
+  ) => {
+    if (!isBuildPathBuildEventTimelineStep(step)) {
+      return
+    }
+
+    if (step.event.commandFamily !== 'Sketch' && step.event.commandFamily !== 'Extrude') {
+      return
+    }
+
+    const graphNodeId = step.event.affectedNodeIds[0] ?? null
+    if (graphNodeId === null) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    const menuPosition = readBuildPathFeatureEditMenuPosition(event, hostMode)
+    setFeatureEditContextMenu({
+      x: menuPosition.x,
+      y: menuPosition.y,
+      featureName: step.event.commandFamily === 'Sketch' ? 'sketch' : 'extrude',
+      commandFamily: step.event.commandFamily,
+      graphDocumentId: step.eventReference.graphDocumentId,
+      graphNodeId,
+    })
+  }
+  const selectFeatureEditContextMenuItem = () => {
+    if (featureEditContextMenu === null) {
+      return
+    }
+
+    const deps = buildWorkspaceIntentDepsFromCurrentStoreState()
+    if (featureEditContextMenu.commandFamily === 'Sketch') {
+      startSketchDrawIntent(
+        deps,
+        featureEditContextMenu.graphDocumentId,
+        featureEditContextMenu.graphNodeId,
+      )
+    } else {
+      startExtrudeEditIntent(
+        deps,
+        featureEditContextMenu.graphDocumentId,
+        featureEditContextMenu.graphNodeId,
+      )
+    }
+    setFeatureEditContextMenu(null)
+  }
+  const selectFocusGraphNodeContextMenuItem = () => {
+    if (featureEditContextMenu === null) {
+      return
+    }
+
+    activateGraphNodeIntent(
+      buildWorkspaceIntentDepsFromCurrentStoreState(),
+      featureEditContextMenu.graphDocumentId,
+      featureEditContextMenu.graphNodeId,
+      {
+        fitNodeInViewport: true,
+      },
+    )
+    setFeatureEditContextMenu(null)
+  }
 
   return (
     <section
@@ -1110,6 +1276,7 @@ export function BuildPathSurface({
         timeline={resolvedTimeline}
         hostMode={hostMode}
         selectedTimelineStepId={resolvedSelectedStepId}
+        onOpenFeatureContextMenu={openFeatureEditContextMenu}
         onSelectTimelineStep={selectTimelineStep}
       />
       {hostMode === 'workspace' ? (
@@ -1124,6 +1291,7 @@ export function BuildPathSurface({
               branchProjection={branchProjection}
               hasDependencyHints={graphDependencies.length > 0}
               isLaneReadbackExpanded={isParallelLaneReadbackExpanded}
+              onOpenFeatureContextMenu={openFeatureEditContextMenu}
               onSelectBranchTimelineStep={selectBranchTimelineStep}
               onSetAlignment={setTopologyAlignment}
               onSetLaneReadbackExpanded={setParallelLaneReadbackExpanded}
@@ -1141,6 +1309,34 @@ export function BuildPathSurface({
           )}
         </>
       ) : null}
+      {typeof document === 'undefined'
+        ? null
+        : createPortal(
+            <SpaghettiContextMenu
+              open={featureEditContextMenu !== null}
+              x={featureEditContextMenu?.x ?? 0}
+              y={featureEditContextMenu?.y ?? 0}
+              items={
+                featureEditContextMenu === null
+                  ? []
+                  : [
+                      {
+                        id: `build-path-edit-${featureEditContextMenu.featureName}`,
+                        label: `edit ${featureEditContextMenu.featureName}`,
+                        onSelect: selectFeatureEditContextMenuItem,
+                      },
+                      {
+                        id: `build-path-focus-${featureEditContextMenu.graphNodeId}`,
+                        label: 'focus graph node',
+                        onSelect: selectFocusGraphNodeContextMenuItem,
+                      },
+                    ]
+              }
+              onClose={() => setFeatureEditContextMenu(null)}
+              containerClassName="BuildPathFeatureEditContextMenu"
+            />,
+            document.body,
+          )}
     </section>
   )
 }

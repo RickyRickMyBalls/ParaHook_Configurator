@@ -40,6 +40,12 @@ import {
 import { createStructuredWireNumericRowProps } from './structuredWireNumericRowProps'
 import { createStructuredWireEnumRowProps } from './structuredWireEnumRowProps'
 import { StructuredWireEnumRow } from './StructuredWireEnumRow'
+import {
+  GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_SELECT_OPTIONS,
+  GEOMETRY_EXTRUDE_DIRECTION_SELECT_OPTIONS,
+  GEOMETRY_EXTRUDE_TYPE_SELECT_OPTIONS,
+  buildGeometryExtrudeControlModel,
+} from './extrudeControlModel'
 import { PortView, type PortDetailLine } from './PortView'
 import type { CompositeExpansionDirection } from './compositeExpansion'
 import { NumberField } from './fields/NumberField'
@@ -90,13 +96,6 @@ import {
   buildSketchProfileMemberPortId,
   parseSketchProfileMemberPortId,
 } from '../features/sketchProfileVirtualPorts'
-import {
-  readGeometryExtrudeBodyGenerationModeFromParams,
-  readGeometryExtrudeDirectionFromParams,
-  readGeometryExtrudeTaperAngleDegFromParams,
-  readGeometryExtrudeTypeFromParams,
-} from '../registry/nodeRegistry'
-
 const DEV = import.meta.env.DEV
 const DEV_PROBE_NODE_ID_KEY = '__SP_PROBE_NODE_ID'
 type DevProbeWindow = Window & { [DEV_PROBE_NODE_ID_KEY]?: string }
@@ -2982,36 +2981,41 @@ function NodeViewComponent({
     const endDepthPort = allInputs.find((port) => port.portId === 'EndDepth')
     const taperAnglePort = allInputs.find((port) => port.portId === 'TaperAngle')
     const solidBodyPort = allOutputs.find((port) => port.portId === 'SolidBody')
-    const localBodyGenerationMode = readGeometryExtrudeBodyGenerationModeFromParams(node.params)
-    const effectiveBodyGenerationMode =
-      extrudeVm?.bodyGenerationMode ?? localBodyGenerationMode
-    const localExtrudeType = readGeometryExtrudeTypeFromParams(node.params)
-    const localExtrudeDirection = readGeometryExtrudeDirectionFromParams(node.params)
-    const localTaperAngleDeg =
-      extrudeVm?.localTaperAngleDeg ?? readGeometryExtrudeTaperAngleDegFromParams(node.params)
-    const typeDriven = extrudeVm?.typeDriven === true
-    const directionDriven = extrudeVm?.directionDriven === true
-    const effectiveExtrudeType =
-      typeDriven ? (extrudeVm?.extrudeType ?? localExtrudeType) : localExtrudeType
-    const effectiveExtrudeDirection =
-      directionDriven ? (extrudeVm?.extrudeDirection ?? localExtrudeDirection) : localExtrudeDirection
-    const effectiveTaperAngleDeg = extrudeVm?.effectiveTaperAngleDeg ?? localTaperAngleDeg
-    const effectiveDepthMm = extrudeVm?.effectiveDepthMm ?? 20
-    const localDepthMm =
-      extrudeVm?.localDepthMm ??
-      (typeof node.params.depthMm === 'number' ? node.params.depthMm : effectiveDepthMm)
-    const effectiveStartDepthMm = extrudeVm?.effectiveStartDepthMm ?? localDepthMm
-    const localStartDepthMm =
-      extrudeVm?.localStartDepthMm ??
-      (typeof node.params.startDepthMm === 'number' ? node.params.startDepthMm : localDepthMm)
-    const effectiveEndDepthMm = extrudeVm?.effectiveEndDepthMm ?? localDepthMm
-    const localEndDepthMm =
-      extrudeVm?.localEndDepthMm ??
-      (typeof node.params.endDepthMm === 'number' ? node.params.endDepthMm : localDepthMm)
-    const depthVisible = effectiveExtrudeDirection !== 'TwoSides'
-    const startDepthVisible = effectiveExtrudeDirection === 'TwoSides'
-    const endDepthVisible = effectiveExtrudeDirection === 'TwoSides'
-    const taperVisible = effectiveExtrudeType === 'Body' && effectiveExtrudeDirection === 'OneSide'
+    const extrudeControls = buildGeometryExtrudeControlModel({
+      params: node.params,
+      effectiveExtrudeType: extrudeVm?.extrudeType,
+      typeDriven: extrudeVm?.typeDriven === true,
+      effectiveExtrudeDirection: extrudeVm?.extrudeDirection,
+      directionDriven: extrudeVm?.directionDriven === true,
+      effectiveBodyGenerationMode: extrudeVm?.bodyGenerationMode,
+      effectiveDepthMm: extrudeVm?.effectiveDepthMm,
+      depthDriven: extrudeVm?.depthDriven === true,
+      effectiveStartDepthMm: extrudeVm?.effectiveStartDepthMm,
+      startDepthDriven: extrudeVm?.startDepthDriven === true,
+      effectiveEndDepthMm: extrudeVm?.effectiveEndDepthMm,
+      endDepthDriven: extrudeVm?.endDepthDriven === true,
+      effectiveTaperAngleDeg: extrudeVm?.effectiveTaperAngleDeg,
+      taperDriven: extrudeVm?.taperDriven === true,
+    })
+    const {
+      effectiveBodyGenerationMode,
+      localExtrudeType,
+      effectiveExtrudeType,
+      localExtrudeDirection,
+      effectiveExtrudeDirection,
+      localDepthMm,
+      effectiveDepthMm,
+      depthVisible,
+      localStartDepthMm,
+      effectiveStartDepthMm,
+      startDepthVisible,
+      localEndDepthMm,
+      effectiveEndDepthMm,
+      endDepthVisible,
+      localTaperAngleDeg,
+      effectiveTaperAngleDeg,
+      taperVisible,
+    } = extrudeControls
     const resolvedProfileMembers = extrudeVm?.resolvedProfileMembers ?? []
     const aggregateProfileCount =
       extrudeVm?.profileCount ??
@@ -3346,7 +3350,7 @@ function NodeViewComponent({
       effectiveValue: effectiveDepthMm,
       localFallbackValue: localDepthMm,
       unitLabel: 'mm',
-      driven: extrudeVm?.depthDriven === true,
+      driven: extrudeControls.depthDriven,
       editorEnabled: showEditors,
       onInteractionStart: () =>
         beginGenericGraphParameterInteraction(`${node.nodeId}:extrude:depthMm`, 'Extrude depth'),
@@ -3368,7 +3372,7 @@ function NodeViewComponent({
       effectiveValue: effectiveStartDepthMm,
       localFallbackValue: localStartDepthMm,
       unitLabel: 'mm',
-      driven: extrudeVm?.startDepthDriven === true,
+      driven: extrudeControls.startDepthDriven,
       editorEnabled: showEditors,
       onInteractionStart: () =>
         beginGenericGraphParameterInteraction(
@@ -3393,7 +3397,7 @@ function NodeViewComponent({
       effectiveValue: effectiveEndDepthMm,
       localFallbackValue: localEndDepthMm,
       unitLabel: 'mm',
-      driven: extrudeVm?.endDepthDriven === true,
+      driven: extrudeControls.endDepthDriven,
       editorEnabled: showEditors,
       onInteractionStart: () =>
         beginGenericGraphParameterInteraction(
@@ -3418,7 +3422,7 @@ function NodeViewComponent({
       effectiveValue: effectiveTaperAngleDeg,
       localFallbackValue: localTaperAngleDeg,
       unitLabel: 'deg',
-      driven: extrudeVm?.taperDriven === true,
+      driven: extrudeControls.taperDriven,
       editorEnabled: showEditors,
       onInteractionStart: () =>
         beginGenericGraphParameterInteraction(
@@ -3443,11 +3447,8 @@ function NodeViewComponent({
       label: 'Type',
       localFallbackValue: localExtrudeType,
       effectiveValue: effectiveExtrudeType,
-      driven: extrudeVm?.typeDriven === true,
-      options: [
-        { value: 'Body', label: 'Body' },
-        { value: 'Walls', label: 'Walls' },
-      ],
+      driven: extrudeControls.typeDriven,
+      options: [...GEOMETRY_EXTRUDE_TYPE_SELECT_OPTIONS],
       onChange: (value) => {
         if (value !== 'Body' && value !== 'Walls') {
           return
@@ -3466,12 +3467,8 @@ function NodeViewComponent({
       label: 'Direction',
       localFallbackValue: localExtrudeDirection,
       effectiveValue: effectiveExtrudeDirection,
-      driven: extrudeVm?.directionDriven === true,
-      options: [
-        { value: 'OneSide', label: 'One Side' },
-        { value: 'TwoSides', label: 'Two Sides' },
-        { value: 'Symmetric', label: 'Symmetric' },
-      ],
+      driven: extrudeControls.directionDriven,
+      options: [...GEOMETRY_EXTRUDE_DIRECTION_SELECT_OPTIONS],
       onChange: (value) => {
         if (value !== 'OneSide' && value !== 'TwoSides' && value !== 'Symmetric') {
           return
@@ -3486,10 +3483,7 @@ function NodeViewComponent({
         )
       },
     })
-    const bodyGenerationModeOptions = [
-      { value: 'Combine', label: 'Combine' },
-      { value: 'NewObjects', label: 'New Objects' },
-    ] as const
+    const bodyGenerationModeOptions = [...GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_SELECT_OPTIONS]
 
     return (
       <GeometryNodeShell

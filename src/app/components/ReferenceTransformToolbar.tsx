@@ -1,7 +1,7 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -11,10 +11,14 @@ import { ParaSelect } from './ParaSelect'
 import { ParaSlider } from './ParaSlider'
 import { ParaVec3Slider } from './ParaVec3Slider'
 import { ReferenceTimelineGraph } from './ReferenceTimelineGraph'
+import { ViewportOverlayToolPanel } from './ViewportOverlayToolPanel'
 import {
-  ViewportOverlayToolPanel,
-  type ViewportOverlayToolPanelResizeDirection,
-} from './ViewportOverlayToolPanel'
+  clampViewportFloatingToolPanelRect,
+  resolveViewportFloatingToolPanelRightAnchor,
+  useViewportFloatingToolPanel,
+  type ViewportFloatingToolPanelBounds,
+  type ViewportFloatingToolPanelRect,
+} from './useViewportFloatingToolPanel'
 import {
   getReferenceTransformHistoryLatestScrubIndex,
   resolveWorkspaceSelectedContentOwnerTarget,
@@ -28,6 +32,11 @@ import {
   useAppStore,
 } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
+import type {
+  WorkspaceViewportCommandToolbarPlacementKey,
+  WorkspaceViewportId,
+} from '../workspace/workspaceShellTypes'
 import { getViewer } from '../viewerBridge'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import {
@@ -94,13 +103,6 @@ type ChannelContextMenuState = {
 }
 
 type PendingShortcutActivation = 'translate-center' | 'rotate-center' | 'scale-center'
-
-type ToolbarSize = {
-  width: number
-  height: number
-}
-
-type ResizeDirection = ViewportOverlayToolPanelResizeDirection
 
 type ActiveKeyboardChannelSelection = {
   section: TransformSectionKey
@@ -206,6 +208,7 @@ const scaleSnapValuesFromDriver = (
 
 const formatSpeedValue = (value: number): string => `${value.toFixed(2)}x`
 const DEFAULT_TOOLBAR_WIDTH = 300
+const DEFAULT_TOOLBAR_HEIGHT = 420
 const MIN_TOOLBAR_WIDTH = 300
 const MIN_TOOLBAR_HEIGHT = 240
 const TOOLBAR_VIEWPORT_MARGIN = 12
@@ -301,7 +304,22 @@ const groupReferenceTransformHistoryEntries = (
   return [...groupsBySessionId.values()]
 }
 
-export function ReferenceTransformToolbar() {
+type ReferenceTransformToolbarProps = {
+  viewportId?: WorkspaceViewportId
+  getBounds?: () => ViewportFloatingToolPanelBounds
+}
+
+const EMPTY_COMMAND_TOOLBAR_PLACEMENT_BY_KEY: Partial<
+  Record<WorkspaceViewportCommandToolbarPlacementKey, ViewportFloatingToolPanelRect>
+> = {}
+
+const getFallbackTransformToolbarBounds = (): ViewportFloatingToolPanelBounds => ({
+  width: typeof window === 'undefined' ? 1280 : window.innerWidth,
+  height: typeof window === 'undefined' ? 720 : window.innerHeight,
+})
+
+export function ReferenceTransformToolbar(props: ReferenceTransformToolbarProps = {}) {
+  const { getBounds, viewportId } = props
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const projectContent = useAppStore((state) => state.projectContent)
   const environmentLights = useUiPrefsStore((state) => state.view.lighting.lights)
@@ -395,10 +413,6 @@ export function ReferenceTransformToolbar() {
     [referenceItems, referenceWorkspace.activeReferenceTransformSession],
   )
   const activeObjectSession = referenceWorkspace.activeContentObjectTransformSession
-  const hasActiveTransformShell =
-    referenceWorkspace.activeReferenceTransformSession !== null ||
-    activeObjectSession !== null ||
-    referenceWorkspace.activeEnvironmentLightTransformSession !== null
   const activeObject = useMemo(
     () =>
       activeObjectSession === null
@@ -419,9 +433,86 @@ export function ReferenceTransformToolbar() {
           ),
     [activeObjectSession, projectContent, referenceWorkspace],
   )
-  const toolbarRef = useRef<HTMLDivElement | null>(null)
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
-  const [size, setSize] = useState<ToolbarSize | null>(null)
+  const commandToolbarPlacementByKey = useWorkspaceStore(
+    (state) =>
+      (viewportId !== undefined
+        ? state.viewportChromeById[viewportId]?.localViewState.commandToolbarPlacementByKey
+        : null) ?? null,
+  )
+  const transformCommandToolbarPlacementByKey =
+    commandToolbarPlacementByKey ?? EMPTY_COMMAND_TOOLBAR_PLACEMENT_BY_KEY
+  const setViewportLocalViewState = useWorkspaceStore((state) => state.setViewportLocalViewState)
+  const getTransformToolbarBounds = useCallback(
+    () => getBounds?.() ?? getFallbackTransformToolbarBounds(),
+    [getBounds],
+  )
+  const transformToolbarStoredRect = useMemo<ViewportFloatingToolPanelRect | null>(() => {
+    const stored = transformCommandToolbarPlacementByKey.transform
+    if (stored === undefined) {
+      return null
+    }
+    return clampViewportFloatingToolPanelRect({
+      bounds: getTransformToolbarBounds(),
+      rect: stored,
+      viewportMargin: TOOLBAR_VIEWPORT_MARGIN,
+    })
+  }, [getTransformToolbarBounds, transformCommandToolbarPlacementByKey.transform])
+  const transformToolbarDefaultPosition = useMemo(() => {
+    if (transformToolbarStoredRect !== null) {
+      return {
+        left: transformToolbarStoredRect.left,
+        top: transformToolbarStoredRect.top,
+      }
+    }
+    return resolveViewportFloatingToolPanelRightAnchor({
+      bounds: getTransformToolbarBounds(),
+      size: {
+        width: DEFAULT_TOOLBAR_WIDTH,
+        height: DEFAULT_TOOLBAR_HEIGHT,
+      },
+      top: 22,
+      viewportMargin: TOOLBAR_VIEWPORT_MARGIN,
+    })
+  }, [getTransformToolbarBounds, transformToolbarStoredRect])
+  const transformToolbarDefaultSize = useMemo(
+    () =>
+      transformToolbarStoredRect === null
+        ? {
+            width: DEFAULT_TOOLBAR_WIDTH,
+            height: DEFAULT_TOOLBAR_HEIGHT,
+          }
+        : {
+            width: transformToolbarStoredRect.width,
+            height: transformToolbarStoredRect.height,
+          },
+    [transformToolbarStoredRect],
+  )
+  const handleTransformToolbarManualPlacementChange = useCallback(
+    (rect: ViewportFloatingToolPanelRect) => {
+      if (viewportId === undefined) {
+        return
+      }
+      setViewportLocalViewState(viewportId, {
+        commandToolbarPlacementByKey: {
+          ...transformCommandToolbarPlacementByKey,
+          transform: rect,
+        },
+      })
+    },
+    [setViewportLocalViewState, transformCommandToolbarPlacementByKey, viewportId],
+  )
+  const transformToolbarPanel = useViewportFloatingToolPanel({
+    defaultPosition: transformToolbarDefaultPosition,
+    defaultSize: transformToolbarDefaultSize,
+    getBounds: getTransformToolbarBounds,
+    minSize: {
+      width: MIN_TOOLBAR_WIDTH,
+      height: MIN_TOOLBAR_HEIGHT,
+    },
+    onManualPlacementChange: handleTransformToolbarManualPlacementChange,
+    viewportMargin: TOOLBAR_VIEWPORT_MARGIN,
+    initialHeightMode: 'auto',
+  })
   const [scaleLocked, setScaleLocked] = useState(false)
   const [isClampEditing, setIsClampEditing] = useState(false)
   const [isCameraLocked, setIsCameraLocked] = useState(false)
@@ -459,23 +550,6 @@ export function ReferenceTransformToolbar() {
   )
   const [activeKeyboardChannelSelection, setActiveKeyboardChannelSelection] =
     useState<ActiveKeyboardChannelSelection>(null)
-
-  useEffect(() => {
-    if (!hasActiveTransformShell) {
-      return
-    }
-    if (position !== null) {
-      return
-    }
-    const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth
-    setPosition({
-      x: Math.max(
-        TOOLBAR_VIEWPORT_MARGIN,
-        viewportWidth - DEFAULT_TOOLBAR_WIDTH - TOOLBAR_VIEWPORT_MARGIN,
-      ),
-      y: 22,
-    })
-  }, [hasActiveTransformShell, position])
 
   useEffect(() => {
     return () => {
@@ -948,149 +1022,6 @@ export function ReferenceTransformToolbar() {
       }
     }
     setActiveViewerTransformDraft(nextOverride)
-  }
-
-  const beginToolbarDrag = (pointerId: number | null, startX: number, startY: number) => {
-    const host = toolbarRef.current
-    if (host === null) {
-      return
-    }
-    const startPosition = position ?? {
-      x: host.offsetLeft,
-      y: host.offsetTop,
-    }
-
-    const move = (moveEvent: PointerEvent | MouseEvent) => {
-      if ('pointerId' in moveEvent && pointerId !== null && moveEvent.pointerId !== pointerId) {
-        return
-      }
-      const nextX = startPosition.x + (moveEvent.clientX - startX)
-      const nextY = startPosition.y + (moveEvent.clientY - startY)
-      const viewportWidth = typeof window === 'undefined' ? nextX + host.offsetWidth : window.innerWidth
-      const viewportHeight =
-        typeof window === 'undefined' ? nextY + host.offsetHeight : window.innerHeight
-      setPosition({
-        x: Math.max(12, Math.min(nextX, viewportWidth - host.offsetWidth - 12)),
-        y: Math.max(12, Math.min(nextY, viewportHeight - host.offsetHeight - 12)),
-      })
-    }
-
-    const stop = (stopEvent?: PointerEvent | MouseEvent) => {
-      if (
-        stopEvent !== undefined &&
-        'pointerId' in stopEvent &&
-        pointerId !== null &&
-        stopEvent.pointerId !== pointerId
-      ) {
-        return
-      }
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', stop)
-      window.removeEventListener('pointercancel', stop)
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', stop)
-    }
-
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', stop)
-    window.addEventListener('pointercancel', stop)
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', stop)
-  }
-
-  const handleHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    beginToolbarDrag(event.pointerId, event.clientX, event.clientY)
-  }
-
-  const handleHeaderMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
-      return
-    }
-    event.preventDefault()
-    event.stopPropagation()
-    beginToolbarDrag(null, event.clientX, event.clientY)
-  }
-
-  const handleResizePointerDown = (
-    event: ReactPointerEvent<HTMLDivElement>,
-    direction: ResizeDirection,
-  ) => {
-    const host = toolbarRef.current
-    if (host === null || position === null) {
-      return
-    }
-
-    event.preventDefault()
-    event.stopPropagation()
-
-    const startX = event.clientX
-    const startY = event.clientY
-    const startWidth = host.offsetWidth
-    const startHeight = host.offsetHeight
-    const startPosition = position
-
-    const move = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - startX
-      const deltaY = moveEvent.clientY - startY
-      const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth
-      const viewportHeight = typeof window === 'undefined' ? 900 : window.innerHeight
-
-      let nextWidth = startWidth
-      let nextHeight = startHeight
-      let nextX = startPosition.x
-      let nextY = startPosition.y
-
-      if (direction.includes('e')) {
-        nextWidth = startWidth + deltaX
-      }
-      if (direction.includes('s')) {
-        nextHeight = startHeight + deltaY
-      }
-      if (direction.includes('w')) {
-        nextWidth = startWidth - deltaX
-        nextX = startPosition.x + deltaX
-      }
-      if (direction.includes('n')) {
-        nextHeight = startHeight - deltaY
-        nextY = startPosition.y + deltaY
-      }
-
-      const maxWidth = Math.max(MIN_TOOLBAR_WIDTH, viewportWidth - TOOLBAR_VIEWPORT_MARGIN * 2)
-      const maxHeight = Math.max(MIN_TOOLBAR_HEIGHT, viewportHeight - TOOLBAR_VIEWPORT_MARGIN * 2)
-      nextWidth = Math.min(Math.max(nextWidth, MIN_TOOLBAR_WIDTH), maxWidth)
-      nextHeight = Math.min(Math.max(nextHeight, MIN_TOOLBAR_HEIGHT), maxHeight)
-
-      if (direction.includes('w')) {
-        nextX = startPosition.x + (startWidth - nextWidth)
-      }
-      if (direction.includes('n')) {
-        nextY = startPosition.y + (startHeight - nextHeight)
-      }
-
-      nextX = Math.max(
-        TOOLBAR_VIEWPORT_MARGIN,
-        Math.min(nextX, viewportWidth - nextWidth - TOOLBAR_VIEWPORT_MARGIN),
-      )
-      nextY = Math.max(
-        TOOLBAR_VIEWPORT_MARGIN,
-        Math.min(nextY, viewportHeight - nextHeight - TOOLBAR_VIEWPORT_MARGIN),
-      )
-
-      setPosition({ x: nextX, y: nextY })
-      setSize({ width: nextWidth, height: nextHeight })
-    }
-
-    const stop = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', stop)
-      window.removeEventListener('pointercancel', stop)
-    }
-
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', stop)
-    window.addEventListener('pointercancel', stop)
   }
 
   if (activeSession === null) {
@@ -1586,7 +1517,7 @@ export function ReferenceTransformToolbar() {
 
   return (
     <ViewportOverlayToolPanel
-      ref={toolbarRef}
+      ref={transformToolbarPanel.panelRef}
       className="ReferenceTransformToolbar"
       title="Viewer Transform"
       titleMeta={activeTargetDescriptor.label}
@@ -1652,20 +1583,10 @@ export function ReferenceTransformToolbar() {
           </button>
         </>
       }
-      onTitleBarPointerDown={handleHeaderPointerDown}
-      onTitleBarMouseDown={handleHeaderMouseDown}
-      onResizeHandlePointerDown={(direction, event) => handleResizePointerDown(event, direction)}
-      style={
-        position === null
-          ? undefined
-          : {
-              left: `${position.x}px`,
-              top: `${position.y}px`,
-              right: 'auto',
-              width: `${size?.width ?? DEFAULT_TOOLBAR_WIDTH}px`,
-              height: size === null ? undefined : `${size.height}px`,
-            }
-      }
+      onTitleBarPointerDown={transformToolbarPanel.onTitleBarPointerDown}
+      onTitleBarMouseDown={transformToolbarPanel.onTitleBarMouseDown}
+      onResizeHandlePointerDown={transformToolbarPanel.onResizeHandlePointerDown}
+      style={transformToolbarPanel.style}
     >
       <div className="ReferenceTransformToolbarBody">
         {showShortcutHelp ? (

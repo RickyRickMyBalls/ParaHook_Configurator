@@ -896,9 +896,6 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.graph.nodes.find((node) => node.nodeId === 'node-extrude-1')).toMatchObject({
       params: expect.objectContaining({
         depthMm: 40,
-        extrudeType: 'Body',
-        extrudeDirection: 'OneSide',
-        bodyGenerationMode: 'NewObjects',
       }),
     })
     expect(state.graph.edges).toEqual(
@@ -941,6 +938,130 @@ describe('useSpaghettiStore graph normalization', () => {
       addedEdgeIds: [...profileEdgeIds, outputPreviewEdge?.edgeId],
       removedEdgeIds: ['edge-original-profile'],
     })
+  })
+
+  it('accepts live Extrude command parameter edits from the toolbar controls', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            depthMm: 5,
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            bodyGenerationMode: 'Combine',
+            taperAngleDeg: 3,
+          },
+        },
+      ],
+      edges: [],
+    })
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().setSelectedNodeId('node-extrude-1')
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      reuseSelectedExtrudeNode: true,
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 20,
+    })
+
+    useSpaghettiStore.getState().setExtrudeCommandParams({
+      extrudeDirection: 'TwoSides',
+      startDepthMm: 7,
+      endDepthMm: 9,
+      bodyGenerationMode: 'NewObjects',
+    })
+    const summary = useSpaghettiStore.getState().acceptExtrudeCommandSession()
+
+    expect(summary.lifecycleState).toBe('committed')
+    expect(useSpaghettiStore.getState().graph.nodes.find(
+      (node) => node.nodeId === 'node-extrude-1',
+    )).toMatchObject({
+      params: expect.objectContaining({
+        depthMm: 20,
+        extrudeDirection: 'TwoSides',
+        startDepthMm: 7,
+        endDepthMm: 9,
+        bodyGenerationMode: 'NewObjects',
+        taperAngleDeg: 3,
+      }),
+    })
+  })
+
+  it('cancels toolbar edits on a reused live Extrude node by restoring original params', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            depthMm: 5,
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            bodyGenerationMode: 'Combine',
+            taperAngleDeg: 3,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-original-profile',
+          from: {
+            nodeId: 'node-sketch-1',
+            portId: 'SketchProfile:profile-original',
+          },
+          to: {
+            nodeId: 'node-extrude-1',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    })
+    const graphBefore = useSpaghettiStore.getState().graph
+    useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().setSelectedNodeId('node-extrude-1')
+    useSpaghettiStore.getState().startExtrudeCommandSession({
+      graphDocumentId: 'graph-document-1',
+      entryPoint: 'viewport-toolbar',
+      reuseSelectedExtrudeNode: true,
+      selectedProfileSources: [
+        {
+          nodeId: 'node-sketch-1',
+          portId: 'SketchProfile:profile-a',
+        },
+      ],
+      depth: 20,
+    })
+    useSpaghettiStore.getState().setExtrudeCommandParams({
+      depthMm: 44,
+      extrudeDirection: 'TwoSides',
+      startDepthMm: 8,
+      endDepthMm: 11,
+    })
+
+    useSpaghettiStore.getState().cancelExtrudeCommandSession()
+
+    expect(useSpaghettiStore.getState().extrudeCommandSession).toBeNull()
+    expect(useSpaghettiStore.getState().graph).toEqual(graphBefore)
   })
 
   it('starts a new Extrude node for a repeated profile-driven command even when the prior Extrude is selected', () => {

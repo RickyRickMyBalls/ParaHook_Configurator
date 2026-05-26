@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -65,7 +66,10 @@ import {
   selectViewportResultModeById,
   useWorkspaceStore,
 } from '../workspace/useWorkspaceStore'
-import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
+import type {
+  WorkspaceViewportCommandToolbarPlacementKey,
+  WorkspaceViewportId,
+} from '../workspace/workspaceShellTypes'
 import { resolveWorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
 import { buildQualifiedGraphOutputEntryId } from '../spaghetti/outputSurface'
 import {
@@ -100,7 +104,33 @@ import {
 } from '../buildPath/buildPathViewportPreview'
 import { useBuildPathRuntimeStore } from '../buildPath/useBuildPathRuntimeStore'
 import type { ExtrudeCommandSession } from '../spaghetti/commands/extrudeCommandSession'
+import {
+  GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_SELECT_OPTIONS,
+  GEOMETRY_EXTRUDE_DIRECTION_SELECT_OPTIONS,
+  GEOMETRY_EXTRUDE_TYPE_SELECT_OPTIONS,
+  buildGeometryExtrudeControlModel,
+} from '../spaghetti/canvas/extrudeControlModel'
+import type { SpaghettiEdge, SpaghettiNode } from '../spaghetti/schema/spaghettiTypes'
 import { buildViewportResultSelectorOptions } from './buildViewportResultSelectorOptions'
+import { ParaSelect } from './ParaSelect'
+import { ParaSlider } from './ParaSlider'
+import { FocusedItemList } from './FocusedItemList'
+import {
+  ViewportCommandPanelBody,
+  ViewportCommandPanelControlStack,
+  ViewportCommandPanelReadout,
+  ViewportCommandPanelSection,
+  ViewportCommandPanelStatusRow,
+  ViewportCommandPanelTitleButton,
+  ViewportOverlayToolPanel,
+} from './ViewportOverlayToolPanel'
+import {
+  clampViewportFloatingToolPanelRect,
+  resolveViewportFloatingToolPanelRightAnchor,
+  useViewportFloatingToolPanel,
+  type ViewportFloatingToolPanelBounds,
+  type ViewportFloatingToolPanelRect,
+} from './useViewportFloatingToolPanel'
 import {
   evaluateReferenceTimelineChannelValue,
   evaluateReferenceTransformOverrideWithTimelines,
@@ -375,6 +405,52 @@ const formatExtrudeSelectedProfileCount = (
   return `${count} ${count === 1 ? 'selected' : 'selected'}`
 }
 
+const formatExtrudeSelectedProfileName = (
+  source: ExtrudeCommandSession['selectedProfileSources'][number],
+  index: number,
+): string => {
+  const parsed = parseSketchProfileMemberPortId(source.portId)
+  const profileLabel =
+    parsed === null
+      ? source.portId
+      : parsed.profileId.length > 14
+        ? `${parsed.profileId.slice(0, 8)}...${parsed.profileId.slice(-4)}`
+        : parsed.profileId
+  return `Profile ${index + 1}${profileLabel.length > 0 ? ` ${profileLabel}` : ''}`
+}
+
+const formatExtrudeSelectedProfileDetail = (
+  source: ExtrudeCommandSession['selectedProfileSources'][number],
+): string => {
+  const parsed = parseSketchProfileMemberPortId(source.portId)
+  if (parsed === null) {
+    return source.nodeId
+  }
+  return `${source.nodeId} / ${parsed.profileId}`
+}
+
+const formatMmControlValue = (value: number): string => `${Number(value.toFixed(2))} mm`
+
+const formatDegControlValue = (value: number): string => `${Number(value.toFixed(2))} deg`
+
+const EXTRUDE_COMMAND_TOOLBAR_DEFAULT_SIZE = {
+  width: 430,
+  height: 520,
+}
+const EXTRUDE_COMMAND_TOOLBAR_MIN_SIZE = {
+  width: 360,
+  height: 280,
+}
+const EXTRUDE_COMMAND_TOOLBAR_VIEWPORT_MARGIN = 12
+
+const isLiveExtrudeInputDriven = (
+  incomingEdges: readonly SpaghettiEdge[],
+  liveNodeId: string | null,
+  portId: string,
+): boolean =>
+  liveNodeId !== null &&
+  incomingEdges.some((edge) => edge.to.nodeId === liveNodeId && edge.to.portId === portId)
+
 const cloneSketchPlaneTransform = (
   transform: SketchPlaneTransform | undefined,
 ): SketchPlaneTransform => ({
@@ -393,64 +469,300 @@ const cloneSketchPlaneTransform = (
 })
 
 const ExtrudeCommandToolbar = ({
+  commandToolbarPlacementByKey,
+  getBounds,
+  incomingEdges,
+  liveNode,
   onCancel,
   onConfirm,
+  onManualPlacementChange,
+  onParamsChange,
+  onSelectedProfileSourcesChange,
   session,
 }: {
+  commandToolbarPlacementByKey: Partial<
+    Record<WorkspaceViewportCommandToolbarPlacementKey, ViewportFloatingToolPanelRect>
+  >
+  getBounds: () => ViewportFloatingToolPanelBounds
+  incomingEdges: readonly SpaghettiEdge[]
+  liveNode: SpaghettiNode | null
   onCancel: () => void
   onConfirm: () => void
+  onManualPlacementChange: (rect: ViewportFloatingToolPanelRect) => void
+  onParamsChange: (params: Record<string, unknown>) => void
+  onSelectedProfileSourcesChange: (
+    selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
+  ) => void
   session: ExtrudeCommandSession
 }) => {
   const okDisabled = session.validation === 'needsProfiles'
+  const liveNodeId = liveNode?.nodeId ?? null
+  const extrudeToolbarStoredRect = useMemo<ViewportFloatingToolPanelRect | null>(() => {
+    const stored = commandToolbarPlacementByKey.extrude
+    if (stored === undefined) {
+      return null
+    }
+    return clampViewportFloatingToolPanelRect({
+      bounds: getBounds(),
+      rect: stored,
+      viewportMargin: EXTRUDE_COMMAND_TOOLBAR_VIEWPORT_MARGIN,
+    })
+  }, [commandToolbarPlacementByKey.extrude, getBounds])
+  const extrudeToolbarDefaultPosition = useMemo(() => {
+    if (extrudeToolbarStoredRect !== null) {
+      return {
+        left: extrudeToolbarStoredRect.left,
+        top: extrudeToolbarStoredRect.top,
+      }
+    }
+    return resolveViewportFloatingToolPanelRightAnchor({
+      bounds: getBounds(),
+      size: EXTRUDE_COMMAND_TOOLBAR_DEFAULT_SIZE,
+      top: 22,
+      viewportMargin: EXTRUDE_COMMAND_TOOLBAR_VIEWPORT_MARGIN,
+    })
+  }, [extrudeToolbarStoredRect, getBounds])
+  const extrudeToolbarDefaultSize = useMemo(
+    () =>
+      extrudeToolbarStoredRect === null
+        ? EXTRUDE_COMMAND_TOOLBAR_DEFAULT_SIZE
+        : {
+            width: extrudeToolbarStoredRect.width,
+            height: extrudeToolbarStoredRect.height,
+          },
+    [extrudeToolbarStoredRect],
+  )
+  const extrudeToolbarPanel = useViewportFloatingToolPanel({
+    defaultPosition: extrudeToolbarDefaultPosition,
+    defaultSize: extrudeToolbarDefaultSize,
+    getBounds,
+    minSize: EXTRUDE_COMMAND_TOOLBAR_MIN_SIZE,
+    onManualPlacementChange,
+    viewportMargin: EXTRUDE_COMMAND_TOOLBAR_VIEWPORT_MARGIN,
+    initialHeightMode: 'auto',
+  })
+  const controls = buildGeometryExtrudeControlModel({
+    params: liveNode?.params ?? { depthMm: session.depth },
+    typeDriven: isLiveExtrudeInputDriven(incomingEdges, liveNodeId, 'Type'),
+    directionDriven: isLiveExtrudeInputDriven(incomingEdges, liveNodeId, 'Direction'),
+    depthDriven: isLiveExtrudeInputDriven(incomingEdges, liveNodeId, 'Depth'),
+    startDepthDriven: isLiveExtrudeInputDriven(incomingEdges, liveNodeId, 'StartDepth'),
+    endDepthDriven: isLiveExtrudeInputDriven(incomingEdges, liveNodeId, 'EndDepth'),
+    taperDriven: isLiveExtrudeInputDriven(incomingEdges, liveNodeId, 'TaperAngle'),
+  })
+
+  const handleTypeChange = (value: string) => {
+    const option = GEOMETRY_EXTRUDE_TYPE_SELECT_OPTIONS.find(
+      (candidate) => candidate.value === value,
+    )
+    if (option !== undefined) {
+      onParamsChange({ extrudeType: option.value })
+    }
+  }
+
+  const handleDirectionChange = (value: string) => {
+    const option = GEOMETRY_EXTRUDE_DIRECTION_SELECT_OPTIONS.find(
+      (candidate) => candidate.value === value,
+    )
+    if (option === undefined) {
+      return
+    }
+    onParamsChange(
+      option.value === 'TwoSides'
+        ? {
+            extrudeDirection: option.value,
+            startDepthMm: controls.localStartDepthMm,
+            endDepthMm: controls.localEndDepthMm,
+          }
+        : { extrudeDirection: option.value },
+    )
+  }
+
+  const handleBodyGenerationModeChange = (value: string) => {
+    const option = GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_SELECT_OPTIONS.find(
+      (candidate) => candidate.value === value,
+    )
+    if (option !== undefined) {
+      onParamsChange({ bodyGenerationMode: option.value })
+    }
+  }
+
+  const handleRemoveProfileSource = (profileIndex: number) => {
+    onSelectedProfileSourcesChange(
+      session.selectedProfileSources.filter((_source, index) => index !== profileIndex),
+    )
+  }
 
   return (
-    <section
+    <ViewportOverlayToolPanel
+      ref={extrudeToolbarPanel.panelRef}
       className="ViewportExtrudeCommandToolbar"
-      aria-label="Extrude command toolbar"
-      data-extrude-command-step={session.activeStep}
+      title="Extrude"
+      titleMeta={formatExtrudeCommandStepLabel(session.activeStep)}
+      titleActions={
+        <div className="ViewportExtrudeCommandToolbarActions">
+          <ViewportCommandPanelTitleButton
+            variant="primary"
+            disabled={okDisabled}
+            ariaLabel="Confirm Extrude"
+            onClick={onConfirm}
+          >
+            OK
+          </ViewportCommandPanelTitleButton>
+          <ViewportCommandPanelTitleButton
+            variant="secondary"
+            ariaLabel="Cancel Extrude"
+            onClick={onCancel}
+          >
+            Cancel
+          </ViewportCommandPanelTitleButton>
+        </div>
+      }
+      onTitleBarPointerDown={extrudeToolbarPanel.onTitleBarPointerDown}
+      onTitleBarMouseDown={extrudeToolbarPanel.onTitleBarMouseDown}
+      onResizeHandlePointerDown={extrudeToolbarPanel.onResizeHandlePointerDown}
+      style={extrudeToolbarPanel.style}
     >
-      <div className="ViewportExtrudeCommandToolbarHeader">
-        <span className="ViewportExtrudeCommandToolbarTitle">Extrude</span>
-        <span className="ViewportExtrudeCommandToolbarStep">
-          {formatExtrudeCommandStepLabel(session.activeStep)}
+      <ViewportCommandPanelBody
+        className="ViewportExtrudeCommandToolbarBody"
+        aria-label="Extrude command toolbar"
+        data-extrude-command-step={session.activeStep}
+      >
+        <span className="ViewportExtrudeCommandToolbarBodyLabel">
+          Extrude {formatExtrudeCommandStepLabel(session.activeStep)}
         </span>
-      </div>
-      <dl className="ViewportExtrudeCommandToolbarStats">
-        <div>
-          <dt>Profiles</dt>
-          <dd data-testid="extrude-command-selected-count">
-            {formatExtrudeSelectedProfileCount(session.selectedProfileSources)}
-          </dd>
-        </div>
-        <div>
-          <dt>Distance</dt>
-          <dd data-testid="extrude-command-depth">{session.depth}</dd>
-        </div>
-        <div>
-          <dt>Operation</dt>
-          <dd>{formatExtrudeOperationModeLabel(session.operationMode)}</dd>
-        </div>
-      </dl>
-      <div className="ViewportExtrudeCommandToolbarActions">
-        <button
-          type="button"
-          className="ViewportExtrudeCommandToolbarButton"
-          disabled={okDisabled}
-          aria-label="Confirm Extrude"
-          onClick={onConfirm}
-        >
-          OK
-        </button>
-        <button
-          type="button"
-          className="ViewportExtrudeCommandToolbarButton"
-          aria-label="Cancel Extrude"
-          onClick={onCancel}
-        >
-          Cancel
-        </button>
-      </div>
-    </section>
+        <ViewportCommandPanelSection label="Command">
+          <ViewportCommandPanelStatusRow className="ViewportExtrudeCommandToolbarCommandStatusRow">
+            <ViewportCommandPanelReadout
+              label="Profiles"
+              value={
+                <div className="ViewportExtrudeCommandToolbarProfileReadout">
+                  <span data-testid="extrude-command-selected-count">
+                    {formatExtrudeSelectedProfileCount(session.selectedProfileSources)}
+                  </span>
+                  {session.selectedProfileSources.length > 0 ? (
+                    <FocusedItemList
+                      className="ViewportExtrudeCommandToolbarProfileList"
+                      aria-label="Selected Extrude profiles"
+                      items={session.selectedProfileSources.map((source, index) => {
+                        const label = formatExtrudeSelectedProfileName(source, index)
+                        return {
+                          id: `${source.nodeId}:${source.portId}:${index}`,
+                          label,
+                          detail: formatExtrudeSelectedProfileDetail(source),
+                          title: `${source.nodeId}:${source.portId}`,
+                          indexLabel: index + 1,
+                          included: true,
+                          include: {
+                            ariaLabel: `${label} selected`,
+                          },
+                          remove: {
+                            ariaLabel: `Remove ${label}`,
+                            title: `Remove ${label}`,
+                            onClick: () => handleRemoveProfileSource(index),
+                          },
+                        }
+                      })}
+                    />
+                  ) : null}
+                </div>
+              }
+            />
+            <ViewportCommandPanelReadout
+              label="Operation"
+              value={formatExtrudeOperationModeLabel(session.operationMode)}
+            />
+          </ViewportCommandPanelStatusRow>
+        </ViewportCommandPanelSection>
+        <ViewportCommandPanelSection label="Definition">
+          <ViewportCommandPanelControlStack className="ViewportExtrudeCommandToolbarSelectStack">
+            <ParaSelect
+              label="Type"
+              value={controls.localExtrudeType}
+              displayedValue={controls.effectiveExtrudeType}
+              options={[...GEOMETRY_EXTRUDE_TYPE_SELECT_OPTIONS]}
+              onChange={handleTypeChange}
+              capGlyph="chevron"
+              disabled={controls.typeDriven}
+            />
+            <ParaSelect
+              label="Direction"
+              value={controls.localExtrudeDirection}
+              displayedValue={controls.effectiveExtrudeDirection}
+              options={[...GEOMETRY_EXTRUDE_DIRECTION_SELECT_OPTIONS]}
+              onChange={handleDirectionChange}
+              capGlyph="chevron"
+              disabled={controls.directionDriven}
+            />
+            <ParaSelect
+              label="Output"
+              value={controls.localBodyGenerationMode}
+              displayedValue={controls.effectiveBodyGenerationMode}
+              options={[...GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_SELECT_OPTIONS]}
+              onChange={handleBodyGenerationModeChange}
+              capGlyph="chevron"
+              disabled={controls.bodyGenerationModeDriven}
+            />
+          </ViewportCommandPanelControlStack>
+        </ViewportCommandPanelSection>
+        <ViewportCommandPanelSection label="Distance">
+          <ViewportCommandPanelControlStack>
+            {controls.depthVisible ? (
+              <ParaSlider
+                label="Depth"
+                value={controls.localDepthMm}
+                displayedTrackValue={controls.effectiveDepthMm}
+                min={0.1}
+                max={100}
+                step={0.1}
+                onChange={(value) => onParamsChange({ depthMm: value })}
+                formatValue={formatMmControlValue}
+                disabled={controls.depthDriven}
+              />
+            ) : null}
+            {controls.startDepthVisible ? (
+              <ParaSlider
+                label="Start"
+                value={controls.localStartDepthMm}
+                displayedTrackValue={controls.effectiveStartDepthMm}
+                min={0.1}
+                max={100}
+                step={0.1}
+                onChange={(value) => onParamsChange({ startDepthMm: value })}
+                formatValue={formatMmControlValue}
+                disabled={controls.startDepthDriven}
+              />
+            ) : null}
+            {controls.endDepthVisible ? (
+              <ParaSlider
+                label="End"
+                value={controls.localEndDepthMm}
+                displayedTrackValue={controls.effectiveEndDepthMm}
+                min={0.1}
+                max={100}
+                step={0.1}
+                onChange={(value) => onParamsChange({ endDepthMm: value })}
+                formatValue={formatMmControlValue}
+                disabled={controls.endDepthDriven}
+              />
+            ) : null}
+            {controls.taperVisible ? (
+              <ParaSlider
+                label="Taper"
+                value={controls.localTaperAngleDeg}
+                displayedTrackValue={controls.effectiveTaperAngleDeg}
+                min={-45}
+                max={45}
+                step={0.1}
+                onChange={(value) => onParamsChange({ taperAngleDeg: value })}
+                formatValue={formatDegControlValue}
+                disabled={controls.taperDriven}
+              />
+            ) : null}
+          </ViewportCommandPanelControlStack>
+        </ViewportCommandPanelSection>
+      </ViewportCommandPanelBody>
+    </ViewportOverlayToolPanel>
   )
 }
 
@@ -504,9 +816,11 @@ export function ViewerHost(props: ViewerHostProps) {
   const edgeDisplayMode = useUiPrefsStore((state) => state.view.edgeDisplayMode)
   const edgePreset = useUiPrefsStore((state) => state.view.geometryDisplay.edges.preset)
   const viewportStyle = useUiPrefsStore((state) => state.view.viewportStyle)
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
+  const [viewportBoundsVersion, setViewportBoundsVersion] = useState(0)
   const [selectedTopologyEntity, setSelectedTopologyEntity] =
     useState<SelectedTopologyEntity | null>(null)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
@@ -586,6 +900,7 @@ export function ViewerHost(props: ViewerHostProps) {
   const viewportLocalViewState = useWorkspaceStore(
     (state) => state.viewportChromeById[viewportId]?.localViewState ?? null,
   )
+  const setViewportLocalViewState = useWorkspaceStore((state) => state.setViewportLocalViewState)
   const viewportResultMode = useWorkspaceStore((state) =>
     selectViewportResultModeById(state, viewportId),
   )
@@ -634,6 +949,12 @@ export function ViewerHost(props: ViewerHostProps) {
   )
   const acceptExtrudeCommandSession = useSpaghettiStore(
     (state) => state.acceptExtrudeCommandSession,
+  )
+  const setExtrudeCommandParams = useSpaghettiStore(
+    (state) => state.setExtrudeCommandParams,
+  )
+  const setExtrudeCommandSelectedProfileSources = useSpaghettiStore(
+    (state) => state.setExtrudeCommandSelectedProfileSources,
   )
   const activeGeometrySketchNode = useSpaghettiStore((state) => {
     const nodeId = state.geometrySketchSession?.nodeId
@@ -943,6 +1264,33 @@ export function ViewerHost(props: ViewerHostProps) {
     return selectedBySketchNodeId
   }, [extrudeCommandSession?.selectedProfileSources, viewportSelectedSketchProfiles])
 
+  const extrudeCommandGraph = useMemo(
+    () =>
+      extrudeCommandSession === null
+        ? null
+        : graphDocumentsById[extrudeCommandSession.graphDocumentId]?.graph ?? null,
+    [extrudeCommandSession, graphDocumentsById],
+  )
+  const liveExtrudeCommandNode = useMemo<SpaghettiNode | null>(() => {
+    const liveGraph = extrudeCommandSession?.liveGraph ?? null
+    if (extrudeCommandGraph === null || liveGraph === null) {
+      return null
+    }
+    return extrudeCommandGraph.nodes.find(
+      (node) =>
+        node.nodeId === liveGraph.liveExtrudeNodeId &&
+        node.type === 'Geometry/Extrude',
+    ) ?? null
+  }, [extrudeCommandGraph, extrudeCommandSession?.liveGraph])
+  const liveExtrudeCommandIncomingEdges = useMemo<SpaghettiEdge[]>(() => {
+    if (extrudeCommandGraph === null || liveExtrudeCommandNode === null) {
+      return []
+    }
+    return extrudeCommandGraph.edges.filter(
+      (edge) => edge.to.nodeId === liveExtrudeCommandNode.nodeId,
+    )
+  }, [extrudeCommandGraph, liveExtrudeCommandNode])
+
   const geometrySketchOverlay = useMemo<GeometrySketchOverlayVm | null>(() => {
     if (geometrySketchSession === null || activeGeometrySketchNode === null) {
       return null
@@ -1068,15 +1416,20 @@ export function ViewerHost(props: ViewerHostProps) {
     if (
       extrudeCommandSession === null ||
       extrudeCommandSession.activeStep !== 'depth' ||
-      extrudeCommandSession.validation !== 'readyForDepth' ||
-      !Number.isFinite(extrudeCommandSession.depth) ||
-      Math.abs(extrudeCommandSession.depth) < 0.000001
+      extrudeCommandSession.validation !== 'readyForDepth'
     ) {
       return null
     }
 
     const graphDocument = graphDocumentsById[extrudeCommandSession.graphDocumentId]
     if (graphDocument === undefined) {
+      return null
+    }
+    const previewDepthMm =
+      liveExtrudeCommandNode === null
+        ? extrudeCommandSession.depth
+        : buildGeometryExtrudeControlModel({ params: liveExtrudeCommandNode.params }).effectiveDepthMm
+    if (!Number.isFinite(previewDepthMm) || Math.abs(previewDepthMm) < 0.000001) {
       return null
     }
 
@@ -1119,10 +1472,10 @@ export function ViewerHost(props: ViewerHostProps) {
 
     return {
       graphDocumentId: extrudeCommandSession.graphDocumentId,
-      depthMm: extrudeCommandSession.depth,
+      depthMm: previewDepthMm,
       profiles,
     }
-  }, [extrudeCommandSession, graphDocumentsById])
+  }, [extrudeCommandSession, graphDocumentsById, liveExtrudeCommandNode])
 
   const sketchPlanePickOverlay = useMemo<SketchPlanePickOverlayVm | null>(() => {
     if (sketchPlanePickSession === null) {
@@ -2468,8 +2821,35 @@ export function ViewerHost(props: ViewerHostProps) {
     viewerRef.current?.setSketchPlanePickOverlay(sketchPlanePickOverlay)
   }, [sketchPlanePickOverlay])
 
+  useEffect(() => {
+    setViewportBoundsVersion((version) => version + 1)
+  }, [])
+
+  const getViewportToolPanelBounds = useCallback((): ViewportFloatingToolPanelBounds => {
+    const root = rootRef.current
+    const width = root?.clientWidth ?? 0
+    const height = root?.clientHeight ?? 0
+    return {
+      width: width > 0 ? width : typeof window === 'undefined' ? 1280 : window.innerWidth,
+      height: height > 0 ? height : typeof window === 'undefined' ? 720 : window.innerHeight,
+    }
+  }, [viewportBoundsVersion])
+
+  const handleExtrudeToolbarManualPlacementChange = useCallback(
+    (rect: ViewportFloatingToolPanelRect) => {
+      setViewportLocalViewState(viewportId, {
+        commandToolbarPlacementByKey: {
+          ...(viewportLocalViewState?.commandToolbarPlacementByKey ?? {}),
+          extrude: rect,
+        },
+      })
+    },
+    [setViewportLocalViewState, viewportId, viewportLocalViewState?.commandToolbarPlacementByKey],
+  )
+
   return (
     <div
+      ref={rootRef}
       className="ViewportRoot"
       data-build-path-viewport-preview-state={buildPathViewportPreviewRead.status}
       data-build-path-viewport-preview-strategy={buildPathViewportPreviewRead.mappingStrategy}
@@ -2483,7 +2863,14 @@ export function ViewerHost(props: ViewerHostProps) {
       <div className="ViewportCanvasLayer" ref={mountRef} />
       {extrudeCommandSession !== null ? (
         <ExtrudeCommandToolbar
+          commandToolbarPlacementByKey={viewportLocalViewState?.commandToolbarPlacementByKey ?? {}}
+          getBounds={getViewportToolPanelBounds}
           session={extrudeCommandSession}
+          liveNode={liveExtrudeCommandNode}
+          incomingEdges={liveExtrudeCommandIncomingEdges}
+          onManualPlacementChange={handleExtrudeToolbarManualPlacementChange}
+          onParamsChange={setExtrudeCommandParams}
+          onSelectedProfileSourcesChange={setExtrudeCommandSelectedProfileSources}
           onConfirm={acceptExtrudeCommandSession}
           onCancel={cancelExtrudeCommandSession}
         />

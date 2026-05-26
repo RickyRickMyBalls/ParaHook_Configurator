@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+95. 2026-05-25 16:25:46: Marked `Extrude-9 - Command Toolbar Node Control Unification` accepted after the active command toolbar moved from readout-only chips to the shared viewport command-panel shell with ParaSlider and ParaSelect rows backed by live `Geometry/Extrude` node params, reusable Extrude control rules, and focused accept/cancel/preview proof.
 94. 2026-05-25 14:47:06: Linked `Extrude-9 - Command Toolbar Node Control Unification` to the new `Templates/Viewport Command Toolbar Shell` family so the in-viewport Sketch/Transform/Extrude toolbar shell prep is separated from detached/floating app-window shell planning.
 93. 2026-05-25 14:12:59: Added `Extrude-9 - Command Toolbar Node Control Unification` as the next future lane for turning the active Extrude command toolbar from a readout-only `ViewerHost` strip into a ParaSlider and ParaSelect-backed control surface over the same live `Geometry/Extrude` node params used by the Spaghetti editor.
 92. 2026-05-23 17:58:13: Marked `Extrude-8 - Command Flow Console Focus Cleanup` shipped after the Console-owned focus request seam, command-first profile-pick focus handoff, selected-first clean Depth entry, shortcut/camera numeric input proof, focused tests, TypeScript, and production build landed.
@@ -178,7 +179,7 @@ The current dedicated follow-on docs for that stack are:
 - `Extrude-3.3 - Direction Modes And Depth Row Contract`
 - `Extrude-4 - Closed Profile Selection And Consumption Contract`
 - `Extrude-5 - Output Row Standardization And UI Cleanup`
-- `Extrude-9 - Command Toolbar Node Control Unification`
+- `Extrude-9 - Command Toolbar Node Control Unification` accepted
 
 The current `Extrude-3.1` status is:
 - `Phase 3.1-1 - Shared Enum Row Foundation And First Extrude Adoption`

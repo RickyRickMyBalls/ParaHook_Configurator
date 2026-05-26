@@ -20,6 +20,7 @@ import type { WorkspaceViewportSlotId } from './workspaceShellTypes'
 import { WorkspacePanelSplitShell } from './WorkspacePanelSplitShell'
 import { propertiesMaterialsSectionDefinition } from './PropertiesMaterialsSection'
 import { propertiesRenderSectionDefinition } from './PropertiesRenderSection'
+import { FocusedItemList } from '../components/FocusedItemList'
 import {
   buildPropertiesFocusSummary,
   resolvePropertiesShellState,
@@ -590,64 +591,50 @@ export function PropertiesSurface(props: PropertiesSurfaceProps) {
                     {focusedObjectRows.length === 1 ? '' : 's'}
                   </h2>
                 </div>
-                <div
-                  className="PropertiesFocusedItemList"
+                <FocusedItemList
                   role="list"
                   aria-label="Focused material objects"
                   data-properties-focused-object-list="compact"
                   style={focusedObjectListHeightStyle}
-                >
-                  {focusedObjectRows.map((row, rowIndex) => {
+                  items={focusedObjectRows.map((row, rowIndex) => {
                     const isActive = selectedTargetKey === workspaceTargetKey(row.target)
                     const isIncluded = includedFocusedObjectIds.has(row.id)
-                    return (
-                      <div
-                        className={`PropertiesFocusedItemRow ${isActive ? 'isActive' : ''} ${
-                          isIncluded ? 'isIncluded' : ''
-                        }`}
-                        role="listitem"
-                        key={row.id}
-                        data-properties-focused-object-included={isIncluded}
-                      >
-                        <button
-                          type="button"
-                          className="PropertiesFocusedItemIncludeButton"
-                          aria-label={`${isIncluded ? 'Exclude' : 'Include'} ${row.label} from material assignment`}
-                          aria-pressed={isIncluded}
-                          data-properties-focused-object-include={row.id}
-                          onClick={() => handleFocusedObjectIncludedToggle(row.target)}
-                        >
-                          <span aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          className="PropertiesFocusedItemButton"
-                          title={row.id}
-                          aria-pressed={isActive}
-                          data-properties-focused-object-row={row.id}
-                          data-properties-focused-object-active={isActive}
-                          data-properties-focused-object-included={isIncluded}
-                          onClick={() => handleFocusedObjectRowClick(row.target)}
-                        >
-                          <span className="PropertiesFocusedItemIndex">{rowIndex + 1}</span>
-                          <span className="PropertiesFocusedItemCopy">
-                            <strong>{row.label}</strong>
-                            <span>{row.detail}</span>
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          className="PropertiesFocusedItemRemoveButton"
-                          aria-label={`Remove ${row.label} from focused items`}
-                          data-properties-focused-object-remove={row.id}
-                          onClick={() => handleFocusedObjectRemove(row.target)}
-                        >
-                          x
-                        </button>
-                      </div>
-                    )
+                    return {
+                      id: row.id,
+                      label: row.label,
+                      detail: row.detail,
+                      title: row.id,
+                      indexLabel: rowIndex + 1,
+                      active: isActive,
+                      included: isIncluded,
+                      rowDataAttributes: {
+                        'data-properties-focused-object-included': isIncluded,
+                      },
+                      include: {
+                        ariaLabel: `${isIncluded ? 'Exclude' : 'Include'} ${
+                          row.label
+                        } from material assignment`,
+                        onClick: () => handleFocusedObjectIncludedToggle(row.target),
+                        dataAttributes: {
+                          'data-properties-focused-object-include': row.id,
+                        },
+                      },
+                      onClick: () => handleFocusedObjectRowClick(row.target),
+                      contentDataAttributes: {
+                        'data-properties-focused-object-row': row.id,
+                        'data-properties-focused-object-active': isActive,
+                        'data-properties-focused-object-included': isIncluded,
+                      },
+                      remove: {
+                        ariaLabel: `Remove ${row.label} from focused items`,
+                        onClick: () => handleFocusedObjectRemove(row.target),
+                        dataAttributes: {
+                          'data-properties-focused-object-remove': row.id,
+                        },
+                      },
+                    }
                   })}
-                </div>
+                />
                 <div
                   className="PropertiesFocusedItemListResizeHandle"
                   role="separator"

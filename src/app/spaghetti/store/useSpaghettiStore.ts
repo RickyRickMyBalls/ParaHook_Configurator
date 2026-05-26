@@ -447,6 +447,7 @@ const ensureLiveExtrudeCommandGraph = (
         createdExtrudeNodeId: null,
         commandOwnedProfileEdgeIds: [],
         replacedProfileEdges: listIncomingExtrudeProfileEdges(graph, selectedExtrudeNode.nodeId),
+        replacedExtrudeNodeParams: cloneNodeParams(selectedExtrudeNode.params),
       },
     }
   }
@@ -462,6 +463,7 @@ const ensureLiveExtrudeCommandGraph = (
       createdExtrudeNodeId: createdNode.nodeId,
       commandOwnedProfileEdgeIds: [],
       replacedProfileEdges: [],
+      replacedExtrudeNodeParams: null,
     },
   }
 }
@@ -546,16 +548,23 @@ const rollbackLiveExtrudeCommandGraph = (
     (edge) => !existingEdgeIds.has(edge.edgeId) && restoredEdgeIds.has(edge.edgeId),
   )
 
-  return {
+  const restoredGraph = {
     ...graph,
     edges: [...remainingEdges, ...restoredEdges],
   }
+  if (liveGraph.replacedExtrudeNodeParams === null) {
+    return restoredGraph
+  }
+  return replaceGraphNodeParams(
+    restoredGraph,
+    liveGraph.liveExtrudeNodeId,
+    liveGraph.replacedExtrudeNodeParams,
+  )
 }
 
-const writeAcceptedExtrudeCommandParams = (
+const normalizeAcceptedExtrudeCommandParams = (
   graph: SpaghettiGraph,
   liveExtrudeNodeId: string,
-  depthMm: number,
 ): SpaghettiGraph => ({
   ...graph,
   nodes: graph.nodes.map((node) =>
@@ -564,11 +573,38 @@ const writeAcceptedExtrudeCommandParams = (
           ...node,
           params: {
             ...node.params,
-            extrudeType: 'Body',
-            extrudeDirection: 'OneSide',
-            bodyGenerationMode: 'NewObjects',
-            depthMm,
-            taperAngleDeg: 0,
+          },
+        }
+      : node,
+  ),
+})
+
+const readLiveExtrudeCommandDepth = (
+  graph: SpaghettiGraph,
+  liveExtrudeNodeId: string,
+  fallbackDepth: number,
+): number => {
+  const node = graph.nodes.find(
+    (candidate) =>
+      candidate.nodeId === liveExtrudeNodeId && candidate.type === 'Geometry/Extrude',
+  )
+  const depth = node?.params.depthMm
+  return typeof depth === 'number' && Number.isFinite(depth) ? depth : fallbackDepth
+}
+
+const patchLiveExtrudeCommandParams = (
+  graph: SpaghettiGraph,
+  liveExtrudeNodeId: string,
+  params: Record<string, unknown>,
+): SpaghettiGraph => ({
+  ...graph,
+  nodes: graph.nodes.map((node) =>
+    node.nodeId === liveExtrudeNodeId && node.type === 'Geometry/Extrude'
+      ? {
+          ...node,
+          params: {
+            ...node.params,
+            ...params,
           },
         }
       : node,
@@ -954,6 +990,7 @@ export type SpaghettiStoreState = {
   cancelExtrudeCommandSession: () => void
   acceptExtrudeCommandSession: () => GraphCommandCommitSummary
   setExtrudeCommandDepth: (depth: number) => void
+  setExtrudeCommandParams: (params: Record<string, unknown>) => void
   setExtrudeCommandSelectedProfileSources: (
     selectedProfileSources: ExtrudeCommandSession['selectedProfileSources'],
   ) => void
@@ -5184,7 +5221,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
 
       const ensuredLiveGraph = ensureLiveExtrudeCommandGraph(
         targetDocument.graph,
-        options.reuseSelectedExtrudeNode === true ? state.selectedNodeId : null,
+        options.reuseExtrudeNodeId ??
+          (options.reuseSelectedExtrudeNode === true ? state.selectedNodeId : null),
       )
       const initialSelectedProfileSources = options.selectedProfileSources ?? []
       const syncedLiveGraph =
@@ -5195,13 +5233,32 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
               initialSelectedProfileSources,
             )
           : ensuredLiveGraph
-      const nextGraph = normalizeGraphForStoreCommit(syncedLiveGraph.graph)
+      const liveParamGraph =
+        options.depth !== undefined || syncedLiveGraph.liveGraph.createdExtrudeNodeId !== null
+          ? {
+              graph: patchLiveExtrudeCommandParams(
+                syncedLiveGraph.graph,
+                syncedLiveGraph.liveGraph.liveExtrudeNodeId,
+                { depthMm: createdSession.depth },
+              ),
+              liveGraph: syncedLiveGraph.liveGraph,
+            }
+          : syncedLiveGraph
       createdSession = createExtrudeCommandSession({
         ...options,
-        liveGraph: syncedLiveGraph.liveGraph,
+        depth: readLiveExtrudeCommandDepth(
+          liveParamGraph.graph,
+          liveParamGraph.liveGraph.liveExtrudeNodeId,
+          createdSession.depth,
+        ),
+        liveGraph: liveParamGraph.liveGraph,
       })
       return {
-        ...withUpdatedGraphDocumentState(state, options.graphDocumentId, nextGraph),
+        ...withUpdatedGraphDocumentState(
+          state,
+          options.graphDocumentId,
+          normalizeGraphForStoreCommit(liveParamGraph.graph),
+        ),
         extrudeCommandSession: createdSession,
       }
     })
@@ -5275,10 +5332,6 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
         cancel('missing-profile-selection')
         return state
       }
-      if (!Number.isFinite(session.depth) || Math.abs(session.depth) < 0.000001) {
-        cancel('invalid-depth')
-        return state
-      }
 
       const targetDocument = selectGraphDocumentById(state, session.graphDocumentId)
       if (targetDocument === null) {
@@ -5299,12 +5352,20 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
           extrudeCommandSession: null,
         }
       }
+      const commandDepth = readLiveExtrudeCommandDepth(
+        targetDocument.graph,
+        session.liveGraph.liveExtrudeNodeId,
+        session.depth,
+      )
+      if (!Number.isFinite(commandDepth) || Math.abs(commandDepth) < 0.000001) {
+        cancel('invalid-depth')
+        return state
+      }
 
       const acceptedParamsGraph = normalizeGraphForStoreCommit(
-        writeAcceptedExtrudeCommandParams(
+        normalizeAcceptedExtrudeCommandParams(
           targetDocument.graph,
           session.liveGraph.liveExtrudeNodeId,
-          session.depth,
         ),
       )
       const outputPreviewWire = wireAcceptedExtrudeCommandToOutputPreview(
@@ -5374,16 +5435,49 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => {
     if (!Number.isFinite(depth)) {
       return
     }
+    get().setExtrudeCommandParams({ depthMm: depth })
+  },
+  setExtrudeCommandParams: (params) => {
     set((state) => {
       if (state.extrudeCommandSession === null) {
         return state
       }
 
-      return {
-        extrudeCommandSession: setExtrudeCommandSessionDepth(
-          state.extrudeCommandSession,
-          depth,
+      const session = state.extrudeCommandSession
+      if (session.liveGraph === null) {
+        const depth = params.depthMm
+        return {
+          extrudeCommandSession:
+            typeof depth === 'number' && Number.isFinite(depth)
+              ? setExtrudeCommandSessionDepth(session, depth)
+              : session,
+        }
+      }
+
+      const targetDocument = selectGraphDocumentById(state, session.graphDocumentId)
+      if (targetDocument === null) {
+        return state
+      }
+
+      const nextGraph = normalizeGraphForStoreCommit(
+        patchLiveExtrudeCommandParams(
+          targetDocument.graph,
+          session.liveGraph.liveExtrudeNodeId,
+          params,
         ),
+      )
+      const nextDepth = readLiveExtrudeCommandDepth(
+        nextGraph,
+        session.liveGraph.liveExtrudeNodeId,
+        session.depth,
+      )
+      return {
+        ...withUpdatedGraphDocumentState(
+          state,
+          session.graphDocumentId,
+          nextGraph,
+        ),
+        extrudeCommandSession: setExtrudeCommandSessionDepth(session, nextDepth),
       }
     })
   },
